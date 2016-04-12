@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI.Controls;
 
 namespace MonoGame.PortableUI
@@ -14,8 +15,13 @@ namespace MonoGame.PortableUI
 
         public Control Content { get; set; }
 
+        protected internal override void OnDraw(SpriteBatch spriteBatch, Rectangle rect)
+        {
+            base.OnDraw(spriteBatch, rect);
 
-
+            if (BackgroundColor != Color.Transparent)
+                spriteBatch.GraphicsDevice.Clear(BackgroundColor);
+        }
     }
 
     public interface IScreen
