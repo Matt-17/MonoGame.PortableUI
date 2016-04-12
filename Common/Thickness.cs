@@ -1,6 +1,6 @@
 using Microsoft.Xna.Framework;
 
-namespace MonoGame.PortableUI.Controls
+namespace MonoGame.PortableUI.Common
 {
     public class Thickness
     {

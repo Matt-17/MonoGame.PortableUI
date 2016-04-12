@@ -2,9 +2,9 @@ using Microsoft.Xna.Framework;
 
 namespace MonoGame.PortableUI.Controls
 {
-    public class ListView : Control
+    public class ListBox : Control
     {
-        public ListView(Game game) : base(game)
+        public ListBox(Game game) : base(game)
         {
         }
     }
