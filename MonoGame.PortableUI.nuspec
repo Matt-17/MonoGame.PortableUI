@@ -5,7 +5,6 @@
     <version>$version$</version>
     <title>MonoGame.PortableUI</title>
     <authors>Matthias Voigt, Marcus Katscher</authors>
-    <owners>Matthias Voigt</owners>
     <licenseUrl>https://raw.githubusercontent.com/Matt-17/MonoGame.PortableUI/master/LICENSE</licenseUrl>
     <projectUrl>https://github.com/Matt-17/MonoGame.PortableUI/</projectUrl>
     <iconUrl>https://raw.githubusercontent.com/Matt-17/MonoGame.PortableUI/master/icon.png</iconUrl>
@@ -13,14 +12,7 @@
     <description>Framework for MonoGame to easily add an UI.</description>
     <releaseNotes></releaseNotes>
     <copyright>Copyright &#x00A9; Matthias Voigt.  All rights reserved.</copyright>
-    <tags>monogame ui</tags>
-      <dependencies>
-          <group>
-          </group>
-          <group targetFramework="portable-net45+win+wpa81+Xamarin.iOS10+MonoAndroid10+MonoTouch10">
-              <dependency id="MonoGame.Framework.Portable" />
-          </group>
-      </dependencies>
+    <tags>monogame ui</tags>     
   </metadata>      
   <files>
     <file src="bin\$configuration$\MonoGame.PortableUI.dll" target="lib\portable-net45+win+wpa81+Xamarin.iOS10+MonoAndroid10+MonoTouch10\" />
