@@ -41,15 +41,26 @@
     <Compile Include="Controls\ButtonStatus.cs" />
     <Compile Include="Controls\CheckBox.cs" />
     <Compile Include="Controls\CheckedEventArgs.cs" />
+    <Compile Include="Controls\ColumnDefinition.cs" />
     <Compile Include="Controls\ComboBox.cs" />
+    <Compile Include="Controls\ContentAlignment.cs" />
     <Compile Include="Controls\ContentControl.cs" />
     <Compile Include="Controls\Grid.cs" />
     <Compile Include="Common\HelperEx.cs" />
+    <Compile Include="Controls\GridLength.cs" />
+    <Compile Include="Controls\GridLengthUnit.cs" />
+    <Compile Include="Common\HorizontalAlignment.cs" />
     <Compile Include="Controls\Image.cs" />
     <Compile Include="Controls\Length.cs" />
     <Compile Include="Controls\ListView.cs" />
+    <Compile Include="Controls\MultipleParentException.cs" />
+    <Compile Include="Controls\Orientation.cs" />
     <Compile Include="Controls\Panel.cs" />
     <Compile Include="Controls\ProgressIndicator.cs" />
+    <Compile Include="Controls\RowDefinition.cs" />
+    <Compile Include="Controls\TextAlignment.cs" />
+    <Compile Include="Common\VerticalAlignment.cs" />
+    <Compile Include="Screen.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Controls\RadioButton.cs" />
     <Compile Include="Controls\Rect.cs" />
@@ -60,9 +71,10 @@
     <Compile Include="Controls\TermBox.cs" />
     <Compile Include="Controls\TextBlock.cs" />
     <Compile Include="Controls\TextBox.cs" />
-    <Compile Include="Controls\Thickness.cs" />
+    <Compile Include="Common\Thickness.cs" />
     <Compile Include="Controls\ToggleButton.cs" />
     <Compile Include="Controls\Control.cs" />
+    <Compile Include="ScreenEngine.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="MonoGame.Framework, Version=3.1.2.0, Culture=neutral, processorArchitecture=MSIL">
@@ -72,6 +84,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Component\" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Portable\$(TargetFrameworkVersion)\Microsoft.Portable.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
