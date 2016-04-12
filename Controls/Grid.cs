@@ -123,26 +123,4 @@ namespace MonoGame.PortableUI.Controls
             }
         }
     }
-
-    public class ColumnDefinition
-    {
-        public GridLength Width { get; set; }
-    }
-
-    public class RowDefinition
-    {
-        public GridLength Height { get; set; }
-    }
-
-    public struct GridLength
-    {
-        public GridLengthUnit Unit { get; set; }  
-
-        public float Pixels { get; set; }
-    }
-
-    public enum GridLengthUnit
-    {
-        Auto, Absolute, Relative
-    }
 }

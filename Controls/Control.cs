@@ -21,7 +21,7 @@ namespace MonoGame.PortableUI.Controls
             IsEnabled = true;
             IsVisible = true;
             Parent = null;
-            Scale = new Vector2();
+            Scale = new Vector2(1, 1);
             Translation = new Vector2();
             Margin = new Thickness(0);
 
@@ -288,19 +288,5 @@ namespace MonoGame.PortableUI.Controls
             Right,
             Stretch
         }
-    }
-
-    public class MultipleParentException : Exception
-    {
-    }
-
-    public enum VerticalAlignment
-    {
-        Top, Center, Bottom, Stretch
-    }
-
-    public enum HorizontalAlignment
-    {
-        Left, Center, Right, Stretch
     }
 }

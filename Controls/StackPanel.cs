@@ -182,21 +182,4 @@ namespace MonoGame.PortableUI.Controls
             WrapContent = -1
         }
     }
-
-    [Flags]
-    public enum ContentAlignment
-    {
-        Left = 0,
-        Right = 1,
-        Top = 2,
-        Bottom = 4,
-        CenterHorizontal = 8,
-        CenterVertical = 16
-    }
-
-    public enum Orientation
-    {
-        Horizontal,
-        Vertical
-    }
 }

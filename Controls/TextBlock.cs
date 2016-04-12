@@ -4,13 +4,6 @@ using MonoGame.PortableUI.Common;
 
 namespace MonoGame.PortableUI.Controls
 {
-    public enum TextAlignment
-    {
-        Left,
-        Center,
-        Right
-    }
-
     public class TextBlock : Control
     {
         public TextAlignment TextAlignment { get; set; }
