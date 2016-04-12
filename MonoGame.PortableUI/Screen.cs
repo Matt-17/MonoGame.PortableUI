@@ -22,7 +22,9 @@ namespace MonoGame.PortableUI
         {
             if (BackgroundColor != Color.Transparent)
                 spriteBatch.GraphicsDevice.Clear(BackgroundColor);
+            spriteBatch.Begin();
             Content.Draw(spriteBatch);
+            spriteBatch.End();
         }
 
         public void Update(TimeSpan elapsed)

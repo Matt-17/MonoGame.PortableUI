@@ -8,15 +8,14 @@ namespace MonoGame.PortableUI
 {
     public class ScreenEngine
     {
-        private static ScreenManager _manager;
-
+        private static ScreenManager _manager;  
 
         internal static ScreenManager Manager
         {
             get
             {
                 if (_manager == null)
-                    throw new TypeInitializationException("ScreenEngine", new ArgumentNullException("Game"));
+                    throw new TypeInitializationException("ScreenEngine", new ArgumentNullException());
                 return _manager;
             }
         }
@@ -24,16 +23,23 @@ namespace MonoGame.PortableUI
         public static void Initialize(Game game)
         {                       
             _manager = new ScreenManager(game);
-            game.Components.Add(_manager);        
+            GraphicsDevice = game.GraphicsDevice;
+            game.Components.Add(Manager);
+
+            Manager.Initialize();
         }
 
+        internal static GraphicsDevice GraphicsDevice { get; private set; }
 
-        public static void NavigateToScreen()
+
+        public static void NavigateToScreen<T>(T screen) where T : Screen
         {
+            Manager.NavigateToScreen(screen);
         }
 
         public static void NavigateBack()
         {
+            Manager.NavigateBack();
         }
 
     }
@@ -43,25 +49,26 @@ namespace MonoGame.PortableUI
     {
         public Screen ActiveScreen
         {
-            get { return _screenHistory.Peek(); }
+            get { return ScreenHistory.Peek(); }
         }
-        private readonly Stack<Screen> _screenHistory;
+
+        public Stack<Screen> ScreenHistory { get; }
         private SpriteBatch _spriteBatch;
 
         internal ScreenManager(Game game) : base(game)
         {
-            _screenHistory = new Stack<Screen>();
+            ScreenHistory = new Stack<Screen>();
         }
 
         public override void Initialize()
         {
             base.Initialize();
+            _spriteBatch = new SpriteBatch(GraphicsDevice);
         }
 
         protected override void LoadContent()
         {
             base.LoadContent();
-            _spriteBatch = new SpriteBatch(GraphicsDevice);
         }
 
         protected override void UnloadContent()
@@ -97,7 +104,12 @@ namespace MonoGame.PortableUI
         {
             screen.ScreenEngine = this;
 
-            _screenHistory.Push(screen);
+            ScreenHistory.Push(screen);
+        }
+
+        public void NavigateBack()
+        {
+            ScreenHistory.Pop();
         }
     }
 }
