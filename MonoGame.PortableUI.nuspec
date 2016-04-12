@@ -15,6 +15,13 @@
     <copyright>Copyright &#x00A9; Matthias Voigt.  All rights reserved.</copyright>
     <tags>monogame ui</tags>
   </metadata>
+  <dependencies>
+      <group>
+      </group>
+      <group targetFramework="portable-net45+win+wpa81+Xamarin.iOS10+MonoAndroid10+MonoTouch10">
+          <dependency id="MonoGame.Framework.Portable" />
+      </group>
+  </dependencies>
   <files>
     <file src="bin\$configuration$\MonoGame.PortableUI.dll" target="lib\portable-net45+win+wpa81+Xamarin.iOS10+MonoAndroid10+MonoTouch10\" />
   </files>
