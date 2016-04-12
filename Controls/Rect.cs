@@ -3,7 +3,7 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace MonoGame.PortableUI.Controls
 {
-    public class Rect : UIControl
+    public class Rect : Control
     {
 
         public Rect(Game game) : base (game)

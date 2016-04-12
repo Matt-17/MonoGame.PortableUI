@@ -3,11 +3,11 @@ using Microsoft.Xna.Framework;
 
 namespace MonoGame.PortableUI.Controls
 {
-    public abstract class ContentControl : UIControl
+    public abstract class ContentControl : Control
     {
-        private UIControl _child;
+        private Control _child;
 
-        public UIControl Child
+        public Control Child
         {
             get { return _child; }
             set
