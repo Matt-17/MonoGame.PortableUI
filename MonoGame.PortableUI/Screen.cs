@@ -5,7 +5,7 @@ using MonoGame.PortableUI.Controls;
 
 namespace MonoGame.PortableUI
 {
-    public abstract class Screen 
+    public abstract class Screen
     {
         protected Screen()
         {
@@ -28,7 +28,7 @@ namespace MonoGame.PortableUI
         }
 
         public void Update(TimeSpan elapsed)
-        {                           
+        {
             Content.Update(elapsed);
         }
     }

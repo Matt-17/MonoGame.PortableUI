@@ -51,7 +51,6 @@
     <Compile Include="Common\GridLengthUnit.cs" />
     <Compile Include="Common\HorizontalAlignment.cs" />
     <Compile Include="Controls\Image.cs" />
-    <Compile Include="Common\Length.cs" />
     <Compile Include="Controls\ListBox.cs" />
     <Compile Include="Common\MultipleParentException.cs" />
     <Compile Include="Common\Orientation.cs" />
@@ -78,6 +77,7 @@
     <Compile Include="Controls\ToggleButton.cs" />
     <Compile Include="Controls\Control.cs" />
     <Compile Include="ScreenEngine.cs" />
+    <Compile Include="ScreenManager.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="MonoGame.Framework, Version=3.1.2.0, Culture=neutral, processorArchitecture=MSIL">

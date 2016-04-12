@@ -23,7 +23,7 @@ namespace MonoGame.PortableUI.Controls
             get { return _font.MeasureString(Text).X; }
         }
 
-        public TextBlock(Game game):base(game)
+        public TextBlock(Game game) : base(game)
         {
             _font = game.Content.Load<SpriteFont>(@"Fonts/Segoe-light-14");
             TextColor = Color.Black;
@@ -37,7 +37,7 @@ namespace MonoGame.PortableUI.Controls
 
             var f = (HorizontalAlignment == HorizontalAlignment.Stretch ? rect.Width : Width) - TextWidth;
             if (TextAlignment == TextAlignment.Center)
-                position.X += f/2;
+                position.X += f / 2;
             else if (TextAlignment == TextAlignment.Right)
                 position.X += f;
 
