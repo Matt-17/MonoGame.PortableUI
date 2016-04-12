@@ -4,9 +4,9 @@ namespace MonoGame.PortableUI.Animation
 {
     public static class AnimationExtension
     {
-        public static Animation Animate(this UIControl uiControl)
+        public static Animation Animate(this Control _control)
         {
-            return new Animation(uiControl);
+            return new Animation(_control);
         }
     }
 }

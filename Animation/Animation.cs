@@ -4,13 +4,13 @@ namespace MonoGame.PortableUI.Animation
 {
     public class Animation
     {
-        private UIControl uiControl;
+        private Control _control;
 
 
 
-        internal Animation(UIControl uiControl)
+        internal Animation(Control _control)
         {
-            this.uiControl = uiControl;
+            this._control = _control;
         }
 
         public void Scale(double scaleTo)

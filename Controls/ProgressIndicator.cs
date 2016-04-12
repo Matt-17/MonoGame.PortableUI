@@ -2,7 +2,7 @@
 
 namespace MonoGame.PortableUI.Controls
 {
-    public class ProgressIndicator : UIControl
+    public class ProgressIndicator : Control
     {
         public ProgressIndicator(Game game) : base(game)
         {

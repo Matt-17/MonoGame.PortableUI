@@ -7,13 +7,13 @@ using MonoGame.PortableUI.Common;
 
 namespace MonoGame.PortableUI.Controls
 {
-    public abstract class UIControl
+    public abstract class Control
     {
         public static int WrapContent = -1;
 
         protected Game Game;
         protected SpriteBatch _batch;
-        protected UIControl(Game game)
+        protected Control(Game game)
         {
             SnapToPixel = true;
             Game = game;
@@ -22,7 +22,7 @@ namespace MonoGame.PortableUI.Controls
             IsVisible = true;
             Parent = null;
             Scale = new Vector2();
-            Translation = new Vector();
+            Translation = new Vector2();
             Margin = new Thickness(0);
 
             BackgroundTexture = new Texture2D(Game.GraphicsDevice, 1, 1);
@@ -50,7 +50,7 @@ namespace MonoGame.PortableUI.Controls
 
         #endregion
 
-        public UIControl Parent
+        public Control Parent
 
         {
             get { return _parent; }
@@ -80,7 +80,7 @@ namespace MonoGame.PortableUI.Controls
         public Rect Rect { get; set; }
 
         public Vector2 Scale { get; set; }
-        public Vector Translation { get; set; }
+        public Vector2 Translation { get; set; }
 
         public Color BackgroundColor { get; set; }
 
@@ -103,7 +103,7 @@ namespace MonoGame.PortableUI.Controls
         private Point? _lastTouchPosition;
         private bool _ignoreTouch;
         private bool _lastMouseButtonRightState;
-        private UIControl _parent;
+        private Control _parent;
 
         private void HandleMouse(Rectangle rect)
         {

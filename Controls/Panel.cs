@@ -3,11 +3,11 @@ using Microsoft.Xna.Framework;
 
 namespace MonoGame.PortableUI.Controls
 {
-    public abstract class Panel : UIControl
+    public abstract class Panel : Control
     {
-        private List<UIControl> _children;
+        private List<Control> _children;
 
-        protected List<UIControl> Children
+        protected List<Control> Children
         {
             get { return _children; }
             set { _children = value; }
@@ -16,16 +16,16 @@ namespace MonoGame.PortableUI.Controls
 
         public Panel(Game game) : base(game)
         {
-            _children = new List<UIControl>();
+            _children = new List<Control>();
         }
 
-        public void AddChild(UIControl child)
+        public void AddChild(Control child)
         {
             child.Parent = this;
             _children.Add(child);
         }
 
-        public void RemoveChild(UIControl child)
+        public void RemoveChild(Control child)
         {
             child.Parent = null;
             _children.Remove(child);

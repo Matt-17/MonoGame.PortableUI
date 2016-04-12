@@ -85,7 +85,7 @@ namespace MonoGame.PortableUI.Controls
             return rect;
         }
 
-        private Rectangle CreateChildRect(float x, float y, UIControl child)
+        private Rectangle CreateChildRect(float x, float y, Control child)
         {
             Rectangle childRect;
 

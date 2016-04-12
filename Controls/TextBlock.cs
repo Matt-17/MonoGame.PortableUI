@@ -11,7 +11,7 @@ namespace MonoGame.PortableUI.Controls
         Right
     }
 
-    public class TextBlock : UIControl
+    public class TextBlock : Control
     {
         public TextAlignment TextAlignment { get; set; }
 

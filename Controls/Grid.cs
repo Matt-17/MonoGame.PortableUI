@@ -18,9 +18,9 @@ namespace MonoGame.PortableUI.Controls
         public List<RowDefinition> RowDefinitions { get; set; }
         public List<ColumnDefinition> ColumnDefinitions { get; set; }
 
-        private static readonly Dictionary<UIControl, GridPosition> ControlGridPositionDictionary = new Dictionary<UIControl, GridPosition>();
+        private static readonly Dictionary<Control, GridPosition> ControlGridPositionDictionary = new Dictionary<Control, GridPosition>();
 
-        private static GridPosition GetGridPosition(UIControl control)
+        private static GridPosition GetGridPosition(Control control)
         {
             GridPosition gridPosition = new GridPosition();
             if (ControlGridPositionDictionary.ContainsKey(control))
@@ -28,7 +28,7 @@ namespace MonoGame.PortableUI.Controls
             return gridPosition;
         }
 
-        public static void SetRow(UIControl control, int row)
+        public static void SetRow(Control control, int row)
         {
             var gridPosition = GetGridPosition(control);
             gridPosition.Row = row;
@@ -36,38 +36,38 @@ namespace MonoGame.PortableUI.Controls
         }
 
 
-        public static void SetColumn(UIControl control, int column)
+        public static void SetColumn(Control control, int column)
         {
             var gridPosition = GetGridPosition(control);
             gridPosition.Column = column;
             ControlGridPositionDictionary[control] = gridPosition;
         }
-        public static void SetRowSpan(UIControl control, int rowSpan)
+        public static void SetRowSpan(Control control, int rowSpan)
         {
             var gridPosition = GetGridPosition(control);
             gridPosition.RowSpan = rowSpan;
             ControlGridPositionDictionary[control] = gridPosition;
         }
-        public static void SetColumnSpan(UIControl control, int columnSpan)
+        public static void SetColumnSpan(Control control, int columnSpan)
         {
             var gridPosition = GetGridPosition(control);
             gridPosition.ColumnSpan = columnSpan;
             ControlGridPositionDictionary[control] = gridPosition;
         }
 
-        public static int GetRow(UIControl control)
+        public static int GetRow(Control control)
         {
             return GetGridPosition(control).Row;
         }
-        public static int GetColumn(UIControl control)
+        public static int GetColumn(Control control)
         {
             return GetGridPosition(control).Column;
         }
-        public static int GetRowSpan(UIControl control)
+        public static int GetRowSpan(Control control)
         {
             return GetGridPosition(control).RowSpan;
         }
-        public static int GetColumnSpan(UIControl control)
+        public static int GetColumnSpan(Control control)
         {
             return GetGridPosition(control).ColumnSpan;
         }
@@ -76,7 +76,7 @@ namespace MonoGame.PortableUI.Controls
         {
         }
 
-        public void AddChild(UIControl child, int row = 0, int column = 0, int rowSpan = 0, int columnSpan = 0)
+        public void AddChild(Control child, int row = 0, int column = 0, int rowSpan = 0, int columnSpan = 0)
         {
             base.AddChild(child);
             SetRow(child, row);

@@ -62,8 +62,7 @@
     <Compile Include="Controls\TextBox.cs" />
     <Compile Include="Controls\Thickness.cs" />
     <Compile Include="Controls\ToggleButton.cs" />
-    <Compile Include="Controls\UIControl.cs" />
-    <Compile Include="Common\Vector.cs" />
+    <Compile Include="Controls\Control.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="MonoGame.Framework, Version=3.1.2.0, Culture=neutral, processorArchitecture=MSIL">
