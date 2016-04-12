@@ -34,10 +34,45 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <!-- A reference to the entire .NET Framework is automatically included -->
+    <Compile Include="Animation\Animation.cs" />
+    <Compile Include="Animation\AnimationExtension.cs" />
+    <Compile Include="Controls\Border.cs" />
+    <Compile Include="Controls\Button.cs" />
+    <Compile Include="Controls\ButtonStatus.cs" />
+    <Compile Include="Controls\CheckBox.cs" />
+    <Compile Include="Controls\CheckedEventArgs.cs" />
+    <Compile Include="Controls\ComboBox.cs" />
+    <Compile Include="Controls\ContentControl.cs" />
+    <Compile Include="Controls\Grid.cs" />
+    <Compile Include="Common\HelperEx.cs" />
+    <Compile Include="Controls\Image.cs" />
+    <Compile Include="Controls\Length.cs" />
+    <Compile Include="Controls\ListView.cs" />
+    <Compile Include="Controls\Panel.cs" />
+    <Compile Include="Controls\ProgressIndicator.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Controls\RadioButton.cs" />
+    <Compile Include="Controls\Rect.cs" />
+    <Compile Include="Controls\ScrollView.cs" />
+    <Compile Include="Common\Size.cs" />
+    <Compile Include="Controls\StackPanel.cs" />
+    <Compile Include="Controls\TermBlock.cs" />
+    <Compile Include="Controls\TermBox.cs" />
+    <Compile Include="Controls\TextBlock.cs" />
+    <Compile Include="Controls\TextBox.cs" />
+    <Compile Include="Controls\Thickness.cs" />
+    <Compile Include="Controls\ToggleButton.cs" />
+    <Compile Include="Controls\UIControl.cs" />
+    <Compile Include="Common\Vector.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Reference Include="MonoGame.Framework, Version=3.1.2.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\MonoGame.Framework.Portable.3.2.99.1-Beta\lib\portable-net45+win+wpa81+Xamarin.iOS10+MonoAndroid10+MonoTouch10\MonoGame.Framework.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Portable\$(TargetFrameworkVersion)\Microsoft.Portable.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
