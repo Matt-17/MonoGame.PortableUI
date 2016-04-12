@@ -5,9 +5,9 @@ using MonoGame.PortableUI.Controls;
 
 namespace MonoGame.PortableUI
 {
-    public class Screen : IScreen
+    public abstract class Screen 
     {
-        public Screen()
+        protected Screen()
         {
             BackgroundColor = Color.Transparent;
         }
@@ -28,9 +28,5 @@ namespace MonoGame.PortableUI
         {
             
         }
-    }
-
-    public interface IScreen
-    {
     }
 }
