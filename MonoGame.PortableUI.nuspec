@@ -15,6 +15,6 @@
     <tags>monogame ui</tags>     
   </metadata>      
   <files>
-    <file src="bin\$configuration$\MonoGame.PortableUI.dll" target="lib\portable-net45+win+wpa81+Xamarin.iOS10+MonoAndroid10+MonoTouch10\" />
+    <file src="MonoGame.PortableUI\bin\$configuration$\MonoGame.PortableUI.dll" target="lib\portable-net45+win+wpa81+Xamarin.iOS10+MonoAndroid10+MonoTouch10\" />
   </files>
 </package>
