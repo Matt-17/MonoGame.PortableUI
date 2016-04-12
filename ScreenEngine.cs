@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 
 namespace MonoGame.PortableUI
 {
@@ -12,11 +13,13 @@ namespace MonoGame.PortableUI
             get { return _screenHistory.Peek(); }
         }
         private readonly Stack<Screen> _screenHistory;
+        private SpriteBatch _spriteBatch;
 
-        public static ScreenEngine InitializeScreenEngine(Game game)
+        public static ScreenEngine Initialize(Game game)
         {
             var engine = new ScreenEngine(game);
             game.Components.Add(engine);
+            engine.LoadContent();
             return engine;
         }
 
@@ -33,6 +36,7 @@ namespace MonoGame.PortableUI
         protected override void LoadContent()
         {
             base.LoadContent();
+            _spriteBatch = new SpriteBatch(GraphicsDevice);
         }
 
         protected override void UnloadContent()
@@ -43,6 +47,7 @@ namespace MonoGame.PortableUI
         public override void Draw(GameTime gameTime)
         {
             base.Draw(gameTime);
+            ActiveScreen.Draw(_spriteBatch);
         }
 
         protected override void OnVisibleChanged(object sender, EventArgs args)
@@ -58,6 +63,9 @@ namespace MonoGame.PortableUI
         public override void Update(GameTime gameTime)
         {
             base.Update(gameTime);
+
+            var elapsed = gameTime.ElapsedGameTime;
+            ActiveScreen.Update(elapsed);
         }
 
         public void NavigateToScreen<TScreen>(TScreen screen) where TScreen : Screen

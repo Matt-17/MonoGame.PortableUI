@@ -7,11 +7,14 @@ namespace MonoGame.PortableUI
     {
         public Screen(Game game) : base(game)
         {
+            BackgroundColor = Color.Transparent;
         }
 
         internal ScreenEngine ScreenEngine { get; set; }
 
         public Control Content { get; set; }
+
+
 
     }
 
