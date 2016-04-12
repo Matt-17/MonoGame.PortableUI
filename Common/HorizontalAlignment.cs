@@ -1,4 +1,4 @@
-﻿namespace MonoGame.PortableUI.Controls
+﻿namespace MonoGame.PortableUI.Common
 {
     public enum HorizontalAlignment
     {

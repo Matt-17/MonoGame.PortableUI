@@ -14,7 +14,7 @@ namespace MonoGame.PortableUI
 
         public Color BackgroundColor { get; set; }
 
-        internal ScreenEngine ScreenEngine { get; set; }
+        internal ScreenManager ScreenEngine { get; set; }
 
         public Control Content { get; set; }
 
@@ -22,11 +22,12 @@ namespace MonoGame.PortableUI
         {
             if (BackgroundColor != Color.Transparent)
                 spriteBatch.GraphicsDevice.Clear(BackgroundColor);
+            Content.Draw(spriteBatch);
         }
 
         public void Update(TimeSpan elapsed)
-        {
-            
+        {                           
+            Content.Update(elapsed);
         }
     }
 }

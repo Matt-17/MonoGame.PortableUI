@@ -6,7 +6,40 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace MonoGame.PortableUI
 {
-    public class ScreenEngine : DrawableGameComponent
+    public class ScreenEngine
+    {
+        private static ScreenManager _manager;
+
+
+        internal static ScreenManager Manager
+        {
+            get
+            {
+                if (_manager == null)
+                    throw new TypeInitializationException("ScreenEngine", new ArgumentNullException("Game"));
+                return _manager;
+            }
+        }
+
+        public static void Initialize(Game game)
+        {                       
+            _manager = new ScreenManager(game);
+            game.Components.Add(_manager);        
+        }
+
+
+        public static void NavigateToScreen()
+        {
+        }
+
+        public static void NavigateBack()
+        {
+        }
+
+    }
+
+
+    internal class ScreenManager : DrawableGameComponent
     {
         public Screen ActiveScreen
         {
@@ -15,15 +48,7 @@ namespace MonoGame.PortableUI
         private readonly Stack<Screen> _screenHistory;
         private SpriteBatch _spriteBatch;
 
-        public static ScreenEngine Initialize(Game game)
-        {
-            var engine = new ScreenEngine(game);
-            game.Components.Add(engine);
-            engine.LoadContent();
-            return engine;
-        }
-
-        private ScreenEngine(Game game) : base(game)
+        internal ScreenManager(Game game) : base(game)
         {
             _screenHistory = new Stack<Screen>();
         }
