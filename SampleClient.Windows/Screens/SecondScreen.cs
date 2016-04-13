@@ -11,7 +11,7 @@ namespace SampleClient.Screens
         public SecondScreen()
         {
             BackgroundColor = Color.LimeGreen;
-            var button = new Button(SampleGame.GameInstance)
+            var button = new Button()
             {
                 Width = 240,
                 Height = 50,
@@ -21,13 +21,13 @@ namespace SampleClient.Screens
             };
             button.Click += Button_Click;
 
-            var stackPanel = new StackPanel(SampleGame.GameInstance) { };
+            var stackPanel = new StackPanel();
             stackPanel.AddChild(button);
-            button = new Button(SampleGame.GameInstance)
+            button = new Button()
             {
                 Width = 240,
                 Height = 50,
-               Margin = new Thickness(5),
+                Margin = new Thickness(5),
                 BackgroundColor = Color.DarkRed,
                 Text = "Back to Screen 1"
             };

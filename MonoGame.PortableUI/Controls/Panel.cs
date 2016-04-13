@@ -14,7 +14,7 @@ namespace MonoGame.PortableUI.Controls
         }
 
 
-        public Panel(Game game) : base()
+        public Panel() 
         {
             _children = new List<Control>();
         }

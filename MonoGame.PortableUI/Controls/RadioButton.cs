@@ -14,9 +14,9 @@ namespace MonoGame.PortableUI.Controls
             get { return _radioGroup; }
             set
             {
-                RemoveFromList(_radioGroup, this);
+                RadioButton.RemoveFromList(_radioGroup, this);
                 _radioGroup = value;
-                AddToList(_radioGroup, this);
+                RadioButton.AddToList(_radioGroup, this);
             }
         }
 
@@ -54,14 +54,10 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
-        public RadioButton(Game game) : base(game)
+        protected override void OnChecked(bool e)
         {
-            Checked += RadioButton_Checked;
-        }
-
-        private void RadioButton_Checked(object sender, CheckedEventArgs e)
-        {
-            SetGroupChecked(RadioGroup, this);
+            base.OnChecked(e);
+            RadioButton.SetGroupChecked(RadioGroup, this);
         }
     }
 }

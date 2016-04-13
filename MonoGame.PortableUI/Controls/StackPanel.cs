@@ -13,10 +13,6 @@ namespace MonoGame.PortableUI.Controls
         public Thickness Padding { get; set; }
         public ContentAlignment ContentAlignment { get; set; }
 
-        public StackPanel(Game game) : base(game)
-        {
-        }
-
         protected internal override void OnUpdate(TimeSpan elapsed, Rectangle rect)
         {
             rect = CreateRect(rect);
@@ -31,7 +27,6 @@ namespace MonoGame.PortableUI.Controls
                 Rectangle childRect = CreateChildRect(x, y, child);
 
                 child.OnUpdate(elapsed, childRect);
-
 
                 x += child.MeasuredWidth;
                 y += child.MeasuredHeight;

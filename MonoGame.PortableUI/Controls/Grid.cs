@@ -72,11 +72,7 @@ namespace MonoGame.PortableUI.Controls
         {
             return GetGridPosition(control).ColumnSpan;
         }
-
-        public Grid(Game game) : base(game)
-        {
-        }
-
+        
         public void AddChild(Control child, int row = 0, int column = 0, int rowSpan = 0, int columnSpan = 0)
         {
             base.AddChild(child);

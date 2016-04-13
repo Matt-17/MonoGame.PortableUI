@@ -1,15 +1,30 @@
 using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Input;
 using MonoGame.PortableUI.Common;
 
 namespace MonoGame.PortableUI.Controls
 {
     /// <summary>
-    /// 9-Tile Button 
+    ///     9-Tile Button
     /// </summary>
     public class Button : ContentControl
     {
+        private bool _lastMouseHover;
+        private bool _leftMouseButtonDown;
+
+        private bool _mouseHover;
+        private bool _mouseRightButtonDown;
+        private bool _touch;
+
+        protected Color CurrentBackgroundColor;
+
+        public Button()
+        {
+            Padding = new Thickness(8);
+        }
+
         public ButtonStatus Status { get; set; }
 
         public string Text
@@ -31,47 +46,70 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
-        private bool _mouseHover;
-        private bool _leftMouseButtonDown;
-        private bool _mouseRightButtonDown;
-
-        public Button(Game game) : base(game)
+        protected override void OnMouseEnter()
         {
-            MouseEnter += (sender, e) => _mouseHover = true;
-            MouseLeave += (sender, e) => _mouseHover = false;
-            MouseLeftDown += (sender, e) => _leftMouseButtonDown = true;
-            MouseLeftUp += (sender, e) =>
-            {
-                _leftMouseButtonDown = false;
-                if (Status == ButtonStatus.Pressed)
-                    OnClick();
-            };
-            MouseRightDown += (sender, e) => _mouseRightButtonDown = true;
-            MouseRightUp += (sender, e) =>
-            {
-                if (_mouseRightButtonDown)
-                    OnRightClick();
-                _mouseRightButtonDown = false;
-            };
-            TouchDown += (sender, e) => _touch = true;
-            TouchCancel += (sender, e) => _touch = false;
-            TouchUp += (sender, e) =>
-            {
-                _touch = false;
-                OnClick();
-            };
-
+            base.OnMouseEnter();
+            _mouseHover = true;
         }
 
-        private bool _lastMouseHover;
+        protected override void OnMouseLeave()
+        {
+            base.OnMouseLeave();
+            _mouseHover = false;
+        }
+
+        protected override void OnMouseLeftDown()
+        {
+            base.OnMouseLeftDown();
+            _leftMouseButtonDown = true;
+        }
+
+        protected override void OnMouseLeftUp()
+        {
+            base.OnMouseLeftUp();
+            _leftMouseButtonDown = false;
+            if (Status == ButtonStatus.Pressed)
+                OnClick();
+        }
+
+        protected override void OnMouseRightDown()
+        {
+            base.OnMouseRightDown();
+            _mouseRightButtonDown = true;
+        }
+
+        protected override void OnMouseRightUp()
+        {
+            base.OnMouseRightUp();
+            if (_mouseRightButtonDown)
+                OnRightClick();
+            _mouseRightButtonDown = false;
+        }
+
+        protected override void OnTouchDown()
+        {
+            base.OnTouchDown();
+            _touch = true;
+        }
+
+        protected override void OnTouchUp()
+        {
+            base.OnTouchUp();
+            _touch = false;
+            OnClick();
+        }
+
+        protected override void OnTouchCancel()
+        {
+            base.OnTouchCancel();
+            _touch = false;
+        }
 
         public event EventHandler Click;
         public event EventHandler RightClick;
-        private bool _touch;
 
         protected internal override void OnUpdate(TimeSpan elapsed, Rectangle rect)
         {
-
             // if center
             if (_touch || _mouseHover && _leftMouseButtonDown && _lastMouseHover)
                 Status = ButtonStatus.Pressed;
@@ -108,8 +146,6 @@ namespace MonoGame.PortableUI.Controls
 
             Child?.OnUpdate(elapsed, rect - Padding);
         }
-
-        protected Color CurrentBackgroundColor;
 
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rectangle rect)
         {
