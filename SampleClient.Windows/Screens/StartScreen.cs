@@ -9,7 +9,7 @@ namespace SampleClient.Screens
         public StartScreen()
         {
             BackgroundColor = Color.CornflowerBlue;
-            var button = new Button(SampleGame.GameInstance)
+            var button = new Button()
             {
                 Width = 240,
                 Height = 50,

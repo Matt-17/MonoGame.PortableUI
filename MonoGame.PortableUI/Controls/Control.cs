@@ -10,7 +10,14 @@ namespace MonoGame.PortableUI.Controls
     public abstract class Control
     {
         public static int WrapContent = -1;
-        
+        private bool _ignoreTouch;
+        private bool _lastMouseButtonRightState;
+        private bool _lastMouseButtonState;
+
+        private Point? _lastMousePosition;
+        private Point? _lastTouchPosition;
+        private Control _parent;
+
         protected Control()
         {
             SnapToPixel = true;
@@ -27,31 +34,16 @@ namespace MonoGame.PortableUI.Controls
             VerticalAlignment = VerticalAlignment.Stretch;
         }
 
-
-        #region Events
-
-        public event EventHandler MouseEnter;
-        public event EventHandler MouseLeave;
-        public event EventHandler MouseMove;
-        public event EventHandler MouseLeftDown;
-        public event EventHandler MouseRightDown;
-        public event EventHandler MouseLeftUp;
-        public event EventHandler MouseRightUp;
-        public event EventHandler TouchDown;
-        public event EventHandler TouchUp;
-        public event EventHandler TouchMove;
-        public event EventHandler TouchCancel;
-
-        #endregion
-
         public Control Parent
 
         {
             get { return _parent; }
-            set {
+            set
+            {
                 if (_parent != null && value != null)
-                        throw new MultipleParentException();
-                _parent = value; }
+                    throw new MultipleParentException();
+                _parent = value;
+            }
         }
 
         public float Left { get; set; }
@@ -66,7 +58,7 @@ namespace MonoGame.PortableUI.Controls
 
         public float MeasuredWidth
         {
-            get { return (float)(Width + Margin.Left + Margin.Right); }
+            get { return (float) (Width + Margin.Left + Margin.Right); }
         }
 
         public Thickness Margin { get; set; }
@@ -82,20 +74,16 @@ namespace MonoGame.PortableUI.Controls
         public bool IsVisible { get; set; }
         public bool IsEnabled { get; set; }
 
+        public HorizontalAlignment HorizontalAlignment { get; set; }
+        public VerticalAlignment VerticalAlignment { get; set; }
+
+        private Rectangle boundingRect => new Rectangle((int) Left, (int) Top, (int) Width, (int) Height);
+        public bool SnapToPixel { get; set; }
+
         public void Update(TimeSpan elapsed)
         {
             OnUpdate(elapsed, boundingRect);
         }
-
-        public HorizontalAlignment HorizontalAlignment { get; set; }
-        public VerticalAlignment VerticalAlignment { get; set; }
-
-        private Point? _lastMousePosition;
-        private bool _lastMouseButtonState;
-        private Point? _lastTouchPosition;
-        private bool _ignoreTouch;
-        private bool _lastMouseButtonRightState;
-        private Control _parent;
 
         private void HandleMouse(Rectangle rect)
         {
@@ -205,9 +193,6 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
-        Rectangle boundingRect => new Rectangle((int)Left, (int)Top, (int)Width, (int)Height);
-        public bool SnapToPixel { get; set; }
-
         public void Draw(SpriteBatch spriteBatch)
         {
             OnDraw(spriteBatch, boundingRect);
@@ -217,7 +202,24 @@ namespace MonoGame.PortableUI.Controls
         {
         }
 
+        #region Events
+
+        public event EventHandler MouseEnter;
+        public event EventHandler MouseLeave;
+        public event EventHandler MouseMove;
+        public event EventHandler MouseLeftDown;
+        public event EventHandler MouseRightDown;
+        public event EventHandler MouseLeftUp;
+        public event EventHandler MouseRightUp;
+        public event EventHandler TouchDown;
+        public event EventHandler TouchUp;
+        public event EventHandler TouchMove;
+        public event EventHandler TouchCancel;
+
+        #endregion
+
         #region Event handlers
+
         protected virtual void OnMouseEnter()
         {
             MouseEnter?.Invoke(this, EventArgs.Empty);
@@ -237,6 +239,7 @@ namespace MonoGame.PortableUI.Controls
         {
             MouseLeftUp?.Invoke(this, EventArgs.Empty);
         }
+
         protected virtual void OnMouseRightDown()
         {
             MouseRightDown?.Invoke(this, EventArgs.Empty);
@@ -271,14 +274,7 @@ namespace MonoGame.PortableUI.Controls
         {
             TouchCancel?.Invoke(this, EventArgs.Empty);
         }
-        #endregion
 
-        public enum ControlAlignment
-        {
-            Left,
-            Center,
-            Right,
-            Stretch
-        }
+        #endregion
     }
 }

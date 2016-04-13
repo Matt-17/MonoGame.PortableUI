@@ -20,9 +20,8 @@ namespace MonoGame.PortableUI.Controls
 
         public Thickness Padding { get; set; }
 
-        protected ContentControl(Game game) : base()
+        protected ContentControl()
         {
-            Padding = new Thickness(8);
         }
 
         protected internal override void OnUpdate(TimeSpan elapsed, Rectangle rect)

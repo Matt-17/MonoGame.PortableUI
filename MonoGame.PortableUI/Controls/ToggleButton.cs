@@ -12,7 +12,7 @@ namespace MonoGame.PortableUI.Controls
 
         public event EventHandler<CheckedEventArgs> Checked;
 
-        public ToggleButton(Game game) : base(game)
+        public ToggleButton()
         {
             Click += ToggleButton_Click;
         }
