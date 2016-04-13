@@ -4,6 +4,6 @@ namespace MonoGame.PortableUI.Common
     {
         public GridLengthUnit Unit { get; set; }  
 
-        public float Pixels { get; set; }
+        public float Value { get; set; }
     }
 }
