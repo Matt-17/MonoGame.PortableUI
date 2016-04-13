@@ -16,7 +16,7 @@ namespace SampleClient.Screens
                 Top = 50,
                 Left = 100,
                 BackgroundColor = Color.DarkRed,
-                Text = "Click this button"
+                Text = "Go to Screen 2"
             };
             button.Click += Button_Click;
             Content = button;
@@ -25,30 +25,6 @@ namespace SampleClient.Screens
         private void Button_Click(object sender, System.EventArgs e)
         {
             ScreenEngine.NavigateToScreen(new SecondScreen());
-        }
-    }
-
-    public class SecondScreen : Screen
-    {
-        public SecondScreen()
-        {
-            BackgroundColor = Color.LimeGreen; var button = new Button(SampleGame.GameInstance)
-            {
-                Width = 240,
-                Height = 50,
-                Top = 50,
-                Left = 100,
-                BackgroundColor = Color.DarkRed,
-                Text = "Click this button"
-            };
-            button.Click += Button_Click;
-            Content = button;
-        }
-        private void Button_Click(object sender, System.EventArgs e)
-        {
-            var button = sender as Button;
-            if (button != null)
-                button.Text = "This button was clicked";
         }
     }
 }
