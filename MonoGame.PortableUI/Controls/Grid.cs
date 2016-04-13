@@ -88,7 +88,7 @@ namespace MonoGame.PortableUI.Controls
 
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rectangle rect)
         {
-            spriteBatch.Draw(BackgroundTexture, rect, BackgroundColor);
+            spriteBatch.Draw(ScreenEngine.Pixel, rect, BackgroundColor);
 
             var coloumnCount = ColumnDefinitions?.Count ?? 1;
             var rowCount = RowDefinitions?.Count ?? 1;

@@ -23,9 +23,9 @@ namespace MonoGame.PortableUI.Controls
             get { return _font.MeasureString(Text).X; }
         }
 
-        public TextBlock(Game game) : base(game)
+        public TextBlock() 
         {
-            _font = game.Content.Load<SpriteFont>(@"Fonts/Segoe-light-14");
+            _font = ScreenEngine.Fonts["Segoe-light-14"];
             TextColor = Color.Black;
             TextAlignment = TextAlignment.Center;
         }

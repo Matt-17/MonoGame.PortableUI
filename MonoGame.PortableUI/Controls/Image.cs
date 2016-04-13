@@ -4,7 +4,7 @@ namespace MonoGame.PortableUI.Controls
 {
     public class Image : Control
     {
-        public Image(Game game) : base(game)
+        public Image(Game game) : base()
         {
         }
     }

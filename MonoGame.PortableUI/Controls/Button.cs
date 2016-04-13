@@ -24,7 +24,7 @@ namespace MonoGame.PortableUI.Controls
                 var textBlock = Child as TextBlock;
                 if (textBlock == null)
                 {
-                    textBlock = new TextBlock(Game);
+                    textBlock = new TextBlock();
                     Child = textBlock;
                 }
                 textBlock.Text = value;
@@ -114,7 +114,7 @@ namespace MonoGame.PortableUI.Controls
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rectangle rect)
         {
             rect = rect - Margin;
-            spriteBatch.Draw(BackgroundTexture, rect, CurrentBackgroundColor);
+            spriteBatch.Draw(ScreenEngine.Pixel, rect, CurrentBackgroundColor);
 
             Child?.OnDraw(spriteBatch, rect - Padding);
         }
