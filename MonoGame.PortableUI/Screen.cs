@@ -22,14 +22,17 @@ namespace MonoGame.PortableUI
         {
             if (BackgroundColor != Color.Transparent)
                 spriteBatch.GraphicsDevice.Clear(BackgroundColor);
-            spriteBatch.Begin();
-            Content.Draw(spriteBatch);
-            spriteBatch.End();
+            if (Content != null)
+            {
+                spriteBatch.Begin();
+                Content.Draw(spriteBatch);
+                spriteBatch.End();
+            }
         }
 
         public void Update(TimeSpan elapsed)
         {
-            Content.Update(elapsed);
+            Content?.Update(elapsed);
         }
     }
 }
