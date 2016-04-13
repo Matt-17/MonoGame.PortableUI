@@ -4,7 +4,7 @@ namespace MonoGame.PortableUI.Controls
 {
     public class ComboBox : Control
     {
-        public ComboBox(Game game) : base(game)
+        public ComboBox(Game game) : base()
         {
         }
     }

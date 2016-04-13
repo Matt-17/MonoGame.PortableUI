@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
@@ -7,6 +8,7 @@ namespace MonoGame.PortableUI
     public class ScreenEngine
     {
         private static ScreenManager _manager;
+
 
         internal static ScreenManager Manager
         {
@@ -22,9 +24,19 @@ namespace MonoGame.PortableUI
         {
             _manager = new ScreenManager(game);
             game.Components.Add(Manager);
-                               
+
+
+            Pixel = new Texture2D(game.GraphicsDevice, 1, 1);
+            Pixel.SetData(new[] { Color.White });
+            Fonts = new Dictionary<string, SpriteFont>();
+            Fonts["Segoe-light-14"] = game.Content.Load<SpriteFont>(@"Fonts/Segoe-light-14");
+
+
             Manager.Initialize();
-        }     
+        }
+
+        public static Texture2D Pixel { get; private set; }
+        public static Dictionary<string, SpriteFont> Fonts { get; set; }
 
         public static void NavigateToScreen<T>(T screen) where T : Screen
         {

@@ -43,7 +43,7 @@ namespace MonoGame.PortableUI.Controls
             rect = CreateRect(rect-Padding);
 
             base.OnDraw(spriteBatch, rect);
-            spriteBatch.Draw(BackgroundTexture, rect, BackgroundColor);
+            spriteBatch.Draw(ScreenEngine.Pixel, rect, BackgroundColor);
 
             float x = rect.X;
             float y = rect.Y;

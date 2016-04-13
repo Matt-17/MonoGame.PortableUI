@@ -10,13 +10,10 @@ namespace MonoGame.PortableUI.Controls
     public abstract class Control
     {
         public static int WrapContent = -1;
-
-        protected Game Game;
-        protected SpriteBatch _batch;
-        protected Control(Game game)
+        
+        protected Control()
         {
             SnapToPixel = true;
-            Game = game;
             Opacity = 1;
             IsEnabled = true;
             IsVisible = true;
@@ -24,9 +21,6 @@ namespace MonoGame.PortableUI.Controls
             Scale = new Vector2(1, 1);
             Translation = new Vector2();
             Margin = new Thickness(0);
-
-            BackgroundTexture = new Texture2D(Game.GraphicsDevice, 1, 1);
-            BackgroundTexture.SetData(new[] { Color.White });
             Width = WrapContent;
             Height = WrapContent;
             HorizontalAlignment = HorizontalAlignment.Stretch;
@@ -83,8 +77,6 @@ namespace MonoGame.PortableUI.Controls
         public Vector2 Translation { get; set; }
 
         public Color BackgroundColor { get; set; }
-
-        protected Texture2D BackgroundTexture;
 
         public double Opacity { get; set; }
         public bool IsVisible { get; set; }

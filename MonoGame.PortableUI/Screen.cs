@@ -18,7 +18,7 @@ namespace MonoGame.PortableUI
 
         public Control Content { get; set; }
 
-        protected internal void Draw(SpriteBatch spriteBatch)
+        internal void Draw(SpriteBatch spriteBatch)
         {
             if (BackgroundColor != Color.Transparent)
                 spriteBatch.GraphicsDevice.Clear(BackgroundColor);
@@ -30,7 +30,7 @@ namespace MonoGame.PortableUI
             }
         }
 
-        public void Update(TimeSpan elapsed)
+        internal void Update(TimeSpan elapsed)
         {
             Content?.Update(elapsed);
         }
