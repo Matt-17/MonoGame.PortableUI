@@ -96,8 +96,8 @@ namespace MonoGame.PortableUI.Controls
                 case Orientation.Horizontal:
 
                     //initial position is top left
-                    childY = (int)(Top + child.Margin.Top);
-                    childX = (int)(child.Margin.Left + x);
+                    childY = (int)(Top );
+                    childX = (int)( x);
 
                     foreach (ContentAlignment alignment in contentAlignmentValues)
                     {
@@ -109,22 +109,21 @@ namespace MonoGame.PortableUI.Controls
                                     childY = (int) (Top + Height - child.MeasuredHeight);
                                     break;
                                 case ContentAlignment.Top:
-                                    childY = (int) (Top + child.Margin.Top);
+                                    childY = (int) (Top );
                                     break;
                                 case ContentAlignment.CenterHorizontal:
                                     childX = (int) (Left + Width/2) -
-                                             (int) Children.Select(c => c.MeasuredWidth).Sum()/2 + (int) (x - Left) +
-                                             (int) child.Margin.Left;
+                                             (int) Children.Select(c => c.MeasuredWidth).Sum()/2 + (int) (x - Left);
                                     break;
                                 case ContentAlignment.CenterVertical:
                                     childY = (int) (Top + Height/2 - child.MeasuredHeight/2);
                                     break;
                                 case ContentAlignment.Left:
-                                    childX = (int) (child.Margin.Left + x);
+                                    childX = (int) ( x);
                                     break;
                                 case ContentAlignment.Right:
                                     childX = (int) ((Left + Width) - (int) Children.Select(c => c.MeasuredWidth).Sum() +
-                                             (int) (x - Left) + (int) child.Margin.Left);
+                                             (int) (x - Left) );
                                     break;
                             }
                         }
@@ -134,8 +133,8 @@ namespace MonoGame.PortableUI.Controls
                 case Orientation.Vertical:
 
                     // initital position is top left
-                    childX = (int)(Left + child.Margin.Left);
-                    childY = (int)(child.Top + child.Margin.Top + y);
+                    childX = (int)(Left );
+                    childY = (int)(child.Top + y);
 
                     foreach (ContentAlignment alignment in contentAlignmentValues)
                     {
@@ -147,24 +146,24 @@ namespace MonoGame.PortableUI.Controls
                                     childX = (int) (Left + (Width - child.MeasuredWidth));
                                     break;
                                 case ContentAlignment.Left:
-                                    childX = (int) (Left + child.Margin.Left);
+                                    childX = (int) (Left );
                                     break;
                                 case ContentAlignment.Top:
-                                    childY = (int)(child.Top + child.Margin.Top + y);
+                                    childY = (int)(child.Top + y);
                                     break;
                                 case ContentAlignment.Bottom:
-                                    childY = (int)(Top + Height) - (int)Children.Select(c => c.MeasuredHeight).Sum() + (int)(y - Top) + (int)child.Margin.Top;
+                                    childY = (int)(Top + Height) - (int)Children.Select(c => c.MeasuredHeight).Sum() + (int)(y - Top);
                                     break;
                                 case ContentAlignment.CenterHorizontal:
                                     childX = (int)(Left + (Width / 2 - child.MeasuredWidth / 2));
                                     break;
                                 case ContentAlignment.CenterVertical:
-                                    childY = (int)(Top + Height / 2) - (int)Children.Select(c => c.MeasuredHeight).Sum() / 2 + (int)(y - Top) + (int)child.Margin.Top;
+                                    childY = (int)(Top + Height / 2) - (int)Children.Select(c => c.MeasuredHeight).Sum() / 2 + (int)(y - Top) ;
                                     break;
                             }
                         }
                     }
-                    childRect = new Rectangle(childX, childY, (int) child.Width, (int) child.Height);
+                    childRect = new Rectangle(childX, childY, (int) child.MeasuredWidth, (int) child.MeasuredHeight);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
