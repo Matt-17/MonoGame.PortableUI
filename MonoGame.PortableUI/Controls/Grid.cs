@@ -16,7 +16,7 @@ namespace MonoGame.PortableUI.Controls
             public int ColumnSpan { get; set; }
         }
 
-        public List<RowDefinition> RowDefinitions { get; set; }
+        public List<RowDefinition> RowDefinitions { get; set;  }
         public List<ColumnDefinition> ColumnDefinitions { get; set; }
 
         private static readonly Dictionary<Control, GridPosition> ControlGridPositionDictionary = new Dictionary<Control, GridPosition>();
@@ -90,14 +90,16 @@ namespace MonoGame.PortableUI.Controls
         {
             spriteBatch.Draw(BackgroundTexture, rect, BackgroundColor);
 
-            var singleWidth = (int) (Width/ColumnDefinitions.Count);
-            var singleHeight = (int) (Height/RowDefinitions.Count);
+            var coloumnCount = ColumnDefinitions?.Count ?? 1;
+            var rowCount = RowDefinitions?.Count ?? 1;
+            var singleWidth = (int) (Width/ coloumnCount);
+            var singleHeight = (int) (Height/rowCount);
 
             foreach (var child in Children)
             {
                 
-                    var row = Math.Min(GetRow(child), RowDefinitions.Count);
-                    var column = Math.Min(GetColumn(child), ColumnDefinitions.Count);
+                    var row = Math.Min(GetRow(child), rowCount);
+                    var column = Math.Min(GetColumn(child), coloumnCount);
                     var rowSpan = Math.Max(GetRowSpan(child), 1);
                     var columnSpan = Math.Max(GetColumnSpan(child), 1);
 
@@ -110,12 +112,14 @@ namespace MonoGame.PortableUI.Controls
         protected internal override void OnUpdate(TimeSpan elapsed, Rectangle rect)
         {
             base.OnUpdate(elapsed, rect);
-            var singleWidth = (int)(Width / ColumnDefinitions.Count);
-            var singleHeight = (int)(Height / RowDefinitions.Count);
+            var coloumnCount = ColumnDefinitions?.Count ?? 1;
+            var rowCount = RowDefinitions?.Count ?? 1;
+            var singleWidth = (int)(Width / coloumnCount);
+            var singleHeight = (int)(Height / rowCount);
             foreach (var child in Children)
             {
-                var row = Math.Min( GetRow(child), RowDefinitions.Count);
-                var column = Math.Min(GetColumn(child), ColumnDefinitions.Count);
+                var row = Math.Min( GetRow(child), rowCount);
+                var column = Math.Min(GetColumn(child), coloumnCount);
                 var rowSpan = Math.Max(GetRowSpan(child), 1);
                 var columnSpan = Math.Max(GetColumnSpan(child), 1);
 
