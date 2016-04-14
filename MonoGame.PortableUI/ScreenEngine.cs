@@ -8,8 +8,7 @@ namespace MonoGame.PortableUI
     public class ScreenEngine
     {
         private static ScreenManager _manager;
-
-
+        
         internal static ScreenManager Manager
         {
             get
@@ -25,14 +24,21 @@ namespace MonoGame.PortableUI
             _manager = new ScreenManager(game);
             game.Components.Add(Manager);
 
-
             Pixel = new Texture2D(game.GraphicsDevice, 1, 1);
             Pixel.SetData(new[] { Color.White });
-            Fonts = new Dictionary<string, SpriteFont>();
-            Fonts["Segoe-light-14"] = game.Content.Load<SpriteFont>(@"Fonts/Segoe-light-14");
-
+            Fonts = LoadFonts(game, "Segoe-light-14");
 
             Manager.Initialize();
+        }
+
+        private static Dictionary<string, SpriteFont> LoadFonts(Game game, params string[] fontList)
+        {
+            var fonts = new Dictionary<string, SpriteFont>();
+            foreach (var font in fontList)
+            {
+                fonts[$"{font}"] = game.Content.Load<SpriteFont>($@"Fonts/{font}");
+            }
+            return fonts;
         }
 
         public static Texture2D Pixel { get; private set; }
