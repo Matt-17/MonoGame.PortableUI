@@ -25,10 +25,10 @@ namespace MonoGame.PortableUI.Controls
         public Button()
         {
             Padding = new Thickness(8);
-            var grid = new Grid() {};
-            grid.AddChild(new Rect() {BackgroundColor = Color.DarkMagenta});
-            grid.AddChild(new ContentPresenter(this));
-            Template = grid;
+            //var grid = new Grid();
+            //grid.AddChild(new Rect {BackgroundColor = Color.DarkMagenta});
+            //grid.AddChild(new ContentPresenter(this));
+            //Template = grid;
 
         }
 
