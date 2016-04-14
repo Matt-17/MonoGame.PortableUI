@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI.Common;
@@ -92,15 +93,18 @@ namespace MonoGame.PortableUI.Controls
         {
             var coloumnCount = ColumnDefinitions?.Count ?? 1;
             var rowCount = RowDefinitions?.Count ?? 1;
-            var singleWidth = (int)(Width / coloumnCount);
-            var singleHeight = (int)(Height / rowCount);
+
+            var rowHeights = GetRowHeights();
+            var columnWidths = GetColumnWidths();
 
             var row = Math.Min(GetRow(child), rowCount);
             var column = Math.Min(GetColumn(child), coloumnCount);
             var rowSpan = Math.Max(GetRowSpan(child), 1);
             var columnSpan = Math.Max(GetColumnSpan(child), 1);
 
-            return new Rectangle(column * singleWidth + rect.X, row * singleHeight + rect.Y, singleWidth * columnSpan, singleHeight * rowSpan);
+            var rectangle = new Rectangle((int)(columnWidths.Take(column).Sum() + rect.X), (int)(rowHeights.Take(row).Sum() + rect.Y),
+                (int)columnWidths.Skip(column).Take(columnSpan).Sum(), (int)rowHeights.Skip(row).Take(rowSpan).Sum());
+            return rectangle;
         }
 
         protected internal override void OnUpdate(TimeSpan elapsed, Rectangle rect)
@@ -112,52 +116,101 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
-        private List<float> GetRowHeights()
+        private List<int> GetRowHeights()
         {
             // floats
             var autoRows = 0f;
             var starRows = 0f;
             var absoluteRows = 0f;
-            foreach (var row in RowDefinitions)
+            var rowDefinitions = RowDefinitions ?? new List<RowDefinition>() { new RowDefinition() };
+            foreach (var gridLength in rowDefinitions.Select(row => row.Height))
             {
-                switch (row.Height.Unit)
+                switch (gridLength.Unit)
                 {
                     case GridLengthUnit.Auto:
                         // Ignore now
                         autoRows += 0;
                         break;
                     case GridLengthUnit.Absolute:
-                        absoluteRows += row.Height.Value;
+                        absoluteRows += gridLength.Value;
                         break;
                     case GridLengthUnit.Relative:
-                        starRows += row.Height.Value;
+                        starRows += gridLength.Value;
                         break;
-                    default:
-                        throw new ArgumentOutOfRangeException();
                 }
             }
 
             var starLeftover = Math.Max(0, Height - absoluteRows - autoRows);
             var starSingleValue = starLeftover / starRows;
-            var result = new List<float>();
-            foreach (var row in RowDefinitions)
+            var result = new List<int>();
+            foreach (var gridLength in rowDefinitions.Select(row => row.Height))
             {
-                switch (row.Height.Unit)
+                switch (gridLength.Unit)
                 {
                     case GridLengthUnit.Auto:
                         // TODO 
                         result.Add(0);
                         break;
                     case GridLengthUnit.Absolute:
-                        result.Add(row.Height.Value);
+                        result.Add((int)gridLength.Value);
                         break;
                     case GridLengthUnit.Relative:
-                        result.Add(row.Height.Value * starSingleValue);
+                        result.Add((int)(gridLength.Value * starSingleValue));
                         break;
-                    default:
-                        throw new ArgumentOutOfRangeException();
                 }
             }
+            var f = (int)Height - result.Sum();
+            if (f > 0)
+                result[result.Count - 1] += f;
+            return result;
+        }
+
+        private List<int> GetColumnWidths()
+        {
+            // floats
+            var autoColumns = 0f;
+            var starColumns = 0f;
+            var absoluteColumns = 0f;
+            var columnDefinitions = ColumnDefinitions ?? new List<ColumnDefinition> { new ColumnDefinition() };
+            foreach (var gridLength in columnDefinitions.Select(columns => columns.Width))
+            {
+                switch (gridLength.Unit)
+                {
+                    case GridLengthUnit.Auto:
+                        // Ignore now
+                        autoColumns += 0;
+                        break;
+                    case GridLengthUnit.Absolute:
+                        absoluteColumns += gridLength.Value;
+                        break;
+                    case GridLengthUnit.Relative:
+                        starColumns += gridLength.Value;
+                        break;
+                }
+            }
+
+            var starLeftover = Math.Max(0, Width - absoluteColumns - autoColumns);
+            var starSingleValue = starLeftover / starColumns;
+            var result = new List<int>();
+            foreach (var gridLength in columnDefinitions.Select(column => column.Width))
+            {
+                switch (gridLength.Unit)
+                {
+                    case GridLengthUnit.Auto:
+                        // TODO 
+                        result.Add(0);
+                        break;
+                    case GridLengthUnit.Absolute:
+                        result.Add((int)gridLength.Value);
+                        break;
+                    case GridLengthUnit.Relative:
+                        result.Add((int)(gridLength.Value * starSingleValue));
+                        break;
+                }
+            }
+            var f = (int)Width - result.Sum();
+            if (f > 0)
+                result[result.Count - 1] += f;
             return result;
         }
     }
