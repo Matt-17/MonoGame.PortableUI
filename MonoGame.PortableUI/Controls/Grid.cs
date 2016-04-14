@@ -16,7 +16,7 @@ namespace MonoGame.PortableUI.Controls
             public int ColumnSpan { get; set; }
         }
 
-        public List<RowDefinition> RowDefinitions { get; set;  }
+        public List<RowDefinition> RowDefinitions { get; set; }
         public List<ColumnDefinition> ColumnDefinitions { get; set; }
 
         private static readonly Dictionary<Control, GridPosition> ControlGridPositionDictionary = new Dictionary<Control, GridPosition>();
@@ -35,7 +35,6 @@ namespace MonoGame.PortableUI.Controls
             gridPosition.Row = row;
             ControlGridPositionDictionary[control] = gridPosition;
         }
-
 
         public static void SetColumn(Control control, int column)
         {
@@ -72,7 +71,7 @@ namespace MonoGame.PortableUI.Controls
         {
             return GetGridPosition(control).ColumnSpan;
         }
-        
+
         public void AddChild(Control child, int row = 0, int column = 0, int rowSpan = 0, int columnSpan = 0)
         {
             base.AddChild(child);
@@ -85,43 +84,30 @@ namespace MonoGame.PortableUI.Controls
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rectangle rect)
         {
             spriteBatch.Draw(ScreenEngine.Pixel, rect, BackgroundColor);
+            foreach (var child in Children)
+                child.OnDraw(spriteBatch, GetRect(rect, child));
+        }
 
+        private Rectangle GetRect(Rectangle rect, Control child)
+        {
             var coloumnCount = ColumnDefinitions?.Count ?? 1;
             var rowCount = RowDefinitions?.Count ?? 1;
-            var singleWidth = (int) (Width/ coloumnCount);
-            var singleHeight = (int) (Height/rowCount);
+            var singleWidth = (int)(Width / coloumnCount);
+            var singleHeight = (int)(Height / rowCount);
 
-            foreach (var child in Children)
-            {
-                
-                    var row = Math.Min(GetRow(child), rowCount);
-                    var column = Math.Min(GetColumn(child), coloumnCount);
-                    var rowSpan = Math.Max(GetRowSpan(child), 1);
-                    var columnSpan = Math.Max(GetColumnSpan(child), 1);
+            var row = Math.Min(GetRow(child), rowCount);
+            var column = Math.Min(GetColumn(child), coloumnCount);
+            var rowSpan = Math.Max(GetRowSpan(child), 1);
+            var columnSpan = Math.Max(GetColumnSpan(child), 1);
 
-                    var newRect = new Rectangle(column * singleWidth + rect.X, row * singleHeight + rect.Y, singleWidth * columnSpan, singleHeight * rowSpan);
-
-                    child.OnDraw(spriteBatch, newRect);
-            }
+            return new Rectangle(column * singleWidth + rect.X, row * singleHeight + rect.Y, singleWidth * columnSpan, singleHeight * rowSpan);
         }
 
         protected internal override void OnUpdate(TimeSpan elapsed, Rectangle rect)
         {
             base.OnUpdate(elapsed, rect);
-            var coloumnCount = ColumnDefinitions?.Count ?? 1;
-            var rowCount = RowDefinitions?.Count ?? 1;
-            var singleWidth = (int)(Width / coloumnCount);
-            var singleHeight = (int)(Height / rowCount);
             foreach (var child in Children)
-            {
-                var row = Math.Min( GetRow(child), rowCount);
-                var column = Math.Min(GetColumn(child), coloumnCount);
-                var rowSpan = Math.Max(GetRowSpan(child), 1);
-                var columnSpan = Math.Max(GetColumnSpan(child), 1);
-
-                var newRect = new Rectangle(column * singleWidth + rect.X, row * singleHeight + rect.Y, singleWidth * columnSpan, singleHeight* rowSpan);
-                child.OnUpdate(elapsed, newRect);
-            }
+                child.OnUpdate(elapsed, GetRect(rect, child));
         }
     }
 }

@@ -45,6 +45,7 @@
     <Compile Include="Controls\ComboBox.cs" />
     <Compile Include="Common\ContentAlignment.cs" />
     <Compile Include="Controls\ContentControl.cs" />
+    <Compile Include="Controls\ContentPresenter.cs" />
     <Compile Include="Controls\Grid.cs" />
     <Compile Include="Common\HelperEx.cs" />
     <Compile Include="Common\GridLength.cs" />
