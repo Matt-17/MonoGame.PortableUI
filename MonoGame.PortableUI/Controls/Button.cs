@@ -20,9 +20,16 @@ namespace MonoGame.PortableUI.Controls
 
         protected Color CurrentBackgroundColor;
 
+        protected internal Control Template;
+
         public Button()
         {
             Padding = new Thickness(8);
+            var grid = new Grid() {};
+            grid.AddChild(new Rect() {BackgroundColor = Color.DarkMagenta});
+            grid.AddChild(new ContentPresenter(this));
+            Template = grid;
+
         }
 
         public ButtonStatus Status { get; set; }
