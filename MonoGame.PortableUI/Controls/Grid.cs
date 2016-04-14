@@ -107,7 +107,58 @@ namespace MonoGame.PortableUI.Controls
         {
             base.OnUpdate(elapsed, rect);
             foreach (var child in Children)
+            {
                 child.OnUpdate(elapsed, GetRect(rect, child));
+            }
+        }
+
+        private List<float> GetRowHeights()
+        {
+            // floats
+            var autoRows = 0f;
+            var starRows = 0f;
+            var absoluteRows = 0f;
+            foreach (var row in RowDefinitions)
+            {
+                switch (row.Height.Unit)
+                {
+                    case GridLengthUnit.Auto:
+                        // Ignore now
+                        autoRows += 0;
+                        break;
+                    case GridLengthUnit.Absolute:
+                        absoluteRows += row.Height.Value;
+                        break;
+                    case GridLengthUnit.Relative:
+                        starRows += row.Height.Value;
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+            }
+
+            var starLeftover = Math.Max(0, Height - absoluteRows - autoRows);
+            var starSingleValue = starLeftover / starRows;
+            var result = new List<float>();
+            foreach (var row in RowDefinitions)
+            {
+                switch (row.Height.Unit)
+                {
+                    case GridLengthUnit.Auto:
+                        // TODO 
+                        result.Add(0);
+                        break;
+                    case GridLengthUnit.Absolute:
+                        result.Add(row.Height.Value);
+                        break;
+                    case GridLengthUnit.Relative:
+                        result.Add(row.Height.Value * starSingleValue);
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+            }
+            return result;
         }
     }
 }
