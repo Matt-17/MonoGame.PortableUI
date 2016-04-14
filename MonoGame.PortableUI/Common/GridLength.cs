@@ -1,29 +1,22 @@
 namespace MonoGame.PortableUI.Common
 {
-    public class GridLength
+    public struct GridLength
     {
         public static GridLength Auto = new GridLength(1, GridLengthUnit.Auto);
 
-        public GridLength()
+        public GridLength(int value) : this()
         {
-            Pixels = 1;
-            Unit = GridLengthUnit.Relative;
-        }
-
-        public GridLength(int pixels) 
-        {
-            Pixels = pixels;
+            Value = value;
             Unit = GridLengthUnit.Absolute;
         }
 
-        public GridLength(int pixels, GridLengthUnit unit)
+        public GridLength(int value, GridLengthUnit unit) : this()
         {
-            Pixels = pixels;
+            Value = value;
             Unit = unit;
         }
 
-        public GridLengthUnit Unit { get; set; }  
-
-        public int Pixels { get; set; }
+        public GridLengthUnit Unit { get; set; }
+        public float Value { get; set; }
     }
 }
