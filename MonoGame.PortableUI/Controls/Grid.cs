@@ -122,7 +122,7 @@ namespace MonoGame.PortableUI.Controls
             var autoRows = 0f;
             var starRows = 0f;
             var absoluteRows = 0f;
-            var rowDefinitions = RowDefinitions ?? new List<RowDefinition>() { new RowDefinition() };
+            var rowDefinitions = RowDefinitions ?? new List<RowDefinition> { new RowDefinition() };
             foreach (var gridLength in rowDefinitions.Select(row => row.Height))
             {
                 switch (gridLength.Unit)

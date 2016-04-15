@@ -2,26 +2,22 @@ using Microsoft.Xna.Framework;
 
 namespace MonoGame.PortableUI.Common
 {
-    public class Thickness
+    public struct Thickness
     {
-        public double Left { get; set; }
-        public double Top { get; set; }
-        public double Right { get; set; }
-        public double Bottom { get; set; }
+        public float Left { get; set; }
+        public float Top { get; set; }
+        public float Right { get; set; }
+        public float Bottom { get; set; }
 
-        public Thickness() : this(0)
+        public Thickness(float thickness) : this(thickness, thickness)
         {
         }
 
-        public Thickness(double thickness) : this(thickness, thickness)
+        public Thickness(float horizontal, float vertical) : this(horizontal, vertical, horizontal, vertical)
         {
         }
 
-        public Thickness(double horizontal, double vertical) : this(horizontal, vertical, horizontal, vertical)
-        {
-        }
-
-        public Thickness(double left, double top, double right, double bottom)
+        public Thickness(float left, float top, float right, float bottom)
         {
             Left = left;
             Top = top;
@@ -29,10 +25,14 @@ namespace MonoGame.PortableUI.Common
             Bottom = bottom;
         }
 
+        public static Size operator +(Size rect, Thickness t)
+        {
+            return new Size(rect.Width - t.Right - t.Left, rect.Height - t.Bottom - t.Top);
+        }
+
+
         public static Rectangle operator -(Rectangle rect, Thickness t)
         {
-            if (t == null)
-                return rect;
             return new Rectangle((int)(rect.X + t.Left), (int)(rect.Y + t.Top), (int)(rect.Width - t.Right - t.Left), (int)(rect.Height - t.Bottom - t.Top));
         }
     }

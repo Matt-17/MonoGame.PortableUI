@@ -43,7 +43,6 @@
     <Compile Include="Common\CheckedEventArgs.cs" />
     <Compile Include="Common\ColumnDefinition.cs" />
     <Compile Include="Controls\ComboBox.cs" />
-    <Compile Include="Common\ContentAlignment.cs" />
     <Compile Include="Controls\ContentControl.cs" />
     <Compile Include="Controls\ContentPresenter.cs" />
     <Compile Include="Controls\Grid.cs" />
