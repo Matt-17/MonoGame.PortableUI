@@ -2,13 +2,13 @@ namespace MonoGame.PortableUI.Common
 {
     public struct Size
     {
-        public Size(int width, int height)
+        public Size(float width, float height)
         {
             Width = width;
             Height = height;
         }
 
-        public int Width { get; set; }
-        public int Height { get; set; }
+        public float Width { get; set; }
+        public float Height { get; set; }
     }
 }

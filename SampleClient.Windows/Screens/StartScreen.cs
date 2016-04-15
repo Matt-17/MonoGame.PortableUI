@@ -38,8 +38,7 @@ namespace SampleClient.Screens
             {
                 Width = 240,
                 Height = 250,
-                Top = 50,
-                Left = 100,
+                Margin = new Thickness(100, 50),
                 BackgroundColor = Color.DarkOrange,
                 ColumnDefinitions = new List<ColumnDefinition>
                 {
@@ -55,11 +54,22 @@ namespace SampleClient.Screens
                     new RowDefinition { Height = new GridLength(3.5f, GridLengthUnit.Relative) }
                 }
             };
-            grid.AddChild(button);
-            grid.AddChild(button2, 2, 2);
-            grid.AddChild(button4, 1, 1);
-            grid.AddChild(button3, 3, 1);
-            Content = grid;
+            //grid.AddChild(button);
+            //grid.AddChild(button2, 2, 2);
+            //grid.AddChild(button4, 1, 1);
+            //grid.AddChild(button3, 3, 1);
+            var stackPanel = new StackPanel()
+            {
+                Width = 240,
+                Height = 250,
+                Margin = new Thickness(100, 50),
+                BackgroundColor = Color.DarkOrange,
+            };
+            stackPanel.AddChild(button);
+            stackPanel.AddChild(button2);
+            stackPanel.AddChild(button3);
+            stackPanel.AddChild(button4);
+            Content = stackPanel;
         }
 
         private void Button2_Click(object sender, EventArgs e)

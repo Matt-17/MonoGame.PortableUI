@@ -11,47 +11,53 @@ namespace MonoGame.PortableUI.Controls
         public Orientation Orientation { get; set; }
 
         public Thickness Padding { get; set; }
-        public ContentAlignment ContentAlignment { get; set; }
 
         protected internal override void OnUpdate(TimeSpan elapsed, Rectangle rect)
         {
             rect = CreateRect(rect);
-            
+
             base.OnUpdate(elapsed, rect);
 
-            float x = rect.X;
-            float y = rect.Y;
+            float childX = rect.X;
+            float childY = rect.Y;
 
             foreach (var child in Children)
-            {
-                Rectangle childRect = CreateChildRect(x, y, child);
-
-                child.OnUpdate(elapsed, childRect);
-
-                x += child.MeasuredWidth;
-                y += child.MeasuredHeight;
-            }
+                child.OnUpdate(elapsed, ChildRect(child, ref childX, ref childY));
         }
 
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rectangle rect)
         {
-            rect = CreateRect(rect-Padding);
+            rect = CreateRect(rect - Padding);
 
             base.OnDraw(spriteBatch, rect);
             spriteBatch.Draw(ScreenEngine.Pixel, rect, BackgroundColor);
 
-            float x = rect.X;
-            float y = rect.Y;
+            float childX = rect.X;
+            float childY = rect.Y;
 
             foreach (var child in Children)
+                child.OnDraw(spriteBatch, ChildRect(child, ref childX, ref childY));
+        }
+
+        private Rectangle ChildRect(Control child, ref float childX, ref float childY)
+        {
+            Rectangle childRect;
+
+
+            switch (Orientation)
             {
-                Rectangle childRect = CreateChildRect(x, y, child);
-
-                child.OnDraw(spriteBatch, childRect);
-
-                x += child.MeasuredWidth;
-                y += child.MeasuredHeight;
+                case Orientation.Horizontal:
+                    childRect = new Rectangle((int)childX, (int)childY, (int)child.BoundingRect.Width, (int)child.BoundingRect.Height);
+                    childX += child.BoundingRect.Width;
+                    break;
+                case Orientation.Vertical:
+                    childRect = new Rectangle((int)childX, (int)childY, (int)child.BoundingRect.Width, (int)child.BoundingRect.Height);
+                    childY += child.BoundingRect.Height;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
             }
+            return childRect;
         }
 
         private Rectangle CreateRect(Rectangle rect)
@@ -79,102 +85,6 @@ namespace MonoGame.PortableUI.Controls
                 }
 
             return rect;
-        }
-
-        private Rectangle CreateChildRect(float x, float y, Control child)
-        {
-            Rectangle childRect;
-
-            int childX;
-            int childY;
-
-            var contentAlignmentValues = Enum.GetValues(typeof(ContentAlignment));
-
-
-            switch (Orientation)
-            {
-                case Orientation.Horizontal:
-
-                    //initial position is top left
-                    childY = (int)(Top );
-                    childX = (int)( x);
-
-                    foreach (ContentAlignment alignment in contentAlignmentValues)
-                    {
-                        if ((ContentAlignment & alignment) == alignment)
-                        {
-                            switch (alignment)
-                            {
-                                case ContentAlignment.Bottom:
-                                    childY = (int) (Top + Height - child.MeasuredHeight);
-                                    break;
-                                case ContentAlignment.Top:
-                                    childY = (int) (Top );
-                                    break;
-                                case ContentAlignment.CenterHorizontal:
-                                    childX = (int) (Left + Width/2) -
-                                             (int) Children.Select(c => c.MeasuredWidth).Sum()/2 + (int) (x - Left);
-                                    break;
-                                case ContentAlignment.CenterVertical:
-                                    childY = (int) (Top + Height/2 - child.MeasuredHeight/2);
-                                    break;
-                                case ContentAlignment.Left:
-                                    childX = (int) ( x);
-                                    break;
-                                case ContentAlignment.Right:
-                                    childX = (int) ((Left + Width) - (int) Children.Select(c => c.MeasuredWidth).Sum() +
-                                             (int) (x - Left) );
-                                    break;
-                            }
-                        }
-                    }
-                    childRect = new Rectangle(childX, childY, (int) child.Width, (int) child.Height);
-                    break;
-                case Orientation.Vertical:
-
-                    // initital position is top left
-                    childX = (int)(Left );
-                    childY = (int)(child.Top + y);
-
-                    foreach (ContentAlignment alignment in contentAlignmentValues)
-                    {
-                        if ((ContentAlignment & alignment) == alignment)
-                        {
-                            switch (alignment)
-                            {
-                                case ContentAlignment.Right:
-                                    childX = (int) (Left + (Width - child.MeasuredWidth));
-                                    break;
-                                case ContentAlignment.Left:
-                                    childX = (int) (Left );
-                                    break;
-                                case ContentAlignment.Top:
-                                    childY = (int)(child.Top + y);
-                                    break;
-                                case ContentAlignment.Bottom:
-                                    childY = (int)(Top + Height) - (int)Children.Select(c => c.MeasuredHeight).Sum() + (int)(y - Top);
-                                    break;
-                                case ContentAlignment.CenterHorizontal:
-                                    childX = (int)(Left + (Width / 2 - child.MeasuredWidth / 2));
-                                    break;
-                                case ContentAlignment.CenterVertical:
-                                    childY = (int)(Top + Height / 2) - (int)Children.Select(c => c.MeasuredHeight).Sum() / 2 + (int)(y - Top) ;
-                                    break;
-                            }
-                        }
-                    }
-                    childRect = new Rectangle(childX, childY, (int) child.MeasuredWidth, (int) child.MeasuredHeight);
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
-
-            return childRect;
-        }
-
-        public enum Layout
-        {
-            WrapContent = -1
         }
     }
 }

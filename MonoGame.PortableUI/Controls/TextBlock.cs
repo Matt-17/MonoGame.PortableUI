@@ -32,7 +32,7 @@ namespace MonoGame.PortableUI.Controls
 
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rectangle rect)
         {
-            var position = new Vector2(rect.Left + Left, rect.Top + Top);
+            var position = new Vector2(rect.Left , rect.Top);
             position.Y += ((VerticalAlignment == VerticalAlignment.Stretch ? rect.Height : Height) - TextHeight) / 2;
 
             var f = (HorizontalAlignment == HorizontalAlignment.Stretch ? rect.Width : Width) - TextWidth;

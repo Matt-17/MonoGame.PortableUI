@@ -9,7 +9,7 @@ namespace MonoGame.PortableUI.Controls
 {
     public abstract class Control
     {
-        public static int WrapContent = -1;
+        public static int Auto = -1;
         private bool _ignoreTouch;
         private bool _lastMouseButtonRightState;
         private bool _lastMouseButtonState;
@@ -28,8 +28,8 @@ namespace MonoGame.PortableUI.Controls
             Scale = new Vector2(1, 1);
             Translation = new Vector2();
             Margin = new Thickness(0);
-            Width = WrapContent;
-            Height = WrapContent;
+            Width = Auto;
+            Height = Auto;
             HorizontalAlignment = HorizontalAlignment.Stretch;
             VerticalAlignment = VerticalAlignment.Stretch;
         }
@@ -46,10 +46,20 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
-        public float Left { get; set; }
-        public float Top { get; set; }
+        public Size BoundingRect { get; set; }
+        public Size ClientRect { get; set; }
+        
         public float Width { get; set; }
         public float Height { get; set; }
+
+        public virtual void ArrangeLayout()
+        {
+            var width = Width;
+            var height = Height;
+            ClientRect = new Size((int) width, (int) height);
+            BoundingRect = ClientRect + Margin;
+        }
+
 
         public float MeasuredHeight
         {
@@ -77,8 +87,9 @@ namespace MonoGame.PortableUI.Controls
         public HorizontalAlignment HorizontalAlignment { get; set; }
         public VerticalAlignment VerticalAlignment { get; set; }
 
-        private Rectangle boundingRect => new Rectangle((int) Left, (int) Top, (int) Width, (int) Height);
         public bool SnapToPixel { get; set; }
+
+        private Rectangle boundingRect => new Rectangle(0, 0, (int) BoundingRect.Width, (int) BoundingRect.Height);
 
         public void Update(TimeSpan elapsed)
         {
