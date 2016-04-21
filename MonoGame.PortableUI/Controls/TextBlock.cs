@@ -4,28 +4,23 @@ using MonoGame.PortableUI.Common;
 
 namespace MonoGame.PortableUI.Controls
 {
-    public class TextBlock : Control
+    public class TextBlock : TextControl
     {
         public TextAlignment TextAlignment { get; set; }
-
-        private SpriteFont _font;
-        public Color TextColor { get; set; }
-
-        public string Text { get; set; }
-
+        
         public float TextHeight
         {
-            get { return _font.MeasureString(Text).Y; }
+            get { return Font.MeasureString(Text).Y; }
         }
 
         public float TextWidth
         {
-            get { return _font.MeasureString(Text).X; }
+            get { return Font.MeasureString(Text).X; }
         }
 
         public TextBlock() 
         {
-            _font = ScreenEngine.Fonts["Segoe-light-14"];
+            Font = FontManager.GetFont(style:FontStyle.Bold, size:12);
             TextColor = Color.Black;
             TextAlignment = TextAlignment.Center;
         }
@@ -44,7 +39,7 @@ namespace MonoGame.PortableUI.Controls
             if (SnapToPixel)
                 position = position.ToInts();
 
-            spriteBatch.DrawString(_font, Text, position, TextColor);
+            spriteBatch.DrawString(Font, Text, position, TextColor);
         }
     }
 }
