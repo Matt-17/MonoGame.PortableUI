@@ -36,10 +36,9 @@ namespace MonoGame.PortableUI.Controls
         }
 
         public Control Parent
-
         {
             get { return _parent; }
-            set
+            internal set
             {
                 if (_parent != null && value != null)
                     throw new MultipleParentException();
@@ -49,7 +48,7 @@ namespace MonoGame.PortableUI.Controls
 
         public Size BoundingRect { get; set; }
         public Size ClientRect { get; set; }
-        
+
         public float Width { get; set; }
         public float Height { get; set; }
 
@@ -57,19 +56,19 @@ namespace MonoGame.PortableUI.Controls
         {
             var width = Width;
             var height = Height;
-            ClientRect = new Size((int) width, (int) height);
+            ClientRect = new Size((int)width, (int)height);
             BoundingRect = ClientRect + Margin;
         }
 
 
         public float MeasuredHeight
         {
-            get { return (float) (Height + Margin.Top + Margin.Bottom); }
+            get { return (float)(Height + Margin.Top + Margin.Bottom); }
         }
 
         public float MeasuredWidth
         {
-            get { return (float) (Width + Margin.Left + Margin.Right); }
+            get { return (float)(Width + Margin.Left + Margin.Right); }
         }
 
         public Thickness Margin { get; set; }
@@ -90,7 +89,7 @@ namespace MonoGame.PortableUI.Controls
 
         public bool SnapToPixel { get; set; }
 
-        private Rectangle boundingRect => new Rectangle(0, 0, (int) BoundingRect.Width, (int) BoundingRect.Height);
+        private Rectangle boundingRect => new Rectangle(0, 0, (int)BoundingRect.Width, (int)BoundingRect.Height);
 
         public void Update(TimeSpan elapsed)
         {

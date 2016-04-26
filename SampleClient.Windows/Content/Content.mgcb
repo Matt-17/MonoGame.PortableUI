@@ -13,9 +13,9 @@
 
 #---------------------------------- Content ---------------------------------#
 
-#begin Fonts/Segoe-light-14.spritefont
+#begin Fonts\Segoe-regular-14.spritefont
 /importer:FontDescriptionImporter
 /processor:FontDescriptionProcessor
 /processorParam:TextureFormat=Compressed
-/build:Fonts/Segoe-light-14.spritefont
+/build:Fonts\Segoe-regular-14.spritefont
 
