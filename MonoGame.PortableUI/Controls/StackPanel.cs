@@ -14,52 +14,44 @@ namespace MonoGame.PortableUI.Controls
 
         protected internal override void OnUpdate(TimeSpan elapsed, Rectangle rect)
         {
-            rect = CreateRect(rect);
-
+            //rect = CreateRect(rect);
             base.OnUpdate(elapsed, rect);
-
-            float childX = rect.X;
-            float childY = rect.Y;
-
             foreach (var child in Children)
-                child.OnUpdate(elapsed, ChildRect(child, ref childX, ref childY));
+                child.Update(elapsed);
         }
 
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rectangle rect)
         {
-            rect = CreateRect(rect - Padding);
-
-            base.OnDraw(spriteBatch, rect);
             spriteBatch.Draw(ScreenEngine.Pixel, rect, BackgroundColor);
+            foreach (var child in Children)
+                child.Draw(spriteBatch);
+        }
 
-            float childX = rect.X;
-            float childY = rect.Y;
+        public override void UpdateLayout()
+        {
+            base.UpdateLayout();
+
+            var childX = Position.X;
+            var childY = Position.Y;
 
             foreach (var child in Children)
-                child.OnDraw(spriteBatch, ChildRect(child, ref childX, ref childY));
-        }
-
-        private Rectangle ChildRect(Control child, ref float childX, ref float childY)
-        {
-            Rectangle childRect;
-
-
-            switch (Orientation)
             {
-                case Orientation.Horizontal:
-                    childRect = new Rectangle((int)childX, (int)childY, (int)child.BoundingRect.Width, (int)child.BoundingRect.Height);
-                    childX += child.BoundingRect.Width;
-                    break;
-                case Orientation.Vertical:
-                    childRect = new Rectangle((int)childX, (int)childY, (int)child.BoundingRect.Width, (int)child.BoundingRect.Height);
-                    childY += child.BoundingRect.Height;
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException();
+                child.Position = new Point(childX, childY);
+                switch (Orientation)
+                {
+                    case Orientation.Horizontal:
+                        childX += (int) child.MeasuredWidth;
+                        break;
+                    case Orientation.Vertical:
+                        childY += (int) child.MeasuredHeight;
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+                child.UpdateLayout();
             }
-            return childRect;
         }
-
+        
         private Rectangle CreateRect(Rectangle rect)
         {
             if (Height == -1)
