@@ -28,7 +28,7 @@ namespace MonoGame.PortableUI
 
         private static Dictionary<string, SpriteFont> Fonts { get; set; }
         
-        public static string DefaultFont { get; set; }
+        public static SpriteFont DefaultFont { get; set; }
 
         public static void LoadFonts(Game game, params string[] fontList)
         {
@@ -42,8 +42,11 @@ namespace MonoGame.PortableUI
                     {
                         try
                         {
-                            var styleName = style.ToString().ToLower();
-                            Fonts[$"{font}-{styleName}-{size}"] = game.Content.Load<SpriteFont>($@"Fonts/{font}-{styleName}-{size}");
+                            var formattableString = $@"{font}-{style.ToString().ToLower()}-{size}";
+                            var spriteFont = game.Content.Load<SpriteFont>($"Fonts/{formattableString}");
+                            if (DefaultFont == null)
+                                DefaultFont = spriteFont;
+                            Fonts[$"{formattableString}"] = spriteFont;
                         }
                         catch
                         {
@@ -61,7 +64,7 @@ namespace MonoGame.PortableUI
             {
                 if (DefaultFont == null)
                     throw new DefaultFontMissingException();
-                font = DefaultFont;
+                return DefaultFont;
             }
 
             try

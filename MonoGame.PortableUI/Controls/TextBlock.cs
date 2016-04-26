@@ -7,7 +7,7 @@ namespace MonoGame.PortableUI.Controls
     public class TextBlock : TextControl
     {
         public TextAlignment TextAlignment { get; set; }
-        
+
         public float TextHeight
         {
             get { return Font.MeasureString(Text).Y; }
@@ -18,16 +18,16 @@ namespace MonoGame.PortableUI.Controls
             get { return Font.MeasureString(Text).X; }
         }
 
-        public TextBlock() 
+        public TextBlock()
         {
-            Font = FontManager.GetFont(style:FontStyle.Bold, size:12);
+            Font = FontManager.DefaultFont;
             TextColor = Color.Black;
             TextAlignment = TextAlignment.Center;
         }
 
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rectangle rect)
         {
-            var position = new Vector2(rect.Left , rect.Top);
+            var position = new Vector2(rect.Left, rect.Top);
             position.Y += ((VerticalAlignment == VerticalAlignment.Stretch ? rect.Height : Height) - TextHeight) / 2;
 
             var f = (HorizontalAlignment == HorizontalAlignment.Stretch ? rect.Width : Width) - TextWidth;
