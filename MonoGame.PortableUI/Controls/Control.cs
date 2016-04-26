@@ -4,6 +4,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Input.Touch;
 using MonoGame.PortableUI.Common;
+using MonoGame.PortableUI.Exceptions;
 
 namespace MonoGame.PortableUI.Controls
 {
