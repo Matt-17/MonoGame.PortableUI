@@ -33,6 +33,7 @@ namespace MonoGame.PortableUI.Controls
             Height = Auto;
             HorizontalAlignment = HorizontalAlignment.Stretch;
             VerticalAlignment = VerticalAlignment.Stretch;
+            Position = new Point(0,0);
         }
 
         public Control Parent
@@ -48,28 +49,32 @@ namespace MonoGame.PortableUI.Controls
         }
 
         public Size BoundingRect { get; set; }
-        public Size ClientRect { get; set; }
+        //public Size ClientRect { get; set; }
         
         public float Width { get; set; }
         public float Height { get; set; }
 
-        public virtual void ArrangeLayout()
+        public float RenderedWidth => (Width + Margin.Left + Margin.Right) * ScreenEngine.ScaleFactor;
+
+        public float RenderedHeight => (Height + Margin.Top + Margin.Bottom) * ScreenEngine.ScaleFactor;
+
+        public virtual void UpdateLayout()
         {
             var width = Width;
             var height = Height;
-            ClientRect = new Size((int) width, (int) height);
-            BoundingRect = ClientRect + Margin;
+            BoundingRect = new Size((int) width, (int) height);
+            //BoundingRect = ClientRect + Margin;
         }
 
 
         public float MeasuredHeight
         {
-            get { return (float) (Height + Margin.Top + Margin.Bottom); }
+            get { return (Height + Margin.Top + Margin.Bottom); }
         }
 
         public float MeasuredWidth
         {
-            get { return (float) (Width + Margin.Left + Margin.Right); }
+            get { return (Width + Margin.Left + Margin.Right); }
         }
 
         public Thickness Margin { get; set; }
@@ -90,7 +95,14 @@ namespace MonoGame.PortableUI.Controls
 
         public bool SnapToPixel { get; set; }
 
-        private Rectangle boundingRect => new Rectangle(0, 0, (int) BoundingRect.Width, (int) BoundingRect.Height);
+        private Rectangle boundingRect => new Rectangle(RenderPosition.X, RenderPosition.Y, (int) (BoundingRect.Width * ScreenEngine.ScaleFactor), (int) (BoundingRect.Height * ScreenEngine.ScaleFactor));
+
+        internal Point RenderPosition
+        {
+            get { return new Point( (int)((Position.X + Margin.Left) * ScreenEngine.ScaleFactor), (int) ((Position.Y + Margin.Top) * ScreenEngine.ScaleFactor)); }
+        }
+
+        internal Point Position { get; set; }
 
         public void Update(TimeSpan elapsed)
         {
