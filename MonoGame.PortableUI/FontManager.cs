@@ -40,7 +40,8 @@ namespace MonoGame.PortableUI
                     {
                         try
                         {
-                            Fonts[$"{font}-{style.ToString().ToLower()}-{size}"] = game.Content.Load<SpriteFont>($@"Fonts/{font}-{style.ToString().ToLower()}-{size}");
+                            var styleName = style.ToString().ToLower();
+                            Fonts[$"{font}-{styleName}-{size}"] = game.Content.Load<SpriteFont>($@"Fonts/{font}-{styleName}-{size}");
                         }
                         catch
                         {
@@ -55,10 +56,12 @@ namespace MonoGame.PortableUI
         public static SpriteFont GetFont(string font = null, FontStyle style = FontStyle.Regular, int size = DefaultSize)
         {
             if (font == null)
-                if (DefaultFont != null)
-                    font = DefaultFont;
-                else
+            {
+                if (DefaultFont == null)
                     throw new DefaultFontMissingException();
+                font = DefaultFont;
+            }
+
             try
             {
                 return Fonts[$"{font}-{style.ToString().ToLower()}-{size}"];

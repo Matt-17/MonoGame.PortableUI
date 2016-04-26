@@ -20,7 +20,8 @@ namespace SampleClient
         }
 
         protected override void Initialize()
-        {                  
+        {
+            FontManager.DefaultFont = "Segoe";
             ScreenEngine.Initialize(this);
             ScreenEngine.NavigateToScreen(new StartScreen());
             base.Initialize();
