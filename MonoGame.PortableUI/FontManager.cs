@@ -20,9 +20,11 @@ namespace MonoGame.PortableUI
     /// </summary>
     public class FontManager
     {
-        public const int DefaultSize = 14;
+        private const int DefaultSize = 14;
 
-        public const int MaxFontSize = 64;
+        private const int MaxFontSize = 64;
+
+        private const int MinFontSize = 2;
 
         private static Dictionary<string, SpriteFont> Fonts { get; set; }
         
@@ -34,7 +36,7 @@ namespace MonoGame.PortableUI
                 Fonts = new Dictionary<string, SpriteFont>();
             foreach (var font in fontList)
             {
-                for (int size = 2; size < MaxFontSize; size+=2)
+                for (int size = MinFontSize; size < MaxFontSize; size+=2)
                 {
                     foreach (var style in Enum.GetValues(typeof(FontStyle)))
                     {
