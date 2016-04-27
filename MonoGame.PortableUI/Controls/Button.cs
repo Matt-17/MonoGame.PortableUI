@@ -156,9 +156,7 @@ namespace MonoGame.PortableUI.Controls
 
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rectangle rect)
         {
-            rect = rect - Margin;
             spriteBatch.Draw(ScreenEngine.Pixel, rect, CurrentBackgroundColor);
-
             Child?.OnDraw(spriteBatch, rect - Padding);
         }
 

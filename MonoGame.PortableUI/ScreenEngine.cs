@@ -8,6 +8,8 @@ namespace MonoGame.PortableUI
     public class ScreenEngine
     {
         private static ScreenManager _manager;
+
+        public static float ScaleFactor { get; set; }
         
         internal static ScreenManager Manager
         {
@@ -26,6 +28,8 @@ namespace MonoGame.PortableUI
 
             Pixel = new Texture2D(game.GraphicsDevice, 1, 1);
             Pixel.SetData(new[] { Color.White });
+
+            ScaleFactor = 1;
 
             Manager.Initialize();
         }
