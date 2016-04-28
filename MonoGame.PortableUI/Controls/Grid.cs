@@ -75,7 +75,7 @@ namespace MonoGame.PortableUI.Controls
 
         public void AddChild(Control child, int row = 0, int column = 0, int rowSpan = 0, int columnSpan = 0)
         {
-            base.AddChild(child);
+            Children.Add(child);
             SetRow(child, row);
             SetColumn(child, column);
             SetRowSpan(child, rowSpan);

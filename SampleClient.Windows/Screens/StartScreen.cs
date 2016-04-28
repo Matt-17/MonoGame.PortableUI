@@ -69,10 +69,9 @@ namespace SampleClient.Screens
                 Height = 120,
                 //Padding = new Thickness(100, 50),
                 BackgroundColor = Color.Blue,
-                Orientation = Orientation.Vertical
+                Orientation = Orientation.Vertical,
+                Children = { button, button2 }
             };
-            stackPanel.AddChild(button);
-            stackPanel.AddChild(button2);
             //stackPanel.AddChild(button3);
             //stackPanel.AddChild(button4);
             Content = stackPanel;

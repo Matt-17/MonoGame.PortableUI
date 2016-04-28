@@ -22,7 +22,7 @@ namespace SampleClient.Screens
             button.Click += Button_Click;
 
             var stackPanel = new StackPanel();
-            stackPanel.AddChild(button);
+            stackPanel.Children.Add(button);
             button = new Button()
             {
                 Width = 240,
@@ -32,7 +32,7 @@ namespace SampleClient.Screens
                 Text = "Back to Screen 1"
             };
             button.Click += Button1_Click;
-            stackPanel.AddChild(button);
+            stackPanel.Children.Add(button);
             Content = stackPanel;
         }
 

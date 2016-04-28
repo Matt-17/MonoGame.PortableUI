@@ -6,15 +6,15 @@ namespace MonoGame.PortableUI.Controls
 {
     public abstract class ContentControl : Control
     {
-        private Control _child;
+        private Control _content;
 
-        public Control Child
+        public Control Content
         {
-            get { return _child; }
+            get { return _content; }
             set
             {
                 value.Parent = this;
-                _child = value;
+                _content = value;
             }
         }
 
