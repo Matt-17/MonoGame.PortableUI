@@ -53,19 +53,15 @@ namespace MonoGame.PortableUI.Controls
         public float Width { get; set; }
         public float Height { get; set; }
 
-        public float RenderedWidth => (Width + Margin.Left + Margin.Right) * ScreenEngine.ScaleFactor;
+        //public float RenderedWidth => (Width + Margin.Left + Margin.Right) * ScreenEngine.ScaleFactor;
 
-        public float RenderedHeight => (Height + Margin.Top + Margin.Bottom) * ScreenEngine.ScaleFactor;
+        //public float RenderedHeight => (Height + Margin.Top + Margin.Bottom) * ScreenEngine.ScaleFactor;
 
         public virtual void UpdateLayout()
         {
-            var width = Width;
-            var height = Height;
-            BoundingRect = new Size((int) width, (int) height);
-            //BoundingRect = ClientRect + Margin;
+            BoundingRect = new Size((int) Width, (int) Height);
         }
-
-
+        
         public float MeasuredHeight
         {
             get { return (Height + Margin.Top + Margin.Bottom); }
@@ -94,9 +90,9 @@ namespace MonoGame.PortableUI.Controls
 
         public bool SnapToPixel { get; set; }
 
-        private Rectangle boundingRect => new Rectangle(RenderPosition.X, RenderPosition.Y, (int) (BoundingRect.Width * ScreenEngine.ScaleFactor), (int) (BoundingRect.Height * ScreenEngine.ScaleFactor));
+        private Rectangle RenderedBoundingRect => new Rectangle(RenderedPosition.X, RenderedPosition.Y, (int) (BoundingRect.Width * ScreenEngine.ScaleFactor), (int) (BoundingRect.Height * ScreenEngine.ScaleFactor));
 
-        internal Point RenderPosition
+        internal Point RenderedPosition
         {
             get { return new Point( (int)((Position.X + Margin.Left) * ScreenEngine.ScaleFactor), (int) ((Position.Y + Margin.Top) * ScreenEngine.ScaleFactor)); }
         }
@@ -105,7 +101,7 @@ namespace MonoGame.PortableUI.Controls
 
         public void Update(TimeSpan elapsed)
         {
-            OnUpdate(elapsed, boundingRect);
+            OnUpdate(elapsed, RenderedBoundingRect);
         }
 
         private void HandleMouse(Rectangle rect)
@@ -218,7 +214,7 @@ namespace MonoGame.PortableUI.Controls
 
         public void Draw(SpriteBatch spriteBatch)
         {
-            OnDraw(spriteBatch, boundingRect);
+            OnDraw(spriteBatch, RenderedBoundingRect);
         }
 
         protected internal virtual void OnDraw(SpriteBatch spriteBatch, Rectangle rect)

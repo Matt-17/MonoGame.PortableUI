@@ -14,7 +14,6 @@ namespace MonoGame.PortableUI.Controls
 
         protected internal override void OnUpdate(TimeSpan elapsed, Rectangle rect)
         {
-            //rect = CreateRect(rect);
             base.OnUpdate(elapsed, rect);
             foreach (var child in Children)
                 child.Update(elapsed);
@@ -30,6 +29,8 @@ namespace MonoGame.PortableUI.Controls
         public override void UpdateLayout()
         {
             base.UpdateLayout();
+
+            CreateRect();
 
             var childX = Position.X;
             var childY = Position.Y;
@@ -52,16 +53,19 @@ namespace MonoGame.PortableUI.Controls
             }
         }
         
-        private Rectangle CreateRect(Rectangle rect)
+        private void CreateRect()
         {
+            float height = Height;
+            float width = Width;
+
             if (Height == -1)
                 switch (Orientation)
                 {
                     case Orientation.Horizontal:
-                        rect.Height = (int)Children.Select(child => child.MeasuredHeight).Max();
+                        height = Children.Select(child => child.MeasuredHeight).Max();
                         break;
                     case Orientation.Vertical:
-                        rect.Height = (int)Children.Select(child => child.MeasuredHeight).Sum();
+                        height = Children.Select(child => child.MeasuredHeight).Sum();
                         break;
                 }
 
@@ -69,14 +73,13 @@ namespace MonoGame.PortableUI.Controls
                 switch (Orientation)
                 {
                     case Orientation.Horizontal:
-                        rect.Width = (int)Children.Select(child => child.MeasuredWidth).Sum();
+                        width = Children.Select(child => child.MeasuredWidth).Sum();
                         break;
                     case Orientation.Vertical:
-                        rect.Width = (int)Children.Select(child => child.MeasuredWidth).Max();
+                        width = Children.Select(child => child.MeasuredWidth).Max();
                         break;
                 }
-
-            return rect;
+            BoundingRect = new Size(width, height);
         }
     }
 }
