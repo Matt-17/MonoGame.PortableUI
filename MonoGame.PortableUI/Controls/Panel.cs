@@ -14,6 +14,12 @@ namespace MonoGame.PortableUI.Controls
         public Panel()
         {
             _children = new ControlCollection(this);
+            _children.CollectionChanged += _children_CollectionChanged;
+        }
+
+        private void _children_CollectionChanged(object sender, CollectionChangedEventArgs args)
+        {
+            UpdateLayout();
         }
     }
 }
