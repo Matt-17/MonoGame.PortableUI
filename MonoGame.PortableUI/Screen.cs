@@ -44,6 +44,10 @@ namespace MonoGame.PortableUI
 
         internal void Update(TimeSpan elapsed)
         {
+
+
+
+
             Content?.Update(elapsed);
         }
     }

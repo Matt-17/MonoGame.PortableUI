@@ -8,13 +8,22 @@ namespace MonoGame.PortableUI.Controls
     {
         private Control _content;
 
+        public event ContentChangedEvent ContentChanged;
+
+        protected virtual void OnContentChanged(Control newControl)
+        {
+            ContentChanged?.Invoke(this, new ContentChangedEventArgs(newControl));
+        }
         public Control Content
         {
             get { return _content; }
             set
             {
+                if (_content != null)
+                    _content.Parent = null;
                 value.Parent = this;
                 _content = value;
+                OnContentChanged(value);
             }
         }
 
@@ -22,11 +31,6 @@ namespace MonoGame.PortableUI.Controls
 
         protected ContentControl()
         {
-        }
-
-        protected internal override void OnUpdate(TimeSpan elapsed, Rectangle rect)
-        {
-            base.OnUpdate(elapsed, rect);
         }
     }
 }

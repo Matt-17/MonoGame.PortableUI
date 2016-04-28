@@ -44,6 +44,8 @@
     <Compile Include="Common\ColumnDefinition.cs" />
     <Compile Include="Controls\CollectionChangedEvent.cs" />
     <Compile Include="Controls\ComboBox.cs" />
+    <Compile Include="Controls\ContentChangedEvent.cs" />
+    <Compile Include="Controls\ContentChangedEventArgs.cs" />
     <Compile Include="Controls\ContentControl.cs" />
     <Compile Include="Controls\ContentPresenter.cs" />
     <Compile Include="Controls\ControlCollection.cs" />
