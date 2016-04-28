@@ -38,16 +38,16 @@ namespace MonoGame.PortableUI.Controls
         {
             get
             {
-                var textBlock = Child as TextBlock;
+                var textBlock = Content as TextBlock;
                 return textBlock?.Text;
             }
             set
             {
-                var textBlock = Child as TextBlock;
+                var textBlock = Content as TextBlock;
                 if (textBlock == null)
                 {
                     textBlock = new TextBlock();
-                    Child = textBlock;
+                    Content = textBlock;
                 }
                 textBlock.Text = value;
             }
@@ -147,17 +147,17 @@ namespace MonoGame.PortableUI.Controls
                 default:
                     throw new ArgumentOutOfRangeException();
             }
-            var textBlock = Child as TextBlock;
+            var textBlock = Content as TextBlock;
             if (textBlock != null)
                 textBlock.TextColor = textColor;
 
-            Child?.OnUpdate(elapsed, rect - Padding);
+            Content?.OnUpdate(elapsed, rect - Padding);
         }
 
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rectangle rect)
         {
             spriteBatch.Draw(ScreenEngine.Pixel, rect, CurrentBackgroundColor);
-            Child?.OnDraw(spriteBatch, rect - Padding);
+            Content?.OnDraw(spriteBatch, rect - Padding);
         }
 
         protected virtual void OnClick()

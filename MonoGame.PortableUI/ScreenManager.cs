@@ -43,17 +43,7 @@ namespace MonoGame.PortableUI
         {
             base.Draw(gameTime);
             ActiveScreen.Draw(_spriteBatch);
-        }
-
-        protected override void OnVisibleChanged(object sender, EventArgs args)
-        {
-            base.OnVisibleChanged(sender, args);
-        }
-
-        protected override void OnDrawOrderChanged(object sender, EventArgs args)
-        {
-            base.OnDrawOrderChanged(sender, args);
-        }
+        }   
 
         public override void Update(GameTime gameTime)
         {

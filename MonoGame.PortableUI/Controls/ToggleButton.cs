@@ -21,7 +21,7 @@ namespace MonoGame.PortableUI.Controls
         {
             base.OnUpdate(elapsed, rect);
             if (IsChecked)
-                (Child as TextBlock).TextColor = Color.Black;
+                (Content as TextBlock).TextColor = Color.Black;
             if (IsChecked)
                 CurrentBackgroundColor = ToggleColor;
         }

@@ -22,8 +22,6 @@ namespace MonoGame.PortableUI.Controls
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rectangle rect)
         {
             spriteBatch.Draw(ScreenEngine.Pixel, rect, BackgroundColor);
-            foreach (var child in Children)
-                child.Draw(spriteBatch);
         }
 
         public override void UpdateLayout()

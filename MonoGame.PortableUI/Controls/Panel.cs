@@ -1,35 +1,19 @@
-using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 
 namespace MonoGame.PortableUI.Controls
 {
     public abstract class Panel : Control
     {
-        private List<Control> _children;
+        private ControlCollection _children;
 
-        protected List<Control> Children
+        public ControlCollection Children
         {
             get { return _children; }
-            set { _children = value; }
         }
 
-
-        public Panel() 
+        public Panel()
         {
-            _children = new List<Control>();
+            _children = new ControlCollection(this);
         }
-
-        public void AddChild(Control child)
-        {
-            child.Parent = this;
-            _children.Add(child);
-        }
-
-        public void RemoveChild(Control child)
-        {
-            child.Parent = null;
-            _children.Remove(child);
-        }
-
     }
 }

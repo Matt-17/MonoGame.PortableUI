@@ -10,7 +10,7 @@ namespace MonoGame.PortableUI
         private static ScreenManager _manager;
 
         public static float ScaleFactor { get; set; }
-        
+
         internal static ScreenManager Manager
         {
             get

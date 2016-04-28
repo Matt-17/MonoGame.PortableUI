@@ -22,12 +22,24 @@ namespace MonoGame.PortableUI
         {
             if (BackgroundColor != Color.Transparent)
                 spriteBatch.GraphicsDevice.Clear(BackgroundColor);
-            if (Content != null)
-            {
-                spriteBatch.Begin();
-                Content.Draw(spriteBatch);
-                spriteBatch.End();
-            }
+            if (Content == null)
+                return;
+            var content = Content;
+            DrawControl(spriteBatch, content);
+            var panel = Content as Panel;
+            if (panel != null)
+                foreach (var child in panel.Children)
+                    DrawControl(spriteBatch, child);
+            var contentControl = Content as ContentControl;
+            if (contentControl != null)
+                DrawControl(spriteBatch, contentControl.Content);
+        }
+
+        private static void DrawControl(SpriteBatch spriteBatch, Control content)
+        {
+            spriteBatch.Begin();
+            content.Draw(spriteBatch);
+            spriteBatch.End();
         }
 
         internal void Update(TimeSpan elapsed)
