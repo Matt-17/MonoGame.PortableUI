@@ -55,6 +55,7 @@
     <Compile Include="Common\GridLength.cs" />
     <Compile Include="Common\GridLengthUnit.cs" />
     <Compile Include="Common\HorizontalAlignment.cs" />
+    <Compile Include="Controls\IUIElement.cs" />
     <Compile Include="Controls\Image.cs" />
     <Compile Include="Controls\ListBox.cs" />
     <Compile Include="Exceptions\MultipleParentException.cs" />

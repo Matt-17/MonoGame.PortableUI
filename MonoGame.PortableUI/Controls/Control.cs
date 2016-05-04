@@ -8,16 +8,17 @@ using MonoGame.PortableUI.Exceptions;
 
 namespace MonoGame.PortableUI.Controls
 {
-    public abstract class Control
+    public abstract class Control : IUIElement
     {
         public static int Auto = -1;
         private bool _ignoreTouch;
-        private bool _lastMouseButtonRightState;
-        private bool _lastMouseButtonState;
-
-        private Point? _lastMousePosition;
         private Point? _lastTouchPosition;
         private Control _parent;
+
+
+        internal bool LastMouseRightButtonState;
+        internal bool LastMouseLeftButtonState;
+        internal Point? LastMousePosition;
 
         protected Control()
         {
@@ -99,78 +100,6 @@ namespace MonoGame.PortableUI.Controls
 
         internal Point Position { get; set; }
 
-        public void Update(TimeSpan elapsed)
-        {
-            OnUpdate(elapsed, RenderedBoundingRect);
-        }
-
-        private void HandleMouse(Rectangle rect)
-        {
-            var mouseState = Mouse.GetState();
-            var position = mouseState.Position;
-
-            if (rect.Contains(position))
-            {
-                if (_lastMousePosition == null)
-                {
-                    OnMouseEnter();
-                    if (mouseState.LeftButton == ButtonState.Pressed)
-                        _lastMouseButtonState = true;
-                    _lastMousePosition = position;
-                }
-
-                if (_lastMousePosition != position)
-                {
-                    OnMouseMove();
-                    _lastMousePosition = position;
-                }
-
-                if (mouseState.LeftButton == ButtonState.Pressed)
-                {
-                    if (!_lastMouseButtonState)
-                    {
-                        OnMouseLeftDown();
-                        _lastMouseButtonState = true;
-                    }
-                }
-                else
-                {
-                    if (_lastMouseButtonState)
-                    {
-                        OnMouseLeftUp();
-                        _lastMouseButtonState = false;
-                    }
-                }
-                if (mouseState.RightButton == ButtonState.Pressed)
-                {
-                    if (!_lastMouseButtonRightState)
-                    {
-                        OnMouseRightDown();
-                        _lastMouseButtonRightState = true;
-                    }
-                }
-                else
-                {
-                    if (_lastMouseButtonRightState)
-                    {
-                        OnMouseRightUp();
-                        _lastMouseButtonRightState = false;
-                    }
-                }
-            }
-            else if (_lastMousePosition != null)
-            {
-                OnMouseLeave();
-                _lastMousePosition = null;
-            }
-        }
-
-        protected internal virtual void OnUpdate(TimeSpan elapsed, Rectangle rect)
-        {
-            HandleMouse(rect);
-            HandleTouch(rect);
-        }
-
         private void HandleTouch(Rectangle rect)
         {
             var collection = TouchPanel.GetState();
@@ -239,32 +168,32 @@ namespace MonoGame.PortableUI.Controls
 
         #region Event handlers
 
-        protected virtual void OnMouseEnter()
+        protected internal virtual void OnMouseEnter()
         {
             MouseEnter?.Invoke(this, EventArgs.Empty);
         }
 
-        protected virtual void OnMouseLeave()
+        protected internal virtual void OnMouseLeave()
         {
             MouseLeave?.Invoke(this, EventArgs.Empty);
         }
 
-        protected virtual void OnMouseLeftDown()
+        protected internal virtual void OnMouseLeftDown()
         {
             MouseLeftDown?.Invoke(this, EventArgs.Empty);
         }
 
-        protected virtual void OnMouseLeftUp()
+        protected internal virtual void OnMouseLeftUp()
         {
             MouseLeftUp?.Invoke(this, EventArgs.Empty);
         }
 
-        protected virtual void OnMouseRightDown()
+        protected internal virtual void OnMouseRightDown()
         {
             MouseRightDown?.Invoke(this, EventArgs.Empty);
         }
 
-        protected virtual void OnMouseRightUp()
+        protected internal virtual void OnMouseRightUp()
         {
             MouseRightUp?.Invoke(this, EventArgs.Empty);
         }
@@ -284,7 +213,7 @@ namespace MonoGame.PortableUI.Controls
             TouchMove?.Invoke(this, EventArgs.Empty);
         }
 
-        protected virtual void OnMouseMove()
+        protected internal virtual void OnMouseMove()
         {
             MouseMove?.Invoke(this, EventArgs.Empty);
         }
