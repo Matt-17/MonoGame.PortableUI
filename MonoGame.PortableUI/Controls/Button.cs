@@ -53,25 +53,25 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
-        protected override void OnMouseEnter()
+        protected internal override void OnMouseEnter()
         {
             base.OnMouseEnter();
             _mouseHover = true;
         }
 
-        protected override void OnMouseLeave()
+        protected internal override void OnMouseLeave()
         {
             base.OnMouseLeave();
             _mouseHover = false;
         }
 
-        protected override void OnMouseLeftDown()
+        protected internal override void OnMouseLeftDown()
         {
             base.OnMouseLeftDown();
             _leftMouseButtonDown = true;
         }
 
-        protected override void OnMouseLeftUp()
+        protected internal override void OnMouseLeftUp()
         {
             base.OnMouseLeftUp();
             _leftMouseButtonDown = false;
@@ -79,13 +79,13 @@ namespace MonoGame.PortableUI.Controls
                 OnClick();
         }
 
-        protected override void OnMouseRightDown()
+        protected internal override void OnMouseRightDown()
         {
             base.OnMouseRightDown();
             _mouseRightButtonDown = true;
         }
 
-        protected override void OnMouseRightUp()
+        protected internal override void OnMouseRightUp()
         {
             base.OnMouseRightUp();
             if (_mouseRightButtonDown)

@@ -14,6 +14,7 @@ namespace MonoGame.PortableUI.Controls
         {
             ContentChanged?.Invoke(this, new ContentChangedEventArgs(newControl));
         }
+
         public Control Content
         {
             get { return _content; }
