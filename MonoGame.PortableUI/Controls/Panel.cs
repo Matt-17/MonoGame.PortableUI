@@ -15,29 +15,26 @@ namespace MonoGame.PortableUI.Controls
             get { return _children; }
         }
 
-        protected Dictionary<Control, Rect> ChildrenRects;
 
         protected Panel()
         {
-            ChildrenRects = new Dictionary<Control, Rect>();
             _children = new ControlCollection(this);
             _children.CollectionChanged += _children_CollectionChanged;
         }
 
         internal Rect GetRectangleForChild(Control child)
         {
-            return ChildrenRects[child];
+            return child.ClientRect;
         }
 
         private void _children_CollectionChanged(object sender, CollectionChangedEventArgs args)
-        {
-            foreach (var newElement in args.NewElements)
-                ChildrenRects.Add(newElement, Rect.Empty);
-
-            foreach (var removedElement in args.RemovedElements)
-                ChildrenRects.Remove(removedElement);
-
+        {                                        
             InvalidateLayout(true);
+        }
+
+        public override IEnumerable<Control> GetDescendants()
+        {
+            return Children;
         }
 
         protected internal override void OnAfterDraw(SpriteBatch spriteBatch, Rect renderedBoundingRect)

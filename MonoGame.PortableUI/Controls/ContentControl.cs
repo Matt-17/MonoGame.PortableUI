@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using MonoGame.PortableUI.Common;
 
@@ -29,6 +30,10 @@ namespace MonoGame.PortableUI.Controls
         }
 
         public Thickness Padding { get; set; }
+        public override IEnumerable<Control> GetDescendants()
+        {
+            yield return Content;
+        }
 
         protected ContentControl()
         {

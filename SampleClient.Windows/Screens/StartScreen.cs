@@ -16,16 +16,16 @@ namespace SampleClient.Screens
             {
                 BackgroundColor = Color.DarkRed,
                 Text = "Go to Screen 2",
-                Margin = new Thickness(30),
-                Height = 50,
-                Width = 200
+                Margin = new Thickness(10),
+                //Height = 50,
+                Width = 100
             };
             var button2 = new Button()
             {
                 BackgroundColor = Color.Yellow,
                 Text = "Test 2",
                 Width = 200,
-                Height = 100
+                //Height = 100
             };
             var button3 = new Button()
             {
@@ -41,7 +41,7 @@ namespace SampleClient.Screens
             button2.Click += Button2_Click;
             var grid = new Grid()
             {
-                Width = 240,
+                //Width = 240,
                 Height = 250,
                 Margin = new Thickness(100, 50),
                 BackgroundColor = Color.DarkOrange,
@@ -65,17 +65,17 @@ namespace SampleClient.Screens
             //grid.AddChild(button3, 3, 1);
             var stackPanel = new StackPanel()
             {
-                Width = 410,
-                Height = 120,
-                //Padding = new Thickness(100, 50),
+                Width = 200,
+                Height = 300,
+                Padding = new Thickness(50, 50),
+                Margin = new Thickness(20, 20),
                 BackgroundColor = Color.Blue,
-                Orientation = Orientation.Vertical,
-                Children = { button, button2 }
+                Orientation = Orientation.Horizontal,
+                Children = { button2, button }
             };
             //stackPanel.AddChild(button3);
             //stackPanel.AddChild(button4);
             Content = stackPanel;
-            stackPanel.UpdateLayout(new Rect(500, 400));
         }
 
         private void Button2_Click(object sender, EventArgs e)
