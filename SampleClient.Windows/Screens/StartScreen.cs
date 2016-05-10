@@ -17,15 +17,15 @@ namespace SampleClient.Screens
                 BackgroundColor = Color.DarkRed,
                 Text = "Go to Screen 2",
                 Margin = new Thickness(10),
-                //Height = 50,
-                Width = 100
+                Height = 50,
+                //Width = 100
             };
             var button2 = new Button()
             {
                 BackgroundColor = Color.Yellow,
                 Text = "Test 2",
-                Width = 200,
-                //Height = 100
+                //Width = 200,
+                Height = 100
             };
             var button3 = new Button()
             {
@@ -65,12 +65,12 @@ namespace SampleClient.Screens
             //grid.AddChild(button3, 3, 1);
             var stackPanel = new StackPanel()
             {
-                Width = 200,
-                Height = 300,
+                Width = 600,
+                Height = 400,
                 Padding = new Thickness(50, 50),
                 Margin = new Thickness(20, 20),
                 BackgroundColor = Color.Blue,
-                Orientation = Orientation.Horizontal,
+                Orientation = Orientation.Vertical,
                 Children = { button2, button }
             };
             //stackPanel.AddChild(button3);

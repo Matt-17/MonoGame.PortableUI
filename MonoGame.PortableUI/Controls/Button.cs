@@ -11,11 +11,17 @@ namespace MonoGame.PortableUI.Controls
     /// </summary>
     public class Button : ContentControl
     {
-        private bool _lastMouseHover;
-        private bool _leftMouseButtonDown;
+        public enum HoverStates
+        {
+            NotHovering,
+            Hovering
+        }
 
-        private bool _mouseHover;
-        private bool _mouseRightButtonDown;
+        public enum ButtonStates
+        {
+            Released,
+            Pressed,
+        }
         private bool _touch;
 
         protected Color CurrentBackgroundColor;
@@ -32,7 +38,9 @@ namespace MonoGame.PortableUI.Controls
 
         }
 
-        public ButtonStatus Status { get; set; }
+        public HoverStates HoverState { get; set; }
+        public ButtonStates LeftButtonState { get; set; }
+        public ButtonStates RightButtonState { get; set; }
 
         public string Text
         {
@@ -56,41 +64,46 @@ namespace MonoGame.PortableUI.Controls
         protected internal override void OnMouseEnter()
         {
             base.OnMouseEnter();
-            _mouseHover = true;
+            HoverState = HoverStates.Hovering;
         }
 
         protected internal override void OnMouseLeave()
         {
             base.OnMouseLeave();
-            _mouseHover = false;
+            HoverState = HoverStates.NotHovering;
         }
 
         protected internal override void OnMouseLeftDown()
         {
             base.OnMouseLeftDown();
-            _leftMouseButtonDown = true;
+            LeftButtonState = ButtonStates.Pressed;
         }
 
         protected internal override void OnMouseLeftUp()
         {
             base.OnMouseLeftUp();
-            _leftMouseButtonDown = false;
-            if (Status == ButtonStatus.Pressed)
+            if (LeftButtonState == ButtonStates.Pressed)
+            {
+                LeftButtonState = ButtonStates.Released;
                 OnClick();
+            }
+
         }
 
         protected internal override void OnMouseRightDown()
         {
             base.OnMouseRightDown();
-            _mouseRightButtonDown = true;
+            RightButtonState = ButtonStates.Pressed;
         }
 
         protected internal override void OnMouseRightUp()
         {
             base.OnMouseRightUp();
-            if (_mouseRightButtonDown)
+            if (RightButtonState == ButtonStates.Pressed)
+            {
+                RightButtonState = ButtonStates.Released;
                 OnRightClick();
-            _mouseRightButtonDown = false;
+            }
         }
 
         protected override void OnTouchDown()
@@ -122,7 +135,7 @@ namespace MonoGame.PortableUI.Controls
         //        Status = ButtonStatus.Pressed;
         //    else if (_mouseHover)
         //    {
-        //        Status = ButtonStatus.MouseOver;
+        //        Status = ButtonStatus.Hover;
         //        _lastMouseHover = true;
         //    }
         //    else
@@ -136,7 +149,7 @@ namespace MonoGame.PortableUI.Controls
         //            textColor = Color.White;
         //            CurrentBackgroundColor = BackgroundColor;
         //            break;
-        //        case ButtonStatus.MouseOver:
+        //        case ButtonStatus.Hover:
         //            textColor = Color.Black;
         //            CurrentBackgroundColor = Color.Goldenrod;
         //            break;
@@ -157,10 +170,10 @@ namespace MonoGame.PortableUI.Controls
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
             var clientRect = rect - Margin;
-            if (_mouseHover)
-                spriteBatch.Draw(ScreenEngine.Pixel, clientRect, Color.LimeGreen);
-            else
-                spriteBatch.Draw(ScreenEngine.Pixel, clientRect, BackgroundColor);
+            var color = LeftButtonState == ButtonStates.Pressed
+                ? Color.LimeGreen
+                : (HoverState == HoverStates.Hovering ? Color.GreenYellow : BackgroundColor);
+            spriteBatch.Draw(ScreenEngine.Pixel, clientRect, color);
             Content?.OnDraw(spriteBatch, clientRect - Padding);
         }
 
