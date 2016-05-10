@@ -115,49 +115,50 @@ namespace MonoGame.PortableUI.Controls
         public event EventHandler Click;
         public event EventHandler RightClick;
 
-        protected internal override void OnUpdate(TimeSpan elapsed, Rectangle rect)
+        //protected internal override void OnUpdate(TimeSpan elapsed, Rectangle rect)
+        //{
+        //    // if center
+        //    if (_touch || _mouseHover && _leftMouseButtonDown && _lastMouseHover)
+        //        Status = ButtonStatus.Pressed;
+        //    else if (_mouseHover)
+        //    {
+        //        Status = ButtonStatus.MouseOver;
+        //        _lastMouseHover = true;
+        //    }
+        //    else
+        //        Status = ButtonStatus.Normal;
+        //    base.OnUpdate(elapsed, rect);
+
+        //    Color textColor;
+        //    switch (Status)
+        //    {
+        //        case ButtonStatus.Normal:
+        //            textColor = Color.White;
+        //            CurrentBackgroundColor = BackgroundColor;
+        //            break;
+        //        case ButtonStatus.MouseOver:
+        //            textColor = Color.Black;
+        //            CurrentBackgroundColor = Color.Goldenrod;
+        //            break;
+        //        case ButtonStatus.Pressed:
+        //            textColor = Color.Black;
+        //            CurrentBackgroundColor = Color.DarkGoldenrod;
+        //            break;
+        //        default:
+        //            throw new ArgumentOutOfRangeException();
+        //    }
+        //    var textBlock = Content as TextBlock;
+        //    if (textBlock != null)
+        //        textBlock.TextColor = textColor;
+
+        //    Content?.OnUpdate(elapsed, rect - Padding);
+        //}
+
+        protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
-            // if center
-            if (_touch || _mouseHover && _leftMouseButtonDown && _lastMouseHover)
-                Status = ButtonStatus.Pressed;
-            else if (_mouseHover)
-            {
-                Status = ButtonStatus.MouseOver;
-                _lastMouseHover = true;
-            }
-            else
-                Status = ButtonStatus.Normal;
-            base.OnUpdate(elapsed, rect);
-
-            Color textColor;
-            switch (Status)
-            {
-                case ButtonStatus.Normal:
-                    textColor = Color.White;
-                    CurrentBackgroundColor = BackgroundColor;
-                    break;
-                case ButtonStatus.MouseOver:
-                    textColor = Color.Black;
-                    CurrentBackgroundColor = Color.Goldenrod;
-                    break;
-                case ButtonStatus.Pressed:
-                    textColor = Color.Black;
-                    CurrentBackgroundColor = Color.DarkGoldenrod;
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
-            var textBlock = Content as TextBlock;
-            if (textBlock != null)
-                textBlock.TextColor = textColor;
-
-            Content?.OnUpdate(elapsed, rect - Padding);
-        }
-
-        protected internal override void OnDraw(SpriteBatch spriteBatch, Rectangle rect)
-        {
-            spriteBatch.Draw(ScreenEngine.Pixel, rect, CurrentBackgroundColor);
-            Content?.OnDraw(spriteBatch, rect - Padding);
+            var clientRect = rect - Margin;
+            spriteBatch.Draw(ScreenEngine.Pixel, clientRect, BackgroundColor);
+            Content?.OnDraw(spriteBatch, clientRect - Padding);
         }
 
         protected virtual void OnClick()

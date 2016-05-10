@@ -8,7 +8,7 @@ using MonoGame.PortableUI.Controls;
 
 namespace MonoGame.PortableUI
 {
-    public abstract class Screen : ContentControl
+    public abstract class Screen 
     {
         protected Screen()
         {
@@ -27,22 +27,7 @@ namespace MonoGame.PortableUI
                 spriteBatch.GraphicsDevice.Clear(BackgroundColor);
             if (Content == null)
                 return;
-            var content = Content;
-            DrawControl(spriteBatch, content);
-            var panel = Content as Panel;
-            if (panel != null)
-                foreach (var child in panel.Children)
-                    DrawControl(spriteBatch, child);
-            var contentControl = Content as ContentControl;
-            if (contentControl != null)
-                DrawControl(spriteBatch, contentControl.Content);
-        }
-
-        private static void DrawControl(SpriteBatch spriteBatch, Control content)
-        {
-            spriteBatch.Begin();
-            content.Draw(spriteBatch);
-            spriteBatch.End();
+            Content.Draw(spriteBatch, new Common.Rect(ScreenEngine.Game.GraphicsDevice.Viewport.Width, ScreenEngine.Game.GraphicsDevice.Viewport.Height));
         }
 
         internal void Update(TimeSpan elapsed)
@@ -52,12 +37,8 @@ namespace MonoGame.PortableUI
             {
                 HandleMouse(control);
 
-            }
-
-
-
-
-            Content?.Update(elapsed);
+            }    
+            //Content?.Update(elapsed);
         }
 
         private IEnumerable<Control> GetVisualTreeAsList(Control content)

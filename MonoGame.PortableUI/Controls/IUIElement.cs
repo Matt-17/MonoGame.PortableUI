@@ -2,5 +2,6 @@
 {
     public interface IUIElement
     {
+        void InvalidateLayout(bool boundsChanged);
     }
 }

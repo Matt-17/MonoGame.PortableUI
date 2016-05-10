@@ -23,8 +23,8 @@ namespace SampleClient.Screens
             var button2 = new Button()
             {
                 BackgroundColor = Color.Yellow,
-                Text = "2",
-                Width = 300,
+                Text = "Test 2",
+                Width = 200,
                 Height = 100
             };
             var button3 = new Button()
@@ -75,7 +75,7 @@ namespace SampleClient.Screens
             //stackPanel.AddChild(button3);
             //stackPanel.AddChild(button4);
             Content = stackPanel;
-            stackPanel.UpdateLayout();
+            stackPanel.UpdateLayout(new Rect(500, 400));
         }
 
         private void Button2_Click(object sender, EventArgs e)

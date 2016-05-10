@@ -34,7 +34,7 @@ namespace MonoGame.PortableUI.Controls
             Height = Auto;
             HorizontalAlignment = HorizontalAlignment.Stretch;
             VerticalAlignment = VerticalAlignment.Stretch;
-            Position = new Point(0,0);
+            Position = new Point(0, 0);
         }
 
         public Control Parent
@@ -48,9 +48,8 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
-        public Size BoundingRect { get; set; }
         //public Size ClientRect { get; set; }
-        
+
         public float Width { get; set; }
         public float Height { get; set; }
 
@@ -58,11 +57,8 @@ namespace MonoGame.PortableUI.Controls
 
         //public float RenderedHeight => (Height + Margin.Top + Margin.Bottom) * ScreenEngine.ScaleFactor;
 
-        public virtual void UpdateLayout()
-        {
-            BoundingRect = new Size((int) Width, (int) Height);
-        }
-        
+        public Rect BoundingRect { get; private set; }
+
         public float MeasuredHeight
         {
             get { return (Height + Margin.Top + Margin.Bottom); }
@@ -75,27 +71,31 @@ namespace MonoGame.PortableUI.Controls
 
         public Thickness Margin { get; set; }
 
-        public Rect Rect { get; set; }
+        //public Border Rect { get; set; }
 
         public Vector2 Scale { get; set; }
+
         public Vector2 Translation { get; set; }
 
         public Color BackgroundColor { get; set; }
 
         public double Opacity { get; set; }
+
         public bool IsVisible { get; set; }
+
         public bool IsEnabled { get; set; }
 
         public HorizontalAlignment HorizontalAlignment { get; set; }
+
         public VerticalAlignment VerticalAlignment { get; set; }
 
         public bool SnapToPixel { get; set; }
 
-        private Rectangle RenderedBoundingRect => new Rectangle(RenderedPosition.X, RenderedPosition.Y, (int) (BoundingRect.Width * ScreenEngine.ScaleFactor), (int) (BoundingRect.Height * ScreenEngine.ScaleFactor));
+        private Rect RenderedBoundingRect => new Rect(RenderedPosition.X, RenderedPosition.Y, BoundingRect.Width * ScreenEngine.ScaleFactor, BoundingRect.Height * ScreenEngine.ScaleFactor);
 
         internal Point RenderedPosition
         {
-            get { return new Point( (int)((Position.X + Margin.Left) * ScreenEngine.ScaleFactor), (int) ((Position.Y + Margin.Top) * ScreenEngine.ScaleFactor)); }
+            get { return new Point((int)((Position.X + Margin.Left) * ScreenEngine.ScaleFactor), (int)((Position.Y + Margin.Top) * ScreenEngine.ScaleFactor)); }
         }
 
         internal Point Position { get; set; }
@@ -141,14 +141,32 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
-        public void Draw(SpriteBatch spriteBatch)
+        public void Draw(SpriteBatch spriteBatch, Rect rect)
         {
-            OnDraw(spriteBatch, RenderedBoundingRect);
+            //if (!Visible) return;
+
+            // Controlgröße ermitteln
+            //Rectangle controlArea = new Rectangle(AbsolutePosition, ActualSize);
+            //Rectangle localRenderMask = controlArea.Intersection(renderMask);
+
+            // Scissor-Filter aktivieren
+            //batch.GraphicsDevice.ScissorRectangle = localRenderMask.Transform(AbsoluteTransformation);
+            //batch.Begin(rasterizerState: new RasterizerState() { ScissorTestEnable = true }, samplerState: SamplerState.LinearWrap, transformMatrix: AbsoluteTransformation);
+            //OnDraw(batch, controlArea, gameTime);
+            //batch.End();
+
+            OnBeforeDraw(spriteBatch, rect);
+            spriteBatch.Begin(/* Scissor und sowas ; Matrix */);
+            OnDraw(spriteBatch, rect);
+            spriteBatch.End();
+            OnAfterDraw(spriteBatch, rect);
+
+            //invalidDrawing = false;
         }
 
-        protected internal virtual void OnDraw(SpriteBatch spriteBatch, Rectangle rect)
-        {
-        }
+        protected internal virtual void OnBeforeDraw(SpriteBatch spriteBatch, Rect renderedBoundingRect) { }
+        protected internal virtual void OnDraw(SpriteBatch spriteBatch, Rect rect) { }
+        protected internal virtual void OnAfterDraw(SpriteBatch spriteBatch, Rect renderedBoundingRect) { }
 
         #region Events
 
@@ -224,5 +242,21 @@ namespace MonoGame.PortableUI.Controls
         }
 
         #endregion
+
+        public virtual void UpdateLayout(Rect boundingRect)
+        {
+            BoundingRect = boundingRect;
+        }
+
+        public virtual void InvalidateLayout(bool boundsChanged)
+        {
+            Parent.InvalidateLayout(boundsChanged);
+        }
+
+        public virtual Size MeasureLayout(Size availableSize)
+        {
+            
+            return new Size(Math.Max(0, Width), Math.Max(0, Height)) + Margin;
+        }
     }
 }

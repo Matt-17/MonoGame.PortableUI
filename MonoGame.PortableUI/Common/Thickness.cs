@@ -27,13 +27,22 @@ namespace MonoGame.PortableUI.Common
 
         public static Size operator +(Size rect, Thickness t)
         {
+            return new Size(rect.Width + t.Right + t.Left, rect.Height + t.Bottom + t.Top);
+        }
+
+        public static Size operator -(Size rect, Thickness t)
+        {
             return new Size(rect.Width - t.Right - t.Left, rect.Height - t.Bottom - t.Top);
         }
 
-
-        public static Rectangle operator -(Rectangle rect, Thickness t)
+        public static Rect operator -(Rect rect, Thickness t)
         {
-            return new Rectangle((int)(rect.X + t.Left), (int)(rect.Y + t.Top), (int)(rect.Width - t.Right - t.Left), (int)(rect.Height - t.Bottom - t.Top));
+            return new Rect(rect.Left + t.Left, rect.Top + t.Top, rect.Width - t.Right - t.Left, rect.Height - t.Bottom - t.Top);
+        }
+
+        public static Rect operator +(Rect rect, Thickness t)
+        {
+            return new Rect(rect.Left - t.Left, rect.Top - t.Top, rect.Width + t.Right + t.Left, rect.Height + t.Bottom + t.Top);
         }
     }
 }
