@@ -14,18 +14,18 @@ namespace SampleClient.Screens
             BackgroundColor = Color.CornflowerBlue;
             var button = new Button
             {
-                BackgroundColor = Color.DarkRed,
+              //  BackgroundColor = Color.DarkRed,
                 Text = "Go to Screen 2",
                 Margin = new Thickness(10),
                 Height = 50,
                 //Width = 100
             };
-            var button2 = new Button()
+            var button2 = new ToggleButton()
             {
-                BackgroundColor = Color.Yellow,
+              //  BackgroundColor = Color.Yellow,
                 Text = "Test 2",
                 //Width = 200,
-                Height = 100
+                Height = 100     , ToggleColor = Color.YellowGreen
             };
             var button3 = new Button()
             {
@@ -37,8 +37,7 @@ namespace SampleClient.Screens
                 BackgroundColor = Color.DarkGreen,
                 Text = "4"
             };
-            button.Click += Button_Click;
-            button2.Click += Button2_Click;
+            button.Click += Button_Click;         
             var grid = new Grid()
             {
                 //Width = 240,
@@ -76,12 +75,7 @@ namespace SampleClient.Screens
             //stackPanel.AddChild(button3);
             //stackPanel.AddChild(button4);
             Content = stackPanel;
-        }
-
-        private void Button2_Click(object sender, EventArgs e)
-        {
-
-        }
+        }        
 
         private void Button_Click(object sender, EventArgs e)
         {

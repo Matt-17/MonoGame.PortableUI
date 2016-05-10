@@ -1,46 +1,35 @@
 using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
 using MonoGame.PortableUI.Common;
+using MonoGame.PortableUI.Controls.Input;
 
 namespace MonoGame.PortableUI.Controls
 {
     /// <summary>
-    ///     9-Tile Button
+    ///     Button
     /// </summary>
     public class Button : ContentControl
     {
-        public enum HoverStates
-        {
-            NotHovering,
-            Hovering
-        }
-
-        public enum ButtonStates
-        {
-            Released,
-            Pressed,
-        }
-        private bool _touch;
-
         protected Color CurrentBackgroundColor;
-
         protected internal Control Template;
 
         public Button()
         {
             Padding = new Thickness(8);
+            BackgroundColor = Color.White;
+            HoverColor = new Color(0, 0, 0, 0.2f);
+            PressedColor = new Color(0, 0, 0, 0.4f);
             //var grid = new Grid();
             //grid.AddChild(new Rect {BackgroundColor = Color.DarkMagenta});
             //grid.AddChild(new ContentPresenter(this));
             //Template = grid;
-
         }
 
         public HoverStates HoverState { get; set; }
         public ButtonStates LeftButtonState { get; set; }
         public ButtonStates RightButtonState { get; set; }
+        public TouchStates TouchState { get; set; }
 
         public string Text
         {
@@ -61,6 +50,10 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        public Color HoverColor { get; set; }
+
+        public Color PressedColor { get; set; }
+
         protected internal override void OnMouseEnter()
         {
             base.OnMouseEnter();
@@ -71,6 +64,7 @@ namespace MonoGame.PortableUI.Controls
         {
             base.OnMouseLeave();
             HoverState = HoverStates.NotHovering;
+            LeftButtonState = ButtonStates.Released;
         }
 
         protected internal override void OnMouseLeftDown()
@@ -87,7 +81,6 @@ namespace MonoGame.PortableUI.Controls
                 LeftButtonState = ButtonStates.Released;
                 OnClick();
             }
-
         }
 
         protected internal override void OnMouseRightDown()
@@ -109,71 +102,34 @@ namespace MonoGame.PortableUI.Controls
         protected override void OnTouchDown()
         {
             base.OnTouchDown();
-            _touch = true;
+            TouchState = TouchStates.Touched;
         }
 
         protected override void OnTouchUp()
         {
             base.OnTouchUp();
-            _touch = false;
+            TouchState = TouchStates.Released;
             OnClick();
         }
 
         protected override void OnTouchCancel()
         {
             base.OnTouchCancel();
-            _touch = false;
+            TouchState = TouchStates.Released;
         }
 
         public event EventHandler Click;
         public event EventHandler RightClick;
 
-        //protected internal override void OnUpdate(TimeSpan elapsed, Rectangle rect)
-        //{
-        //    // if center
-        //    if (_touch || _mouseHover && _leftMouseButtonDown && _lastMouseHover)
-        //        Status = ButtonStatus.Pressed;
-        //    else if (_mouseHover)
-        //    {
-        //        Status = ButtonStatus.Hover;
-        //        _lastMouseHover = true;
-        //    }
-        //    else
-        //        Status = ButtonStatus.Normal;
-        //    base.OnUpdate(elapsed, rect);
-
-        //    Color textColor;
-        //    switch (Status)
-        //    {
-        //        case ButtonStatus.Normal:
-        //            textColor = Color.White;
-        //            CurrentBackgroundColor = BackgroundColor;
-        //            break;
-        //        case ButtonStatus.Hover:
-        //            textColor = Color.Black;
-        //            CurrentBackgroundColor = Color.Goldenrod;
-        //            break;
-        //        case ButtonStatus.Pressed:
-        //            textColor = Color.Black;
-        //            CurrentBackgroundColor = Color.DarkGoldenrod;
-        //            break;
-        //        default:
-        //            throw new ArgumentOutOfRangeException();
-        //    }
-        //    var textBlock = Content as TextBlock;
-        //    if (textBlock != null)
-        //        textBlock.TextColor = textColor;
-
-        //    Content?.OnUpdate(elapsed, rect - Padding);
-        //}
-
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
             var clientRect = rect - Margin;
-            var color = LeftButtonState == ButtonStates.Pressed
-                ? Color.LimeGreen
-                : (HoverState == HoverStates.Hovering ? Color.GreenYellow : BackgroundColor);
-            spriteBatch.Draw(ScreenEngine.Pixel, clientRect, color);
+            spriteBatch.Draw(ScreenEngine.Pixel, clientRect, BackgroundColor);
+            if (LeftButtonState == ButtonStates.Pressed)
+                spriteBatch.Draw(ScreenEngine.Pixel, clientRect, PressedColor);
+            else if (HoverState == HoverStates.Hovering)
+                spriteBatch.Draw(ScreenEngine.Pixel, clientRect, HoverColor);
+
             Content?.OnDraw(spriteBatch, clientRect - Padding);
         }
 
