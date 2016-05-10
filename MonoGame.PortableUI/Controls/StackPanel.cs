@@ -1,4 +1,5 @@
 
+using System.Linq;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI.Common;
 
@@ -16,18 +17,20 @@ namespace MonoGame.PortableUI.Controls
         }
 
         public override Size MeasureLayout(Size availableSize)
-        {
-            //return base.MeasureLayout(availableSize);
-            var result = new Size();
+        {   
+            availableSize -= Margin;
+            var width = Width;
+            var height = Height;
+            if (!width.IsAuto() && !height.IsAuto())
+                return new Size(width, height);
+
             if (Orientation == Orientation.Vertical)
                 availableSize.Height = 0;
             else
                 availableSize.Width = 0;
 
-            foreach (var child in Children)
-            {
-                result += child.MeasureLayout(availableSize - Padding);
-            }
+            var result = new Size();
+            result = Children.Aggregate(result, (current, child) => current + child.MeasureLayout(availableSize - Padding));
 
             if (Orientation == Orientation.Vertical)
                 result.Width = availableSize.Width;
