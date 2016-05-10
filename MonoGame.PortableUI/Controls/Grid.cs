@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI.Common;
 
@@ -85,8 +84,7 @@ namespace MonoGame.PortableUI.Controls
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
             spriteBatch.Draw(ScreenEngine.Pixel, rect, BackgroundColor);
-            foreach (var child in Children)
-                child.OnDraw(spriteBatch, GetRect(rect, child));
+            base.OnDraw(spriteBatch, rect);
         }
 
         private Rect GetRect(Rect rect, Control child)
@@ -167,6 +165,20 @@ namespace MonoGame.PortableUI.Controls
             if (f > 0)
                 result[result.Count - 1] += f;
             return result;
+        }
+
+        public override void UpdateLayout(Rect boundingRect)
+        {
+            base.UpdateLayout(boundingRect);
+            foreach (var child in Children )
+            {
+                child.ClientRect = GetRect(boundingRect, child);
+            }
+        }
+
+        public override Size MeasureLayout(Size availableSize)
+        {
+            return base.MeasureLayout(availableSize);
         }
 
         private List<int> GetColumnWidths()

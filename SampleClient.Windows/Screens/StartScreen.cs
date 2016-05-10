@@ -14,7 +14,7 @@ namespace SampleClient.Screens
             BackgroundColor = Color.CornflowerBlue;
             var button = new Button
             {
-              //  BackgroundColor = Color.DarkRed,
+                BackgroundColor = Color.DarkRed,
                 Text = "Go to Screen 2",
                 Margin = new Thickness(10),
                 Height = 50,
@@ -22,10 +22,10 @@ namespace SampleClient.Screens
             };
             var button2 = new ToggleButton()
             {
-              //  BackgroundColor = Color.Yellow,
                 Text = "Test 2",
                 //Width = 200,
-                Height = 100     , ToggleColor = Color.YellowGreen
+                Height = 100,
+                ToggleColor = Color.YellowGreen
             };
             var button3 = new Button()
             {
@@ -37,10 +37,12 @@ namespace SampleClient.Screens
                 BackgroundColor = Color.DarkGreen,
                 Text = "4"
             };
-            button.Click += Button_Click;         
+            button.Click += Button_Click;
+            button2.Checked += Button2_Checked;
+
             var grid = new Grid()
             {
-                //Width = 240,
+                Width = 240,
                 Height = 250,
                 Margin = new Thickness(100, 50),
                 BackgroundColor = Color.DarkOrange,
@@ -60,8 +62,8 @@ namespace SampleClient.Screens
             };
             //grid.AddChild(button);
             //grid.AddChild(button2, 2, 2);
-            //grid.AddChild(button4, 1, 1);
-            //grid.AddChild(button3, 3, 1);
+            grid.AddChild(button4, 1, 1);
+            grid.AddChild(button3, 3, 1);
             var stackPanel = new StackPanel()
             {
                 Width = 600,
@@ -74,8 +76,14 @@ namespace SampleClient.Screens
             };
             //stackPanel.AddChild(button3);
             //stackPanel.AddChild(button4);
-            Content = stackPanel;
-        }        
+            Content = grid;
+        }
+
+        private void Button2_Checked(object sender, CheckedEventArgs e)
+        {
+            var button = sender as ToggleButton;
+            if (button != null) button.Text = e.IsChecked ? "Checked" : "Unchecked";
+        }
 
         private void Button_Click(object sender, EventArgs e)
         {
