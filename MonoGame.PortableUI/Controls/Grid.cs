@@ -82,14 +82,14 @@ namespace MonoGame.PortableUI.Controls
             SetColumnSpan(child, columnSpan);
         }
 
-        protected internal override void OnDraw(SpriteBatch spriteBatch, Rectangle rect)
+        protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
             spriteBatch.Draw(ScreenEngine.Pixel, rect, BackgroundColor);
             foreach (var child in Children)
                 child.OnDraw(spriteBatch, GetRect(rect, child));
         }
 
-        private Rectangle GetRect(Rectangle rect, Control child)
+        private Rect GetRect(Rect rect, Control child)
         {
             var coloumnCount = ColumnDefinitions?.Count ?? 1;
             var rowCount = RowDefinitions?.Count ?? 1;
@@ -102,19 +102,23 @@ namespace MonoGame.PortableUI.Controls
             var rowSpan = Math.Max(GetRowSpan(child), 1);
             var columnSpan = Math.Max(GetColumnSpan(child), 1);
 
-            var rectangle = new Rectangle((int)(columnWidths.Take(column).Sum() + rect.X), (int)(rowHeights.Take(row).Sum() + rect.Y),
-                (int)columnWidths.Skip(column).Take(columnSpan).Sum(), (int)rowHeights.Skip(row).Take(rowSpan).Sum());
+            var rectangle = new Rect(
+                columnWidths.Take(column).Sum() + rect.Left, 
+                rowHeights.Take(row).Sum() + rect.Top,
+                columnWidths.Skip(column).Take(columnSpan).Sum(),
+                rowHeights.Skip(row).Take(rowSpan).Sum()
+            );
             return rectangle;
         }
 
-        protected internal override void OnUpdate(TimeSpan elapsed, Rectangle rect)
-        {
-            base.OnUpdate(elapsed, rect);
-            foreach (var child in Children)
-            {
-                child.OnUpdate(elapsed, GetRect(rect, child));
-            }
-        }
+        //protected internal override void OnUpdate(TimeSpan elapsed, Rectangle rect)
+        //{
+        //    base.OnUpdate(elapsed, rect);
+        //    foreach (var child in Children)
+        //    {
+        //        child.OnUpdate(elapsed, GetRect(rect, child));
+        //    }
+        //}
 
         private List<int> GetRowHeights()
         {
