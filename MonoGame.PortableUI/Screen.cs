@@ -39,6 +39,16 @@ namespace MonoGame.PortableUI
             }
         }
 
+        private IEnumerable<Control> GetVisualTreeAsList(Control content)
+        {
+            var descendants = content.GetDescendants();
+            foreach (var child in descendants.SelectMany(GetVisualTreeAsList))
+            {
+                yield return child;
+            }
+            yield return content;
+        }
+
         internal void Draw(SpriteBatch spriteBatch)
         {
             if (BackgroundColor != Color.Transparent)
@@ -48,16 +58,12 @@ namespace MonoGame.PortableUI
 
         internal void Update(TimeSpan elapsed)
         {
-            UpdateInput(Content);
-        }
-
-        private void UpdateInput(Control control)
-        {
-            foreach (var descendant in control.GetDescendants())
-                UpdateInput(descendant);
-
-            HandleMouse(control);
-        }
+            var visualTreeAsList = GetVisualTreeAsList(Content);
+            foreach (var control in visualTreeAsList)
+            {              
+                HandleMouse(control);
+            }
+        }      
 
         private void HandleMouse(Control control)
         {

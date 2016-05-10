@@ -6,6 +6,7 @@ namespace MonoGame.PortableUI.Controls
 {
     public class ToggleButton : Button
     {
+        private Color _backgroundColor;
         public bool IsChecked { get; set; }
 
         public Color ToggleColor { get; set; }
@@ -15,23 +16,15 @@ namespace MonoGame.PortableUI.Controls
         public ToggleButton()
         {
             Click += ToggleButton_Click;
-        }
-
-        //protected internal override void OnUpdate(TimeSpan elapsed, Rectangle rect)
-        //{
-        //    base.OnUpdate(elapsed, rect);
-        //    if (IsChecked)
-        //        (Content as TextBlock).TextColor = Color.Black;
-        //    if (IsChecked)
-        //        CurrentBackgroundColor = ToggleColor;
-        //}
+            _backgroundColor = BackgroundColor;
+        }                                     
 
         private void ToggleButton_Click(object sender, System.EventArgs e)
         {
             IsChecked = !IsChecked;
             OnChecked(IsChecked);
-        }
-        
+            BackgroundColor = IsChecked ? ToggleColor : _backgroundColor;
+        }  
 
         protected virtual void OnChecked(bool e)
         {
