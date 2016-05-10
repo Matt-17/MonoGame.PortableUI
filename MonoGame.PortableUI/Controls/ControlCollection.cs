@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace MonoGame.PortableUI.Controls
 {
@@ -28,11 +29,14 @@ namespace MonoGame.PortableUI.Controls
         {
             SetParent(item);
             _controls.Add(item);
+            OnElementsAdded(item);
         }
 
         public void Clear()
         {
+            var controls = _controls.ToArray();
             _controls.Clear();
+            OnElementsRemoved(controls);
         }
 
         public bool Contains(Control item)
@@ -48,7 +52,9 @@ namespace MonoGame.PortableUI.Controls
         public bool Remove(Control item)
         {
             UnsetParent(item);
-            return _controls.Remove(item);
+            var remove = _controls.Remove(item);
+            OnElementsRemoved(item);
+            return remove;
         }
 
         public int Count

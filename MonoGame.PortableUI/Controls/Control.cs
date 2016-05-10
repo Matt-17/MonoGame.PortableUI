@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -10,15 +12,14 @@ namespace MonoGame.PortableUI.Controls
 {
     public abstract class Control : IUIElement
     {
-        public static int Auto = -1;
         private bool _ignoreTouch;
-        private Point? _lastTouchPosition;
-        private Control _parent;
+        private PointF? _lastTouchPosition;
+        private IUIElement _parent;
 
 
         internal bool LastMouseRightButtonState;
         internal bool LastMouseLeftButtonState;
-        internal Point? LastMousePosition;
+        internal PointF? LastMousePosition;
 
         protected Control()
         {
@@ -30,14 +31,14 @@ namespace MonoGame.PortableUI.Controls
             Scale = new Vector2(1, 1);
             Translation = new Vector2();
             Margin = new Thickness(0);
-            Width = Auto;
-            Height = Auto;
+            Width = Size.Auto;
+            Height = Size.Auto;
             HorizontalAlignment = HorizontalAlignment.Stretch;
             VerticalAlignment = VerticalAlignment.Stretch;
-            Position = new Point(0, 0);
+            Position = new PointF(0, 0);
         }
 
-        public Control Parent
+        public IUIElement Parent
         {
             get { return _parent; }
             internal set
@@ -93,12 +94,12 @@ namespace MonoGame.PortableUI.Controls
 
         private Rect RenderedBoundingRect => new Rect(RenderedPosition.X, RenderedPosition.Y, BoundingRect.Width * ScreenEngine.ScaleFactor, BoundingRect.Height * ScreenEngine.ScaleFactor);
 
-        internal Point RenderedPosition
+        internal PointF RenderedPosition
         {
-            get { return new Point((int)((Position.X + Margin.Left) * ScreenEngine.ScaleFactor), (int)((Position.Y + Margin.Top) * ScreenEngine.ScaleFactor)); }
+            get { return new PointF((int)((Position.X + Margin.Left) * ScreenEngine.ScaleFactor), (int)((Position.Y + Margin.Top) * ScreenEngine.ScaleFactor)); }
         }
 
-        internal Point Position { get; set; }
+        internal PointF Position { get; set; }
 
         private void HandleTouch(Rectangle rect)
         {
@@ -243,20 +244,35 @@ namespace MonoGame.PortableUI.Controls
 
         #endregion
 
+        internal Rect ClientRect { get; set; }
+
         public virtual void UpdateLayout(Rect boundingRect)
         {
-            BoundingRect = boundingRect;
+            BoundingRect = MeasureLayout((Size)boundingRect);
         }
 
         public virtual void InvalidateLayout(bool boundsChanged)
         {
-            Parent.InvalidateLayout(boundsChanged);
+            Parent?.InvalidateLayout(boundsChanged);
+        }
+
+        public virtual IEnumerable<Control> GetDescendants()
+        {
+            return new List<Control>();
         }
 
         public virtual Size MeasureLayout(Size availableSize)
         {
-            
-            return new Size(Math.Max(0, Width), Math.Max(0, Height)) + Margin;
+            availableSize -= Margin;
+            var width = Width;
+            var height = Height;
+            if (width.IsAuto())
+                width = HorizontalAlignment == HorizontalAlignment.Stretch ? availableSize.Width : 0;
+
+            if (height.IsAuto())
+                height = VerticalAlignment == VerticalAlignment.Stretch ? availableSize.Height : 0;
+
+            return new Size(width, height) + Margin;
         }
     }
 }

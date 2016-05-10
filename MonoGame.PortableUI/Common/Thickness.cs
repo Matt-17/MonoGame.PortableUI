@@ -25,14 +25,19 @@ namespace MonoGame.PortableUI.Common
             Bottom = bottom;
         }
 
+        public override string ToString()
+        {
+            return $"{Left}, {Top}, {Right}, {Bottom}";
+        }
+
         public static Size operator +(Size rect, Thickness t)
         {
-            return new Size(rect.Width + t.Right + t.Left, rect.Height + t.Bottom + t.Top);
+            return new Size(rect.Width + t.Right + t.Left, rect.Height + t.Bottom + t.Top).Clamp();
         }
 
         public static Size operator -(Size rect, Thickness t)
         {
-            return new Size(rect.Width - t.Right - t.Left, rect.Height - t.Bottom - t.Top);
+            return new Size(rect.Width - t.Right - t.Left, rect.Height - t.Bottom - t.Top).Clamp();
         }
 
         public static Rect operator -(Rect rect, Thickness t)

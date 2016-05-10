@@ -4,69 +4,66 @@ using System.Linq;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
 
 namespace MonoGame.PortableUI
 {
-    public abstract class Screen 
+    public abstract class Screen : IUIElement
     {
+        private Control _content;
+
         protected Screen()
         {
             BackgroundColor = Color.Transparent;
         }
 
+        //public int Width => ScreenEngine.GraphicsDevice.Viewport.Width;
+        //public int Height => ScreenEngine.GraphicsDevice.Viewport.Height;
+
         public Color BackgroundColor { get; set; }
 
         internal ScreenManager ScreenEngine { get; set; }
 
-        public Control Content { get; set; }
+        public Control Content
+        {
+            get { return _content; }
+            set
+            {
+                if (_content != null)
+                    _content.Parent = null;
+                _content = value;
+                if (_content != null)
+                    _content.Parent = this;
+                InvalidateLayout(true);
+            }
+        }
 
         internal void Draw(SpriteBatch spriteBatch)
         {
             if (BackgroundColor != Color.Transparent)
                 spriteBatch.GraphicsDevice.Clear(BackgroundColor);
-            if (Content == null)
-                return;
-            Content.Draw(spriteBatch, new Common.Rect(ScreenEngine.Game.GraphicsDevice.Viewport.Width, ScreenEngine.Game.GraphicsDevice.Viewport.Height));
+            Content?.Draw(spriteBatch, Content.BoundingRect);
         }
 
         internal void Update(TimeSpan elapsed)
         {
-            var controls = GetVisualTreeAsList(Content);
-            foreach (var control in controls)
-            {
-                HandleMouse(control);
-
-            }    
-            //Content?.Update(elapsed);
+            UpdateInput(Content);
         }
 
-        private IEnumerable<Control> GetVisualTreeAsList(Control content)
+        private void UpdateInput(Control control)
         {
-            var panel = content as Panel;
-            if (panel != null)
-            {
-                foreach (var child in panel.Children.Reverse().Select(GetVisualTreeAsList).SelectMany(x => x))
-                    yield return child;
-            }
-            var contentControl = content as ContentControl;
-            if (contentControl != null)
-            {
-                foreach (var child in GetVisualTreeAsList(contentControl.Content))
-                {
-                    yield return child;
-                }
-            }
-            yield return content;
+            foreach (var descendant in control.GetDescendants())
+                UpdateInput(descendant);
+
+            HandleMouse(control);
         }
-
-
 
         private void HandleMouse(Control control)
         {
             var mouseState = Mouse.GetState();
             var position = mouseState.Position;
-            var rect = new Rectangle(0, 0, (int) control.BoundingRect.Width, (int) control.BoundingRect.Height);
+            Rect rect = control.ClientRect - control.Margin;
             if (rect.Contains(position))
             {
                 if (control.LastMousePosition == null)
@@ -121,6 +118,16 @@ namespace MonoGame.PortableUI
                 control.OnMouseLeave();
                 control.LastMousePosition = null;
             }
+        }
+
+        public void InvalidateLayout(bool boundsChanged)
+        {
+            Content?.UpdateLayout(new Rect(600, 400));
+        }
+
+        public IEnumerable<Control> GetDescendants()
+        {
+            yield return Content;
         }
     }
 }
