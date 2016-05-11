@@ -22,7 +22,7 @@ namespace SampleClient.Screens
             };
             var button2 = new ToggleButton()
             {
-                Text = "Test 2",
+                Text = "Unchecked",
                 //Width = 200,
                 Height = 100,
                 ToggleColor = Color.YellowGreen
@@ -43,7 +43,7 @@ namespace SampleClient.Screens
             var grid = new Grid()
             {
                 Width = 240,
-                Height = 250,
+                Height = 600,
                 Margin = new Thickness(100, 50),
                 BackgroundColor = Color.DarkOrange,
                 ColumnDefinitions = new List<ColumnDefinition>
@@ -56,27 +56,24 @@ namespace SampleClient.Screens
                 {
                     new RowDefinition(),
                     new RowDefinition(),
-                    new RowDefinition { Height = new GridLength(50)},
+                    new RowDefinition { Height = new GridLength(30)},
                     new RowDefinition { Height = new GridLength(3.5f, GridLengthUnit.Relative) }
                 }
             };
             //grid.AddChild(button);
             //grid.AddChild(button2, 2, 2);
-            grid.AddChild(button4, 1, 1);
-            grid.AddChild(button3, 3, 1);
+            grid.AddChild(button4, 0, 1);
+            grid.AddChild(button3, 2, 2);
             var stackPanel = new StackPanel()
-            {
-                Width = 600,
-                Height = 400,
+            {                   
                 Padding = new Thickness(50, 50),
                 Margin = new Thickness(20, 20),
                 BackgroundColor = Color.Blue,
                 Orientation = Orientation.Vertical,
                 Children = { button2, button }
-            };
-            //stackPanel.AddChild(button3);
-            //stackPanel.AddChild(button4);
-            Content = grid;
+            };                                  
+         //   grid.AddChild(stackPanel, 3, 0, 0, 3);
+            Content = stackPanel;
         }
 
         private void Button2_Checked(object sender, CheckedEventArgs e)
