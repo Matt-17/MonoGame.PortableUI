@@ -16,11 +16,14 @@ namespace MonoGame.PortableUI
 
         protected Screen()
         {
+            ClearBackground = false;
             BackgroundColor = Color.Transparent;
         }
 
-        //public int Width => ScreenEngine.GraphicsDevice.Viewport.Width;
-        //public int Height => ScreenEngine.GraphicsDevice.Viewport.Height;
+        public bool ClearBackground { get; set; }
+
+        public int Width => ScreenEngine.GraphicsDevice.Viewport.Width;
+        public int Height => ScreenEngine.GraphicsDevice.Viewport.Height;
 
         public Color BackgroundColor { get; set; }
 
@@ -52,9 +55,20 @@ namespace MonoGame.PortableUI
 
         internal void Draw(SpriteBatch spriteBatch)
         {
-            if (BackgroundColor != Color.Transparent)
+            if (ClearBackground)
                 spriteBatch.GraphicsDevice.Clear(BackgroundColor);
+            else
+            {
+                spriteBatch.Begin();
+                spriteBatch.Draw(PortableUI.ScreenEngine.Pixel, new Rect(Width, Height), BackgroundColor);
+                spriteBatch.End();
+            }
             Content?.Draw(spriteBatch, Content.BoundingRect);
+            //var visualTreeAsList = GetVisualTreeAsList(Content);
+            //foreach (var control in visualTreeAsList)
+            //{
+            //    Draw(spriteBatch);            
+            //}
         }
 
         internal void Update(TimeSpan elapsed)

@@ -10,7 +10,7 @@ namespace SampleClient.Screens
     {
         public SecondScreen()
         {
-            BackgroundColor = Color.LimeGreen;
+            BackgroundColor = new Color( Color.LimeGreen, 0.4f);
             var button = new Button()
             {
                 Width = 240,

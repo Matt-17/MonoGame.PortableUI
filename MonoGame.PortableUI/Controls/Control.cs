@@ -218,7 +218,7 @@ namespace MonoGame.PortableUI.Controls
 
         public virtual IEnumerable<Control> GetDescendants()
         {
-            return new List<Control>();
+            return Enumerable.Empty<Control>();
         }
 
         public virtual Size MeasureLayout(Size availableSize)
