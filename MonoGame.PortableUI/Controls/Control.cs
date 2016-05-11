@@ -62,12 +62,12 @@ namespace MonoGame.PortableUI.Controls
 
         public float MeasuredHeight
         {
-            get { return (Height + Margin.Top + Margin.Bottom); }
+            get { return (Height + Margin.Vertical); }
         }
 
         public float MeasuredWidth
         {
-            get { return (Width + Margin.Left + Margin.Right); }
+            get { return (Width + Margin.Horizontal); }
         }
 
         public Thickness Margin { get; set; }
