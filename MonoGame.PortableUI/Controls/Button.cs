@@ -99,20 +99,20 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
-        protected override void OnTouchDown()
+        protected internal override void OnTouchDown()
         {
             base.OnTouchDown();
             TouchState = TouchStates.Touched;
         }
 
-        protected override void OnTouchUp()
+        protected internal override void OnTouchUp()
         {
             base.OnTouchUp();
             TouchState = TouchStates.Released;
             OnClick();
         }
 
-        protected override void OnTouchCancel()
+        protected internal override void OnTouchCancel()
         {
             base.OnTouchCancel();
             TouchState = TouchStates.Released;

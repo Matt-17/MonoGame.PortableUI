@@ -4,6 +4,7 @@ using System.Linq;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using Microsoft.Xna.Framework.Input.Touch;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
 
@@ -39,7 +40,7 @@ namespace MonoGame.PortableUI
             }
         }
 
-        private IEnumerable<Control> GetVisualTreeAsList(Control content)
+        private static IEnumerable<Control> GetVisualTreeAsList(Control content)
         {
             var descendants = content.GetDescendants();
             foreach (var child in descendants.SelectMany(GetVisualTreeAsList))
@@ -60,71 +61,118 @@ namespace MonoGame.PortableUI
         {
             var visualTreeAsList = GetVisualTreeAsList(Content);
             foreach (var control in visualTreeAsList)
-            {              
+            {
                 HandleMouse(control);
+                HandleTouch(control);
             }
-        }      
+        }
+
+        #region Input methods  
 
         private void HandleMouse(Control control)
         {
             var mouseState = Mouse.GetState();
             var position = mouseState.Position;
             Rect rect = control.ClientRect - control.Margin;
-            if (rect.Contains(position))
+            if (!rect.Contains(position))
             {
                 if (control.LastMousePosition == null)
-                {
-                    control.OnMouseEnter();
-                    if (mouseState.LeftButton == ButtonState.Pressed)
-                        control.LastMouseLeftButtonState = true;
-                    control.LastMousePosition = position;
-                }
-
-                if (control.LastMousePosition != position)
-                {
-                    control.OnMouseMove();
-                    control.LastMousePosition = position;
-                }
-
-                if (mouseState.LeftButton == ButtonState.Pressed)
-                {
-                    if (!control.LastMouseLeftButtonState)
-                    {
-                        control.OnMouseLeftDown();
-                        control.LastMouseLeftButtonState = true;
-                    }
-                }
-                else
-                {
-                    if (control.LastMouseLeftButtonState)
-                    {
-                        control.OnMouseLeftUp();
-                        control.LastMouseLeftButtonState = false;
-                    }
-                }
-                if (mouseState.RightButton == ButtonState.Pressed)
-                {
-                    if (!control.LastMouseRightButtonState)
-                    {
-                        control.OnMouseRightDown();
-                        control.LastMouseRightButtonState = true;
-                    }
-                }
-                else
-                {
-                    if (control.LastMouseRightButtonState)
-                    {
-                        control.OnMouseRightUp();
-                        control.LastMouseRightButtonState = false;
-                    }
-                }
-            }
-            else if (control.LastMousePosition != null)
-            {
+                    return;
                 control.OnMouseLeave();
                 control.LastMousePosition = null;
+                return;
+            }
+            if (control.LastMousePosition == null)
+            {
+                control.OnMouseEnter();
+                if (mouseState.LeftButton == ButtonState.Pressed)
+                    control.LastMouseLeftButtonState = true;
+                control.LastMousePosition = position;
+            }
+
+            if (control.LastMousePosition != position)
+            {
+                control.OnMouseMove();
+                control.LastMousePosition = position;
+            }
+
+            if (mouseState.LeftButton == ButtonState.Pressed)
+            {
+                if (!control.LastMouseLeftButtonState)
+                {
+                    control.OnMouseLeftDown();
+                    control.LastMouseLeftButtonState = true;
+                }
+            }
+            else
+            {
+                if (control.LastMouseLeftButtonState)
+                {
+                    control.OnMouseLeftUp();
+                    control.LastMouseLeftButtonState = false;
+                }
+            }
+
+            if (mouseState.RightButton == ButtonState.Pressed)
+            {
+                if (!control.LastMouseRightButtonState)
+                {
+                    control.OnMouseRightDown();
+                    control.LastMouseRightButtonState = true;
+                }
+            }
+            else
+            {
+                if (control.LastMouseRightButtonState)
+                {
+                    control.OnMouseRightUp();
+                    control.LastMouseRightButtonState = false;
+                }
             }
         }
+
+        private void HandleTouch(Control control)
+        {
+            var rect = control.BoundingRect;
+            var collection = TouchPanel.GetState();
+            if (control.IgnoreTouch || collection.Count != 1)
+            {
+                if (collection.Count > 0)
+                    return;
+
+                control.IgnoreTouch = false;
+                if (control.LastTouchPosition == null)
+                    return;
+
+                control.OnTouchUp();
+                control.LastTouchPosition = null;
+                return;
+            }
+            var touch = collection[0];
+            var position = touch.Position.ToPoint();
+            if (!rect.Contains(position))
+            {
+                control.OnTouchCancel();
+                control.IgnoreTouch = true;
+                control.LastTouchPosition = null;
+                return;
+            }
+
+            if (control.LastTouchPosition == null)
+            {
+                control.OnTouchDown();
+                control.LastTouchPosition = position;
+            }
+            else
+            {
+                if (control.LastTouchPosition == position)
+                    return;
+                control.OnTouchMove();
+                control.LastTouchPosition = position;
+            }
+        }
+
+        #endregion
 
         public void InvalidateLayout(bool boundsChanged)
         {
