@@ -12,20 +12,22 @@ namespace SampleClient.Screens
         public StartScreen()
         {
             BackgroundColor = Color.CornflowerBlue;
-            var button = new Button
-            {
-                BackgroundColor = Color.DarkRed,
-                Text = "Go to Screen 2",
-                Margin = new Thickness(10),
-                Height = 50,
-                //Width = 100
-            };
-            var button2 = new ToggleButton()
+            
+            var button = new ToggleButton()
             {
                 Text = "Test 2",
                 //Width = 200,
                 Height = 100,
                 ToggleColor = Color.YellowGreen
+            };
+
+            var button2 = new Button
+            {
+                BackgroundColor = Color.DarkRed,
+                Text = "Go to Screen 2",
+                Margin = new Thickness(10),
+                Height = 50,
+                Width = 100
             };
             var button3 = new Button()
             {
@@ -37,8 +39,8 @@ namespace SampleClient.Screens
                 BackgroundColor = Color.DarkGreen,
                 Text = "4"
             };
-            button.Click += Button_Click;
-            button2.Checked += Button2_Checked;
+            button2.Click += Button_Click;
+            button.Checked += Button2_Checked;
 
             var grid = new Grid()
             {
@@ -66,17 +68,20 @@ namespace SampleClient.Screens
             grid.AddChild(button3, 3, 1);
             var stackPanel = new StackPanel()
             {
-                Width = 600,
-                Height = 400,
+                //Width = 600,
+                //Height = 400,
                 Padding = new Thickness(50, 50),
                 Margin = new Thickness(20, 20),
                 BackgroundColor = Color.Blue,
                 Orientation = Orientation.Vertical,
-                Children = { button2, button }
+                HorizontalAlignment = HorizontalAlignment.Right,
+                //VerticalAlignment = VerticalAlignment.Top,
+                Children = { button, button2 }
             };
             //stackPanel.AddChild(button3);
             //stackPanel.AddChild(button4);
-            Content = grid;
+            //Content = grid;
+            Content = stackPanel;
         }
 
         private void Button2_Checked(object sender, CheckedEventArgs e)

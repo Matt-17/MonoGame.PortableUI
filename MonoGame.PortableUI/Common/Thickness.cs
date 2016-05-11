@@ -9,6 +9,10 @@ namespace MonoGame.PortableUI.Common
         public float Right { get; set; }
         public float Bottom { get; set; }
 
+        internal float Horizontal => Left + Right;
+
+        internal float Vertical => Top + Bottom;
+
         public Thickness(float thickness) : this(thickness, thickness)
         {
         }
