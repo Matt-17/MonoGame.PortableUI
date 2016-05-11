@@ -12,14 +12,14 @@ namespace MonoGame.PortableUI.Controls
 {
     public abstract class Control : IUIElement
     {
-        private bool _ignoreTouch;
-        private PointF? _lastTouchPosition;
         private IUIElement _parent;
 
 
         internal bool LastMouseRightButtonState;
         internal bool LastMouseLeftButtonState;
         internal PointF? LastMousePosition;
+        internal bool IgnoreTouch;
+        internal PointF? LastTouchPosition;
 
         protected Control()
         {
@@ -101,46 +101,6 @@ namespace MonoGame.PortableUI.Controls
 
         internal PointF Position { get; set; }
 
-        private void HandleTouch(Rectangle rect)
-        {
-            var collection = TouchPanel.GetState();
-            if (!_ignoreTouch && collection.Count == 1)
-            {
-                var touch = collection[0];
-                var position = touch.Position.ToPoint();
-                if (rect.Contains(position))
-                {
-                    if (_lastTouchPosition == null)
-                    {
-                        OnTouchDown();
-                        _lastTouchPosition = position;
-                    }
-                    else
-                    {
-                        if (_lastTouchPosition != position)
-                        {
-                            OnTouchMove();
-                            _lastTouchPosition = position;
-                        }
-                    }
-                }
-                else
-                {
-                    OnTouchCancel();
-                    _ignoreTouch = true;
-                    _lastTouchPosition = null;
-                }
-            }
-            else if (collection.Count == 0)
-            {
-                _ignoreTouch = false;
-                if (_lastTouchPosition != null)
-                {
-                    OnTouchUp();
-                    _lastTouchPosition = null;
-                }
-            }
-        }
 
         public void Draw(SpriteBatch spriteBatch, Rect rect)
         {
@@ -217,17 +177,17 @@ namespace MonoGame.PortableUI.Controls
             MouseRightUp?.Invoke(this, EventArgs.Empty);
         }
 
-        protected virtual void OnTouchDown()
+        protected internal virtual void OnTouchDown()
         {
             TouchDown?.Invoke(this, EventArgs.Empty);
         }
 
-        protected virtual void OnTouchUp()
+        protected internal virtual void OnTouchUp()
         {
             TouchUp?.Invoke(this, EventArgs.Empty);
         }
 
-        protected virtual void OnTouchMove()
+        protected internal virtual void OnTouchMove()
         {
             TouchMove?.Invoke(this, EventArgs.Empty);
         }
@@ -237,7 +197,7 @@ namespace MonoGame.PortableUI.Controls
             MouseMove?.Invoke(this, EventArgs.Empty);
         }
 
-        protected virtual void OnTouchCancel()
+        protected internal virtual void OnTouchCancel()
         {
             TouchCancel?.Invoke(this, EventArgs.Empty);
         }
@@ -258,7 +218,7 @@ namespace MonoGame.PortableUI.Controls
 
         public virtual IEnumerable<Control> GetDescendants()
         {
-            return new List<Control>();
+            return Enumerable.Empty<Control>();
         }
 
         public virtual Size MeasureLayout(Size availableSize)
