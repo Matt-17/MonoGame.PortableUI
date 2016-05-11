@@ -69,7 +69,7 @@ namespace SampleClient.Screens
                 Margin = new Thickness(20, 20),
                 BackgroundColor = Color.Blue,
                 Orientation = Orientation.Vertical,
-                Children = { button2, button }
+                Children = { button2, button , grid}
             };                                  
          //   grid.AddChild(stackPanel, 3, 0, 0, 3);
             Content = stackPanel;
