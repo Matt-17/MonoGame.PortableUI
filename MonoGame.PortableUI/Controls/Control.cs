@@ -207,7 +207,32 @@ namespace MonoGame.PortableUI.Controls
 
         public virtual void UpdateLayout(Rect boundingRect)
         {
-            BoundingRect =boundingRect;
+            var measuredSize = MeasureLayout((Size)boundingRect);
+
+            var x = boundingRect.Left;
+            var y = boundingRect.Top;
+
+            switch (VerticalAlignment)
+            {
+                case VerticalAlignment.Center:
+                    y += boundingRect.Height/2 - measuredSize.Height/2;
+                    break;
+                case VerticalAlignment.Bottom:
+                    y += boundingRect.Height - measuredSize.Height;
+                    break;
+            }
+
+            switch (HorizontalAlignment)
+            {
+                case HorizontalAlignment.Center:
+                    x += boundingRect.Width / 2 - measuredSize.Width / 2;
+                    break;
+                case HorizontalAlignment.Right:
+                    x += boundingRect.Width - measuredSize.Width;
+                    break;
+            }
+
+            BoundingRect = new Rect(x, y, measuredSize.Width, measuredSize.Height);
         }
 
         public virtual void InvalidateLayout(bool boundsChanged)
