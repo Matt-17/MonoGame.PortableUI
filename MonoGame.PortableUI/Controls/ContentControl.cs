@@ -32,7 +32,8 @@ namespace MonoGame.PortableUI.Controls
         public Thickness Padding { get; set; }
         public override IEnumerable<Control> GetDescendants()
         {
-            yield return Content;
+            if (Content != null)
+                yield return Content;
         }
 
         protected ContentControl()
