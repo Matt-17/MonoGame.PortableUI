@@ -1,4 +1,5 @@
 
+using System;
 using System.Linq;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI.Common;
@@ -13,48 +14,53 @@ namespace MonoGame.PortableUI.Controls
 
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
-            spriteBatch.Draw(ScreenEngine.Pixel, rect, BackgroundColor);
+            spriteBatch.Draw(ScreenEngine.Pixel, rect - Margin, BackgroundColor);
         }
 
         public override Size MeasureLayout(Size availableSize)
         {   
             availableSize -= Margin;
+            availableSize -= Padding;
             var width = Width;
             var height = Height;
             if (!width.IsAuto() && !height.IsAuto())
                 return new Size(width, height);
 
-            if (Orientation == Orientation.Vertical)
-                availableSize.Height = 0;
-            else
-                availableSize.Width = 0;
-
             var result = new Size();
-            result = Children.Aggregate(result, (current, child) => current + child.MeasureLayout(availableSize - Padding));
 
-            if (Orientation == Orientation.Vertical)
+            if (width.IsAuto())
                 result.Width = availableSize.Width;
-            else
+
+            if (height.IsAuto())
                 result.Height = availableSize.Height;
 
-            return result;
+            if (HorizontalAlignment != HorizontalAlignment.Stretch)
+                result.Width = Orientation == Orientation.Vertical ? Children.Max(child => child.MeasuredWidth) : Children.Sum(child => child.MeasuredWidth);
+            
+            if (VerticalAlignment != VerticalAlignment.Stretch)
+                result.Height = Orientation == Orientation.Horizontal ? Children.Max(child => child.MeasuredHeight) : Children.Sum(child => child.MeasuredHeight);
+      
+            return result + Margin + Padding;
         }
 
-        public override void UpdateLayout(Rect boundingRect)
+        public override void UpdateLayout(Rect availableBoundingRect)
         {
             // Bounding rect to default - is necessary
-            base.UpdateLayout(boundingRect);
-            boundingRect -= Padding;
+            base.UpdateLayout(availableBoundingRect);
 
-            var childOffset = new PointF(boundingRect.Left, boundingRect.Top);
+            var contentRect = BoundingRect - Margin;
+
+            contentRect -= Padding;
+
+            var childOffset = new PointF(contentRect.Left, contentRect.Top);
 
             if (Orientation == Orientation.Vertical)
-                boundingRect.Height = 0;
+                contentRect.Height = 0;
             else
-                boundingRect.Width = 0;
+                contentRect.Width = 0;
             foreach (var child in Children)
             {
-                var measureLayout = child.MeasureLayout((Size)boundingRect);
+                var measureLayout = child.MeasureLayout((Size) contentRect);
                 Rect rect = childOffset + measureLayout;
                 child.ClientRect = rect;
                 child.UpdateLayout(rect.AtOrigin());
