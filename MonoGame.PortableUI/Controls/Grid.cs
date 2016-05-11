@@ -172,7 +172,7 @@ namespace MonoGame.PortableUI.Controls
             base.UpdateLayout(boundingRect);
             foreach (var child in Children )
             {
-                child.ClientRect = GetRect(boundingRect, child);
+                child.UpdateLayout(GetRect(boundingRect, child));
             }
         }
 
