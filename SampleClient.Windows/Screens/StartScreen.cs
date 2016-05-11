@@ -11,7 +11,6 @@ namespace SampleClient.Screens
     {
         public StartScreen()
         {
-            BackgroundColor = Color.CornflowerBlue;
             var button = new Button
             {
                 BackgroundColor = Color.DarkRed,
@@ -79,7 +78,11 @@ namespace SampleClient.Screens
         private void Button2_Checked(object sender, CheckedEventArgs e)
         {
             var button = sender as ToggleButton;
-            if (button != null) button.Text = e.IsChecked ? "Checked" : "Unchecked";
+            if (button == null)
+                return;
+            button.Text = e.IsChecked ? "Checked" : "Unchecked";
+            button.Width = e.IsChecked ? 700 : 200;
+            InvalidateLayout(true);
         }
 
         private void Button_Click(object sender, EventArgs e)
