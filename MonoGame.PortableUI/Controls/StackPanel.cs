@@ -62,8 +62,7 @@ namespace MonoGame.PortableUI.Controls
             {
                 var measureLayout = child.MeasureLayout((Size) contentRect);
                 Rect rect = childOffset + measureLayout;
-                child.ClientRect = rect;
-                child.UpdateLayout(rect.AtOrigin());
+                child.UpdateLayout(rect);
                 if (Orientation == Orientation.Vertical)
                 {
                     childOffset.Y += rect.Height;

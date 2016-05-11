@@ -24,7 +24,7 @@ namespace MonoGame.PortableUI.Controls
 
         internal Rect GetRectangleForChild(Control child)
         {
-            return child.ClientRect;
+            return child.BoundingRect;
         }
 
         private void _children_CollectionChanged(object sender, CollectionChangedEventArgs args)

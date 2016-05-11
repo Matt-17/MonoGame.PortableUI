@@ -87,7 +87,7 @@ namespace MonoGame.PortableUI
         {
             var mouseState = Mouse.GetState();
             var position = mouseState.Position;
-            Rect rect = control.ClientRect - control.Margin;
+            Rect rect = control.BoundingRect - control.Margin;
             if (!rect.Contains(position))
             {
                 if (control.LastMousePosition == null)

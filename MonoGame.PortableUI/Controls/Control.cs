@@ -204,11 +204,10 @@ namespace MonoGame.PortableUI.Controls
 
         #endregion
 
-        internal Rect ClientRect { get; set; }
 
         public virtual void UpdateLayout(Rect boundingRect)
         {
-            BoundingRect = MeasureLayout((Size)boundingRect);
+            BoundingRect =boundingRect;
         }
 
         public virtual void InvalidateLayout(bool boundsChanged)
