@@ -190,7 +190,7 @@ namespace MonoGame.PortableUI
 
         public void InvalidateLayout(bool boundsChanged)
         {
-            Content?.UpdateLayout(new Rect(600, 400));
+            Content?.UpdateLayout(new Rect(800, 480));
         }
 
         public IEnumerable<Control> GetDescendants()
