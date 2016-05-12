@@ -63,15 +63,23 @@ namespace SampleClient.Screens
             //grid.AddChild(button2, 2, 2);
             grid.AddChild(button4, 0, 1);
             grid.AddChild(button3, 2, 2);
+            var border = new Border()
+            {
+                BackgroundColor = Color.BlanchedAlmond,
+                BorderWidth = new Thickness(10, 20, 30, 40),
+                BorderColor = Color.CadetBlue    ,
+                Width = 150,
+                Height = 150
+            };
             var stackPanel = new StackPanel()
-            {                   
+            {
                 Padding = new Thickness(50, 50),
                 Margin = new Thickness(20, 20),
                 BackgroundColor = Color.Blue,
                 Orientation = Orientation.Vertical,
-                Children = { button2, button , grid}
-            };                                  
-         //   grid.AddChild(stackPanel, 3, 0, 0, 3);
+                Children = { button2, button, border }
+            };
+            //   grid.AddChild(stackPanel, 3, 0, 0, 3);
             Content = stackPanel;
         }
 
