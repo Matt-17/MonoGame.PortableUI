@@ -46,9 +46,7 @@ namespace SampleClient.Screens
             button2.Checked += Button2_Checked;
 
             var grid = new Grid()
-            {
-                Width = 240,
-                Height = 600,
+            {                   
                 Margin = new Thickness(100, 50),
                 BackgroundBrush = Color.DarkOrange,
                 ColumnDefinitions = new List<ColumnDefinition>
@@ -82,7 +80,7 @@ namespace SampleClient.Screens
                 Orientation = Orientation.Horizontal,
                 Children = {
                     button3,
-                    button4,
+                    button4,      
                 },
                 HorizontalAlignment = HorizontalAlignment.Center,
             };
@@ -98,8 +96,7 @@ namespace SampleClient.Screens
                 Children = {
                     button2,
                     button,
-                    innerStackPanel,
-                    border
+                    grid,
                 }
             };
             //   grid.AddChild(stackPanel, 3, 0, 0, 3);
