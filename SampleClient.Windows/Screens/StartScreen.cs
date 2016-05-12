@@ -4,6 +4,7 @@ using Microsoft.Xna.Framework;
 using MonoGame.PortableUI;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
+using MonoGame.PortableUI.Media;
 
 namespace SampleClient.Screens
 {
@@ -13,7 +14,7 @@ namespace SampleClient.Screens
         {
             var button = new Button
             {
-                BackgroundColor = Color.DarkRed,
+                BackgroundBrush = Color.DarkRed,
                 Text = "Go to Screen 2",
                 Margin = new Thickness(10),
                 Height = 50,
@@ -24,18 +25,19 @@ namespace SampleClient.Screens
                 Text = "Unchecked",
                 //Width = 200,
                 Height = 100,
-                ToggleColor = Color.YellowGreen
+                BackgroundBrush = new GradientBrush(Color.Red, Color.Orange),
+                ToggleBrush = new GradientBrush(Color.YellowGreen, Color.Orange)
             };
             var button3 = new Button()
             {
-                BackgroundColor = Color.DarkGreen,
+                BackgroundBrush = Color.DarkGreen,
                 Text = "3",
                 Width = 50,
                 Height = 200
             };
             var button4 = new Button()
             {
-                BackgroundColor = Color.DarkGreen,
+                BackgroundBrush = Color.DarkGreen,
                 Text = "4",
                 Width = 50,
                 //Height = 100
@@ -48,7 +50,7 @@ namespace SampleClient.Screens
                 Width = 240,
                 Height = 600,
                 Margin = new Thickness(100, 50),
-                BackgroundColor = Color.DarkOrange,
+                BackgroundBrush = Color.DarkOrange,
                 ColumnDefinitions = new List<ColumnDefinition>
                 {
                     new ColumnDefinition { Width = new GridLength(2, GridLengthUnit.Relative)},
@@ -70,13 +72,13 @@ namespace SampleClient.Screens
             var border = new Border()
             {
                 BorderColor = Color.Lime,
-                BackgroundColor = Color.LimeGreen,
+                BackgroundBrush = Color.LimeGreen,
                 Height = 50,
                 BorderWidth = new Thickness(5)
             };
             var innerStackPanel = new StackPanel()
             {
-                BackgroundColor = Color.DeepSkyBlue,
+                BackgroundBrush = Color.DeepSkyBlue,
                 Orientation = Orientation.Horizontal,
                 Children = {
                     button3,
@@ -89,7 +91,7 @@ namespace SampleClient.Screens
             {
                 Padding = new Thickness(50, 50),
                 Margin = new Thickness(20, 20),
-                BackgroundColor = Color.Blue,
+                BackgroundBrush = Color.Blue,
                 Orientation = Orientation.Vertical,
                 //HorizontalAlignment = HorizontalAlignment.Right,
                 //VerticalAlignment = VerticalAlignment.Top,

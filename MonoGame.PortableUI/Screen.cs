@@ -7,6 +7,7 @@ using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Input.Touch;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
+using MonoGame.PortableUI.Media;
 
 namespace MonoGame.PortableUI
 {
@@ -16,16 +17,13 @@ namespace MonoGame.PortableUI
 
         protected Screen()
         {
-            ClearBackground = false;
-            BackgroundColor = Color.Transparent;
+            BackgroundBrush = null;
         }
-
-        public bool ClearBackground { get; set; }
 
         public int Width => ScreenEngine.GraphicsDevice.Viewport.Width;
         public int Height => ScreenEngine.GraphicsDevice.Viewport.Height;
 
-        public Color BackgroundColor { get; set; }
+        public Brush BackgroundBrush { get; set; }
 
         internal ScreenManager ScreenEngine { get; set; }
 
@@ -55,12 +53,10 @@ namespace MonoGame.PortableUI
 
         internal void Draw(SpriteBatch spriteBatch)
         {
-            if (ClearBackground)
-                spriteBatch.GraphicsDevice.Clear(BackgroundColor);
-            else
+            if (BackgroundBrush != null )
             {
                 spriteBatch.Begin();
-                spriteBatch.Draw(PortableUI.ScreenEngine.Pixel, new Rect(Width, Height), BackgroundColor);
+                BackgroundBrush.Draw(spriteBatch, new Rect(Width, Height));
                 spriteBatch.End();
             }
             Content?.Draw(spriteBatch, Content.BoundingRect);

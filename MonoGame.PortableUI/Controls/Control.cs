@@ -7,6 +7,7 @@ using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Input.Touch;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Exceptions;
+using MonoGame.PortableUI.Media;
 
 namespace MonoGame.PortableUI.Controls
 {
@@ -78,7 +79,7 @@ namespace MonoGame.PortableUI.Controls
 
         public Vector2 Translation { get; set; }
 
-        public Color BackgroundColor { get; set; }
+        public Brush BackgroundBrush { get; set; }
 
         public double Opacity { get; set; }
 

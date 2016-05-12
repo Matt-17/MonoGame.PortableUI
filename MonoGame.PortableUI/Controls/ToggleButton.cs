@@ -1,12 +1,13 @@
 using System;
 using Microsoft.Xna.Framework;
 using MonoGame.PortableUI.Common;
+using MonoGame.PortableUI.Media;
 
 namespace MonoGame.PortableUI.Controls
 {
     public class ToggleButton : Button
     {
-        private Color? _backgroundColor;
+        private Brush _backgroundColor;
         private bool _isChecked;
 
         public bool IsChecked
@@ -18,12 +19,12 @@ namespace MonoGame.PortableUI.Controls
                     return;
                 _isChecked = value;
                 if (_backgroundColor == null)
-                    _backgroundColor = BackgroundColor;
-                BackgroundColor = IsChecked ? ToggleColor : _backgroundColor.Value;
+                    _backgroundColor = BackgroundBrush;
+                BackgroundBrush = IsChecked ? ToggleBrush : _backgroundColor;
             }
         }
 
-        public Color ToggleColor { get; set; }
+        public Brush ToggleBrush { get; set; }
 
         public event EventHandler<CheckedEventArgs> Checked;
 

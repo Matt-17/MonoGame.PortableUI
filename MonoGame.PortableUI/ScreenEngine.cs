@@ -26,15 +26,12 @@ namespace MonoGame.PortableUI
             _manager = new ScreenManager(game);
             game.Components.Add(Manager);
 
-            Pixel = new Texture2D(game.GraphicsDevice, 1, 1);
-            Pixel.SetData(new[] { Color.White });
 
             ScaleFactor = 1;
 
             Manager.Initialize();
         }
         
-        public static Texture2D Pixel { get; private set; }
 
         public static void NavigateToScreen<T>(T screen) where T : Screen
         {

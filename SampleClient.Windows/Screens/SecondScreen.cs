@@ -10,13 +10,13 @@ namespace SampleClient.Screens
     {
         public SecondScreen()
         {
-            BackgroundColor = new Color(Color.LimeGreen, 0.4f);
+            BackgroundBrush = new Color(Color.LimeGreen, 0.4f);
             var button = new RadioButton()
             {
                 Width = 240,
                 Height = 50,
                 Margin = new Thickness(5),
-                BackgroundColor = Color.DarkRed,
+                BackgroundBrush = Color.DarkRed,
                 Text = "Click this button",
 
             };
@@ -29,7 +29,7 @@ namespace SampleClient.Screens
                 Width = 240,
                 Height = 50,
                 Margin = new Thickness(5),
-                BackgroundColor = Color.DarkRed,
+                BackgroundBrush = Color.DarkRed,
                 Text = "Back to Screen 1"
             };
             button.Click += Button1_Click;
@@ -38,8 +38,8 @@ namespace SampleClient.Screens
             {
                 stackPanel.Children.Add(new RadioButton
                 {
-                    BackgroundColor = new Color(0, 70, 110),
-                    ToggleColor = Color.Yellow,
+                    BackgroundBrush = new Color(0, 70, 110),
+                    ToggleBrush = Color.Yellow,
                     Text = $"Button {i}",
                     Width = 80,
                     Height = 50,

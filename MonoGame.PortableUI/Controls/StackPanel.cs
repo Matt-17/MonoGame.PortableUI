@@ -14,7 +14,7 @@ namespace MonoGame.PortableUI.Controls
 
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
-            spriteBatch.Draw(ScreenEngine.Pixel, rect - Margin, BackgroundColor);
+            BackgroundBrush.Draw(spriteBatch, rect - Margin);
         }
 
         public override Size MeasureLayout(Size availableSize)

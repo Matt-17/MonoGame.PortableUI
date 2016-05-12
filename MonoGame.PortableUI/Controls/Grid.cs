@@ -83,7 +83,7 @@ namespace MonoGame.PortableUI.Controls
 
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
-            spriteBatch.Draw(ScreenEngine.Pixel, rect, BackgroundColor);
+            BackgroundBrush.Draw(spriteBatch, rect);
             base.OnDraw(spriteBatch, rect);
         }
 
