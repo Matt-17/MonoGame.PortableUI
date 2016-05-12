@@ -6,7 +6,7 @@ namespace MonoGame.PortableUI.Controls
 {
     public class ToggleButton : Button
     {
-        private Color _backgroundColor;
+        private readonly Color _backgroundColor;
         public bool IsChecked { get; set; }
 
         public Color ToggleColor { get; set; }
