@@ -17,7 +17,7 @@ namespace SampleClient.Screens
                 Text = "Go to Screen 2",
                 Margin = new Thickness(10),
                 Height = 50,
-                //Width = 100
+                Width = 100
             };
             var button2 = new ToggleButton()
             {
@@ -29,12 +29,16 @@ namespace SampleClient.Screens
             var button3 = new Button()
             {
                 BackgroundColor = Color.DarkGreen,
-                Text = "3"
+                Text = "3",
+                Width = 50,
+                Height = 200
             };
             var button4 = new Button()
             {
                 BackgroundColor = Color.DarkGreen,
-                Text = "4"
+                Text = "4",
+                Width = 50,
+                //Height = 100
             };
             button.Click += Button_Click;
             button2.Checked += Button2_Checked;
@@ -61,15 +65,26 @@ namespace SampleClient.Screens
             };
             //grid.AddChild(button);
             //grid.AddChild(button2, 2, 2);
-            grid.AddChild(button4, 0, 1);
-            grid.AddChild(button3, 2, 2);
+            //grid.AddChild(button4, 0, 1);
+            //grid.AddChild(button3, 2, 2);
+
+            var innerStackPanel = new StackPanel()
+            {
+                BackgroundColor = Color.DeepSkyBlue,
+                Orientation = Orientation.Horizontal,
+                Children = { button3, button4 },
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
+
             var stackPanel = new StackPanel()
             {                   
                 Padding = new Thickness(50, 50),
                 Margin = new Thickness(20, 20),
                 BackgroundColor = Color.Blue,
                 Orientation = Orientation.Vertical,
-                Children = { button2, button , grid}
+                //HorizontalAlignment = HorizontalAlignment.Right,
+                //VerticalAlignment = VerticalAlignment.Top,
+                Children = { button2, button, innerStackPanel }
             };                                  
          //   grid.AddChild(stackPanel, 3, 0, 0, 3);
             Content = stackPanel;
