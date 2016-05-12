@@ -127,7 +127,10 @@ namespace MonoGame.PortableUI.Controls
         }
 
         protected internal virtual void OnBeforeDraw(SpriteBatch spriteBatch, Rect renderedBoundingRect) { }
-        protected internal virtual void OnDraw(SpriteBatch spriteBatch, Rect rect) { }
+        protected internal virtual void OnDraw(SpriteBatch spriteBatch, Rect rect)
+        {
+            BackgroundBrush?.Draw(spriteBatch, rect - Margin);
+        }
         protected internal virtual void OnAfterDraw(SpriteBatch spriteBatch, Rect renderedBoundingRect) { }
 
         #region Events
@@ -216,7 +219,7 @@ namespace MonoGame.PortableUI.Controls
             switch (VerticalAlignment)
             {
                 case VerticalAlignment.Center:
-                    y += availableBoundingRect.Height/2 - measuredSize.Height/2;
+                    y += availableBoundingRect.Height / 2 - measuredSize.Height / 2;
                     break;
                 case VerticalAlignment.Bottom:
                     y += availableBoundingRect.Height - measuredSize.Height;
