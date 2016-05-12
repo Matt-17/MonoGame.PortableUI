@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls.Input;
+using MonoGame.PortableUI.Media;
 
 namespace MonoGame.PortableUI.Controls
 {
@@ -11,17 +12,16 @@ namespace MonoGame.PortableUI.Controls
     /// </summary>
     public class Button : ContentControl
     {
-        protected Color CurrentBackgroundColor;
         protected internal Control Template;
 
         public Button()
         {
             Padding = new Thickness(8);
-            BackgroundColor = Color.White;
+            BackgroundBrush = Color.White;
             HoverColor = new Color(0, 0, 0, 0.2f);
             PressedColor = new Color(0, 0, 0, 0.4f);
             //var grid = new Grid();
-            //grid.AddChild(new Rect {BackgroundColor = Color.DarkMagenta});
+            //grid.AddChild(new Rect {BackgroundBrush = Color.DarkMagenta});
             //grid.AddChild(new ContentPresenter(this));
             //Template = grid;
         }
@@ -30,6 +30,9 @@ namespace MonoGame.PortableUI.Controls
         public ButtonStates LeftButtonState { get; set; }
         public ButtonStates RightButtonState { get; set; }
         public TouchStates TouchState { get; set; }
+
+        public Brush HoverColor { get; set; }      
+        public Brush PressedColor { get; set; }
 
         public string Text
         {
@@ -49,10 +52,6 @@ namespace MonoGame.PortableUI.Controls
                 textBlock.Text = value;
             }
         }
-
-        public Color HoverColor { get; set; }
-
-        public Color PressedColor { get; set; }
 
         protected internal override void OnMouseEnter()
         {
@@ -124,11 +123,11 @@ namespace MonoGame.PortableUI.Controls
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
             var clientRect = rect - Margin;
-            spriteBatch.Draw(ScreenEngine.Pixel, clientRect, BackgroundColor);
+            BackgroundBrush.Draw(spriteBatch, clientRect);
             if (LeftButtonState == ButtonStates.Pressed)
-                spriteBatch.Draw(ScreenEngine.Pixel, clientRect, PressedColor);
+                PressedColor.Draw(spriteBatch, clientRect);
             else if (HoverState == HoverStates.Hovering)
-                spriteBatch.Draw(ScreenEngine.Pixel, clientRect, HoverColor);
+                HoverColor.Draw(spriteBatch, clientRect);
 
             Content?.OnDraw(spriteBatch, clientRect - Padding);
         }

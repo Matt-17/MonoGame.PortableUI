@@ -8,7 +8,7 @@ namespace MonoGame.PortableUI.Controls
 {
     public class Border : ContentControl
     {
-        public Color BorderColor { get; set; }
+        public Brush BorderColor { get; set; }
         public Thickness BorderWidth { get; set; }
 
         private IEnumerable<Rect> GetBorderRects(Rect rect)
@@ -23,9 +23,9 @@ namespace MonoGame.PortableUI.Controls
         {
             foreach (var borderRect in GetBorderRects(rect))
             {
-                spriteBatch.Draw(ScreenEngine.Pixel, borderRect, BorderColor);
+                BorderColor.Draw(spriteBatch, borderRect);
             }
-            spriteBatch.Draw(ScreenEngine.Pixel, rect - BorderWidth, BackgroundColor);
+            BackgroundBrush.Draw(spriteBatch, rect - BorderWidth);
         }
     }
 }
