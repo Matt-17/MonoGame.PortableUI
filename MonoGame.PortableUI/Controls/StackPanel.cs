@@ -56,17 +56,16 @@ namespace MonoGame.PortableUI.Controls
             
             foreach (var child in Children)
             {
-                var measureLayout = child.MeasureLayout((Size) contentRect);
-                Rect rect = childOffset + measureLayout;
-                child.UpdateLayout(rect);
+                child.UpdateLayout(childOffset + (Size)contentRect);
+
                 if (Orientation == Orientation.Vertical)
                 {
-                    childOffset.Y += rect.Height;
+                    childOffset.Y += child.MeasuredHeight;
                     contentRect.Height -= child.MeasuredHeight;
                 }
                 else
                 {
-                    childOffset.X += rect.Width;
+                    childOffset.X += child.MeasuredWidth;
                     contentRect.Width -= child.MeasuredWidth;
                 }
             }
