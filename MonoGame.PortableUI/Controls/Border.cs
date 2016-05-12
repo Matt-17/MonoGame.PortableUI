@@ -24,7 +24,7 @@ namespace MonoGame.PortableUI.Controls
             base.OnDraw(spriteBatch, rect);
             foreach (var borderRect in GetBorderRects(rect))
             {
-                BorderColor.Draw(spriteBatch, borderRect);
+                BorderColor?.Draw(spriteBatch, borderRect);
             }
         }
     }

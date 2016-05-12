@@ -130,7 +130,6 @@ namespace MonoGame.PortableUI.Controls
         protected internal virtual void OnBeforeDraw(SpriteBatch spriteBatch, Rect renderedBoundingRect) { }
         protected internal virtual void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
-            Debug.WriteLine(string.Format("Control.OnDraw({0}, {1}): BackgroundBrush - {2}", spriteBatch, rect, BackgroundBrush));
             BackgroundBrush?.Draw(spriteBatch, rect - Margin);
         }
         protected internal virtual void OnAfterDraw(SpriteBatch spriteBatch, Rect renderedBoundingRect) { }
