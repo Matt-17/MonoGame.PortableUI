@@ -18,12 +18,12 @@ namespace SampleClient.Screens
                 Text = "Go to Screen 2",
                 Margin = new Thickness(10),
                 Height = 50,
-                Width = 100
+                Width = 200
             };
             var button2 = new ToggleButton()
             {
                 Text = "Unchecked",
-                //Width = 200,
+                Width = 200,
                 Height = 100,
                 BackgroundBrush = new GradientBrush(Color.Red, Color.Orange),
                 ToggleBrush = new GradientBrush(Color.YellowGreen, Color.Orange)
@@ -46,8 +46,7 @@ namespace SampleClient.Screens
             button2.Checked += Button2_Checked;
 
             var grid = new Grid()
-            {                   
-                Margin = new Thickness(100, 50),
+            {
                 BackgroundBrush = Color.DarkOrange,
                 ColumnDefinitions = new List<ColumnDefinition>
                 {
@@ -61,42 +60,48 @@ namespace SampleClient.Screens
                     new RowDefinition(),
                     new RowDefinition { Height = new GridLength(30)},
                     new RowDefinition { Height = new GridLength(3.5f, GridLengthUnit.Relative) }
-                }
+                },
+                Width = 140,
+                Height = 140
             };
             //grid.AddChild(button);
             //grid.AddChild(button2, 2, 2);
             //grid.AddChild(button4, 0, 1);
             //grid.AddChild(button3, 2, 2);
-            var border = new Border()
-            {
-                BorderColor = Color.Lime,
-                BackgroundBrush = Color.LimeGreen,
-                Height = 50,
-                BorderWidth = new Thickness(5)
-            };
             var innerStackPanel = new StackPanel()
             {
                 BackgroundBrush = Color.DeepSkyBlue,
                 Orientation = Orientation.Horizontal,
                 Children = {
                     button3,
-                    button4,      
+                    button4,
+                    grid
                 },
                 HorizontalAlignment = HorizontalAlignment.Center,
             };
 
+            grid.AddChild(new Border()
+            {
+                BorderColor = Color.Lime,
+                BackgroundBrush = Color.LimeGreen,
+                BorderWidth = new Thickness(5)
+            }, 3, 1);
+            grid.AddChild(new Border()
+            {                                   
+                BackgroundBrush = Color.LimeGreen,  
+            }, 2, 2);
             var stackPanel = new StackPanel()
             {
                 Padding = new Thickness(50, 50),
                 Margin = new Thickness(20, 20),
                 BackgroundBrush = Color.Blue,
                 Orientation = Orientation.Vertical,
-                //HorizontalAlignment = HorizontalAlignment.Right,
+                HorizontalAlignment = HorizontalAlignment.Right,
                 //VerticalAlignment = VerticalAlignment.Top,
                 Children = {
                     button2,
                     button,
-                    grid,
+                    innerStackPanel,
                 }
             };
             //   grid.AddChild(stackPanel, 3, 0, 0, 3);

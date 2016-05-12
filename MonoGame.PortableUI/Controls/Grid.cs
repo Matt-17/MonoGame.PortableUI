@@ -79,7 +79,7 @@ namespace MonoGame.PortableUI.Controls
             SetColumn(child, column);
             SetRowSpan(child, rowSpan);
             SetColumnSpan(child, columnSpan);
-        }            
+        }
 
         private Rect GetRect(Rect rect, Control child)
         {
@@ -95,7 +95,7 @@ namespace MonoGame.PortableUI.Controls
             var columnSpan = Math.Max(GetColumnSpan(child), 1);
 
             var rectangle = new Rect(
-                columnWidths.Take(column).Sum() + rect.Left, 
+                columnWidths.Take(column).Sum() + rect.Left,
                 rowHeights.Take(row).Sum() + rect.Top,
                 columnWidths.Skip(column).Take(columnSpan).Sum(),
                 rowHeights.Skip(row).Take(rowSpan).Sum()
@@ -136,7 +136,11 @@ namespace MonoGame.PortableUI.Controls
                 }
             }
 
+
             var starLeftover = Math.Max(0, rect.Height - absoluteRows - autoRows);
+
+            if (starLeftover.IsAuto())
+                starLeftover = 0;
             var starSingleValue = starLeftover / starRows;
             var result = new List<int>();
             foreach (var gridLength in rowDefinitions.Select(row => row.Height))
@@ -164,9 +168,9 @@ namespace MonoGame.PortableUI.Controls
         public override void UpdateLayout(Rect availableBoundingRect)
         {
             base.UpdateLayout(availableBoundingRect);
-            foreach (var child in Children )
+            foreach (var child in Children)
             {
-                child.UpdateLayout(GetRect(BoundingRect-Margin, child));
+                child.UpdateLayout(GetRect(BoundingRect - Margin, child));
             }
         }
 
@@ -200,6 +204,8 @@ namespace MonoGame.PortableUI.Controls
             }
 
             var starLeftover = Math.Max(0, rect.Width - absoluteColumns - autoColumns);
+            if (starLeftover.IsAuto())
+                starLeftover = 0;
             var starSingleValue = starLeftover / starColumns;
             var result = new List<int>();
             foreach (var gridLength in columnDefinitions.Select(column => column.Width))

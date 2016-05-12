@@ -41,12 +41,13 @@ namespace MonoGame.PortableUI.Controls
         public override void UpdateLayout(Rect availableBoundingRect)
         {
             // Bounding rect to default - is necessary
-            base.UpdateLayout(availableBoundingRect);
+            base.UpdateLayout(availableBoundingRect);  
+            var contentRect = BoundingRect - Margin - Padding;
 
-            var contentRect = BoundingRect - Margin;
-
-            contentRect -= Padding;
-
+            if (Orientation == Orientation.Vertical)
+                contentRect.Height = Size.Auto;
+            else
+                contentRect.Width = Size.Auto;
             var childOffset = new PointF(contentRect.Left, contentRect.Top);
             
             foreach (var child in Children)
