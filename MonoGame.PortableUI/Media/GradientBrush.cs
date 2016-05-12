@@ -62,7 +62,7 @@ namespace MonoGame.PortableUI.Media
 
 
         public override void Draw(SpriteBatch spriteBatch, Rect rect)
-        {
+        {              
             RecreateTexture(spriteBatch, (Size)rect);
             spriteBatch.Draw(_texture, rect, Color.White);
         }

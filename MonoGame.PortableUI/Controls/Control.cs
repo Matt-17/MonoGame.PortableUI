@@ -22,6 +22,8 @@ namespace MonoGame.PortableUI.Controls
         internal PointF? LastMousePosition;
         internal bool IgnoreTouch;
         internal PointF? LastTouchPosition;
+        private float _width;
+        private float _height;
 
         protected Control()
         {
@@ -53,8 +55,29 @@ namespace MonoGame.PortableUI.Controls
 
         //public Size ClientRect { get; set; }
 
-        public float Width { get; set; }
-        public float Height { get; set; }
+        public float Width
+        {
+            get { return _width; }
+            set
+            {
+                if (Math.Abs(_width - value) < float.Epsilon)
+                    return;
+                _width = value;
+                InvalidateLayout(true);
+            }
+        }
+
+        public float Height
+        {
+            get { return _height; }
+            set
+            {
+                if (Math.Abs(_height - value) < float.Epsilon)   
+                    return;
+                _height = value;
+                InvalidateLayout(true);
+            }
+        }
 
         //public float RenderedWidth => (Width + Margin.Left + Margin.Right) * ScreenEngine.ScaleFactor;
 
@@ -214,11 +237,16 @@ namespace MonoGame.PortableUI.Controls
         {
             var measuredSize = MeasureLayout((Size)availableBoundingRect);
 
+
             var x = availableBoundingRect.Left;
             var y = availableBoundingRect.Top;
 
             switch (VerticalAlignment)
             {
+                case VerticalAlignment.Stretch:
+                    if (availableBoundingRect.Height > 0)
+                        measuredSize.Height = availableBoundingRect.Height;
+                    break;
                 case VerticalAlignment.Center:
                     y += availableBoundingRect.Height / 2 - measuredSize.Height / 2;
                     break;
@@ -229,6 +257,10 @@ namespace MonoGame.PortableUI.Controls
 
             switch (HorizontalAlignment)
             {
+                case HorizontalAlignment.Stretch:
+                    if (availableBoundingRect.Width > 0)
+                    measuredSize.Width = availableBoundingRect.Width;
+                    break;
                 case HorizontalAlignment.Center:
                     x += availableBoundingRect.Width / 2 - measuredSize.Width / 2;
                     break;
