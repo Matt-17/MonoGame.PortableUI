@@ -11,7 +11,7 @@ namespace SampleClient.Screens
         public SecondScreen()
         {
             BackgroundBrush = new Color(Color.LimeGreen, 0.4f);
-            var button = new RadioButton()
+            var button = new Button()
             {
                 Width = 240,
                 Height = 50,
@@ -24,7 +24,7 @@ namespace SampleClient.Screens
 
             var stackPanel = new StackPanel();
             stackPanel.Children.Add(button);
-            button = new RadioButton()
+            button = new Button()
             {
                 Width = 240,
                 Height = 50,
