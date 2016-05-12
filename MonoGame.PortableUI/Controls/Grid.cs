@@ -86,8 +86,8 @@ namespace MonoGame.PortableUI.Controls
             var coloumnCount = ColumnDefinitions?.Count ?? 1;
             var rowCount = RowDefinitions?.Count ?? 1;
 
-            var rowHeights = GetRowHeights();
-            var columnWidths = GetColumnWidths();
+            var rowHeights = GetRowHeights(rect);
+            var columnWidths = GetColumnWidths(rect);
 
             var row = Math.Min(GetRow(child), rowCount);
             var column = Math.Min(GetColumn(child), coloumnCount);
@@ -112,7 +112,7 @@ namespace MonoGame.PortableUI.Controls
         //    }
         //}
 
-        private List<int> GetRowHeights()
+        private List<int> GetRowHeights(Rect rect)
         {
             // floats
             var autoRows = 0f;
@@ -136,7 +136,7 @@ namespace MonoGame.PortableUI.Controls
                 }
             }
 
-            var starLeftover = Math.Max(0, Height - absoluteRows - autoRows);
+            var starLeftover = Math.Max(0, rect.Height - absoluteRows - autoRows);
             var starSingleValue = starLeftover / starRows;
             var result = new List<int>();
             foreach (var gridLength in rowDefinitions.Select(row => row.Height))
@@ -155,7 +155,7 @@ namespace MonoGame.PortableUI.Controls
                         break;
                 }
             }
-            var f = (int)Height - result.Sum();
+            var f = (int)rect.Height - result.Sum();
             if (f > 0)
                 result[result.Count - 1] += f;
             return result;
@@ -166,7 +166,7 @@ namespace MonoGame.PortableUI.Controls
             base.UpdateLayout(availableBoundingRect);
             foreach (var child in Children )
             {
-                child.UpdateLayout(GetRect(availableBoundingRect, child));
+                child.UpdateLayout(GetRect(BoundingRect-Margin, child));
             }
         }
 
@@ -175,7 +175,7 @@ namespace MonoGame.PortableUI.Controls
             return base.MeasureLayout(availableSize);
         }
 
-        private List<int> GetColumnWidths()
+        private List<int> GetColumnWidths(Rect rect)
         {
             // floats
             var autoColumns = 0f;
@@ -199,7 +199,7 @@ namespace MonoGame.PortableUI.Controls
                 }
             }
 
-            var starLeftover = Math.Max(0, Width - absoluteColumns - autoColumns);
+            var starLeftover = Math.Max(0, rect.Width - absoluteColumns - autoColumns);
             var starSingleValue = starLeftover / starColumns;
             var result = new List<int>();
             foreach (var gridLength in columnDefinitions.Select(column => column.Width))
@@ -218,7 +218,7 @@ namespace MonoGame.PortableUI.Controls
                         break;
                 }
             }
-            var f = (int)Width - result.Sum();
+            var f = (int)rect.Width - result.Sum();
             if (f > 0)
                 result[result.Count - 1] += f;
             return result;
