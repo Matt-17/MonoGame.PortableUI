@@ -23,13 +23,13 @@ namespace MonoGame.PortableUI.Controls
         {
             IsChecked = !IsChecked;
             OnChecked(IsChecked);
-            BackgroundColor = IsChecked ? ToggleColor : _backgroundColor;
         }  
 
         protected virtual void OnChecked(bool e)
         {
             CheckedEventArgs args = new CheckedEventArgs { IsChecked = e };
             Checked?.Invoke(this, args);
+            BackgroundColor = IsChecked ? ToggleColor : _backgroundColor;
         }
     }
 }
