@@ -10,20 +10,21 @@ namespace SampleClient.Screens
     {
         public SecondScreen()
         {
-            BackgroundColor = new Color( Color.LimeGreen, 0.4f);
-            var button = new Button()
+            BackgroundColor = new Color(Color.LimeGreen, 0.4f);
+            var button = new RadioButton()
             {
                 Width = 240,
                 Height = 50,
                 Margin = new Thickness(5),
                 BackgroundColor = Color.DarkRed,
-                Text = "Click this button"
+                Text = "Click this button",
+
             };
             button.Click += Button_Click;
 
             var stackPanel = new StackPanel();
             stackPanel.Children.Add(button);
-            button = new Button()
+            button = new RadioButton()
             {
                 Width = 240,
                 Height = 50,
@@ -33,6 +34,18 @@ namespace SampleClient.Screens
             };
             button.Click += Button1_Click;
             stackPanel.Children.Add(button);
+            for (int i = 0; i < 4; i++)
+            {
+                stackPanel.Children.Add(new RadioButton
+                {
+                    BackgroundColor = new Color(0, 70, 110),
+                    ToggleColor = Color.Yellow,
+                    Text = $"Button {i}",
+                    Width = 80,
+                    Height = 50,
+                    RadioGroup = "Tab"
+                });
+            }
             Content = stackPanel;
         }
 
