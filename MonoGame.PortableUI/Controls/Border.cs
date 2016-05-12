@@ -21,11 +21,11 @@ namespace MonoGame.PortableUI.Controls
 
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
+            base.OnDraw(spriteBatch, rect);
             foreach (var borderRect in GetBorderRects(rect))
             {
                 BorderColor.Draw(spriteBatch, borderRect);
             }
-            BackgroundBrush.Draw(spriteBatch, rect - BorderWidth);
         }
     }
 }

@@ -12,11 +12,6 @@ namespace MonoGame.PortableUI.Controls
 
         public Thickness Padding { get; set; }
 
-        protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
-        {
-            BackgroundBrush.Draw(spriteBatch, rect - Margin);
-        }
-
         public override Size MeasureLayout(Size availableSize)
         {   
             availableSize -= Margin;

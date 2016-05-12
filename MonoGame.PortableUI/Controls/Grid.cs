@@ -79,13 +79,7 @@ namespace MonoGame.PortableUI.Controls
             SetColumn(child, column);
             SetRowSpan(child, rowSpan);
             SetColumnSpan(child, columnSpan);
-        }
-
-        protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
-        {
-            BackgroundBrush.Draw(spriteBatch, rect);
-            base.OnDraw(spriteBatch, rect);
-        }
+        }            
 
         private Rect GetRect(Rect rect, Control child)
         {
