@@ -53,11 +53,7 @@ namespace MonoGame.PortableUI.Controls
             contentRect -= Padding;
 
             var childOffset = new PointF(contentRect.Left, contentRect.Top);
-
-            if (Orientation == Orientation.Vertical)
-                contentRect.Height = 0;
-            else
-                contentRect.Width = 0;
+            
             foreach (var child in Children)
             {
                 var measureLayout = child.MeasureLayout((Size) contentRect);
@@ -66,10 +62,12 @@ namespace MonoGame.PortableUI.Controls
                 if (Orientation == Orientation.Vertical)
                 {
                     childOffset.Y += rect.Height;
+                    contentRect.Height -= child.MeasuredHeight;
                 }
                 else
                 {
                     childOffset.X += rect.Width;
+                    contentRect.Width -= child.MeasuredWidth;
                 }
             }
 
