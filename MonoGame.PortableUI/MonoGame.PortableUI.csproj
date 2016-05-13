@@ -37,6 +37,7 @@
     <Compile Include="Animation\Animation.cs" />
     <Compile Include="Animation\AnimationExtension.cs" />
     <Compile Include="Common\Rect.cs" />
+    <Compile Include="Common\Timer.cs" />
     <Compile Include="Controls\Border.cs" />
     <Compile Include="Controls\Button.cs" />
     <Compile Include="Controls\CheckBox.cs" />
