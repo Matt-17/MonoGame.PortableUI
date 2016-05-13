@@ -109,6 +109,8 @@ namespace MonoGame.PortableUI.Controls
 
         public bool IsVisible { get; set; }
 
+        public bool IsGone { get; set; }
+
         public bool IsEnabled { get; set; }
 
         public HorizontalAlignment HorizontalAlignment { get; set; }
@@ -140,6 +142,9 @@ namespace MonoGame.PortableUI.Controls
             //batch.Begin(rasterizerState: new RasterizerState() { ScissorTestEnable = true }, samplerState: SamplerState.LinearWrap, transformMatrix: AbsoluteTransformation);
             //OnDraw(batch, controlArea, gameTime);
             //batch.End();
+
+            if (!IsVisible || IsGone)
+                return;
 
             OnBeforeDraw(spriteBatch, rect);
             spriteBatch.Begin(/* Scissor und sowas ; Matrix */);
@@ -284,6 +289,9 @@ namespace MonoGame.PortableUI.Controls
 
         public virtual Size MeasureLayout(Size availableSize)
         {
+            if (IsGone)
+                return Size.Empty;
+
             availableSize -= Margin;
             var width = Width;
             var height = Height;
