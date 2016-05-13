@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI.Common;
@@ -13,6 +14,8 @@ namespace MonoGame.PortableUI.Controls
     public class Button : ContentControl
     {
         protected internal Control Template;
+        private Timer _longClickTimer;
+        private const int LongClickDuration = 1; //in seconds
 
         public Button()
         {
@@ -20,6 +23,7 @@ namespace MonoGame.PortableUI.Controls
             BackgroundBrush = Color.White;
             HoverColor = new Color(0, 0, 0, 0.2f);
             PressedColor = new Color(0, 0, 0, 0.4f);
+            _longClickTimer = new Timer(LongClickDuration);
             //var grid = new Grid();
             //grid.AddChild(new Rect {BackgroundBrush = Color.DarkMagenta});
             //grid.AddChild(new ContentPresenter(this));
@@ -64,12 +68,15 @@ namespace MonoGame.PortableUI.Controls
             base.OnMouseLeave();
             HoverState = HoverStates.NotHovering;
             LeftButtonState = ButtonStates.Released;
+            _longClickTimer.Stop();
         }
 
-        protected internal override void OnMouseLeftDown()
+        protected internal override async void OnMouseLeftDown()
         {
             base.OnMouseLeftDown();
             LeftButtonState = ButtonStates.Pressed;
+            _longClickTimer.Elapsed += OnLongClick;
+            await _longClickTimer.Start();
         }
 
         protected internal override void OnMouseLeftUp()
@@ -78,6 +85,7 @@ namespace MonoGame.PortableUI.Controls
             if (LeftButtonState == ButtonStates.Pressed)
             {
                 LeftButtonState = ButtonStates.Released;
+                _longClickTimer.Stop();
                 OnClick();
             }
         }
@@ -98,16 +106,18 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
-        protected internal override void OnTouchDown()
+        protected internal override async void OnTouchDown()
         {
             base.OnTouchDown();
             TouchState = TouchStates.Touched;
+            await _longClickTimer.Start();
         }
 
         protected internal override void OnTouchUp()
         {
             base.OnTouchUp();
             TouchState = TouchStates.Released;
+            _longClickTimer.Stop();
             OnClick();
         }
 
@@ -115,9 +125,11 @@ namespace MonoGame.PortableUI.Controls
         {
             base.OnTouchCancel();
             TouchState = TouchStates.Released;
+            _longClickTimer.Stop();
         }
 
         public event EventHandler Click;
+        public event EventHandler LongClick;
         public event EventHandler RightClick;
 
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
@@ -140,6 +152,12 @@ namespace MonoGame.PortableUI.Controls
         protected virtual void OnRightClick()
         {
             RightClick?.Invoke(this, EventArgs.Empty);
+        }
+
+        protected virtual void OnLongClick(object sender, EventArgs eventArgs)
+        {
+            _longClickTimer.Stop();
+            LongClick?.Invoke(this, EventArgs.Empty);
         }
     }
 }
