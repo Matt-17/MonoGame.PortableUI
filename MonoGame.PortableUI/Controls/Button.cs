@@ -24,6 +24,7 @@ namespace MonoGame.PortableUI.Controls
             HoverColor = new Color(0, 0, 0, 0.2f);
             PressedColor = new Color(0, 0, 0, 0.4f);
             _longClickTimer = new Timer(LongClickDuration);
+            _longClickTimer.Elapsed += OnLongClick;
             //var grid = new Grid();
             //grid.AddChild(new Rect {BackgroundBrush = Color.DarkMagenta});
             //grid.AddChild(new ContentPresenter(this));
@@ -75,7 +76,6 @@ namespace MonoGame.PortableUI.Controls
         {
             base.OnMouseLeftDown();
             LeftButtonState = ButtonStates.Pressed;
-            _longClickTimer.Elapsed += OnLongClick;
             await _longClickTimer.Start();
         }
 
@@ -157,6 +157,8 @@ namespace MonoGame.PortableUI.Controls
         protected virtual void OnLongClick(object sender, EventArgs eventArgs)
         {
             _longClickTimer.Stop();
+            LeftButtonState = ButtonStates.Released;
+            TouchState = TouchStates.Released;
             LongClick?.Invoke(this, EventArgs.Empty);
         }
     }
