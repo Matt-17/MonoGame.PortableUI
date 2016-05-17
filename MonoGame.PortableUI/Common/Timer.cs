@@ -1,35 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System;       
 using System.Threading.Tasks;
 
 namespace MonoGame.PortableUI.Common
 {
     public class Timer
     {
-
-        private int _waitTime;
-        public int WaitTime
-        {
-            get { return _waitTime; }
-            set { _waitTime = value; }
-        }
-
-        private bool _isRunning;
-        public bool IsRunning
-        {
-            get { return _isRunning; }
-            set { _isRunning = value; }
-        }
+        public int WaitTime { get; set; }
+        public bool IsRunning { get; set; }
 
         public event EventHandler Elapsed;
         protected virtual void OnTimerElapsed()
         {
-            if (Elapsed != null)
-            {
-                Elapsed(this, new EventArgs());
-            }
+            Elapsed?.Invoke(this, new EventArgs());
         }
 
         public Timer(int waitTime)
