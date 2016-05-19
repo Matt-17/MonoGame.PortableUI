@@ -40,8 +40,7 @@ namespace SampleClient.Screens
             {
                 BackgroundBrush = Color.DarkGreen,
                 Text = "4",
-                Width = 50,
-                Height = 100
+                Width = 50,   
             };
             button.Click += Button_Click;
             button2.Checked += Button2_Checked;
@@ -94,7 +93,6 @@ namespace SampleClient.Screens
             }, 2, 2);
             var stackPanel = new StackPanel()
             {
-                Padding = new Thickness(50, 50),
                 Margin = new Thickness(20, 20),
                 BackgroundBrush = Color.Blue,
                 Orientation = Orientation.Vertical,
