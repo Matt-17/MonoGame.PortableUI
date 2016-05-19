@@ -32,16 +32,15 @@ namespace SampleClient.Screens
             var button3 = new Button()
             {
                 BackgroundBrush = Color.DarkGreen,
-                Text = "3",
-                Width = 50,
-                Height = 200
+                Text = "3",     
             };
             var button4 = new Button()
             {
                 BackgroundBrush = Color.DarkGreen,
-                Text = "4",
-                Width = 50,   
-                //VerticalAlignment = VerticalAlignment.Bottom
+                Text = "4",       
+                Padding = new Thickness(10),
+                Margin = new Thickness(10),
+                VerticalAlignment = VerticalAlignment.Bottom
             };
             button.Click += Button_Click;
             button2.Checked += Button2_Checked;

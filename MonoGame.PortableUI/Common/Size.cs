@@ -97,5 +97,15 @@ namespace MonoGame.PortableUI.Common
         {
             return new Point((int)s1.X, (int)s1.Y);
         }
+
+        public static implicit operator Vector2(PointF p)
+        {
+            return new Vector2(p.X, p.Y);
+        }
+
+        public PointF ToInts()
+        {
+            return new PointF((int)X, (int)Y);
+        }
     }
 }

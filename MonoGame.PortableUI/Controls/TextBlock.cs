@@ -1,3 +1,4 @@
+using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI.Common;
@@ -7,40 +8,49 @@ namespace MonoGame.PortableUI.Controls
     public class TextBlock : TextControl
     {
         public TextAlignment TextAlignment { get; set; }
-
-        public float TextHeight
+        public override Size MeasureLayout()
         {
-            get { return Font.MeasureString(Text).Y; }
-        }
+            var size = base.MeasureLayout();
 
-        public float TextWidth
-        {
-            get { return Font.MeasureString(Text).X; }
+            var vector2 = Font.MeasureString(Text);
+            size.Height += vector2.Y;
+            size.Width += vector2.X;
+
+            return size;
         }
 
         public TextBlock()
         {
             Font = FontManager.DefaultFont;
             TextColor = Color.Black;
-            TextAlignment = TextAlignment.Center;
+            TextAlignment = TextAlignment.Left;
         }
 
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
             base.OnDraw(spriteBatch, rect);
-            var position = new Vector2(rect.Left, rect.Top);
-            position.Y += ((VerticalAlignment == VerticalAlignment.Stretch ? rect.Height : Height) - TextHeight) / 2;
+            var offset = rect.Offset;
+            var measureString = Font.MeasureString(Text);
+            offset.Y += (rect.Height - measureString.Y) / 2;
 
-            var f = (HorizontalAlignment == HorizontalAlignment.Stretch ? rect.Width : Width) - TextWidth;
-            if (TextAlignment == TextAlignment.Center)
-                position.X += f / 2;
-            else if (TextAlignment == TextAlignment.Right)
-                position.X += f;
+            switch (TextAlignment)
+            {
+                case TextAlignment.Left:
+                    break;
+                case TextAlignment.Center:
+                    offset.X += (rect.Width - measureString.X) / 2;
+                    break;
+                case TextAlignment.Right:
+                    offset.X += rect.Width - measureString.X;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }       
 
             if (SnapToPixel)
-                position = position.ToInts();
+                offset = offset.ToInts();
 
-            spriteBatch.DrawString(Font, Text, position, TextColor);
+            spriteBatch.DrawString(Font, Text, offset, TextColor);
         }
     }
 }
