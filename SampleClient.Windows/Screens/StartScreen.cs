@@ -78,7 +78,7 @@ namespace SampleClient.Screens
                     button4,
                     grid
                 },
-                HorizontalAlignment = HorizontalAlignment.Center,
+                
             };
 
             grid.AddChild(new Border()
@@ -91,6 +91,8 @@ namespace SampleClient.Screens
             {                                   
                 BackgroundBrush = Color.LimeGreen,  
             }, 2, 2);
+
+            var button5 = new Button {Text = "nummer 5"};
             var stackPanel = new StackPanel()
             {
                 Margin = new Thickness(20, 20),
@@ -102,6 +104,7 @@ namespace SampleClient.Screens
                     button2,
                     button,
                     innerStackPanel,
+                    button5
                 }
             };
             //   grid.AddChild(stackPanel, 3, 0, 0, 3);
