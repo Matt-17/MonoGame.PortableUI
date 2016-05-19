@@ -29,6 +29,21 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        public override void UpdateLayout(Rect rect)
+        {
+            base.UpdateLayout(rect);
+            Content?.UpdateLayout(rect - Padding);
+        }
+
+        public override Size MeasureLayout()
+        {
+            var size = base.MeasureLayout() + Padding;
+            if (Height.IsFixed() && Width.IsFixed())
+                return size;
+            size += Content?.MeasureLayout() ?? Size.Empty;
+            return size;
+        }
+
         public Thickness Padding { get; set; }
         public override IEnumerable<Control> GetDescendants()
         {

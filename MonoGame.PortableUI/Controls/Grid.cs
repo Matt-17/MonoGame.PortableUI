@@ -174,9 +174,9 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
-        public override Size MeasureLayout(Size availableSize)
+        public override Size MeasureLayout()
         {
-            return base.MeasureLayout(availableSize);
+            return base.MeasureLayout();
         }
 
         private List<int> GetColumnWidths(Rect rect)

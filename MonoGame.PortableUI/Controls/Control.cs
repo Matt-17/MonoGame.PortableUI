@@ -83,7 +83,7 @@ namespace MonoGame.PortableUI.Controls
 
         //public float RenderedHeight => (Height + Margin.Top + Margin.Bottom) * ScreenEngine.ScaleFactor;
 
-        public Rect BoundingRect { get; private set; }
+        public Rect BoundingRect { get; protected set; }
 
         public Thickness Margin { get; set; }
 
@@ -233,7 +233,7 @@ namespace MonoGame.PortableUI.Controls
             if (IsGone)
                 BoundingRect = Rect.Empty;
 
-            var measuredSize = MeasureLayout((Size)rect); 
+            var measuredSize = MeasureLayout(); 
             var offset = rect.Offset;
 
             switch (VerticalAlignment)
@@ -275,7 +275,7 @@ namespace MonoGame.PortableUI.Controls
             return Enumerable.Empty<Control>();
         }
 
-        public virtual Size MeasureLayout(Size availableSize)
+        public virtual Size MeasureLayout()
         {
             if (IsGone)
                 return Size.Empty;

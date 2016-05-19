@@ -52,6 +52,7 @@ namespace MonoGame.PortableUI.Controls
                 if (textBlock == null)
                 {
                     textBlock = new TextBlock();
+                    textBlock.TextAlignment = TextAlignment.Center;
                     Content = textBlock;
                 }
                 textBlock.Text = value;
