@@ -1,7 +1,4 @@
-
-using System;
 using System.Linq;
-using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI.Common;
 
 namespace MonoGame.PortableUI.Controls
@@ -18,22 +15,22 @@ namespace MonoGame.PortableUI.Controls
             availableSize -= Padding;
             var width = Width;
             var height = Height;
-            if (!width.IsAuto() && !height.IsAuto())
+            if (width.IsFixed() && height.IsFixed())
                 return new Size(width, height);
 
             var result = new Size();
 
-            if (width.IsAuto())
+            if (!width.IsFixed())
                 result.Width = availableSize.Width;
 
-            if (height.IsAuto())
+            if (!height.IsFixed())
                 result.Height = availableSize.Height;
 
             if (HorizontalAlignment != HorizontalAlignment.Stretch)
-                result.Width = Orientation == Orientation.Vertical ? Children.Max(child => child.MeasuredWidth) : Children.Sum(child => child.MeasuredWidth);
+                result.Width = Orientation == Orientation.Vertical ? Children.Max(child => child.MeasureLayout(availableSize).Width) : Children.Sum(child => child.MeasureLayout(availableSize).Width);
             
             if (VerticalAlignment != VerticalAlignment.Stretch)
-                result.Height = Orientation == Orientation.Horizontal ? Children.Max(child => child.MeasuredHeight) : Children.Sum(child => child.MeasuredHeight);
+                result.Height = Orientation == Orientation.Horizontal ? Children.Max(child => child.MeasureLayout(availableSize).Height) : Children.Sum(child => child.MeasureLayout(availableSize).Height);
       
             return result + Margin + Padding;
         }
@@ -56,13 +53,13 @@ namespace MonoGame.PortableUI.Controls
 
                 if (Orientation == Orientation.Vertical)
                 {
-                    childOffset.Y += child.MeasuredHeight;
-                    contentRect.Height -= child.MeasuredHeight;
+                    childOffset.Y += child.BoundingRect.Height;
+                    contentRect.Height -= child.BoundingRect.Height;
                 }
                 else
                 {
-                    childOffset.X += child.MeasuredWidth;
-                    contentRect.Width -= child.MeasuredWidth;
+                    childOffset.X += child.BoundingRect.Width;
+                    contentRect.Width -= child.BoundingRect.Width;
                 }
             }
 
