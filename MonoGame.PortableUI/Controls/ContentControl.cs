@@ -37,9 +37,10 @@ namespace MonoGame.PortableUI.Controls
 
         public override Size MeasureLayout()
         {
-            var size = base.MeasureLayout() + Padding;
+            var size = base.MeasureLayout();
             if (Height.IsFixed() && Width.IsFixed())
                 return size;
+            size += Padding;
             size += Content?.MeasureLayout() ?? Size.Empty;
             return size;
         }
