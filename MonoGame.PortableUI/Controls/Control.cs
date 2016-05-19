@@ -72,7 +72,7 @@ namespace MonoGame.PortableUI.Controls
             get { return _height; }
             set
             {
-                if (Math.Abs(_height - value) < float.Epsilon)   
+                if (Math.Abs(_height - value) < float.Epsilon)
                     return;
                 _height = value;
                 InvalidateLayout(true);
@@ -84,16 +84,6 @@ namespace MonoGame.PortableUI.Controls
         //public float RenderedHeight => (Height + Margin.Top + Margin.Bottom) * ScreenEngine.ScaleFactor;
 
         public Rect BoundingRect { get; private set; }
-
-        public float MeasuredHeight
-        {
-            get { return (Height + Margin.Vertical); }
-        }
-
-        public float MeasuredWidth
-        {
-            get { return (Width + Margin.Horizontal); }
-        }
 
         public Thickness Margin { get; set; }
 
@@ -242,7 +232,6 @@ namespace MonoGame.PortableUI.Controls
         {
             var measuredSize = MeasureLayout((Size)availableBoundingRect);
 
-
             var x = availableBoundingRect.Left;
             var y = availableBoundingRect.Top;
 
@@ -264,7 +253,7 @@ namespace MonoGame.PortableUI.Controls
             {
                 case HorizontalAlignment.Stretch:
                     if (availableBoundingRect.Width > 0)
-                    measuredSize.Width = availableBoundingRect.Width;
+                        measuredSize.Width = availableBoundingRect.Width;
                     break;
                 case HorizontalAlignment.Center:
                     x += availableBoundingRect.Width / 2 - measuredSize.Width / 2;
@@ -292,14 +281,8 @@ namespace MonoGame.PortableUI.Controls
             if (IsGone)
                 return Size.Empty;
 
-            availableSize -= Margin;
-            var width = Width;
-            var height = Height;
-            if (width.IsAuto())
-                width = HorizontalAlignment == HorizontalAlignment.Stretch ? availableSize.Width : 0;
-
-            if (height.IsAuto())
-                height = VerticalAlignment == VerticalAlignment.Stretch ? availableSize.Height : 0;
+            var width = Width.IsFixed() ? Width : 0;
+            var height = Height.IsFixed() ? Height : 0;
 
             return new Size(width, height) + Margin;
         }

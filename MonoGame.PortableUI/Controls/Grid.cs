@@ -139,7 +139,7 @@ namespace MonoGame.PortableUI.Controls
 
             var starLeftover = Math.Max(0, rect.Height - absoluteRows - autoRows);
 
-            if (starLeftover.IsAuto())
+            if (!starLeftover.IsFixed())
                 starLeftover = 0;
             var starSingleValue = starLeftover / starRows;
             var result = new List<int>();
@@ -204,7 +204,7 @@ namespace MonoGame.PortableUI.Controls
             }
 
             var starLeftover = Math.Max(0, rect.Width - absoluteColumns - autoColumns);
-            if (starLeftover.IsAuto())
+            if (!starLeftover.IsFixed())
                 starLeftover = 0;
             var starSingleValue = starLeftover / starColumns;
             var result = new List<int>();

@@ -4,19 +4,19 @@ using Microsoft.Xna.Framework;
 
 namespace MonoGame.PortableUI.Common
 {
-    public static class FloatEx
+    public static class SizeEx
     {
-
-
-        public static bool IsAuto(this float f)
+        public static bool IsFixed(this float f)
         {
-            return float.IsNaN(f);
+            return !float.IsNaN(f) && !float.IsInfinity(f);
         }
+        public static bool IsBounded(this float f) { return !float.IsInfinity(f); }
     }
 
     public struct Size
     {
-        public static float Auto = float.NaN;
+        public const float Auto = float.NaN;
+        public const float Infinity = float.PositiveInfinity;
 
         public static Size Empty = new Size();
 

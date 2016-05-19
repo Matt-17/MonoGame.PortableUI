@@ -41,11 +41,11 @@ namespace SampleClient.Screens
                 BackgroundBrush = Color.DarkGreen,
                 Text = "4",
                 Width = 50,
-                //Height = 100
+                Height = 100
             };
             button.Click += Button_Click;
             button2.Checked += Button2_Checked;
-            button3.LongClick += Button3_LongClick;
+      //      button3.LongClick += Button3_LongClick;
             button3.Click += Button3_LongClick;
             var grid = new Grid()
             {
