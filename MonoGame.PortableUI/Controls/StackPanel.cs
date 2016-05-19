@@ -8,42 +8,38 @@ namespace MonoGame.PortableUI.Controls
         public Orientation Orientation { get; set; }
 
         public override Size MeasureLayout(Size availableSize)
-        {   
-            availableSize -= Margin;
-            var width = Width;
-            var height = Height;
-            if (width.IsFixed() && height.IsFixed())
-                return new Size(width, height);
+        {
+            var size = base.MeasureLayout(availableSize);
+            if (Width.IsFixed() && Height.IsFixed())
+                return size;
 
-            var result = new Size();
+            if (Orientation == Orientation.Vertical)
+            {
+                size.Width += Children.Max(child => child.MeasureLayout(availableSize).Width);
+                size.Height += Children.Sum(child => child.MeasureLayout(availableSize).Height);
+            }
+            else
+            {
+                size.Width += Children.Sum(child => child.MeasureLayout(availableSize).Width);
+                size.Height += Children.Max(child => child.MeasureLayout(availableSize).Height);
+            }
 
-            if (!width.IsFixed())
-                result.Width = availableSize.Width;
-
-            if (!height.IsFixed())
-                result.Height = availableSize.Height;
-
-            if (HorizontalAlignment != HorizontalAlignment.Stretch)
-                result.Width = Orientation == Orientation.Vertical ? Children.Max(child => child.MeasureLayout(availableSize).Width) : Children.Sum(child => child.MeasureLayout(availableSize).Width);
-            
-            if (VerticalAlignment != VerticalAlignment.Stretch)
-                result.Height = Orientation == Orientation.Horizontal ? Children.Max(child => child.MeasureLayout(availableSize).Height) : Children.Sum(child => child.MeasureLayout(availableSize).Height);
-      
-            return result + Margin;
+            return size;
         }
 
-        public override void UpdateLayout(Rect availableBoundingRect)
+        public override void UpdateLayout(Rect rect)
         {
             // Bounding rect to default - is necessary
-            base.UpdateLayout(availableBoundingRect);  
+            base.UpdateLayout(rect);
             var contentRect = BoundingRect - Margin;
 
             if (Orientation == Orientation.Vertical)
-                contentRect.Height = Size.Auto;
+                contentRect.Height = Size.Infinity;
             else
-                contentRect.Width = Size.Auto;
+                contentRect.Width = Size.Infinity;
+
             var childOffset = new PointF(contentRect.Left, contentRect.Top);
-            
+
             foreach (var child in Children)
             {
                 child.UpdateLayout(childOffset + (Size)contentRect);

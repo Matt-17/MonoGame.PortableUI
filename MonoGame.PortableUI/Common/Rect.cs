@@ -13,7 +13,7 @@ namespace MonoGame.PortableUI.Common
         public override bool Equals(object obj)
         {
             if (ReferenceEquals(null, obj)) return false;
-            return obj is Rect && Equals((Rect) obj);
+            return obj is Rect && Equals((Rect)obj);
         }
 
         public override int GetHashCode()
@@ -21,9 +21,9 @@ namespace MonoGame.PortableUI.Common
             unchecked
             {
                 var hashCode = Top.GetHashCode();
-                hashCode = (hashCode*397) ^ Left.GetHashCode();
-                hashCode = (hashCode*397) ^ Width.GetHashCode();
-                hashCode = (hashCode*397) ^ Height.GetHashCode();
+                hashCode = (hashCode * 397) ^ Left.GetHashCode();
+                hashCode = (hashCode * 397) ^ Width.GetHashCode();
+                hashCode = (hashCode * 397) ^ Height.GetHashCode();
                 return hashCode;
             }
         }
@@ -44,6 +44,10 @@ namespace MonoGame.PortableUI.Common
             Height = height;
         }
 
+        public Rect(PointF offset, Size size)  : this(offset.X, offset.Y, size.Width, size.Height)
+        {                               
+        }
+
         public float Top { get; set; }
         public float Left { get; set; }
         public float Width { get; set; }
@@ -58,6 +62,16 @@ namespace MonoGame.PortableUI.Common
         {
             get { return Top + Height; }
             set { Height = value - Top; }
+        }
+
+        public PointF Offset
+        {
+            get { return new PointF(Left, Top); }
+            set
+            {
+                Left = value.X;
+                Top = value.Y;
+            }
         }
 
         public static bool operator ==(Rect r1, Rect r2)
@@ -109,7 +123,7 @@ namespace MonoGame.PortableUI.Common
                 Top = Math.Max(Top, other.Top),
                 Right = Math.Min(Right, other.Right),
                 Bottom = Math.Min(Bottom, other.Bottom)
-            };                                    
+            };
 
             return result;
         }

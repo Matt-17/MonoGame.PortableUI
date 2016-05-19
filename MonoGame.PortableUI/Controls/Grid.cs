@@ -165,9 +165,9 @@ namespace MonoGame.PortableUI.Controls
             return result;
         }
 
-        public override void UpdateLayout(Rect availableBoundingRect)
+        public override void UpdateLayout(Rect rect)
         {
-            base.UpdateLayout(availableBoundingRect);
+            base.UpdateLayout(rect);
             foreach (var child in Children)
             {
                 child.UpdateLayout(GetRect(BoundingRect - Margin, child));
