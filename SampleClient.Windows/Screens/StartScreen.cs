@@ -32,19 +32,19 @@ namespace SampleClient.Screens
             var button3 = new Button()
             {
                 BackgroundBrush = Color.DarkGreen,
-                Text = "3",     
+                Text = "3",
             };
             var button4 = new Button()
             {
                 BackgroundBrush = Color.DarkGreen,
-                Text = "4",       
+                Text = "4",
                 Padding = new Thickness(10),
                 Margin = new Thickness(10),
                 VerticalAlignment = VerticalAlignment.Bottom
             };
             button.Click += Button_Click;
             button2.Checked += Button2_Checked;
-      //      button3.LongClick += Button3_LongClick;
+            //      button3.LongClick += Button3_LongClick;
             button3.Click += Button3_LongClick;
             var grid = new Grid()
             {
@@ -78,7 +78,7 @@ namespace SampleClient.Screens
                     button4,
                     grid
                 },
-                
+
             };
 
             grid.AddChild(new Border()
@@ -88,11 +88,10 @@ namespace SampleClient.Screens
                 BorderWidth = new Thickness(5)
             }, 3, 1);
             grid.AddChild(new Border()
-            {                                   
-                BackgroundBrush = Color.LimeGreen,  
+            {
+                BackgroundBrush = Color.LimeGreen,
             }, 2, 2);
 
-            var button5 = new Button {Text = "nummer 5"};
             var stackPanel = new StackPanel()
             {
                 Margin = new Thickness(20, 20),
@@ -104,7 +103,17 @@ namespace SampleClient.Screens
                     button2,
                     button,
                     innerStackPanel,
-                    button5
+                    new ScrollViewer() {
+                        Height = 50,
+                        BackgroundBrush = Color.Khaki,
+                        Content =
+                        new StackPanel {
+                            BackgroundBrush = Color.Lavender,             
+                            Children = {
+                                new Button {Text = "nummer 5"}
+                            }
+                        }
+                    }   
                 }
             };
             //   grid.AddChild(stackPanel, 3, 0, 0, 3);
