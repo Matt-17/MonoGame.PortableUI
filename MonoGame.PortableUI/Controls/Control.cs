@@ -230,16 +230,16 @@ namespace MonoGame.PortableUI.Controls
 
         public virtual void UpdateLayout(Rect rect)
         {
-            var measuredSize = MeasureLayout((Size)rect);
+            if (IsGone)
+                BoundingRect = Rect.Empty;
 
+            var measuredSize = MeasureLayout((Size)rect); 
             var offset = rect.Offset;
 
             switch (VerticalAlignment)
             {
                 case VerticalAlignment.Stretch:
-                    if (!Height.IsFixed())
-                        if (rect.Height.IsFixed())
-                            measuredSize.Height = rect.Height;
+                    if (!Height.IsFixed() && rect.Height.IsFixed()) measuredSize.Height = rect.Height;
                     break;
                 case VerticalAlignment.Center:
                     offset.Y += (rect.Height - measuredSize.Height) / 2;
@@ -252,9 +252,7 @@ namespace MonoGame.PortableUI.Controls
             switch (HorizontalAlignment)
             {
                 case HorizontalAlignment.Stretch:
-                    if (!Width.IsFixed())
-                        if (rect.Width.IsFixed())
-                            measuredSize.Width = rect.Width;
+                    if (!Width.IsFixed() && rect.Width.IsFixed()) measuredSize.Width = rect.Width;
                     break;
                 case HorizontalAlignment.Center:
                     offset.X += (rect.Width - measuredSize.Width) / 2;
