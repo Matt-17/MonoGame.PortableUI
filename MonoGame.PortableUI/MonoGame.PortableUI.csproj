@@ -81,7 +81,7 @@
     <Compile Include="Screen.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Controls\RadioButton.cs" />
-    <Compile Include="Controls\ScrollView.cs" />
+    <Compile Include="Controls\ScrollViewer.cs" />
     <Compile Include="Common\Size.cs" />
     <Compile Include="Controls\StackPanel.cs" />
     <Compile Include="Controls\TextBlock.cs" />
