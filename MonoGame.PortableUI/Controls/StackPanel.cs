@@ -7,12 +7,9 @@ namespace MonoGame.PortableUI.Controls
     {
         public Orientation Orientation { get; set; }
 
-        public Thickness Padding { get; set; }
-
         public override Size MeasureLayout(Size availableSize)
         {   
             availableSize -= Margin;
-            availableSize -= Padding;
             var width = Width;
             var height = Height;
             if (width.IsFixed() && height.IsFixed())
@@ -32,14 +29,14 @@ namespace MonoGame.PortableUI.Controls
             if (VerticalAlignment != VerticalAlignment.Stretch)
                 result.Height = Orientation == Orientation.Horizontal ? Children.Max(child => child.MeasureLayout(availableSize).Height) : Children.Sum(child => child.MeasureLayout(availableSize).Height);
       
-            return result + Margin + Padding;
+            return result + Margin;
         }
 
         public override void UpdateLayout(Rect availableBoundingRect)
         {
             // Bounding rect to default - is necessary
             base.UpdateLayout(availableBoundingRect);  
-            var contentRect = BoundingRect - Margin - Padding;
+            var contentRect = BoundingRect - Margin;
 
             if (Orientation == Orientation.Vertical)
                 contentRect.Height = Size.Auto;
