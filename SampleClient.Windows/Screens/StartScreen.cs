@@ -41,6 +41,8 @@ namespace SampleClient.Screens
                 BackgroundBrush = Color.DarkGreen,
                 Text = "4",
                 Width = 50,   
+                Height = 100,
+                VerticalAlignment = VerticalAlignment.Bottom
             };
             button.Click += Button_Click;
             button2.Checked += Button2_Checked;

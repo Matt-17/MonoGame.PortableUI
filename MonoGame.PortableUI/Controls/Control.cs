@@ -228,42 +228,43 @@ namespace MonoGame.PortableUI.Controls
         #endregion
 
 
-        public virtual void UpdateLayout(Rect availableBoundingRect)
+        public virtual void UpdateLayout(Rect rect)
         {
-            var measuredSize = MeasureLayout((Size)availableBoundingRect);
+            var measuredSize = MeasureLayout((Size)rect);
 
-            var x = availableBoundingRect.Left;
-            var y = availableBoundingRect.Top;
+            var offset = rect.Offset;
 
             switch (VerticalAlignment)
             {
                 case VerticalAlignment.Stretch:
-                    if (availableBoundingRect.Height > 0)
-                        measuredSize.Height = availableBoundingRect.Height;
+                    if (!Height.IsFixed())
+                        if (rect.Height.IsFixed())
+                            measuredSize.Height = rect.Height;
                     break;
                 case VerticalAlignment.Center:
-                    y += availableBoundingRect.Height / 2 - measuredSize.Height / 2;
+                    offset.Y += (rect.Height - measuredSize.Height) / 2;
                     break;
                 case VerticalAlignment.Bottom:
-                    y += availableBoundingRect.Height - measuredSize.Height;
+                    offset.Y += rect.Height - measuredSize.Height;
                     break;
             }
 
             switch (HorizontalAlignment)
             {
                 case HorizontalAlignment.Stretch:
-                    if (availableBoundingRect.Width > 0)
-                        measuredSize.Width = availableBoundingRect.Width;
+                    if (!Width.IsFixed())
+                        if (rect.Width.IsFixed())
+                            measuredSize.Width = rect.Width;
                     break;
                 case HorizontalAlignment.Center:
-                    x += availableBoundingRect.Width / 2 - measuredSize.Width / 2;
+                    offset.X += (rect.Width - measuredSize.Width) / 2;
                     break;
                 case HorizontalAlignment.Right:
-                    x += availableBoundingRect.Width - measuredSize.Width;
+                    offset.X += rect.Width - measuredSize.Width;
                     break;
             }
 
-            BoundingRect = new Rect(x, y, measuredSize.Width, measuredSize.Height);
+            BoundingRect = new Rect(offset, measuredSize);
         }
 
         public virtual void InvalidateLayout(bool boundsChanged)
