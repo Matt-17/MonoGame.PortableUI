@@ -17,6 +17,7 @@ namespace MonoGame.PortableUI
     /// * sizes are all even numbers from 2 to 64
     /// * style one of: regular, bold, italic or bolditalic
     /// * e.g. arial-bold-12.spritefont
+    /// all Fonts have to be inside 'Fonts' folder
     /// </summary>
     public class FontManager
     {
