@@ -9,11 +9,16 @@ namespace MonoGame.PortableUI.Controls
     {
         public Texture2D Source { get; set; }
 
+        public Color TintColor { get; set; }
+
         public Stretch Stretch { get; set; }
 
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
-            spriteBatch.Draw(Source, destinationRectangle: rect);
+            if (TintColor != Color.Transparent)
+                spriteBatch.Draw(Source, destinationRectangle: rect, color: TintColor);
+            else
+                spriteBatch.Draw(Source, destinationRectangle: rect);
         }
 
         public override Size MeasureLayout()

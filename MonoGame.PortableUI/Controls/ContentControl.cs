@@ -32,7 +32,7 @@ namespace MonoGame.PortableUI.Controls
         public override void UpdateLayout(Rect rect)
         {
             base.UpdateLayout(rect);
-            Content?.UpdateLayout(BoundingRect - Padding);
+            Content?.UpdateLayout(BoundingRect - Margin - Padding);
         }
 
         public override Size MeasureLayout()
