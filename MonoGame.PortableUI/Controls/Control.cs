@@ -156,11 +156,11 @@ namespace MonoGame.PortableUI.Controls
 
         public event EventHandler MouseEnter;
         public event EventHandler MouseLeave;
-        public event EventHandler MouseMove;
-        public event EventHandler MouseLeftDown;
-        public event EventHandler MouseRightDown;
-        public event EventHandler MouseLeftUp;
-        public event EventHandler MouseRightUp;
+        public event MouseMoveEventHandler MouseMove;
+        public event MouseButtonEventHandler MouseLeftDown;
+        public event MouseButtonEventHandler MouseRightDown;
+        public event MouseButtonEventHandler MouseLeftUp;
+        public event MouseButtonEventHandler MouseRightUp;
         public event EventHandler TouchDown;
         public event EventHandler TouchUp;
         public event EventHandler TouchMove;
@@ -180,24 +180,24 @@ namespace MonoGame.PortableUI.Controls
             MouseLeave?.Invoke(this, EventArgs.Empty);
         }
 
-        protected internal virtual void OnMouseLeftDown()
+        protected internal virtual void OnMouseLeftDown(Point position)
         {
-            MouseLeftDown?.Invoke(this, EventArgs.Empty);
+            MouseLeftDown?.Invoke(this, new MouseButtonEventHandlerArgs(position));
         }
 
-        protected internal virtual void OnMouseLeftUp()
+        protected internal virtual void OnMouseLeftUp(Point position)
         {
-            MouseLeftUp?.Invoke(this, EventArgs.Empty);
+            MouseLeftUp?.Invoke(this, new MouseButtonEventHandlerArgs(position));
         }
 
-        protected internal virtual void OnMouseRightDown()
+        protected internal virtual void OnMouseRightDown(Point position)
         {
-            MouseRightDown?.Invoke(this, EventArgs.Empty);
+            MouseRightDown?.Invoke(this, new MouseButtonEventHandlerArgs(position));
         }
 
-        protected internal virtual void OnMouseRightUp()
+        protected internal virtual void OnMouseRightUp(Point position)
         {
-            MouseRightUp?.Invoke(this, EventArgs.Empty);
+            MouseRightUp?.Invoke(this, new MouseButtonEventHandlerArgs(position));
         }
 
         protected internal virtual void OnTouchDown()
@@ -215,9 +215,9 @@ namespace MonoGame.PortableUI.Controls
             TouchMove?.Invoke(this, EventArgs.Empty);
         }
 
-        protected internal virtual void OnMouseMove()
+        protected internal virtual void OnMouseMove(Point point)
         {
-            MouseMove?.Invoke(this, EventArgs.Empty);
+            MouseMove?.Invoke(this, new MouseMoveEventHandlerArgs(point));
         }
 
         protected internal virtual void OnTouchCancel()
@@ -284,6 +284,30 @@ namespace MonoGame.PortableUI.Controls
             var height = Height.IsFixed() ? Height : 0;
 
             return new Size(width, height) + Margin;
+        }
+    }
+
+    public delegate void MouseButtonEventHandler(object sender, MouseButtonEventHandlerArgs args);
+
+    public class MouseButtonEventHandlerArgs
+    {
+        public Point AbsolutePoint { get; set; }
+
+        public MouseButtonEventHandlerArgs(Point absolutePoint)
+        {
+            AbsolutePoint = absolutePoint;
+        }
+    }
+
+    public delegate void MouseMoveEventHandler(object sender, MouseMoveEventHandlerArgs args);
+
+    public class MouseMoveEventHandlerArgs
+    {
+        public Point AbsolutePoint { get; set; }
+
+        public MouseMoveEventHandlerArgs(Point absolutePoint)
+        {
+            AbsolutePoint = absolutePoint;
         }
     }
 }

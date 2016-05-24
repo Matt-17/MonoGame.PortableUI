@@ -42,6 +42,10 @@ namespace MonoGame.PortableUI.Controls
                 return size;
             size += Padding;
             size += Content?.MeasureLayout() ?? Size.Empty;
+            if (Height.IsFixed())
+                size.Height = Height;
+            if (Width.IsFixed())
+                size.Width = Width;
             return size;
         }
 

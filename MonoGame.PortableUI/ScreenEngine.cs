@@ -26,7 +26,7 @@ namespace MonoGame.PortableUI
             _manager = new ScreenManager(game);
             game.Components.Add(Manager);
 
-
+                           
             ScaleFactor = 1;
 
             Manager.Initialize();
