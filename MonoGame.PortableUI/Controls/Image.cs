@@ -7,61 +7,77 @@ namespace MonoGame.PortableUI.Controls
 {
     public class Image : Control
     {
-        public Texture2D ImageSource { get; set; }
+        public Texture2D Source { get; set; }
 
         public Stretch Stretch { get; set; }
 
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
-            Rect destRect;
-            var widthGap = rect.Width - ImageSource.Width;
-            var heightGap = rect.Height - ImageSource.Height;
+            spriteBatch.Draw(Source, destinationRectangle: rect);
+        }
+
+        public override Size MeasureLayout()
+        {
+            if (float.IsNaN(Width))
+                Width = Source.Width;
+
+            if (float.IsNaN(Height))
+                Height = Source.Height;
+
+            Size destSize;
+            var widthGap = Width - Source.Width;
+            var heightGap = Height - Source.Height;
             float newWidth;
             float newHeight;
             switch (Stretch)
             {
                 case Stretch.None:
-                    destRect = new Rect(rect.Left, rect.Top, ImageSource.Width, ImageSource.Height);
+                    destSize = new Size(Source.Width, Source.Height);
                     break;
                 case Stretch.Uniform:
-                    
+
                     if (widthGap < heightGap)
                     {
-                        newWidth = rect.Width;
-                        var scalingFactor = newWidth/ImageSource.Width;
-                        newHeight = ImageSource.Height*scalingFactor;
+                        newWidth = Width;
+                        var scalingFactor = newWidth / Source.Width;
+                        newHeight = Source.Height * scalingFactor;
                     }
                     else
                     {
-                        newHeight = rect.Height;
-                        var scalingFactor = newHeight / ImageSource.Height;
-                        newWidth = ImageSource.Width * scalingFactor;
+                        newHeight = Height;
+                        var scalingFactor = newHeight / Source.Height;
+                        newWidth = Source.Width * scalingFactor;
                     }
-                    destRect = new Rect(rect.Left, rect.Top, newWidth, newHeight);
+                    destSize = new Size(newWidth, newHeight);
                     break;
                 case Stretch.UniformToFill:
                     if (widthGap > heightGap)
                     {
-                        newWidth = rect.Width;
-                        var scalingFactor = newWidth / ImageSource.Width;
-                        newHeight = ImageSource.Height * scalingFactor;
+                        newWidth = Width;
+                        var scalingFactor = newWidth / Source.Width;
+                        newHeight = Source.Height * scalingFactor;
                     }
                     else
                     {
-                        newHeight = rect.Height;
-                        var scalingFactor = newHeight / ImageSource.Height;
-                        newWidth = ImageSource.Width * scalingFactor;
+                        newHeight = Height;
+                        var scalingFactor = newHeight / Source.Height;
+                        newWidth = Source.Width * scalingFactor;
                     }
                     //so far no clipping visibile cause scissor mask is not implemented yet
-                    destRect = new Rect(rect.Left, rect.Top, newWidth, newHeight);
+                    destSize = new Size(newWidth, newHeight);
                     break;
                 case Stretch.Fill:
-                    destRect = rect;
+                    destSize = new Size(Width, Height);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
-            spriteBatch.Draw(ImageSource, destinationRectangle: destRect);
+            return destSize;
+        }
+
+        public override void UpdateLayout(Rect rect)
+        {
+            base.UpdateLayout(rect);
         }
     }
 

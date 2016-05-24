@@ -59,6 +59,24 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        public Image Image
+        {
+            get
+            {
+                var image = Content as Image;
+                return image;
+            }
+            set
+            {
+                if (!value.Width.IsFixed() && Width.IsFixed())
+                    value.Width = Width;
+                if (!value.Height.IsFixed() && Height.IsFixed())
+                    value.Height = Height;
+
+                Content = value;
+            }
+        }
+
         protected internal override void OnMouseEnter()
         {
             base.OnMouseEnter();
@@ -141,8 +159,12 @@ namespace MonoGame.PortableUI.Controls
                 PressedColor.Draw(spriteBatch, clientRect);
             else if (HoverState == HoverStates.Hovering)
                 HoverColor.Draw(spriteBatch, clientRect);
+        }
 
-            Content?.OnDraw(spriteBatch, clientRect - Padding);
+        protected internal override void OnAfterDraw(SpriteBatch spriteBatch, Rect renderedBoundingRect)
+        {
+            base.OnAfterDraw(spriteBatch, renderedBoundingRect);
+            Content?.Draw(spriteBatch, Content.BoundingRect - Padding);
         }
 
         protected virtual void OnClick()
@@ -161,6 +183,17 @@ namespace MonoGame.PortableUI.Controls
             LeftButtonState = ButtonStates.Released;
             TouchState = TouchStates.Released;
             LongClick?.Invoke(this, EventArgs.Empty);
+        }
+
+        public override Size MeasureLayout()
+        {
+            
+            return base.MeasureLayout();
+        }
+
+        public override void UpdateLayout(Rect rect)
+        {
+            base.UpdateLayout(rect);
         }
     }
 }
