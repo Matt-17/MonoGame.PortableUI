@@ -92,6 +92,12 @@ namespace SampleClient.Screens
                 BackgroundBrush = Color.LimeGreen,
             }, 2, 2);
 
+            var control = new Button
+            {
+                Text = "nummer 1",
+                Padding = new Thickness(10),
+            };
+            control.Click += Control_Click;
             var stackPanel = new StackPanel()
             {
                 Margin = new Thickness(20, 20),
@@ -100,24 +106,45 @@ namespace SampleClient.Screens
                 HorizontalAlignment = HorizontalAlignment.Right,
                 //VerticalAlignment = VerticalAlignment.Top,
                 Children = {
-                    button2,
-                    button,
-                    innerStackPanel,
+                    //button2,
+                    //button,
+                    //innerStackPanel,
                     new ScrollViewer() {
                         Height = 50,
                         BackgroundBrush = Color.Khaki,
                         Content =
                         new StackPanel {
-                            BackgroundBrush = Color.Lavender,             
+                            BackgroundBrush = Color.Lavender,
+                            Margin = new Thickness(10),
                             Children = {
-                                new Button {Text = "nummer 5"}
+                                control,
+                                new Button {
+                                    Text = "nummer 2",
+                                    Padding = new Thickness(10),
+                                },
+                                new Button {
+                                    Text = "nummer 3",
+                                    Padding = new Thickness(10),
+                                },
+                                new Button {
+                                    Text = "nummer 4",
+                                    Padding = new Thickness(10),
+                                },
+                                new Button {
+                                    Text = "nummer 5",
+                                    Padding = new Thickness(10),
+                                },
                             }
                         }
-                    }   
+                    }
                 }
             };
             //   grid.AddChild(stackPanel, 3, 0, 0, 3);
             Content = stackPanel;
+        }
+
+        private void Control_Click(object sender, EventArgs e)
+        {
         }
 
         private void Button3_LongClick(object sender, EventArgs e)

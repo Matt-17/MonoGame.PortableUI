@@ -102,7 +102,7 @@ namespace MonoGame.PortableUI
 
             if (control.LastMousePosition != position)
             {
-                control.OnMouseMove();
+                control.OnMouseMove(position);
                 control.LastMousePosition = position;
             }
 
@@ -110,7 +110,7 @@ namespace MonoGame.PortableUI
             {
                 if (!control.LastMouseLeftButtonState)
                 {
-                    control.OnMouseLeftDown();
+                    control.OnMouseLeftDown(position);
                     control.LastMouseLeftButtonState = true;
                 }
             }
@@ -118,7 +118,7 @@ namespace MonoGame.PortableUI
             {
                 if (control.LastMouseLeftButtonState)
                 {
-                    control.OnMouseLeftUp();
+                    control.OnMouseLeftUp(position);
                     control.LastMouseLeftButtonState = false;
                 }
             }
@@ -127,7 +127,7 @@ namespace MonoGame.PortableUI
             {
                 if (!control.LastMouseRightButtonState)
                 {
-                    control.OnMouseRightDown();
+                    control.OnMouseRightDown(position);
                     control.LastMouseRightButtonState = true;
                 }
             }
@@ -135,7 +135,7 @@ namespace MonoGame.PortableUI
             {
                 if (control.LastMouseRightButtonState)
                 {
-                    control.OnMouseRightUp();
+                    control.OnMouseRightUp(position);
                     control.LastMouseRightButtonState = false;
                 }
             }

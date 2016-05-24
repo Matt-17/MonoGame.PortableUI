@@ -44,8 +44,8 @@ namespace MonoGame.PortableUI.Common
             Height = height;
         }
 
-        public Rect(PointF offset, Size size)  : this(offset.X, offset.Y, size.Width, size.Height)
-        {                               
+        public Rect(PointF offset, Size size) : this(offset.X, offset.Y, size.Width, size.Height)
+        {
         }
 
         public float Top { get; set; }
@@ -85,14 +85,25 @@ namespace MonoGame.PortableUI.Common
         }
 
 
-        public static Rect operator +(Rect r1, Rect r2)
+        public static Rect operator +(Rect r1, Rect r)
         {
-            return new Rect(r1.Left + r2.Left, r1.Top + r2.Top, r1.Width + r2.Width, r1.Height + r2.Height);
+            return new Rect(r1.Left + r.Left, r1.Top + r.Top, r1.Width + r.Width, r1.Height + r.Height);
         }
 
-        public static Rect operator -(Rect r1, Rect r2)
+        public static Rect operator -(Rect r1, Rect r)
         {
-            return new Rect(r1.Left - r2.Left, r1.Top - r2.Top, r1.Width - r2.Width, r1.Height - r2.Height);
+            return new Rect(r1.Left - r.Left, r1.Top - r.Top, r1.Width - r.Width, r1.Height - r.Height);
+        }
+
+
+        public static Rect operator +(PointF p, Rect r)
+        {
+            return new Rect(p.X + r.Left, p.Y + r.Top, r.Width, r.Height);
+        }
+
+        public static Rect operator +(Rect r, PointF p)
+        {
+            return p + r;
         }
 
         public Rect AtOrigin()
