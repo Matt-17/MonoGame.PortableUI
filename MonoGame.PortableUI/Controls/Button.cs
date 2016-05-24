@@ -26,7 +26,7 @@ namespace MonoGame.PortableUI.Controls
             _longClickTimer = new Timer(LongClickDuration);
             _longClickTimer.Elapsed += OnLongClick;
             //var grid = new Grid();
-            //grid.AddChild(new Rect {BackgroundBrush = Color.DarkMagenta});
+            //grid.AddChild(new Rect { BackgroundBrush = Color.DarkMagenta });
             //grid.AddChild(new ContentPresenter(this));
             //Template = grid;
         }
@@ -91,16 +91,16 @@ namespace MonoGame.PortableUI.Controls
             _longClickTimer.Stop();
         }
 
-        protected internal override async void OnMouseLeftDown()
+        protected internal override async void OnMouseLeftDown(Point position)
         {
-            base.OnMouseLeftDown();
+            base.OnMouseLeftDown(position);
             LeftButtonState = ButtonStates.Pressed;
             await _longClickTimer.Start();
         }
 
-        protected internal override void OnMouseLeftUp()
+        protected internal override void OnMouseLeftUp(Point position)
         {
-            base.OnMouseLeftUp();
+            base.OnMouseLeftUp(position);
             if (LeftButtonState == ButtonStates.Pressed)
             {
                 LeftButtonState = ButtonStates.Released;
@@ -109,15 +109,15 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
-        protected internal override void OnMouseRightDown()
+        protected internal override void OnMouseRightDown(Point position)
         {
-            base.OnMouseRightDown();
+            base.OnMouseRightDown(position);
             RightButtonState = ButtonStates.Pressed;
         }
 
-        protected internal override void OnMouseRightUp()
+        protected internal override void OnMouseRightUp(Point position)
         {
-            base.OnMouseRightUp();
+            base.OnMouseRightUp(position);
             if (RightButtonState == ButtonStates.Pressed)
             {
                 RightButtonState = ButtonStates.Released;
