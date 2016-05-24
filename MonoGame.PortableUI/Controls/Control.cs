@@ -97,8 +97,10 @@ namespace MonoGame.PortableUI.Controls
 
         public double Opacity { get; set; }
 
+        //TODO invalidate layout after visibility changed
         public bool IsVisible { get; set; }
 
+        //TODO invalidate layout after isGone changed
         public bool IsGone { get; set; }
 
         public bool IsEnabled { get; set; }
