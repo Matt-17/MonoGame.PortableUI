@@ -53,18 +53,45 @@ namespace MonoGame.PortableUI
 
         internal void Draw(SpriteBatch spriteBatch)
         {
-            if (BackgroundBrush != null )
+            if (BackgroundBrush != null)
             {
                 spriteBatch.Begin();
                 BackgroundBrush.Draw(spriteBatch, new Rect(Width, Height));
                 spriteBatch.End();
             }
-            Content?.Draw(spriteBatch, Content.BoundingRect);
-            //var visualTreeAsList = GetVisualTreeAsList(Content);
-            //foreach (var control in visualTreeAsList)
-            //{
-            //    Draw(spriteBatch);            
-            //}
+            DrawControl(spriteBatch, Content);
+        }
+
+        private static void DrawControl(SpriteBatch spriteBatch, Control control)
+        {
+            if (!control.IsVisible || control.IsGone)
+                return;
+
+            //if (!Visible) return;
+
+            // Controlgröße ermitteln
+            //Rectangle controlArea = new Rectangle(AbsolutePosition, ActualSize);
+            //Rectangle localRenderMask = controlArea.Intersection(renderMask);
+
+            // Scissor-Filter aktivieren
+            //batch.Begin(rasterizerState: new RasterizerState() { ScissorTestEnable = true }, samplerState: SamplerState.LinearWrap, transformMatrix: AbsoluteTransformation);
+            //OnDraw(batch, controlArea, gameTime);
+            //batch.End();
+
+
+            //invalidDrawing = false;
+            spriteBatch.Begin(rasterizerState: new RasterizerState() { ScissorTestEnable = true });
+            control.OnDraw(spriteBatch, control.BoundingRect);
+            spriteBatch.End();
+
+            var oldRect = new Rect(spriteBatch.GraphicsDevice.ScissorRectangle);
+            spriteBatch.GraphicsDevice.ScissorRectangle = oldRect ^ control.BoundingRect;
+            foreach (var c in control.GetDescendants())
+            {
+                DrawControl(spriteBatch, c);
+            }
+            spriteBatch.GraphicsDevice.ScissorRectangle = oldRect;
+
         }
 
         internal void Update(TimeSpan elapsed)

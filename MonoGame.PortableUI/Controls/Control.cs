@@ -14,8 +14,7 @@ namespace MonoGame.PortableUI.Controls
 {
     public abstract class Control : IUIElement
     {
-        private IUIElement _parent;
-
+        private IUIElement _parent;   
 
         internal bool LastMouseRightButtonState;
         internal bool LastMouseLeftButtonState;
@@ -24,6 +23,8 @@ namespace MonoGame.PortableUI.Controls
         internal PointF? LastTouchPosition;
         private float _width;
         private float _height;
+        private bool _isVisible;
+        private bool _isGone;
 
         protected Control()
         {
@@ -98,10 +99,26 @@ namespace MonoGame.PortableUI.Controls
         public double Opacity { get; set; }
 
         //TODO invalidate layout after visibility changed
-        public bool IsVisible { get; set; }
+        public bool IsVisible
+        {
+            get { return _isVisible; }
+            set
+            {
+                _isVisible = value;
+                InvalidateLayout(false);
+            }
+        }
 
         //TODO invalidate layout after isGone changed
-        public bool IsGone { get; set; }
+        public bool IsGone
+        {
+            get { return _isGone; }
+            set
+            {
+                _isGone = value;
+                InvalidateLayout(true);
+            }                        
+        }
 
         public bool IsEnabled { get; set; }
 
@@ -120,39 +137,10 @@ namespace MonoGame.PortableUI.Controls
 
         internal PointF Position { get; set; }
 
-
-        public void Draw(SpriteBatch spriteBatch, Rect rect)
-        {
-            //if (!Visible) return;
-
-            // Controlgröße ermitteln
-            //Rectangle controlArea = new Rectangle(AbsolutePosition, ActualSize);
-            //Rectangle localRenderMask = controlArea.Intersection(renderMask);
-
-            // Scissor-Filter aktivieren
-            //batch.GraphicsDevice.ScissorRectangle = localRenderMask.Transform(AbsoluteTransformation);
-            //batch.Begin(rasterizerState: new RasterizerState() { ScissorTestEnable = true }, samplerState: SamplerState.LinearWrap, transformMatrix: AbsoluteTransformation);
-            //OnDraw(batch, controlArea, gameTime);
-            //batch.End();
-
-            if (!IsVisible || IsGone)
-                return;
-
-            OnBeforeDraw(spriteBatch, rect);
-            spriteBatch.Begin(/* Scissor und sowas ; Matrix */);
-            OnDraw(spriteBatch, rect);
-            spriteBatch.End();
-            OnAfterDraw(spriteBatch, rect);
-
-            //invalidDrawing = false;
-        }
-
-        protected internal virtual void OnBeforeDraw(SpriteBatch spriteBatch, Rect renderedBoundingRect) { }
         protected internal virtual void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
             BackgroundBrush?.Draw(spriteBatch, rect - Margin);
         }
-        protected internal virtual void OnAfterDraw(SpriteBatch spriteBatch, Rect renderedBoundingRect) { }
 
         #region Events
 
@@ -235,7 +223,7 @@ namespace MonoGame.PortableUI.Controls
             if (IsGone)
                 BoundingRect = Rect.Empty;
 
-            var measuredSize = MeasureLayout(); 
+            var measuredSize = MeasureLayout();
             var offset = rect.Offset;
 
             switch (VerticalAlignment)

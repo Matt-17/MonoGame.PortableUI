@@ -106,11 +106,11 @@ namespace SampleClient.Screens
                 HorizontalAlignment = HorizontalAlignment.Right,
                 //VerticalAlignment = VerticalAlignment.Top,
                 Children = {
-                    //button2,
-                    //button,
-                    //innerStackPanel,
+                    button2,
+                    button,
+                    innerStackPanel,
                     new ScrollViewer() {
-                        Height = 50,
+                        Height = 100,
                         BackgroundBrush = Color.Khaki,
                         Content =
                         new StackPanel {
