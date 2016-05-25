@@ -20,12 +20,7 @@ namespace MonoGame.PortableUI.Controls
         {
             _children = new ControlCollection(this);
             _children.CollectionChanged += _children_CollectionChanged;
-        }
-
-        internal Rect GetRectangleForChild(Control child)
-        {
-            return child.BoundingRect;
-        }
+        }     
 
         private void _children_CollectionChanged(object sender, CollectionChangedEventArgs args)
         {                                        
@@ -37,13 +32,5 @@ namespace MonoGame.PortableUI.Controls
             return Children;
         }
 
-        protected internal override void OnAfterDraw(SpriteBatch spriteBatch, Rect renderedBoundingRect)
-        {
-            base.OnAfterDraw(spriteBatch, renderedBoundingRect);
-            foreach (var child in Children.Reverse())
-            {
-                child.Draw(spriteBatch, GetRectangleForChild(child));
-            }
-        }
     }
 }

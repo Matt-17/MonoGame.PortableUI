@@ -161,12 +161,6 @@ namespace MonoGame.PortableUI.Controls
                 HoverColor.Draw(spriteBatch, clientRect);
         }
 
-        protected internal override void OnAfterDraw(SpriteBatch spriteBatch, Rect renderedBoundingRect)
-        {
-            base.OnAfterDraw(spriteBatch, renderedBoundingRect);
-            Content?.Draw(spriteBatch, Content.BoundingRect - Padding);
-        }
-
         protected virtual void OnClick()
         {
             Click?.Invoke(this, EventArgs.Empty);

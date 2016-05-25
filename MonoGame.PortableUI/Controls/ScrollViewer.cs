@@ -1,5 +1,4 @@
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI.Common;
 
 namespace MonoGame.PortableUI.Controls
@@ -31,6 +30,13 @@ namespace MonoGame.PortableUI.Controls
                     _offset.X += diff.X;
                 else
                     _offset.Y += diff.Y;
+                var boundingRect = Content.BoundingRect;
+                boundingRect.Offset = _offset;
+                if (ScrollOrientation == Orientation.Horizontal)
+                    boundingRect.Width = Size.Infinity;
+                else
+                    boundingRect.Height = Size.Infinity;
+                Content.UpdateLayout(boundingRect);
                 _mouse = point;
             }
         }
@@ -40,25 +46,10 @@ namespace MonoGame.PortableUI.Controls
             _mouse = args.AbsolutePoint;
         }
 
-        public override Size MeasureLayout()
-        {
-            return base.MeasureLayout();
-        }
-
         public override void UpdateLayout(Rect rect)
         {
             base.UpdateLayout(rect);
-        }
-
-        protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
-        {
-            base.OnDraw(spriteBatch, rect);
-        }
-
-        protected internal override void OnAfterDraw(SpriteBatch spriteBatch, Rect renderedBoundingRect)
-        {
-            base.OnAfterDraw(spriteBatch, renderedBoundingRect);
-            Content?.Draw(spriteBatch, Content.BoundingRect + _offset);
+            _offset = Content.BoundingRect.Offset;
         }
     }
 }

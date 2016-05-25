@@ -48,6 +48,11 @@ namespace MonoGame.PortableUI.Common
         {
         }
 
+        public Rect(Rectangle r) : this(r.Left, r.Top, r.Width, r.Height)
+        {
+
+        }
+
         public float Top { get; set; }
         public float Left { get; set; }
         public float Width { get; set; }
@@ -128,6 +133,9 @@ namespace MonoGame.PortableUI.Common
 
         private Rect Intersects(Rect other)
         {
+            if (Left > other.Right || Right < other.Left || Top > other.Bottom || Bottom < other.Top)
+                return Rect.Empty;
+
             Rect result = new Rect
             {
                 Left = Math.Max(Left, other.Left),
