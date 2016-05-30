@@ -25,6 +25,7 @@ namespace MonoGame.PortableUI.Controls
         private float _height;
         private bool _isVisible;
         private bool _isGone;
+        public object Tag { get; set; }
 
         protected Control()
         {
