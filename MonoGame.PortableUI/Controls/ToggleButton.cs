@@ -25,6 +25,17 @@ namespace MonoGame.PortableUI.Controls
         }
 
         public Brush ToggleBrush { get; set; }
+        protected override void OnStateChanged()
+        {
+            base.OnStateChanged();
+            if (IsChecked)
+            {
+                var textBlock = Content as TextBlock;
+                if (textBlock != null) textBlock.TextColor = ToggleTextColor;
+            }
+        }
+
+        public Color ToggleTextColor { get; set; }
 
         public event EventHandler<CheckedEventArgs> Checked;
 
@@ -37,6 +48,7 @@ namespace MonoGame.PortableUI.Controls
         {
             IsChecked = !IsChecked;
             OnChecked(IsChecked);
+            OnStateChanged();
         }
 
         protected virtual void OnChecked(bool e)

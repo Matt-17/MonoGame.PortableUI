@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI.Common;
@@ -49,7 +50,6 @@ namespace MonoGame.PortableUI.Controls
 
             if (SnapToPixel)
                 offset = offset.ToInts();
-
             spriteBatch.DrawString(Font, Text, offset, TextColor);
         }
     }
