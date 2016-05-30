@@ -23,6 +23,7 @@ namespace MonoGame.PortableUI.Controls
             BackgroundBrush = Color.White;
             HoverColor = new Color(0, 0, 0, 0.2f);
             PressedColor = new Color(0, 0, 0, 0.4f);
+            TextColor = Color.Black;
             _longClickTimer = new Timer(LongClickDuration);
             _longClickTimer.Elapsed += OnLongClick;
             //var grid = new Grid();
@@ -36,7 +37,7 @@ namespace MonoGame.PortableUI.Controls
         public ButtonStates RightButtonState { get; set; }
         public TouchStates TouchState { get; set; }
 
-        public Brush HoverColor { get; set; }      
+        public Brush HoverColor { get; set; }
         public Brush PressedColor { get; set; }
 
         public string Text
@@ -59,6 +60,10 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        public Color TextColor { get; set; }
+        public Color? PressedTextColor { get; set; }
+        public Color? HoverTextColor { get; set; }
+
         public Image Image
         {
             get
@@ -77,10 +82,25 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        protected virtual void OnStateChanged()
+        {
+            var textBlock = Content as TextBlock;
+            if (textBlock == null)
+                return;
+
+            var color = TextColor;
+            if (HoverState == HoverStates.Hovering && HoverTextColor != null)
+                color = (Color)HoverTextColor;
+            if ((LeftButtonState == ButtonStates.Pressed || TouchState == TouchStates.Touched) && PressedTextColor != null)
+                color = (Color)PressedTextColor;
+            textBlock.TextColor = color;
+        }
+
         protected internal override void OnMouseEnter()
         {
             base.OnMouseEnter();
             HoverState = HoverStates.Hovering;
+            OnStateChanged();
         }
 
         protected internal override void OnMouseLeave()
@@ -88,6 +108,7 @@ namespace MonoGame.PortableUI.Controls
             base.OnMouseLeave();
             HoverState = HoverStates.NotHovering;
             LeftButtonState = ButtonStates.Released;
+            OnStateChanged();
             _longClickTimer.Stop();
         }
 
@@ -95,6 +116,7 @@ namespace MonoGame.PortableUI.Controls
         {
             base.OnMouseLeftDown(position);
             LeftButtonState = ButtonStates.Pressed;
+            OnStateChanged();
             await _longClickTimer.Start();
         }
 
@@ -104,6 +126,7 @@ namespace MonoGame.PortableUI.Controls
             if (LeftButtonState == ButtonStates.Pressed)
             {
                 LeftButtonState = ButtonStates.Released;
+                OnStateChanged();
                 _longClickTimer.Stop();
                 OnClick();
             }
@@ -113,6 +136,7 @@ namespace MonoGame.PortableUI.Controls
         {
             base.OnMouseRightDown(position);
             RightButtonState = ButtonStates.Pressed;
+            OnStateChanged();
         }
 
         protected internal override void OnMouseRightUp(Point position)
@@ -121,6 +145,7 @@ namespace MonoGame.PortableUI.Controls
             if (RightButtonState == ButtonStates.Pressed)
             {
                 RightButtonState = ButtonStates.Released;
+                OnStateChanged();
                 OnRightClick();
             }
         }
@@ -129,6 +154,7 @@ namespace MonoGame.PortableUI.Controls
         {
             base.OnTouchDown();
             TouchState = TouchStates.Touched;
+            OnStateChanged();
             await _longClickTimer.Start();
         }
 
@@ -136,6 +162,7 @@ namespace MonoGame.PortableUI.Controls
         {
             base.OnTouchUp();
             TouchState = TouchStates.Released;
+            OnStateChanged();
             _longClickTimer.Stop();
             OnClick();
         }
@@ -144,6 +171,7 @@ namespace MonoGame.PortableUI.Controls
         {
             base.OnTouchCancel();
             TouchState = TouchStates.Released;
+            OnStateChanged();
             _longClickTimer.Stop();
         }
 
@@ -176,12 +204,13 @@ namespace MonoGame.PortableUI.Controls
             _longClickTimer.Stop();
             LeftButtonState = ButtonStates.Released;
             TouchState = TouchStates.Released;
+            OnStateChanged();
             LongClick?.Invoke(this, EventArgs.Empty);
         }
 
         public override Size MeasureLayout()
         {
-            
+
             return base.MeasureLayout();
         }
 

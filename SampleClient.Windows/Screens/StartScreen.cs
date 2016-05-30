@@ -27,12 +27,15 @@ namespace SampleClient.Screens
                 Width = 200,
                 Height = 100,
                 BackgroundBrush = new GradientBrush(Color.Red, Color.Orange),
-                ToggleBrush = new GradientBrush(Color.YellowGreen, Color.Orange)
+                ToggleBrush = new GradientBrush(Color.YellowGreen, Color.Orange),
+                ToggleTextColor = Color.White
             };
             var button3 = new Button()
             {
                 BackgroundBrush = Color.DarkGreen,
                 Text = "3",
+                HoverTextColor = Color.White,
+                PressedTextColor = Color.White
             };
             var button4 = new Button()
             {
