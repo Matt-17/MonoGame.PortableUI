@@ -62,6 +62,8 @@
     <Compile Include="Controls\Image.cs" />
     <Compile Include="Controls\ListBox.cs" />
     <Compile Include="Controls\Input\TouchStates.cs" />
+    <Compile Include="Controls\TabControl.cs" />
+    <Compile Include="Controls\TabItem.cs" />
     <Compile Include="Exceptions\MultipleParentException.cs" />
     <Compile Include="Common\Orientation.cs" />
     <Compile Include="Controls\Panel.cs" />
