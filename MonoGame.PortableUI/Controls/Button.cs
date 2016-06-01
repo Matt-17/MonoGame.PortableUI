@@ -64,24 +64,6 @@ namespace MonoGame.PortableUI.Controls
         public Color? PressedTextColor { get; set; }
         public Color? HoverTextColor { get; set; }
 
-        public Image Image
-        {
-            get
-            {
-                var image = Content as Image;
-                return image;
-            }
-            set
-            {
-                if (!value.Width.IsFixed() && Width.IsFixed())
-                    value.Width = Width;
-                if (!value.Height.IsFixed() && Height.IsFixed())
-                    value.Height = Height;
-
-                Content = value;
-            }
-        }
-
         protected virtual void OnStateChanged()
         {
             var textBlock = Content as TextBlock;
