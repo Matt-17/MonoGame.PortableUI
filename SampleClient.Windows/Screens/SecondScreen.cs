@@ -43,10 +43,12 @@ namespace SampleClient.Screens
                     Text = $"Button {i}",
                     Width = 80,
                     Height = 50,
-                    RadioGroup = "Tab"
+                    RadioGroup = "Tab",
+                    IsChecked = i == 2,
                 });
             }
             Content = stackPanel;
+            
         }
 
         private void Button1_Click(object sender, EventArgs e)

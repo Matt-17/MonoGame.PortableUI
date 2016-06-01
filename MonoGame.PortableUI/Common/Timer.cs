@@ -1,4 +1,6 @@
-﻿using System;       
+﻿using System;
+using System.Diagnostics;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace MonoGame.PortableUI.Common
@@ -7,31 +9,27 @@ namespace MonoGame.PortableUI.Common
     {
         public int WaitTime { get; set; }
         public bool IsRunning { get; set; }
-
         public event EventHandler Elapsed;
         protected virtual void OnTimerElapsed()
         {
             Elapsed?.Invoke(this, new EventArgs());
         }
 
+        /// <summary>
+        /// Creates a new Timer with desired waiting time in ms.
+        /// </summary>
+        /// <param name="waitTime">Time in milliseconds</param>
         public Timer(int waitTime)
         {
             WaitTime = waitTime;
         }
 
-        public async Task Start()
+        public async void Start()
         {
-            int seconds = 0;
             IsRunning = true;
-            while (IsRunning)
-            {
-                if (seconds != 0 && seconds % WaitTime == 0)
-                {
-                    OnTimerElapsed();
-                }
-                await Task.Delay(1000);
-                seconds++;
-            }
+            await Task.Delay(WaitTime);
+            if (IsRunning)
+                OnTimerElapsed();
         }
 
         public void Stop()
