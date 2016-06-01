@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
-using Microsoft.Xna.Framework.Input.Touch;
 using MonoGame.PortableUI.Common;
+using MonoGame.PortableUI.Controls.Input;
 using MonoGame.PortableUI.Exceptions;
 using MonoGame.PortableUI.Media;
 
@@ -14,18 +12,18 @@ namespace MonoGame.PortableUI.Controls
 {
     public abstract class Control : IUIElement
     {
-        private IUIElement _parent;   
-
-        internal bool LastMouseRightButtonState;
+        private readonly Timer _longPressTimer;
+        private float _height;
+        private bool _isGone;
+        private bool _isVisible;
+        private IUIElement _parent;
+        private float _width;
+        internal bool IgnoreTouch;
         internal bool LastMouseLeftButtonState;
         internal PointF? LastMousePosition;
-        internal bool IgnoreTouch;
+
+        internal bool LastMouseRightButtonState;
         internal PointF? LastTouchPosition;
-        private float _width;
-        private float _height;
-        private bool _isVisible;
-        private bool _isGone;
-        public object Tag { get; set; }
 
         protected Control()
         {
@@ -42,7 +40,18 @@ namespace MonoGame.PortableUI.Controls
             HorizontalAlignment = HorizontalAlignment.Stretch;
             VerticalAlignment = VerticalAlignment.Stretch;
             Position = new PointF(0, 0);
+
+            _longPressTimer = new Timer(300);
+            _longPressTimer.Elapsed += _longPressTimer_Elapsed;
         }
+
+        public object Tag { get; set; }
+
+
+        protected HoverStates HoverState { get; set; }
+        protected ButtonStates LeftButtonState { get; set; }
+        protected ButtonStates RightButtonState { get; set; }
+        protected TouchStates TouchState { get; set; }
 
         public IUIElement Parent
         {
@@ -95,8 +104,6 @@ namespace MonoGame.PortableUI.Controls
 
         public Vector2 Translation { get; set; }
 
-        public Brush BackgroundBrush { get; set; }
-
         public double Opacity { get; set; }
 
         //TODO invalidate layout after visibility changed
@@ -118,7 +125,7 @@ namespace MonoGame.PortableUI.Controls
             {
                 _isGone = value;
                 InvalidateLayout(true);
-            }                        
+            }
         }
 
         public bool IsEnabled { get; set; }
@@ -138,85 +145,48 @@ namespace MonoGame.PortableUI.Controls
 
         internal PointF Position { get; set; }
 
+        public Brush BackgroundBrush { get; set; }
+
+        public virtual void InvalidateLayout(bool boundsChanged)
+        {
+            Parent?.InvalidateLayout(boundsChanged);
+        }
+
+        public virtual IEnumerable<Control> GetDescendants()
+        {
+            return Enumerable.Empty<Control>();
+        }
+
+        public event EventHandler StateChanged;
+
+        private void OnClick()
+        {
+            Click?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void OnRightClick()
+        {
+            RightClick?.Invoke(this, EventArgs.Empty);
+        }
+
+
+        public event EventHandler Click;
+        public event EventHandler RightClick;
+        public event EventHandler LongPress;
+
+        private void _longPressTimer_Elapsed(object sender, EventArgs e)
+        {
+            _longPressTimer?.Stop();
+            LeftButtonState = ButtonStates.Released;
+            TouchState = TouchStates.Released;
+            OnStateChanged();
+            LongPress?.Invoke(this, EventArgs.Empty);
+        }
+
         protected internal virtual void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
             BackgroundBrush?.Draw(spriteBatch, rect - Margin);
         }
-
-        #region Events
-
-        public event EventHandler MouseEnter;
-        public event EventHandler MouseLeave;
-        public event MouseMoveEventHandler MouseMove;
-        public event MouseButtonEventHandler MouseLeftDown;
-        public event MouseButtonEventHandler MouseRightDown;
-        public event MouseButtonEventHandler MouseLeftUp;
-        public event MouseButtonEventHandler MouseRightUp;
-        public event EventHandler TouchDown;
-        public event EventHandler TouchUp;
-        public event EventHandler TouchMove;
-        public event EventHandler TouchCancel;
-
-        #endregion
-
-        #region Event handlers
-
-        protected internal virtual void OnMouseEnter()
-        {
-            MouseEnter?.Invoke(this, EventArgs.Empty);
-        }
-
-        protected internal virtual void OnMouseLeave()
-        {
-            MouseLeave?.Invoke(this, EventArgs.Empty);
-        }
-
-        protected internal virtual void OnMouseLeftDown(Point position)
-        {
-            MouseLeftDown?.Invoke(this, new MouseButtonEventHandlerArgs(position));
-        }
-
-        protected internal virtual void OnMouseLeftUp(Point position)
-        {
-            MouseLeftUp?.Invoke(this, new MouseButtonEventHandlerArgs(position));
-        }
-
-        protected internal virtual void OnMouseRightDown(Point position)
-        {
-            MouseRightDown?.Invoke(this, new MouseButtonEventHandlerArgs(position));
-        }
-
-        protected internal virtual void OnMouseRightUp(Point position)
-        {
-            MouseRightUp?.Invoke(this, new MouseButtonEventHandlerArgs(position));
-        }
-
-        protected internal virtual void OnTouchDown()
-        {
-            TouchDown?.Invoke(this, EventArgs.Empty);
-        }
-
-        protected internal virtual void OnTouchUp()
-        {
-            TouchUp?.Invoke(this, EventArgs.Empty);
-        }
-
-        protected internal virtual void OnTouchMove()
-        {
-            TouchMove?.Invoke(this, EventArgs.Empty);
-        }
-
-        protected internal virtual void OnMouseMove(Point point)
-        {
-            MouseMove?.Invoke(this, new MouseMoveEventHandlerArgs(point));
-        }
-
-        protected internal virtual void OnTouchCancel()
-        {
-            TouchCancel?.Invoke(this, EventArgs.Empty);
-        }
-
-        #endregion
 
 
         public virtual void UpdateLayout(Rect rect)
@@ -256,16 +226,6 @@ namespace MonoGame.PortableUI.Controls
             BoundingRect = new Rect(offset, measuredSize);
         }
 
-        public virtual void InvalidateLayout(bool boundsChanged)
-        {
-            Parent?.InvalidateLayout(boundsChanged);
-        }
-
-        public virtual IEnumerable<Control> GetDescendants()
-        {
-            return Enumerable.Empty<Control>();
-        }
-
         public virtual Size MeasureLayout()
         {
             if (IsGone)
@@ -276,29 +236,168 @@ namespace MonoGame.PortableUI.Controls
 
             return new Size(width, height) + Margin;
         }
+
+        protected virtual void OnLongPress()
+        {
+            LongPress?.Invoke(this, EventArgs.Empty);
+        }
+
+        #region Events
+
+        public event EventHandler MouseEnter;
+        public event EventHandler MouseLeave;
+        public event MouseMoveEventHandler MouseMove;
+        public event MouseButtonEventHandler MouseLeftDown;
+        public event MouseButtonEventHandler MouseRightDown;
+        public event MouseButtonEventHandler MouseLeftUp;
+        public event MouseButtonEventHandler MouseRightUp;
+        public event EventHandler TouchDown;
+        public event EventHandler TouchUp;
+        public event EventHandler TouchMove;
+        public event EventHandler TouchCancel;
+
+        #endregion
+
+        #region Event handlers
+
+        internal virtual void OnMouseEnter()
+        {
+            HoverState = HoverStates.Hovering;
+            MouseEnter?.Invoke(this, EventArgs.Empty);
+            OnStateChanged();
+        }
+
+        internal virtual void OnMouseLeave()
+        {
+            HoverState = HoverStates.NotHovering;
+            LeftButtonState = ButtonStates.Released;
+            MouseLeave?.Invoke(this, EventArgs.Empty);
+            OnStateChanged();
+        }
+
+        internal virtual void OnMouseLeftDown(Point position)
+        {
+            LeftButtonState = ButtonStates.Pressed;
+            MouseLeftDown?.Invoke(this, new MouseButtonEventHandlerArgs(position));
+            OnStateChanged();
+            if (LongPress != null)
+                _longPressTimer?.Start();
+        }
+
+
+        internal virtual void OnMouseLeftUp(Point position)
+        {
+            if (LeftButtonState == ButtonStates.Pressed)
+            {
+                _longPressTimer.Stop();
+                LeftButtonState = ButtonStates.Released;
+                MouseLeftUp?.Invoke(this, new MouseButtonEventHandlerArgs(position));
+                OnStateChanged();
+                OnClick();
+            }
+            else
+                MouseLeftUp?.Invoke(this, new MouseButtonEventHandlerArgs(position));
+        }
+
+        internal virtual void OnMouseRightDown(Point position)
+        {
+            RightButtonState = ButtonStates.Pressed;
+            MouseRightDown?.Invoke(this, new MouseButtonEventHandlerArgs(position));
+            OnStateChanged();
+        }
+
+        internal virtual void OnMouseRightUp(Point position)
+        {
+
+            if (RightButtonState == ButtonStates.Pressed)
+            {
+                RightButtonState = ButtonStates.Released;
+                MouseRightUp?.Invoke(this, new MouseButtonEventHandlerArgs(position));
+                OnStateChanged();
+                OnRightClick();
+            }
+            else
+                MouseRightUp?.Invoke(this, new MouseButtonEventHandlerArgs(position));
+        }
+
+        internal virtual void OnTouchDown()
+        {
+            TouchState = TouchStates.Touched;
+            TouchDown?.Invoke(this, EventArgs.Empty);
+            OnStateChanged();
+            if (LongPress != null)
+                _longPressTimer?.Start();
+        }
+
+        internal virtual void OnTouchUp()
+        {
+            _longPressTimer.Stop();
+            if (TouchState == TouchStates.Touched)
+            {
+                TouchState = TouchStates.Released;
+                TouchUp?.Invoke(this, EventArgs.Empty);
+                OnStateChanged();
+                OnClick();
+            }
+            else
+                TouchUp?.Invoke(this, EventArgs.Empty);
+        }
+
+        internal virtual void OnTouchMove()
+        {
+            _longPressTimer.Stop();
+            TouchMove?.Invoke(this, EventArgs.Empty);
+        }
+
+        internal virtual void OnMouseMove(Point point)
+        {
+            _longPressTimer.Stop();
+            MouseMove?.Invoke(this, new MouseMoveEventHandlerArgs(point));
+        }
+
+        internal virtual void OnTouchCancel()
+        {
+            _longPressTimer.Stop();
+            TouchState = TouchStates.Released;
+            TouchCancel?.Invoke(this, EventArgs.Empty);
+            OnStateChanged();
+        }
+
+        #endregion
+
+        protected virtual void OnStateChanged()
+        {
+            StateChanged?.Invoke(this, EventArgs.Empty);
+        }
+
     }
 
     public delegate void MouseButtonEventHandler(object sender, MouseButtonEventHandlerArgs args);
 
-    public class MouseButtonEventHandlerArgs
+    public class MouseButtonEventHandlerArgs : BaseEventHandlerArgs
     {
-        public Point AbsolutePoint { get; set; }
-
         public MouseButtonEventHandlerArgs(Point absolutePoint)
         {
             AbsolutePoint = absolutePoint;
         }
+
+        public Point AbsolutePoint { get; set; }
+    }
+
+    public class BaseEventHandlerArgs
+    {
+        public bool Handled { get; set; }
     }
 
     public delegate void MouseMoveEventHandler(object sender, MouseMoveEventHandlerArgs args);
 
-    public class MouseMoveEventHandlerArgs
+    public class MouseMoveEventHandlerArgs : BaseEventHandlerArgs
     {
-        public Point AbsolutePoint { get; set; }
-
         public MouseMoveEventHandlerArgs(Point absolutePoint)
         {
             AbsolutePoint = absolutePoint;
         }
+
+        public Point AbsolutePoint { get; set; }
     }
 }
