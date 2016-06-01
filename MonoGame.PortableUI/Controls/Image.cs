@@ -40,14 +40,8 @@ namespace MonoGame.PortableUI.Controls
 
         private Size GetImageSize(Rect rect)
         {
-            var widthGap = rect.Width - Source.Width;
-            var heightGap = rect.Height - Source.Height;
-
-            if (widthGap < 0 && heightGap < 0)
-            {
-                widthGap = Math.Abs(widthGap);
-                heightGap = Math.Abs(heightGap);
-            }
+            var widthGap = rect.Width / Source.Width;
+            var heightGap = rect.Height / Source.Height;
             
             float newWidth;
             float newHeight;
