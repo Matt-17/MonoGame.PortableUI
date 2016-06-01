@@ -21,68 +21,69 @@ namespace MonoGame.PortableUI.Controls
                 spriteBatch.Draw(Source, destinationRectangle: rect);
         }
 
-        public override Size MeasureLayout()
+        public override void UpdateLayout(Rect rect)
         {
-            if (float.IsNaN(Width))
-                Width = Source.Width;
+            if (IsGone)
+                BoundingRect = Rect.Empty;
 
-            if (float.IsNaN(Height))
-                Height = Source.Height;
+            var measuredSize = GetImageSize(rect);
+            var offset = rect.Offset;
+            
+            BoundingRect = GetRectForAlignment(rect, measuredSize, offset);
+        }
 
-            Size destSize;
-            var widthGap = Width - Source.Width;
-            var heightGap = Height - Source.Height;
+        private Size GetImageSize(Rect rect)
+        {
+            var widthGap = rect.Width - Source.Width;
+            var heightGap = rect.Height - Source.Height;
+
             float newWidth;
             float newHeight;
+
             switch (Stretch)
             {
                 case Stretch.None:
-                    destSize = new Size(Source.Width, Source.Height);
+                    newWidth = Source.Width;
+                    newHeight = Source.Height;
                     break;
                 case Stretch.Uniform:
 
                     if (widthGap < heightGap)
                     {
-                        newWidth = Width;
-                        var scalingFactor = newWidth / Source.Width;
-                        newHeight = Source.Height * scalingFactor;
+                        newWidth = rect.Width;
+                        var scalingFactor = newWidth/Source.Width;
+                        newHeight = Source.Height*scalingFactor;
                     }
                     else
                     {
-                        newHeight = Height;
-                        var scalingFactor = newHeight / Source.Height;
-                        newWidth = Source.Width * scalingFactor;
+                        newHeight = rect.Height;
+                        var scalingFactor = newHeight/Source.Height;
+                        newWidth = Source.Width*scalingFactor;
                     }
-                    destSize = new Size(newWidth, newHeight);
                     break;
                 case Stretch.UniformToFill:
                     if (widthGap > heightGap)
                     {
-                        newWidth = Width;
-                        var scalingFactor = newWidth / Source.Width;
-                        newHeight = Source.Height * scalingFactor;
+                        newWidth = rect.Width;
+                        var scalingFactor = newWidth/Source.Width;
+                        newHeight = Source.Height*scalingFactor;
                     }
                     else
                     {
-                        newHeight = Height;
-                        var scalingFactor = newHeight / Source.Height;
-                        newWidth = Source.Width * scalingFactor;
+                        newHeight = rect.Height;
+                        var scalingFactor = newHeight/Source.Height;
+                        newWidth = Source.Width*scalingFactor;
                     }
-                    //so far no clipping visibile cause scissor mask is not implemented yet
-                    destSize = new Size(newWidth, newHeight);
                     break;
                 case Stretch.Fill:
-                    destSize = new Size(Width, Height);
+                    newWidth = rect.Width;
+                    newHeight = rect.Height;
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
-            return destSize;
-        }
-
-        public override void UpdateLayout(Rect rect)
-        {
-            base.UpdateLayout(rect);
+            
+            return new Size(Width.IsFixed() ? Width : newWidth, Height.IsFixed() ? Height : newHeight);
         }
     }
 
