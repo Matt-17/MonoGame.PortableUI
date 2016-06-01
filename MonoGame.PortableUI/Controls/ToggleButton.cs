@@ -31,11 +31,12 @@ namespace MonoGame.PortableUI.Controls
             if (IsChecked)
             {
                 var textBlock = Content as TextBlock;
-                if (textBlock != null) textBlock.TextColor = ToggleTextColor;
+                if (textBlock != null && ToggleTextColor.HasValue)
+                    textBlock.TextColor = (Color) ToggleTextColor;
             }
         }
 
-        public Color ToggleTextColor { get; set; }
+        public Color? ToggleTextColor { get; set; }
 
         public event EventHandler<CheckedEventArgs> Checked;
 
