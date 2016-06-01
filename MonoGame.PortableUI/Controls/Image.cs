@@ -13,6 +13,12 @@ namespace MonoGame.PortableUI.Controls
 
         public Stretch Stretch { get; set; }
 
+        public Image()
+        {
+            VerticalAlignment = VerticalAlignment.Center;
+            HorizontalAlignment = HorizontalAlignment.Center;
+        }
+
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
             if (TintColor != Color.Transparent)
@@ -37,6 +43,12 @@ namespace MonoGame.PortableUI.Controls
             var widthGap = rect.Width - Source.Width;
             var heightGap = rect.Height - Source.Height;
 
+            if (widthGap < 0 && heightGap < 0)
+            {
+                widthGap = Math.Abs(widthGap);
+                heightGap = Math.Abs(heightGap);
+            }
+            
             float newWidth;
             float newHeight;
 
