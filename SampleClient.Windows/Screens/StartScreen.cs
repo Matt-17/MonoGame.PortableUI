@@ -27,7 +27,8 @@ namespace SampleClient.Screens
                 Width = 200,
                 Height = 100,
                 BackgroundBrush = new GradientBrush(Color.Red, Color.Orange),
-                ToggleBrush = new GradientBrush(Color.YellowGreen, Color.Orange),
+                ToggleBrush = new GradientBrush(Color.YellowGreen, Color.Orange),     
+                TextColor = Color.Aqua,
                 ToggleTextColor = Color.White
             };
             var button3 = new Button()

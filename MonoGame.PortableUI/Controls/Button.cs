@@ -13,6 +13,7 @@ namespace MonoGame.PortableUI.Controls
     public class Button : ContentControl
     {
         protected internal Control Template;
+        private Color _textColor;
 
         public Button()
         {
@@ -63,7 +64,16 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
-        public Color TextColor { get; set; }
+        public Color TextColor
+        {
+            get { return _textColor; }
+            set
+            {
+                _textColor = value;
+                OnStateChanged();
+            }
+        }
+
         public Color? PressedTextColor { get; set; }
         public Color? HoverTextColor { get; set; }
 
