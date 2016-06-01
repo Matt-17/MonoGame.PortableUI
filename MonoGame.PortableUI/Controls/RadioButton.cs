@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Xna.Framework;
 using MonoGame.PortableUI.Common;
 
@@ -20,12 +22,25 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        public static int GetGroupValue(string group)
+        {
+            if (!RadioButtonDictionary.ContainsKey(@group))
+            {
+                throw new ArgumentOutOfRangeException();
+            }
+            var radioButtons = RadioButtonDictionary[@group];
+            return radioButtons.Select((b, i) => new { RadioButton = b, Index = i }).Single(x => x.RadioButton.IsChecked).Index;
+        }
+
         private static void AddToList(string radioGroup, RadioButton radioButton)
         {
             if (string.IsNullOrEmpty(radioGroup))
                 return;
             if (!RadioButtonDictionary.ContainsKey(radioGroup))
+            {
                 RadioButtonDictionary.Add(radioGroup, new List<RadioButton>());
+                radioButton.IsChecked = true;
+            }
 
             var list = RadioButtonDictionary[radioGroup];
             list.Add(radioButton);
