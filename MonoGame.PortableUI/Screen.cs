@@ -61,6 +61,7 @@ namespace MonoGame.PortableUI
                 BackgroundBrush.Draw(spriteBatch, new Rect(Width, Height));
                 spriteBatch.End();
             }
+            spriteBatch.GraphicsDevice.ScissorRectangle = Content.BoundingRect;
             DrawControl(spriteBatch, Content);
         }
 
