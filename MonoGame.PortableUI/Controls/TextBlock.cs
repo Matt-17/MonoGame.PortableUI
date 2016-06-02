@@ -8,7 +8,18 @@ namespace MonoGame.PortableUI.Controls
 {
     public class TextBlock : TextControl
     {
-        public TextAlignment TextAlignment { get; set; }
+        private TextAlignment _textAlignment;
+
+        public TextAlignment TextAlignment
+        {
+            get { return _textAlignment; }
+            set
+            {
+                _textAlignment = value;
+                InvalidateLayout(false);
+            }
+        }
+
         public override Size MeasureLayout()
         {
             var size = base.MeasureLayout();
@@ -46,7 +57,7 @@ namespace MonoGame.PortableUI.Controls
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
-            }       
+            }
 
             if (SnapToPixel)
                 offset = offset.ToInts();

@@ -9,6 +9,8 @@ namespace MonoGame.PortableUI.Controls
     {
         private Brush _backgroundColor;
         private bool _isChecked;
+        private Color? _toggleTextColor;
+        private Brush _toggleBrush;
 
         public bool IsChecked
         {
@@ -22,10 +24,21 @@ namespace MonoGame.PortableUI.Controls
                     _backgroundColor = BackgroundBrush;
                 BackgroundBrush = IsChecked ? ToggleBrush : _backgroundColor;
                 OnStateChanged();
+                InvalidateLayout(false);
             }
         }
 
-        public Brush ToggleBrush { get; set; }
+        public Brush ToggleBrush
+        {
+            get { return _toggleBrush; }
+            set
+            {
+                _toggleBrush = value;
+                OnStateChanged();
+                InvalidateLayout(false);
+            }
+        }
+
         protected override void OnStateChanged()
         {
             base.OnStateChanged();
@@ -37,7 +50,16 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
-        public Color? ToggleTextColor { get; set; }
+        public Color? ToggleTextColor
+        {
+            get { return _toggleTextColor; }
+            set
+            {
+                _toggleTextColor = value;
+                OnStateChanged();
+                InvalidateLayout(false);
+            }
+        }
 
         public event EventHandler<CheckedEventArgs> Checked;
 

@@ -67,6 +67,11 @@ namespace MonoGame.PortableUI
             DrawControl(spriteBatch, Content);
         }
 
+        internal FlyOut CreateFlyOut()
+        {
+            return new FlyOut();
+        }
+
         private static void DrawControl(SpriteBatch spriteBatch, Control control)
         {
             if (!control.IsVisible || control.IsGone)

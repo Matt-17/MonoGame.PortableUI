@@ -147,14 +147,14 @@ namespace SampleClient.Screens
             var image = new Image
             {
                 Stretch = Stretch.Uniform,
-                Source = SampleGame.GameInstance.Content.Load<Texture2D>("Images/ic_key_del2"),
+                Source = SampleGame.GameInstance.Content.Load<Texture2D>("Images/ic_delete"),
                 Margin = new Thickness(5)
             };
 
             var image2 = new Image
             {
                 Stretch = Stretch.Uniform,
-                Source = SampleGame.GameInstance.Content.Load<Texture2D>("Images/ic_key_del"),
+                Source = SampleGame.GameInstance.Content.Load<Texture2D>("Images/ic_delete"),
                 Margin = new Thickness(5)
             };
 
@@ -171,9 +171,9 @@ namespace SampleClient.Screens
                 Padding = new Thickness(0),
                 Content = image,
             };
-            grid.AddChild(imageButton,0,0);
-            grid.AddChild(image2,1,0);
-            grid.AddChild(image3,2,0);
+            grid.AddChild(imageButton, 0, 0);
+            grid.AddChild(image2, 1, 0);
+            grid.AddChild(image3, 2, 0);
             //   grid.AddChild(stackPanel, 3, 0, 0, 3);
             Content = stackPanel;
         }
