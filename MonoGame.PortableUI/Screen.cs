@@ -117,6 +117,9 @@ namespace MonoGame.PortableUI
 
         private void HandleMouse(Control control)
         {
+            if (control.IsGone)
+                return;
+
             var mouseState = Mouse.GetState();
             var position = mouseState.Position;
             Rect rect = control.BoundingRect - control.Margin;
@@ -179,6 +182,9 @@ namespace MonoGame.PortableUI
 
         private void HandleTouch(Control control)
         {
+            if (control.IsGone)
+                return;
+
             var rect = control.BoundingRect;
             var collection = TouchPanel.GetState();
             if (control.IgnoreTouch || collection.Count != 1)
