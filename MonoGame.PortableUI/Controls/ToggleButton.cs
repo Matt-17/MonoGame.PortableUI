@@ -21,6 +21,7 @@ namespace MonoGame.PortableUI.Controls
                 if (_backgroundColor == null)
                     _backgroundColor = BackgroundBrush;
                 BackgroundBrush = IsChecked ? ToggleBrush : _backgroundColor;
+                OnStateChanged();
             }
         }
 
@@ -32,7 +33,7 @@ namespace MonoGame.PortableUI.Controls
             {
                 var textBlock = Content as TextBlock;
                 if (textBlock != null && ToggleTextColor.HasValue)
-                    textBlock.TextColor = (Color) ToggleTextColor;
+                    textBlock.TextColor = (Color)ToggleTextColor;
             }
         }
 
