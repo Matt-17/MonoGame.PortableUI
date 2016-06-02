@@ -21,6 +21,9 @@ namespace MonoGame.PortableUI.Controls
 
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
+            if (Source == null)
+                return;
+
             if (TintColor != Color.Transparent)
                 spriteBatch.Draw(Source, destinationRectangle: rect, color: TintColor);
             else
@@ -40,6 +43,9 @@ namespace MonoGame.PortableUI.Controls
 
         private Size GetImageSize(Rect rect)
         {
+            if (Source == null)
+                return Size.Empty;
+
             var widthGap = rect.Width / Source.Width;
             var heightGap = rect.Height / Source.Height;
             
