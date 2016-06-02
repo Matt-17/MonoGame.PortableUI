@@ -43,10 +43,12 @@ namespace MonoGame.PortableUI
             }
         }
 
-        private static IEnumerable<Control> GetVisualTreeAsList(Control content)
+        private static IEnumerable<Control> GetVisualTreeAsList(Control content, bool addTreeWhichIsGone = true)
         {
+            if (content.IsGone && !addTreeWhichIsGone)
+                yield break;
             var descendants = content.GetDescendants();
-            foreach (var child in descendants.SelectMany(GetVisualTreeAsList))
+            foreach (var child in descendants.SelectMany(control => GetVisualTreeAsList(control, addTreeWhichIsGone)))
             {
                 yield return child;
             }
@@ -105,7 +107,7 @@ namespace MonoGame.PortableUI
                 Initialized = true;
             }
 
-            var visualTreeAsList = GetVisualTreeAsList(Content);
+            var visualTreeAsList = GetVisualTreeAsList(Content, false);
             foreach (var control in visualTreeAsList)
             {
                 HandleMouse(control);
@@ -117,9 +119,6 @@ namespace MonoGame.PortableUI
 
         private void HandleMouse(Control control)
         {
-            if (control.IsGone)
-                return;
-
             var mouseState = Mouse.GetState();
             var position = mouseState.Position;
             Rect rect = control.BoundingRect - control.Margin;
@@ -182,9 +181,6 @@ namespace MonoGame.PortableUI
 
         private void HandleTouch(Control control)
         {
-            if (control.IsGone)
-                return;
-
             var rect = control.BoundingRect;
             var collection = TouchPanel.GetState();
             if (control.IgnoreTouch || collection.Count != 1)
