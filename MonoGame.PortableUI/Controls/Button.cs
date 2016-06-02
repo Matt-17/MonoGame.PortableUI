@@ -14,6 +14,8 @@ namespace MonoGame.PortableUI.Controls
     {
         protected internal Control Template;
         private Color _textColor;
+        private Color? _pressedTextColor;
+        private Color? _hoverTextColor;
 
         public Button()
         {
@@ -71,11 +73,31 @@ namespace MonoGame.PortableUI.Controls
             {
                 _textColor = value;
                 OnStateChanged();
+                InvalidateLayout(false);
             }
         }
 
-        public Color? PressedTextColor { get; set; }
-        public Color? HoverTextColor { get; set; }
+        public Color? PressedTextColor
+        {
+            get { return _pressedTextColor; }
+            set
+            {
+                _pressedTextColor = value;
+                OnStateChanged();
+                InvalidateLayout(false);
+            }
+        }
+
+        public Color? HoverTextColor
+        {
+            get { return _hoverTextColor; }
+            set
+            {
+                _hoverTextColor = value;
+                OnStateChanged();       
+                InvalidateLayout(false);
+            }
+        }
 
         protected virtual void OnStateChanged(object sender, EventArgs eventArgs)
         {

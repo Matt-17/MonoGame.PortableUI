@@ -45,6 +45,9 @@ namespace SampleClient.Screens
                     Height = 50,
                     RadioGroup = "Tab",
                     IsChecked = i == 2,
+                    ToggleTextColor = Color.IndianRed,
+                 //   TextColor = Color.NavajoWhite,
+                    
                 });
             }
             Content = stackPanel;

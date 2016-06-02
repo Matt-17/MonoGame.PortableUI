@@ -376,6 +376,11 @@ namespace MonoGame.PortableUI.Controls
 
     }
 
+    public class FlyOut : Control
+    {
+
+    }
+
     public delegate void MouseButtonEventHandler(object sender, MouseButtonEventHandlerArgs args);
 
     public class MouseButtonEventHandlerArgs : BaseEventHandlerArgs
