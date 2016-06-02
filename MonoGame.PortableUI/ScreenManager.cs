@@ -18,10 +18,12 @@ namespace MonoGame.PortableUI
 
         public Screen ActiveScreen
         {
-            get { return ScreenHistory.Peek(); }
+            get { return ScreenHistory.Count > 0 ? ScreenHistory.Peek() : null; }
         }
 
         public Stack<Screen> ScreenHistory { get; }
+        public int Width { get; set; }
+        public int Height { get; set; }
 
         public override void Initialize()
         {

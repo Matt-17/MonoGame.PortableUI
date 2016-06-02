@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
@@ -27,9 +28,8 @@ namespace SampleClient.Screens
                 Width = 200,
                 Height = 100,
                 BackgroundBrush = new GradientBrush(Color.Red, Color.Orange),
-                ToggleBrush = new GradientBrush(Color.YellowGreen, Color.Orange),     
-                TextColor = Color.Aqua,
-                ToggleTextColor = Color.White
+                ToggleBrush = new GradientBrush(Color.YellowGreen, Color.Orange),
+                ToggleTextColor = Color.White,
             };
             var button3 = new Button()
             {
@@ -143,6 +143,37 @@ namespace SampleClient.Screens
                     }
                 }
             };
+
+            var image = new Image
+            {
+                Stretch = Stretch.Uniform,
+                Source = SampleGame.GameInstance.Content.Load<Texture2D>("Images/ic_key_del2"),
+                Margin = new Thickness(5)
+            };
+
+            var image2 = new Image
+            {
+                Stretch = Stretch.Uniform,
+                Source = SampleGame.GameInstance.Content.Load<Texture2D>("Images/ic_key_del"),
+                Margin = new Thickness(5)
+            };
+
+            var image3 = new Image
+            {
+                Stretch = Stretch.Uniform,
+                Source = SampleGame.GameInstance.Content.Load<Texture2D>("Images/ic_delete"),
+            };
+
+
+            var imageButton = new Button()
+            {
+                BackgroundBrush = Color.Red,
+                Padding = new Thickness(0),
+                Content = image,
+            };
+            grid.AddChild(imageButton,0,0);
+            grid.AddChild(image2,1,0);
+            grid.AddChild(image3,2,0);
             //   grid.AddChild(stackPanel, 3, 0, 0, 3);
             Content = stackPanel;
         }

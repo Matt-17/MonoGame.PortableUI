@@ -20,8 +20,10 @@ namespace MonoGame.PortableUI
             BackgroundBrush = null;
         }
 
-        public int Width => ScreenEngine.GraphicsDevice.Viewport.Width;
-        public int Height => ScreenEngine.GraphicsDevice.Viewport.Height;
+        public bool Initialized { get; set; }
+
+        public int Width => ScreenEngine?.Width??0;
+        public int Height => ScreenEngine?.Height??0;
 
         public Brush BackgroundBrush { get; set; }
 
@@ -96,6 +98,12 @@ namespace MonoGame.PortableUI
 
         internal void Update(TimeSpan elapsed)
         {
+            if (!Initialized)
+            {
+                InvalidateLayout(true);
+                Initialized = true;
+            }
+
             var visualTreeAsList = GetVisualTreeAsList(Content);
             foreach (var control in visualTreeAsList)
             {
@@ -213,7 +221,8 @@ namespace MonoGame.PortableUI
 
         public void InvalidateLayout(bool boundsChanged)
         {
-            Content?.UpdateLayout(new Rect(800, 480));
+            Content?.UpdateLayout(new Rect(Width, Height));
+
         }
 
         public IEnumerable<Control> GetDescendants()

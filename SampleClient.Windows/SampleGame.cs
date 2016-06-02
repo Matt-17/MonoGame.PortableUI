@@ -9,11 +9,12 @@ using MonoGame.PortableUI;
 using SampleClient.Screens;
 
 namespace SampleClient
-{                     
+{
     public class SampleGame : Game
     {
         public static Game GameInstance;
         private GraphicsDeviceManager _graphics;
+        private bool _invalid;
 
         public SampleGame()
         {
@@ -21,7 +22,8 @@ namespace SampleClient
             Content.RootDirectory = "Content";
             IsMouseVisible = true;
             Window.AllowUserResizing = true;
-            
+            Window.ClientSizeChanged += (sender, eventArgs) => _invalid = true;
+
             GameInstance = this;
         }
 
@@ -31,12 +33,20 @@ namespace SampleClient
             ScreenEngine.Initialize(this);
             ScreenEngine.NavigateToScreen(new StartScreen());
             base.Initialize();
-        }    
-                                                                                  
+        }
+
         protected override void Update(GameTime gameTime)
         {
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
-                Exit();                           
+                Exit();
+            if (_invalid)
+            {
+                _graphics.PreferredBackBufferWidth = Window.ClientBounds.Width;
+                _graphics.PreferredBackBufferHeight = Window.ClientBounds.Height;
+                _graphics.ApplyChanges();
+                ScreenEngine.SetScreenSize(Window.ClientBounds.Width, Window.ClientBounds.Height);
+                _invalid = false;
+            }
 
             base.Update(gameTime);
         }
