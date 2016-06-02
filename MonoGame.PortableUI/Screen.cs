@@ -20,8 +20,10 @@ namespace MonoGame.PortableUI
             BackgroundBrush = null;
         }
 
-        public int Width => ScreenEngine.GraphicsDevice.Viewport.Width;
-        public int Height => ScreenEngine.GraphicsDevice.Viewport.Height;
+        public bool Initialized { get; set; }
+
+        public int Width => ScreenEngine?.Width??0;
+        public int Height => ScreenEngine?.Height??0;
 
         public Brush BackgroundBrush { get; set; }
 
@@ -41,10 +43,12 @@ namespace MonoGame.PortableUI
             }
         }
 
-        private static IEnumerable<Control> GetVisualTreeAsList(Control content)
+        private static IEnumerable<Control> GetVisualTreeAsList(Control content, bool addTreeWhichIsGone = true)
         {
+            if (content.IsGone && !addTreeWhichIsGone)
+                yield break;
             var descendants = content.GetDescendants();
-            foreach (var child in descendants.SelectMany(GetVisualTreeAsList))
+            foreach (var child in descendants.SelectMany(control => GetVisualTreeAsList(control, addTreeWhichIsGone)))
             {
                 yield return child;
             }
@@ -59,6 +63,7 @@ namespace MonoGame.PortableUI
                 BackgroundBrush.Draw(spriteBatch, new Rect(Width, Height));
                 spriteBatch.End();
             }
+            spriteBatch.GraphicsDevice.ScissorRectangle = Content.BoundingRect;
             DrawControl(spriteBatch, Content);
         }
 
@@ -96,7 +101,13 @@ namespace MonoGame.PortableUI
 
         internal void Update(TimeSpan elapsed)
         {
-            var visualTreeAsList = GetVisualTreeAsList(Content);
+            if (!Initialized)
+            {
+                InvalidateLayout(true);
+                Initialized = true;
+            }
+
+            var visualTreeAsList = GetVisualTreeAsList(Content, false);
             foreach (var control in visualTreeAsList)
             {
                 HandleMouse(control);
@@ -213,7 +224,8 @@ namespace MonoGame.PortableUI
 
         public void InvalidateLayout(bool boundsChanged)
         {
-            Content?.UpdateLayout(new Rect(800, 480));
+            Content?.UpdateLayout(new Rect(Width, Height));
+
         }
 
         public IEnumerable<Control> GetDescendants()
