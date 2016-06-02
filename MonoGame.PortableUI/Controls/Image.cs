@@ -46,6 +46,8 @@ namespace MonoGame.PortableUI.Controls
             if (Source == null)
                 return Size.Empty;
 
+            rect -= Margin;
+
             var widthGap = rect.Width / Source.Width;
             var heightGap = rect.Height / Source.Height;
             
