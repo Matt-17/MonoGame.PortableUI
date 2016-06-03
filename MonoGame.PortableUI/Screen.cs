@@ -22,8 +22,8 @@ namespace MonoGame.PortableUI
 
         public bool Initialized { get; set; }
 
-        public int Width => ScreenEngine?.Width??0;
-        public int Height => ScreenEngine?.Height??0;
+        public int Width => ScreenEngine?.Width ?? 0;
+        public int Height => ScreenEngine?.Height ?? 0;
 
         public Brush BackgroundBrush { get; set; }
 
@@ -65,12 +65,18 @@ namespace MonoGame.PortableUI
             }
             spriteBatch.GraphicsDevice.ScissorRectangle = Content.BoundingRect;
             DrawControl(spriteBatch, Content);
+            if (FlyOut != null)
+                DrawControl(spriteBatch, FlyOut);
         }
 
-        internal FlyOut CreateFlyOut()
+        internal void CreateFlyOut(PointF position, Control content)
         {
-            return new FlyOut();
+            FlyOut = new FlyOut(content);
+            var size = FlyOut.MeasureLayout();
+            FlyOut.UpdateLayout(new Rect(position, size));
         }
+
+        internal FlyOut FlyOut { get; set; }
 
         private static void DrawControl(SpriteBatch spriteBatch, Control control)
         {

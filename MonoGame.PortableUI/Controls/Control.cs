@@ -95,6 +95,8 @@ namespace MonoGame.PortableUI.Controls
         //public float RenderedHeight => (Height + Margin.Top + Margin.Bottom) * ScreenEngine.ScaleFactor;
 
         public Rect BoundingRect { get; protected set; }
+        public Rect ClientRect { get; protected set; }
+        public Rect ClippingRect { get; protected set; }
 
         public Thickness Margin { get; set; }
 
@@ -376,9 +378,14 @@ namespace MonoGame.PortableUI.Controls
 
     }
 
-    public class FlyOut : Control
+    public class FlyOut : ContentControl
     {
+        private Control content;
 
+        public FlyOut(Control content)
+        {
+            this.content = content;
+        }
     }
 
     public delegate void MouseButtonEventHandler(object sender, MouseButtonEventHandlerArgs args);
