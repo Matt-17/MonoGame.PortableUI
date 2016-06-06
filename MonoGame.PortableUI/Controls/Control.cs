@@ -108,7 +108,6 @@ namespace MonoGame.PortableUI.Controls
 
         public double Opacity { get; set; }
 
-        //TODO invalidate layout after visibility changed
         public bool IsVisible
         {
             get { return _isVisible; }
@@ -119,7 +118,6 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
-        //TODO invalidate layout after isGone changed
         public bool IsGone
         {
             get { return _isGone; }
@@ -137,8 +135,6 @@ namespace MonoGame.PortableUI.Controls
         public VerticalAlignment VerticalAlignment { get; set; }
 
         public bool SnapToPixel { get; set; }
-
-        private Rect RenderedBoundingRect => new Rect(RenderedPosition.X, RenderedPosition.Y, BoundingRect.Width * ScreenEngine.ScaleFactor, BoundingRect.Height * ScreenEngine.ScaleFactor);
 
         internal PointF RenderedPosition
         {
@@ -170,7 +166,6 @@ namespace MonoGame.PortableUI.Controls
         {
             RightClick?.Invoke(this, EventArgs.Empty);
         }
-
 
         public event EventHandler Click;
         public event EventHandler RightClick;
