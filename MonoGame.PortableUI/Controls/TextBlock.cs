@@ -40,6 +40,7 @@ namespace MonoGame.PortableUI.Controls
 
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
+            rect -= Margin;
             base.OnDraw(spriteBatch, rect);
             var offset = rect.Offset;
             var measureString = Font.MeasureString(Text);
