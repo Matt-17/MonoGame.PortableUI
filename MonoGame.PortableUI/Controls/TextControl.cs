@@ -6,7 +6,7 @@ namespace MonoGame.PortableUI.Controls
     public abstract class TextControl : Control
     {
         protected SpriteFont Font;
-        private string _text;
+        private string _text = "";
         private int _textSize;
         private Color _textColor;
 
@@ -26,7 +26,7 @@ namespace MonoGame.PortableUI.Controls
             get { return _text; }
             set
             {
-                _text = value;
+                _text = value ?? "";
                 InvalidateLayout(true);
             }
         }
