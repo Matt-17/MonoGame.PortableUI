@@ -55,21 +55,22 @@
   <ItemGroup>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SampleGame.cs" />
-    <Compile Include="Screens\SecondScreen.cs" />
-    <Compile Include="Screens\StartScreen.cs" />
   </ItemGroup>
   <ItemGroup>
+    <MonoGameContentReference Include="..\Content\Content.mgcb">
+      <Link>Content\Content.mgcb</Link>
+    </MonoGameContentReference>
     <None Include="App.config" />
     <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <MonoGameContentReference Include="Content\Content.mgcb" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\MonoGame.PortableUI\MonoGame.PortableUI.csproj">
       <Project>{ea46b3a2-3118-4546-8bad-19f6b74e8fdd}</Project>
       <Name>MonoGame.PortableUI</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\SampleApp\SampleApp.csproj">
+      <Project>{54F0B3EE-5FB9-4048-97F7-839A74E620CD}</Project>
+      <Name>SampleApp</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup />

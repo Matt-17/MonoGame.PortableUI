@@ -8,7 +8,7 @@ using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
 using MonoGame.PortableUI.Media;
 
-namespace SampleClient.Screens
+namespace SampleApp.Screens
 {
     public class StartScreen : Screen
     {

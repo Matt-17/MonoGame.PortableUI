@@ -4,7 +4,7 @@ using MonoGame.PortableUI;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
 
-namespace SampleClient.Screens
+namespace SampleApp.Screens
 {
     public class SecondScreen : Screen
     {
@@ -44,7 +44,7 @@ namespace SampleClient.Screens
                     Width = 80,
                     Height = 50,
                     RadioGroup = "Tab",
-                    IsChecked = i == 2,
+                    //IsChecked = i == 2,
                     ToggleTextColor = Color.IndianRed,
                  //   TextColor = Color.NavajoWhite,
                     
