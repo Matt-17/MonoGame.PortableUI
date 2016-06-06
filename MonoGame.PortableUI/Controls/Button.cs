@@ -35,13 +35,13 @@ namespace MonoGame.PortableUI.Controls
         {
             base.OnDraw(spriteBatch, rect);
             var clientRect = rect - Margin;
-            if (LeftButtonState == ButtonStates.Pressed)
+            if (LeftButtonState == ButtonStates.Pressed || TouchState == TouchStates.Touched)
                 PressedColor.Draw(spriteBatch, clientRect);
             else if (HoverState == HoverStates.Hovering)
                 HoverColor.Draw(spriteBatch, clientRect);
         }
 
-        #region
+        #region 
 
         public Brush HoverColor { get; set; }
         public Brush PressedColor { get; set; }
