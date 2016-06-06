@@ -36,7 +36,6 @@ namespace MonoGame.PortableUI.Controls
             Font = FontManager.DefaultFont;
             TextColor = Color.Black;
             TextAlignment = TextAlignment.Left;
-            Text = string.Empty;
         }
 
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
