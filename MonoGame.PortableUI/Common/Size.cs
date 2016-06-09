@@ -80,6 +80,25 @@ namespace MonoGame.PortableUI.Common
 
     public struct PointF
     {
+        public bool Equals(PointF other)
+        {
+            return X.Equals(other.X) && Y.Equals(other.Y);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            return obj is PointF && Equals((PointF) obj);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return (X.GetHashCode()*397) ^ Y.GetHashCode();
+            }
+        }
+
         public PointF(float x, float y)
         {
             X = x;
@@ -107,5 +126,16 @@ namespace MonoGame.PortableUI.Common
         {
             return new PointF((int)X, (int)Y);
         }
+
+        public static bool operator ==(PointF r1, PointF r2)
+        {
+            return r1.Equals(r2);
+        }
+
+        public static bool operator !=(PointF r1, PointF r2)
+        {
+            return !(r1 == r2);
+        }
+
     }
 }

@@ -149,7 +149,7 @@ namespace MonoGame.PortableUI.Common
 
         public bool Contains(PointF position)
         {
-            return position.X > Left && position.Y > Top && position.X < Left + Width && position.Y < Top + Height;
+            return position.X > Left && position.Y > Top && position.X <= Left + Width && position.Y <= Top + Height;
         }
     }
 }
