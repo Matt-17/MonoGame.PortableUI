@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -28,6 +29,12 @@ namespace MonoGame.PortableUI
         public Brush BackgroundBrush { get; set; }
 
         internal ScreenManager ScreenEngine { get; set; }
+
+        private readonly ButtonState[] _mouseStates = {
+                ButtonState.Released, // Left button
+                ButtonState.Released, // Middle button
+                ButtonState.Released, // Right button
+            };
 
         public Control Content
         {
@@ -110,6 +117,9 @@ namespace MonoGame.PortableUI
 
         }
 
+        internal PointF LastMousePosition;
+        internal PointF LastTouchPosition;
+
         internal void Update(TimeSpan elapsed)
         {
             if (!Initialized)
@@ -118,118 +128,253 @@ namespace MonoGame.PortableUI
                 Initialized = true;
             }
 
-            var visualTreeAsList = GetVisualTreeAsList(Content, false);
-            foreach (var control in visualTreeAsList)
+            var mouseState = Mouse.GetState();
+            TouchLocation touchState;
+            var touchCollection = TouchPanel.GetState();
+            if (touchCollection.Count > 0)
             {
-                HandleMouse(control);
-                HandleTouch(control);
+                touchState = touchCollection[0];
             }
+            var position = (PointF)mouseState.Position;
+
+            if (position != LastMousePosition)
+            {
+                var args = new MouseMoveEventHandlerArgs(LastMousePosition, position);
+                IterateVisualTree(Content, args,
+                    (c, a) => c.BoundingRect.Contains(a.AbsolutePoint) && !c.BoundingRect.Contains(a.OldPoint), (c, a) => { c.OnMouseEnter(a); }, (c, a) => c.BoundingRect.Contains(a.AbsolutePoint));
+                IterateVisualTree(Content, args, (c, a) => c.BoundingRect.Contains(a.AbsolutePoint) && c.BoundingRect.Contains(a.OldPoint), (c, a) => { c.OnMouseMove(a); }, null);
+                IterateVisualTree(Content, args, (c, a) => !c.BoundingRect.Contains(a.AbsolutePoint) && c.BoundingRect.Contains(a.OldPoint), (c, a) => { c.OnMouseLeave(a); }, (c, a) => c.BoundingRect.Contains(a.OldPoint));
+                LastMousePosition = position;
+            }
+
+            if (mouseState.LeftButton == ButtonState.Pressed && _mouseStates[0] != ButtonState.Pressed)
+            {
+                _mouseStates[0] = ButtonState.Pressed;
+                var args = new MouseButtonEventHandlerArgs(position);
+                IterateVisualTree(Content, args,
+                    (c, a) => c.BoundingRect.Contains(a.AbsolutePoint),
+                    (c, a) =>
+                    {
+                        if (c.LastMouseLeftButtonState) return;
+                        c.OnMouseLeftDown(a);
+                        c.LastMouseLeftButtonState = true;
+                    },
+                    null
+                  );
+            }
+            if (mouseState.LeftButton == ButtonState.Released && _mouseStates[0] != ButtonState.Released)
+            {
+                _mouseStates[0] = ButtonState.Released;
+                var args = new MouseButtonEventHandlerArgs(position);
+                IterateVisualTree(Content, args,
+                    (c, a) => c.BoundingRect.Contains(a.AbsolutePoint),
+                    (c, a) =>
+                    {
+                        if (!c.LastMouseLeftButtonState) return;
+                        c.OnMouseLeftUp(a);
+                        c.LastMouseLeftButtonState = false;
+                    },
+                    null
+                  );
+            }
+            if (touchState.State == TouchLocationState.Pressed)
+            {
+                var args = new TouchEventHandlerArgs(position);
+                IterateVisualTree(Content, args,
+                    (c, a) => c.BoundingRect.Contains(a.Position),
+                    (c, a) =>
+                    {
+                        c.OnTouchDown(a);
+                    },
+                    null
+                  );
+            }
+            //Rect rect = control.BoundingRect - control.Margin;
+            //if (!rect.Contains(position))
+            //{
+            //    if (control.LastMousePosition == null)
+            //        return;
+            //    control.OnMouseLeave();
+            //    control.LastMousePosition = null;
+            //    return;
+            //}
+            //if (control.LastMousePosition == null)
+            //{
+            //    control.OnMouseEnter();
+            //    if (mouseState.LeftButton == ButtonState.Pressed)
+            //        control.LastMouseLeftButtonState = true;
+            //    control.LastMousePosition = position;
+            //}
+
+            //if (control.LastMousePosition != position)
+            //{
+            //    control.OnMouseMove(position);
+            //    control.LastMousePosition = position;
+            //}
+
+            //if (mouseState.LeftButton == ButtonState.Pressed)
+            //{
+            //    if (!control.LastMouseLeftButtonState)
+            //    {
+            //        control.OnMouseLeftDown(position);
+            //        control.LastMouseLeftButtonState = true;
+            //    }
+            //}
+            //else
+            //{
+            //    if (control.LastMouseLeftButtonState)
+            //    {
+            //        control.OnMouseLeftUp(position);
+            //        control.LastMouseLeftButtonState = false;
+            //    }
+            //}
+
+            //if (mouseState.RightButton == ButtonState.Pressed)
+            //{
+            //    if (!control.LastMouseRightButtonState)
+            //    {
+            //        control.OnMouseRightDown(position);
+            //        control.LastMouseRightButtonState = true;
+            //    }
+            //}
+            //else
+            //{
+            //    if (control.LastMouseRightButtonState)
+            //    {
+            //        control.OnMouseRightUp(position);
+            //        control.LastMouseRightButtonState = false;
+            //    }
+            //}
+
+            //var visualTreeAsList = GetVisualTreeAsList(Content, false);
+            //foreach (var control in visualTreeAsList)
+            //{
+            //    HandleMouse(control);
+            //    HandleTouch(control);
+            //}
+        }
+
+        private void IterateVisualTree<T>(Control control, T args, Func<Control, T, bool> actionFunc, Action<Control, T> action, Func<Control, T, bool> treeFunc) where T : BaseEventHandlerArgs
+        {
+            if (control is TextBlock)
+                return;
+            var goIntoTree = treeFunc?.Invoke(control, args) ?? actionFunc(control, args);
+            if (!goIntoTree)
+                return;
+            foreach (var descendant in control.GetDescendants())
+            {
+                IterateVisualTree(descendant, args, actionFunc, action, treeFunc);
+                if (args.Handled)
+                    return;
+            }
+            if (actionFunc(control, args))
+                action(control, args);
         }
 
         #region Input methods  
 
         private void HandleMouse(Control control)
         {
-            var mouseState = Mouse.GetState();
-            var position = mouseState.Position;
-            Rect rect = control.BoundingRect - control.Margin;
-            if (!rect.Contains(position))
-            {
-                if (control.LastMousePosition == null)
-                    return;
-                control.OnMouseLeave();
-                control.LastMousePosition = null;
-                return;
-            }
-            if (control.LastMousePosition == null)
-            {
-                control.OnMouseEnter();
-                if (mouseState.LeftButton == ButtonState.Pressed)
-                    control.LastMouseLeftButtonState = true;
-                control.LastMousePosition = position;
-            }
+            //var mouseState = Mouse.GetState();
+            //var position = mouseState.Position;
+            //Rect rect = control.BoundingRect - control.Margin;
+            //if (!rect.Contains(position))
+            //{
+            //    if (control.LastMousePosition == null)
+            //        return;
+            //    control.OnMouseLeave();
+            //    control.LastMousePosition = null;
+            //    return;
+            //}
+            //if (control.LastMousePosition == null)
+            //{
+            //    control.OnMouseEnter();
+            //    if (mouseState.LeftButton == ButtonState.Pressed)
+            //        control.LastMouseLeftButtonState = true;
+            //    control.LastMousePosition = position;
+            //}
 
-            if (control.LastMousePosition != position)
-            {
-                control.OnMouseMove(position);
-                control.LastMousePosition = position;
-            }
+            //if (control.LastMousePosition != position)
+            //{
+            //    control.OnMouseMove(position);
+            //    control.LastMousePosition = position;
+            //}
 
-            if (mouseState.LeftButton == ButtonState.Pressed)
-            {
-                if (!control.LastMouseLeftButtonState)
-                {
-                    control.OnMouseLeftDown(position);
-                    control.LastMouseLeftButtonState = true;
-                }
-            }
-            else
-            {
-                if (control.LastMouseLeftButtonState)
-                {
-                    control.OnMouseLeftUp(position);
-                    control.LastMouseLeftButtonState = false;
-                }
-            }
+            //if (mouseState.LeftButton == ButtonState.Pressed)
+            //{
+            //    if (!control.LastMouseLeftButtonState)
+            //    {
+            //        control.OnMouseLeftDown(position);
+            //        control.LastMouseLeftButtonState = true;
+            //    }
+            //}
+            //else
+            //{
+            //    if (control.LastMouseLeftButtonState)
+            //    {
+            //        control.OnMouseLeftUp(position);
+            //        control.LastMouseLeftButtonState = false;
+            //    }
+            //}
 
-            if (mouseState.RightButton == ButtonState.Pressed)
-            {
-                if (!control.LastMouseRightButtonState)
-                {
-                    control.OnMouseRightDown(position);
-                    control.LastMouseRightButtonState = true;
-                }
-            }
-            else
-            {
-                if (control.LastMouseRightButtonState)
-                {
-                    control.OnMouseRightUp(position);
-                    control.LastMouseRightButtonState = false;
-                }
-            }
+            //if (mouseState.RightButton == ButtonState.Pressed)
+            //{
+            //    if (!control.LastMouseRightButtonState)
+            //    {
+            //        control.OnMouseRightDown(position);
+            //        control.LastMouseRightButtonState = true;
+            //    }
+            //}
+            //else
+            //{
+            //    if (control.LastMouseRightButtonState)
+            //    {
+            //        control.OnMouseRightUp(position);
+            //        control.LastMouseRightButtonState = false;
+            //    }
+            //}
         }
 
-        private void HandleTouch(Control control)
-        {
-            var rect = control.BoundingRect;
-            var collection = TouchPanel.GetState();
-            if (control.IgnoreTouch || collection.Count != 1)
-            {
-                if (collection.Count > 0)
-                    return;
+        //private void HandleTouch(Control control)
+        //{
+        //    var rect = control.BoundingRect;
+        //    var collection = TouchPanel.GetState();
+        //    if (control.IgnoreTouch || collection.Count != 1)
+        //    {
+        //        if (collection.Count > 0)
+        //            return;
 
-                control.IgnoreTouch = false;
-                if (control.LastTouchPosition == null)
-                    return;
+        //        control.IgnoreTouch = false;
+        //        if (control.LastTouchPosition == null)
+        //            return;
 
-                control.OnTouchUp();
-                control.LastTouchPosition = null;
-                return;
-            }
-            var touch = collection[0];
-            var position = touch.Position.ToPoint();
-            if (!rect.Contains(position))
-            {
-                control.OnTouchCancel();
-                control.IgnoreTouch = true;
-                control.LastTouchPosition = null;
-                return;
-            }
+        //        control.OnTouchUp();
+        //        control.LastTouchPosition = null;
+        //        return;
+        //    }
+        //    var touch = collection[0];
+        //    var position = touch.Position.ToPoint();
+        //    if (!rect.Contains(position))
+        //    {
+        //        control.OnTouchCancel();
+        //        control.IgnoreTouch = true;
+        //        control.LastTouchPosition = null;
+        //        return;
+        //    }
 
-            if (control.LastTouchPosition == null)
-            {
-                control.OnTouchDown();
-                control.LastTouchPosition = position;
-            }
-            else
-            {
-                if (control.LastTouchPosition == position)
-                    return;
-                control.OnTouchMove();
-                control.LastTouchPosition = position;
-            }
-        }
+        //    if (control.LastTouchPosition == null)
+        //    {
+        //        control.OnTouchDown();
+        //        control.LastTouchPosition = position;
+        //    }
+        //    else
+        //    {
+        //        if (control.LastTouchPosition == position)
+        //            return;
+        //        control.OnTouchMove();
+        //        control.LastTouchPosition = position;
+        //    }
+        //}
 
         #endregion
 

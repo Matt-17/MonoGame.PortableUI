@@ -20,7 +20,6 @@ namespace MonoGame.PortableUI.Controls
         private float _width;
         internal bool IgnoreTouch;
         internal bool LastMouseLeftButtonState;
-        internal PointF? LastMousePosition;
 
         internal bool LastMouseRightButtonState;
         internal PointF? LastTouchPosition;
@@ -205,7 +204,7 @@ namespace MonoGame.PortableUI.Controls
                     if (!Height.IsFixed() && rect.Height.IsFixed()) measuredSize.Height = rect.Height;
                     break;
                 case VerticalAlignment.Center:
-                    offset.Y += (rect.Height - measuredSize.Height)/2;
+                    offset.Y += (rect.Height - measuredSize.Height) / 2;
                     break;
                 case VerticalAlignment.Bottom:
                     offset.Y += rect.Height - measuredSize.Height;
@@ -218,7 +217,7 @@ namespace MonoGame.PortableUI.Controls
                     if (!Width.IsFixed() && rect.Width.IsFixed()) measuredSize.Width = rect.Width;
                     break;
                 case HorizontalAlignment.Center:
-                    offset.X += (rect.Width - measuredSize.Width)/2;
+                    offset.X += (rect.Width - measuredSize.Width) / 2;
                     break;
                 case HorizontalAlignment.Right:
                     offset.X += rect.Width - measuredSize.Width;
@@ -245,59 +244,63 @@ namespace MonoGame.PortableUI.Controls
 
         #region Events
 
-        public event EventHandler MouseEnter;
-        public event EventHandler MouseLeave;
+        public event MouseMoveEventHandler MouseEnter;
+        public event MouseMoveEventHandler MouseLeave;
         public event MouseMoveEventHandler MouseMove;
         public event MouseButtonEventHandler MouseLeftDown;
         public event MouseButtonEventHandler MouseRightDown;
         public event MouseButtonEventHandler MouseLeftUp;
         public event MouseButtonEventHandler MouseRightUp;
-        public event EventHandler TouchDown;
-        public event EventHandler TouchUp;
-        public event EventHandler TouchMove;
-        public event EventHandler TouchCancel;
+        public event TouchEventHandler TouchDown;
+        public event TouchEventHandler TouchUp;
+        public event TouchEventHandler TouchMove;
+        public event TouchEventHandler TouchCancel;
 
         #endregion
 
         #region Event handlers
 
-        internal virtual void OnMouseEnter()
+        internal virtual void OnMouseEnter(MouseMoveEventHandlerArgs args)
         {
             HoverState = HoverStates.Hovering;
-            MouseEnter?.Invoke(this, EventArgs.Empty);
+            MouseEnter?.Invoke(this, args);
             OnStateChanged();
         }
 
-        internal virtual void OnMouseLeave()
+        internal virtual void OnMouseLeave(MouseMoveEventHandlerArgs args)
         {
             HoverState = HoverStates.NotHovering;
             LeftButtonState = ButtonStates.Released;
-            MouseLeave?.Invoke(this, EventArgs.Empty);
+            MouseLeave?.Invoke(this, args);
             OnStateChanged();
         }
 
-        internal virtual void OnMouseLeftDown(Point position)
+        internal virtual void OnMouseLeftDown(MouseButtonEventHandlerArgs args)
         {
             LeftButtonState = ButtonStates.Pressed;
-            MouseLeftDown?.Invoke(this, new MouseButtonEventHandlerArgs(position));
+            MouseLeftDown?.Invoke(this, args);
             OnStateChanged();
             if (LongPress != null)
                 _longPressTimer?.Start();
+            if (Click != null)
+                args.Handled = true;
         }
 
 
-        internal virtual void OnMouseLeftUp(Point position)
+        internal virtual void OnMouseLeftUp(MouseButtonEventHandlerArgs args)
         {
             if (LeftButtonState == ButtonStates.Pressed)
             {
                 _longPressTimer.Stop();
                 LeftButtonState = ButtonStates.Released;
-                MouseLeftUp?.Invoke(this, new MouseButtonEventHandlerArgs(position));
+                MouseLeftUp?.Invoke(this, args);
                 OnStateChanged();
                 OnClick();
             }
             else
-                MouseLeftUp?.Invoke(this, new MouseButtonEventHandlerArgs(position));
+                MouseLeftUp?.Invoke(this, args);
+            if (Click != null)
+                args.Handled = true;
         }
 
         internal virtual void OnMouseRightDown(Point position)
@@ -321,46 +324,47 @@ namespace MonoGame.PortableUI.Controls
                 MouseRightUp?.Invoke(this, new MouseButtonEventHandlerArgs(position));
         }
 
-        internal virtual void OnTouchDown()
+        internal virtual void OnTouchDown(TouchEventHandlerArgs args)
         {
             TouchState = TouchStates.Touched;
-            TouchDown?.Invoke(this, EventArgs.Empty);
+            TouchDown?.Invoke(this, args);
             OnStateChanged();
             if (LongPress != null)
                 _longPressTimer?.Start();
         }
 
-        internal virtual void OnTouchUp()
+        internal virtual void OnTouchUp(TouchEventHandlerArgs args)
         {
             _longPressTimer.Stop();
             if (TouchState == TouchStates.Touched)
             {
                 TouchState = TouchStates.Released;
-                TouchUp?.Invoke(this, EventArgs.Empty);
+                TouchUp?.Invoke(this, args);
                 OnStateChanged();
-                OnClick();
+                if (Click != null)
+                    OnClick();
             }
             else
-                TouchUp?.Invoke(this, EventArgs.Empty);
+                TouchUp?.Invoke(this, args);
         }
 
-        internal virtual void OnTouchMove()
+        internal virtual void OnTouchMove(TouchEventHandlerArgs args)
         {
             _longPressTimer.Stop();
-            TouchMove?.Invoke(this, EventArgs.Empty);
+            TouchMove?.Invoke(this, args);
         }
 
-        internal virtual void OnMouseMove(Point point)
+        internal virtual void OnMouseMove(MouseMoveEventHandlerArgs args)
         {
             _longPressTimer.Stop();
-            MouseMove?.Invoke(this, new MouseMoveEventHandlerArgs(point));
+            MouseMove?.Invoke(this, args);
         }
 
-        internal virtual void OnTouchCancel()
+        internal virtual void OnTouchCancel(TouchEventHandlerArgs args)
         {
             _longPressTimer.Stop();
             TouchState = TouchStates.Released;
-            TouchCancel?.Invoke(this, EventArgs.Empty);
+            TouchCancel?.Invoke(this, args);
             OnStateChanged();
         }
 
@@ -371,6 +375,18 @@ namespace MonoGame.PortableUI.Controls
             StateChanged?.Invoke(this, EventArgs.Empty);
         }
 
+    }
+
+    public delegate void TouchEventHandler(object sender, TouchEventHandlerArgs args);
+
+    public class TouchEventHandlerArgs : BaseEventHandlerArgs
+    {
+        public TouchEventHandlerArgs(PointF position)
+        {
+            Position = position;
+        }
+
+        public PointF Position { get; set; }
     }
 
     public class FlyOut : ContentControl
@@ -387,12 +403,12 @@ namespace MonoGame.PortableUI.Controls
 
     public class MouseButtonEventHandlerArgs : BaseEventHandlerArgs
     {
-        public MouseButtonEventHandlerArgs(Point absolutePoint)
+        public MouseButtonEventHandlerArgs(PointF absolutePoint)
         {
             AbsolutePoint = absolutePoint;
         }
 
-        public Point AbsolutePoint { get; set; }
+        public PointF AbsolutePoint { get; set; }
     }
 
     public class BaseEventHandlerArgs
@@ -404,11 +420,13 @@ namespace MonoGame.PortableUI.Controls
 
     public class MouseMoveEventHandlerArgs : BaseEventHandlerArgs
     {
-        public MouseMoveEventHandlerArgs(Point absolutePoint)
+        public MouseMoveEventHandlerArgs(Point oldPoint, Point newPoint)
         {
-            AbsolutePoint = absolutePoint;
+            OldPoint = oldPoint;
+            AbsolutePoint = newPoint;
         }
 
+        public Point OldPoint { get; set; }
         public Point AbsolutePoint { get; set; }
     }
 }
