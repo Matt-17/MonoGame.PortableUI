@@ -18,11 +18,9 @@ namespace MonoGame.PortableUI.Controls
         private bool _isVisible;
         private IUIElement _parent;
         private float _width;
-        internal bool IgnoreTouch;
         internal bool LastMouseLeftButtonState;
 
         internal bool LastMouseRightButtonState;
-        internal PointF? LastTouchPosition;
 
         protected Control()
         {
@@ -331,6 +329,9 @@ namespace MonoGame.PortableUI.Controls
             OnStateChanged();
             if (LongPress != null)
                 _longPressTimer?.Start();
+
+            if (Click != null)
+                args.Handled = true;
         }
 
         internal virtual void OnTouchUp(TouchEventHandlerArgs args)
@@ -341,11 +342,13 @@ namespace MonoGame.PortableUI.Controls
                 TouchState = TouchStates.Released;
                 TouchUp?.Invoke(this, args);
                 OnStateChanged();
-                if (Click != null)
-                    OnClick();
+                OnClick();
             }
             else
                 TouchUp?.Invoke(this, args);
+
+            if (Click != null)
+                args.Handled = true;
         }
 
         internal virtual void OnTouchMove(TouchEventHandlerArgs args)
