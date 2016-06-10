@@ -18,8 +18,7 @@ namespace MonoGame.PortableUI.Controls
         private bool _isVisible;
         private IUIElement _parent;
         private float _width;
-        internal bool LastMouseLeftButtonState;
-
+        internal bool LastMouseLeftButtonState;   
         internal bool LastMouseRightButtonState;
 
         protected Control()
@@ -376,60 +375,6 @@ namespace MonoGame.PortableUI.Controls
         protected virtual void OnStateChanged()
         {
             StateChanged?.Invoke(this, EventArgs.Empty);
-        }
-
-    }
-
-    public delegate void TouchEventHandler(object sender, TouchEventHandlerArgs args);
-
-    public class TouchEventHandlerArgs : BaseEventHandlerArgs
-    {
-        public TouchEventHandlerArgs(PointF position)
-        {
-            Position = position;
-        }
-
-        public PointF Position { get; set; }
-    }
-
-    public class FlyOut : ContentControl
-    {
-        private Control content;
-
-        public FlyOut(Control content)
-        {
-            this.content = content;
-        }
-    }
-
-    public delegate void MouseButtonEventHandler(object sender, MouseButtonEventHandlerArgs args);
-
-    public class MouseButtonEventHandlerArgs : BaseEventHandlerArgs
-    {
-        public MouseButtonEventHandlerArgs(PointF absolutePoint)
-        {
-            AbsolutePoint = absolutePoint;
-        }
-
-        public PointF AbsolutePoint { get; set; }
-    }
-
-    public class BaseEventHandlerArgs
-    {
-        public bool Handled { get; set; }
-    }
-
-    public delegate void MouseMoveEventHandler(object sender, MouseMoveEventHandlerArgs args);
-
-    public class MouseMoveEventHandlerArgs : BaseEventHandlerArgs
-    {
-        public MouseMoveEventHandlerArgs(Point oldPoint, Point newPoint)
-        {
-            OldPoint = oldPoint;
-            AbsolutePoint = newPoint;
-        }
-
-        public Point OldPoint { get; set; }
-        public Point AbsolutePoint { get; set; }
+        }   
     }
 }

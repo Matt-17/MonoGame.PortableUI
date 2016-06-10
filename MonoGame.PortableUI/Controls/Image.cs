@@ -100,12 +100,4 @@ namespace MonoGame.PortableUI.Controls
             return new Size(Width.IsFixed() ? Width : newWidth, Height.IsFixed() ? Height : newHeight);
         }
     }
-
-    public enum Stretch
-    {
-        None,
-        Uniform,
-        UniformToFill,
-        Fill
-    }
 }

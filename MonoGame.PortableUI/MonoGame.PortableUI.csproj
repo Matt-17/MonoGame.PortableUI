@@ -38,6 +38,7 @@
     <Compile Include="Animation\AnimationExtension.cs" />
     <Compile Include="Common\Rect.cs" />
     <Compile Include="Common\Timer.cs" />
+    <Compile Include="Controls\BaseEventHandlerArgs.cs" />
     <Compile Include="Controls\Border.cs" />
     <Compile Include="Controls\Button.cs" />
     <Compile Include="Controls\CheckBox.cs" />
@@ -51,6 +52,7 @@
     <Compile Include="Controls\ContentPresenter.cs" />
     <Compile Include="Controls\ControlCollection.cs" />
     <Compile Include="Controls\CollectionChangedEventArgs.cs" />
+    <Compile Include="Controls\FlyOut.cs" />
     <Compile Include="Controls\Grid.cs" />
     <Compile Include="Common\HelperEx.cs" />
     <Compile Include="Common\GridLength.cs" />
@@ -62,8 +64,15 @@
     <Compile Include="Controls\Image.cs" />
     <Compile Include="Controls\ListBox.cs" />
     <Compile Include="Controls\Input\TouchStates.cs" />
+    <Compile Include="Controls\MouseButtonEventHandler.cs" />
+    <Compile Include="Controls\MouseButtonEventHandlerArgs.cs" />
+    <Compile Include="Controls\MouseMoveEventHandler.cs" />
+    <Compile Include="Controls\MouseMoveEventHandlerArgs.cs" />
+    <Compile Include="Controls\Stretch.cs" />
     <Compile Include="Controls\TabControl.cs" />
     <Compile Include="Controls\TabItem.cs" />
+    <Compile Include="Controls\TouchEventHandler.cs" />
+    <Compile Include="Controls\TouchEventHandlerArgs.cs" />
     <Compile Include="Exceptions\MultipleParentException.cs" />
     <Compile Include="Common\Orientation.cs" />
     <Compile Include="Controls\Panel.cs" />
