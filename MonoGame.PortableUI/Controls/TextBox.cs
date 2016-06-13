@@ -1,6 +1,9 @@
 using System;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
+using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls.Events;
+using MonoGame.PortableUI.Media;
 
 namespace MonoGame.PortableUI.Controls
 {
@@ -10,10 +13,26 @@ namespace MonoGame.PortableUI.Controls
 
         public event EventHandler EnterPressed;
 
+        private Border _cursor;
+
+        public new string Text
+        {
+            get { return base.Text; }
+            set
+            {
+                base.Text = value;
+                CursorPosition = Math.Min(CursorPosition, Text.Length);
+            }
+        }
 
         public TextBox()
         {
             CursorPosition = 0;
+            _cursor = new Border();
+            _cursor.Width = 100;
+            _cursor.Height = 200;
+            _cursor.BorderColor = Color.Red;
+
             KeyPressed += HandleKeyPressed;
         }
 
@@ -53,19 +72,25 @@ namespace MonoGame.PortableUI.Controls
                     throw new ArgumentOutOfRangeException();
             }
         }
-        
+
+        public override void UpdateLayout(Rect rect)
+        {
+            base.UpdateLayout(rect);
+            _cursor.UpdateLayout(rect);
+        }
+
+        protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
+        {
+            base.OnDraw(spriteBatch, rect);
+            var measuredText = Font.MeasureString(Text.Substring(0, CursorPosition));
+            var x = rect.Left+Margin.Left+measuredText.X;
+            spriteBatch.Draw(SolidColorBrush.Pixel, new Rect(x, rect.Top+Margin.Top, 1, rect.Height-Margin.Top-Margin.Bottom), Color.Red);
+        }
+
         public override void OnClick()
         {
             base.OnClick();
             ScreenEngine.FocusedControl = this;
         }
-    }
-
-    public enum CursorDirection
-    {
-        Left,
-        Right,
-        Up,
-        Down
     }
 }
