@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Input.Touch;
@@ -10,7 +12,7 @@ using MonoGame.PortableUI.Media;
 
 namespace MonoGame.PortableUI
 {
-    public abstract class Screen : IFrameworkElement
+    public abstract class Screen : FrameworkElement
     {
         private readonly ButtonState[] _mouseStates =
         {
@@ -19,6 +21,12 @@ namespace MonoGame.PortableUI
             ButtonState.Released // Right button
         };
 
+        public override FrameworkElement Parent
+        {
+            get { return null; }
+            internal set { }
+        }
+
         private Control _content;
 
         internal PointF LastMousePosition;
@@ -26,7 +34,6 @@ namespace MonoGame.PortableUI
 
         protected Screen()
         {
-            BackgroundBrush = null;
         }
 
         public bool Initialized { get; set; }
@@ -52,14 +59,14 @@ namespace MonoGame.PortableUI
 
         internal FlyOut FlyOut { get; set; }
 
-        public Brush BackgroundBrush { get; set; }
+        public override Brush BackgroundBrush { get; set; }
 
-        public void InvalidateLayout(bool boundsChanged)
+        public override void InvalidateLayout(bool boundsChanged)
         {
             Content?.UpdateLayout(new Rect(Width, Height));
         }
 
-        public IEnumerable<Control> GetDescendants()
+        public override IEnumerable<Control> GetDescendants()
         {
             yield return Content;
         }
