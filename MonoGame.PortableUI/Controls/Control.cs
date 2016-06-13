@@ -65,7 +65,10 @@ namespace MonoGame.PortableUI.Controls
 
         private void Control_LongPress(object sender, EventArgs e)
         {
-            Screen.CreateFlyOut(BoundingRect.Offset, ContextMenu);
+            var boundingRect = BoundingRect - Margin;
+            var pointF = boundingRect;
+            pointF.Top -= ContextMenu.MeasureLayout().Height;
+            Screen.CreateFlyOut(pointF, ContextMenu);
         }
 
         protected HoverStates HoverState { get; set; }
@@ -157,7 +160,6 @@ namespace MonoGame.PortableUI.Controls
 
         internal PointF Position { get; set; }
 
-        public override Brush BackgroundBrush { get; set; }
 
         public override void InvalidateLayout(bool boundsChanged)
         {

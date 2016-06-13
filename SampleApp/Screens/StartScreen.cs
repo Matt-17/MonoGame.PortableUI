@@ -14,13 +14,18 @@ namespace SampleApp.Screens
     {
         public StartScreen()
         {
+            var contextMenu = new Grid { Height = 50, Width = 50, BackgroundBrush = Color.MediumVioletRed};
+            var child = new Button {Text = "Tt"};
+            child.Click += Button_Click;
+            contextMenu.AddChild(child);
             var button = new Button
             {
                 BackgroundBrush = Color.DarkRed,
                 Text = "Go to Screen 2",
                 Margin = new Thickness(10),
                 Height = 50,
-                Width = 200
+                Width = 200,
+                ContextMenu = contextMenu,
             };
             var button2 = new ToggleButton()
             {
@@ -46,7 +51,7 @@ namespace SampleApp.Screens
                 Margin = new Thickness(10),
                 VerticalAlignment = VerticalAlignment.Bottom
             };
-            button.Click += Button_Click;
+            //button.Click += Button_Click;
             button2.Checked += Button2_Checked;
             button3.LongPress += Button3_LongClick;
             button3.Click += Button3_Click;

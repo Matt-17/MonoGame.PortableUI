@@ -24,7 +24,9 @@ namespace MonoGame.PortableUI.Controls
             {
                 if (_content != null)
                     _content.Parent = null;
-                value.Parent = this;
+
+                if (value != null)
+                    value.Parent = this;
                 _content = value;
                 OnContentChanged(value);
             }
@@ -42,15 +44,15 @@ namespace MonoGame.PortableUI.Controls
 
             if (Height.IsFixed() && Width.IsFixed())
                 return size;
-            
+
             size += Padding;
             size += Content?.MeasureLayout() ?? Size.Empty;
-            
+
             if (Height.IsFixed())
                 size.Height = Height;
             if (Width.IsFixed())
                 size.Width = Width;
-            
+
             return size;
         }
 
