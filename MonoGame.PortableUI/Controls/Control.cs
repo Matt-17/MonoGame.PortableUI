@@ -10,16 +10,17 @@ using MonoGame.PortableUI.Media;
 
 namespace MonoGame.PortableUI.Controls
 {
-    public abstract class Control : IUIElement
+    public abstract class Control : IFrameworkElement
     {
         private readonly Timer _longPressTimer;
         private float _height;
         private bool _isGone;
         private bool _isVisible;
-        private IUIElement _parent;
+        private IFrameworkElement _parent;
         private float _width;
         internal bool LastMouseLeftButtonState;   
         internal bool LastMouseRightButtonState;
+        protected Screen Screen { get; set; }
 
         protected Control()
         {
@@ -49,13 +50,13 @@ namespace MonoGame.PortableUI.Controls
         protected ButtonStates RightButtonState { get; set; }
         protected TouchStates TouchState { get; set; }
 
-        public IUIElement Parent
+        public IFrameworkElement Parent
         {
             get { return _parent; }
             internal set
             {
                 if (_parent != null && value != null)
-                    throw new MultipleParentException();
+                    throw new MultipleParentException();                               
                 _parent = value;
             }
         }
