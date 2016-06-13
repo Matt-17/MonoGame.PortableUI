@@ -1,5 +1,6 @@
 using Microsoft.Xna.Framework;
 using MonoGame.PortableUI.Common;
+using MonoGame.PortableUI.Controls.Events;
 
 namespace MonoGame.PortableUI.Controls
 {

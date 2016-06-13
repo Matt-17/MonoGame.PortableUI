@@ -1,6 +1,6 @@
 using Microsoft.Xna.Framework;
 
-namespace MonoGame.PortableUI.Controls
+namespace MonoGame.PortableUI.Controls.Events
 {
     public class MouseMoveEventHandlerArgs : BaseEventHandlerArgs
     {

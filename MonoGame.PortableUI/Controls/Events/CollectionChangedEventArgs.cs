@@ -1,6 +1,6 @@
 using System;
 
-namespace MonoGame.PortableUI.Controls
+namespace MonoGame.PortableUI.Controls.Events
 {
     public class CollectionChangedEventArgs : EventArgs
     {

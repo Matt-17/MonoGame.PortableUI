@@ -21,12 +21,15 @@ namespace MonoGame.PortableUI.Controls
 
         }
 
+        public Vector2 MeasuredText { get; private set; }
+
         public string Text
         {
             get { return _text; }
             set
             {
                 _text = value ?? "";
+                MeasuredText = Font.MeasureString(_text);
                 InvalidateLayout(true);
             }
         }
