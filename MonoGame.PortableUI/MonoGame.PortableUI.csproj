@@ -60,7 +60,7 @@
     <Compile Include="Common\HorizontalAlignment.cs" />
     <Compile Include="Controls\Input\HoverStates.cs" />
     <Compile Include="Controls\Input\ButtonStates.cs" />
-    <Compile Include="Controls\IUIElement.cs" />
+    <Compile Include="Controls\IFrameworkElement.cs" />
     <Compile Include="Controls\Image.cs" />
     <Compile Include="Controls\ListBox.cs" />
     <Compile Include="Controls\Input\TouchStates.cs" />

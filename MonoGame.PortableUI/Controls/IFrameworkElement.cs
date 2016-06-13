@@ -4,7 +4,7 @@ using MonoGame.PortableUI.Media;
 
 namespace MonoGame.PortableUI.Controls
 {
-    public interface IUIElement
+    public interface IFrameworkElement
     {
         Brush BackgroundBrush { get; set; }
 

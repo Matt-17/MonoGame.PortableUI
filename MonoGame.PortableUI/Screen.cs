@@ -10,7 +10,7 @@ using MonoGame.PortableUI.Media;
 
 namespace MonoGame.PortableUI
 {
-    public abstract class Screen : IUIElement
+    public abstract class Screen : IFrameworkElement
     {
         private readonly ButtonState[] _mouseStates =
         {
