@@ -11,7 +11,7 @@ namespace MonoGame.PortableUI.Controls
     {
         public int CursorPosition { get; set; }
 
-        public Color CursorColor { get; set; }
+        public Brush CursorColor { get; set; }
 
         public event EventHandler EnterPressed;
 
@@ -81,7 +81,8 @@ namespace MonoGame.PortableUI.Controls
             var measuredText2= Font.MeasureString("abcdefghiojklmyfLMH");
             var x = rect.Left+measuredText.X;
             var top = (rect.Height - measuredText2.Y)/2+rect.Top;
-            spriteBatch.Draw(SolidColorBrush.Pixel, new Rect(x, top, 1, measuredText2.Y), CursorColor);
+            CursorColor.Draw(spriteBatch, new Rect(x, top, 1, measuredText2.Y));
+
         }
 
         public override void OnClick()

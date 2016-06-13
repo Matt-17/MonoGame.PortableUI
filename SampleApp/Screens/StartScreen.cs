@@ -39,7 +39,7 @@ namespace SampleApp.Screens
             var button3 = new Button()
             {
                 BackgroundBrush = Color.DarkGreen,
-                Text = "3",
+                Text = "33",
                 HoverTextColor = Color.White,
                 PressedTextColor = Color.White
             };
@@ -85,6 +85,7 @@ namespace SampleApp.Screens
                 Children = {
                     button3,
                     button4,
+                    new ProgressIndicator() { Margin = new Thickness(16)},
                     grid
                 },
 
