@@ -85,7 +85,11 @@ namespace MonoGame.PortableUI
                 spriteBatch.End();
             }
             spriteBatch.GraphicsDevice.ScissorRectangle = Content.BoundingRect;
+
+            spriteBatch.Begin(rasterizerState: new RasterizerState { ScissorTestEnable = true });
             DrawControl(spriteBatch, Content);
+            spriteBatch.End();
+
             if (FlyOut != null)
                 DrawControl(spriteBatch, FlyOut);
         }
@@ -115,9 +119,7 @@ namespace MonoGame.PortableUI
 
 
             //invalidDrawing = false;
-            spriteBatch.Begin(rasterizerState: new RasterizerState { ScissorTestEnable = true });
             control.OnDraw(spriteBatch, control.BoundingRect);
-            spriteBatch.End();
 
             var oldRect = new Rect(spriteBatch.GraphicsDevice.ScissorRectangle);
             spriteBatch.GraphicsDevice.ScissorRectangle = oldRect ^ control.BoundingRect;
