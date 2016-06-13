@@ -10,10 +10,11 @@ namespace MonoGame.PortableUI
     internal class ScreenManager : DrawableGameComponent
     {
         private SpriteBatch _spriteBatch;
+        public static TimeSpan Time { get; private set; }
 
         public Control FocusedControl { get; set; }
-        
-        internal ScreenManager(Game game) : base(game)
+
+       internal ScreenManager(Game game) : base(game)
         {
             ScreenHistory = new Stack<Screen>();
             UpdateOrder = int.MaxValue;
@@ -55,8 +56,9 @@ namespace MonoGame.PortableUI
         {
             base.Update(gameTime);
 
-            var elapsed = gameTime.ElapsedGameTime;
-            ActiveScreen.Update(elapsed);
+            Time = gameTime.TotalGameTime;
+            var time = gameTime.ElapsedGameTime;
+            ActiveScreen.Update(time);
         }
 
         public void NavigateToScreen<TScreen>(TScreen screen) where TScreen : Screen

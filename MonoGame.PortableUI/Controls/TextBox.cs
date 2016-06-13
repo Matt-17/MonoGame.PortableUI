@@ -11,9 +11,9 @@ namespace MonoGame.PortableUI.Controls
     {
         public int CursorPosition { get; set; }
 
-        public event EventHandler EnterPressed;
+        public Color CursorColor { get; set; }
 
-        private Border _cursor;
+        public event EventHandler EnterPressed;
 
         public new string Text
         {
@@ -28,11 +28,7 @@ namespace MonoGame.PortableUI.Controls
         public TextBox()
         {
             CursorPosition = 0;
-            _cursor = new Border();
-            _cursor.Width = 100;
-            _cursor.Height = 200;
-            _cursor.BorderColor = Color.Red;
-
+            CursorColor = Color.Black;
             KeyPressed += HandleKeyPressed;
         }
 
@@ -73,18 +69,19 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
-        public override void UpdateLayout(Rect rect)
-        {
-            base.UpdateLayout(rect);
-            _cursor.UpdateLayout(rect);
-        }
-
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
             base.OnDraw(spriteBatch, rect);
+
+            if (ScreenManager.Time.Milliseconds > 500)
+                return;
+
+            rect -= Margin;
             var measuredText = Font.MeasureString(Text.Substring(0, CursorPosition));
-            var x = rect.Left+Margin.Left+measuredText.X;
-            spriteBatch.Draw(SolidColorBrush.Pixel, new Rect(x, rect.Top+Margin.Top, 1, rect.Height-Margin.Top-Margin.Bottom), Color.Red);
+            var measuredText2= Font.MeasureString("abcdefghiojklmyfLMH");
+            var x = rect.Left+measuredText.X;
+            var top = (rect.Height - measuredText2.Y)/2+rect.Top;
+            spriteBatch.Draw(SolidColorBrush.Pixel, new Rect(x, top, 1, measuredText2.Y), CursorColor);
         }
 
         public override void OnClick()
