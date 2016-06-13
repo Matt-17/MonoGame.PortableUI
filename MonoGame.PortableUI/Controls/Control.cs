@@ -4,6 +4,7 @@ using System.Linq;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI.Common;
+using MonoGame.PortableUI.Controls.Events;
 using MonoGame.PortableUI.Controls.Input;
 using MonoGame.PortableUI.Exceptions;
 using MonoGame.PortableUI.Media;
@@ -81,8 +82,7 @@ namespace MonoGame.PortableUI.Controls
                     throw new MultipleParentException();
                 _parent = value;
             }
-        }     
-        //public Size ClientRect { get; set; }
+        }
 
         public float Width
         {
@@ -107,10 +107,6 @@ namespace MonoGame.PortableUI.Controls
                 InvalidateLayout(true);
             }
         }
-
-        //public float RenderedWidth => (Width + Margin.Left + Margin.Right) * ScreenEngine.ScaleFactor;
-
-        //public float RenderedHeight => (Height + Margin.Top + Margin.Bottom) * ScreenEngine.ScaleFactor;
 
         public Rect BoundingRect { get; protected set; }
         public Rect ClientRect { get; protected set; }
@@ -175,12 +171,14 @@ namespace MonoGame.PortableUI.Controls
 
         public event EventHandler StateChanged;
 
-        private void OnClick()
+        public virtual void OnClick()
         {
+            //if (this is TextBox)
+            //    ScreenManager.FocusedControl = this;
             Click?.Invoke(this, EventArgs.Empty);
         }
 
-        private void OnRightClick()
+        public virtual void OnRightClick()
         {
             RightClick?.Invoke(this, EventArgs.Empty);
         }
@@ -188,6 +186,7 @@ namespace MonoGame.PortableUI.Controls
         public event EventHandler Click;
         public event EventHandler RightClick;
         public event EventHandler LongPress;
+        public event KeyPressedEventHandler KeyPressed;
 
         private void _longPressTimer_Elapsed(object sender, EventArgs e)
         {
@@ -390,6 +389,17 @@ namespace MonoGame.PortableUI.Controls
             TouchState = TouchStates.Released;
             TouchCancel?.Invoke(this, args);
             OnStateChanged();
+        }
+
+        public virtual void OnKeyPressed(string key)
+        {
+            KeyPressed?.Invoke(this, new KeyPressedEventHandlerArgs(key));
+        }
+
+
+        public virtual void OnKeyPressed(KeyboardCommand key)
+        {
+            KeyPressed?.Invoke(this, new KeyPressedEventHandlerArgs(key));
         }
 
         #endregion
