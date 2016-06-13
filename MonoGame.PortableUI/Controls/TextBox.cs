@@ -2,7 +2,7 @@ using Microsoft.Xna.Framework;
 
 namespace MonoGame.PortableUI.Controls
 {
-    public class TextBox : TextControl
+    public class TextBox : Control
     {
     }
 }
