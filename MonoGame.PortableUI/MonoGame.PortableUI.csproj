@@ -60,7 +60,7 @@
     <Compile Include="Common\HorizontalAlignment.cs" />
     <Compile Include="Controls\Input\HoverStates.cs" />
     <Compile Include="Controls\Input\ButtonStates.cs" />
-    <Compile Include="Controls\IUIElement.cs" />
+    <Compile Include="Controls\FrameworkElement.cs" />
     <Compile Include="Controls\Image.cs" />
     <Compile Include="Controls\KeyboardCommand.cs" />
     <Compile Include="Controls\Events\KeyPressedEventHandler.cs" />
@@ -83,7 +83,6 @@
     <Compile Include="Common\RowDefinition.cs" />
     <Compile Include="Common\TextAlignment.cs" />
     <Compile Include="Common\VerticalAlignment.cs" />
-    <Compile Include="Controls\TextControl.cs" />
     <Compile Include="Exceptions\DefaultFontMissingException.cs" />
     <Compile Include="FontManager.cs" />
     <Compile Include="Exceptions\FontMissingException.cs" />
