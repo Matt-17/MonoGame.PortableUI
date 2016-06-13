@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Input.Touch;
@@ -11,7 +13,7 @@ using MonoGame.PortableUI.Media;
 
 namespace MonoGame.PortableUI
 {
-    public abstract class Screen : IUIElement
+    public abstract class Screen : FrameworkElement
     {
         private readonly ButtonState[] _mouseStates =
         {
@@ -20,6 +22,12 @@ namespace MonoGame.PortableUI
             ButtonState.Released // Right button
         };
 
+        public override FrameworkElement Parent
+        {
+            get { return null; }
+            internal set { }
+        }
+
         private Control _content;
 
         internal PointF LastMousePosition;
@@ -27,15 +35,12 @@ namespace MonoGame.PortableUI
 
         protected Screen()
         {
-            BackgroundBrush = null;
         }
 
         public bool Initialized { get; set; }
 
         public int Width => ScreenManager?.Width ?? 0;
         public int Height => ScreenManager?.Height ?? 0;
-        
-        public Brush BackgroundBrush { get; set; }
 
         internal ScreenManager ScreenManager { get; set; }
 
@@ -55,12 +60,14 @@ namespace MonoGame.PortableUI
 
         internal FlyOut FlyOut { get; set; }
 
-        public void InvalidateLayout(bool boundsChanged)
+        public override Brush BackgroundBrush { get; set; }
+
+        public override void InvalidateLayout(bool boundsChanged)
         {
             Content?.UpdateLayout(new Rect(Width, Height));
         }
 
-        public IEnumerable<Control> GetDescendants()
+        public override IEnumerable<Control> GetDescendants()
         {
             yield return Content;
         }
@@ -86,7 +93,11 @@ namespace MonoGame.PortableUI
                 spriteBatch.End();
             }
             spriteBatch.GraphicsDevice.ScissorRectangle = Content.BoundingRect;
+
+            spriteBatch.Begin(rasterizerState: new RasterizerState { ScissorTestEnable = true });
             DrawControl(spriteBatch, Content);
+            spriteBatch.End();
+
             if (FlyOut != null)
                 DrawControl(spriteBatch, FlyOut);
         }
@@ -116,9 +127,7 @@ namespace MonoGame.PortableUI
 
 
             //invalidDrawing = false;
-            spriteBatch.Begin(rasterizerState: new RasterizerState { ScissorTestEnable = true });
             control.OnDraw(spriteBatch, control.BoundingRect);
-            spriteBatch.End();
 
             var oldRect = new Rect(spriteBatch.GraphicsDevice.ScissorRectangle);
             spriteBatch.GraphicsDevice.ScissorRectangle = oldRect ^ control.BoundingRect;
@@ -225,8 +234,6 @@ namespace MonoGame.PortableUI
 
         private void IterateVisualTree<T>(Control control, T args, Func<Control, T, bool> actionFunc, Action<Control, T> action, Func<Control, T, bool> treeFunc) where T : BaseEventHandlerArgs
         {
-            //if (control is TextBlock)
-            //    return;
             if (control.IsGone)
                 return;
             var goIntoTree = treeFunc?.Invoke(control, args) ?? actionFunc(control, args);
