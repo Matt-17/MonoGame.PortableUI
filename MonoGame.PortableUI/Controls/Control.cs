@@ -10,17 +10,23 @@ using MonoGame.PortableUI.Media;
 
 namespace MonoGame.PortableUI.Controls
 {
-    public abstract class Control : IFrameworkElement
+    public abstract class Control : FrameworkElement
     {
         private readonly Timer _longPressTimer;
         private float _height;
         private bool _isGone;
         private bool _isVisible;
-        private IFrameworkElement _parent;
+        private FrameworkElement _parent;
         private float _width;
-        internal bool LastMouseLeftButtonState;   
+        internal bool LastMouseLeftButtonState;
         internal bool LastMouseRightButtonState;
-        protected Screen Screen { get; set; }
+        private Control _contextMenu;
+
+        internal Screen Screen
+        {
+            get { return Parent as Screen ?? (Parent as Control)?.Screen; }
+
+        }
 
         protected Control()
         {
@@ -28,7 +34,6 @@ namespace MonoGame.PortableUI.Controls
             Opacity = 1;
             IsEnabled = true;
             IsVisible = true;
-            Parent = null;
             Scale = new Vector2(1, 1);
             Translation = new Vector2();
             Margin = new Thickness(0);
@@ -44,23 +49,39 @@ namespace MonoGame.PortableUI.Controls
 
         public object Tag { get; set; }
 
+        public Control ContextMenu
+        {
+            get { return _contextMenu; }
+            set
+            {
+                LongPress -= Control_LongPress;
+                _contextMenu = value;
+                if (_contextMenu == null)
+                    return;
+                LongPress += Control_LongPress;
+            }
+        }
+
+        private void Control_LongPress(object sender, EventArgs e)
+        {
+            Screen.CreateFlyOut(BoundingRect.Offset, ContextMenu);
+        }
 
         protected HoverStates HoverState { get; set; }
         protected ButtonStates LeftButtonState { get; set; }
         protected ButtonStates RightButtonState { get; set; }
         protected TouchStates TouchState { get; set; }
 
-        public IFrameworkElement Parent
+        public override FrameworkElement Parent
         {
             get { return _parent; }
             internal set
             {
                 if (_parent != null && value != null)
-                    throw new MultipleParentException();                               
+                    throw new MultipleParentException();
                 _parent = value;
             }
-        }
-
+        }     
         //public Size ClientRect { get; set; }
 
         public float Width
@@ -140,14 +161,14 @@ namespace MonoGame.PortableUI.Controls
 
         internal PointF Position { get; set; }
 
-        public Brush BackgroundBrush { get; set; }
+        public override Brush BackgroundBrush { get; set; }
 
-        public virtual void InvalidateLayout(bool boundsChanged)
+        public override void InvalidateLayout(bool boundsChanged)
         {
             Parent?.InvalidateLayout(boundsChanged);
         }
 
-        public virtual IEnumerable<Control> GetDescendants()
+        public override IEnumerable<Control> GetDescendants()
         {
             return Enumerable.Empty<Control>();
         }
@@ -376,6 +397,6 @@ namespace MonoGame.PortableUI.Controls
         protected virtual void OnStateChanged()
         {
             StateChanged?.Invoke(this, EventArgs.Empty);
-        }   
+        }
     }
 }

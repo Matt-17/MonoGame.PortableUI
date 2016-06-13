@@ -31,8 +31,7 @@ namespace MonoGame.PortableUI.Controls
             {
                 _textColor = value;
                 InvalidateLayout(false);
-            }
-
+            }           
         }
 
         public string Text
