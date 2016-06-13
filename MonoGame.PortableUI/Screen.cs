@@ -8,6 +8,7 @@ using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Input.Touch;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
+using MonoGame.PortableUI.Controls.Events;
 using MonoGame.PortableUI.Media;
 
 namespace MonoGame.PortableUI
@@ -38,10 +39,10 @@ namespace MonoGame.PortableUI
 
         public bool Initialized { get; set; }
 
-        public int Width => ScreenEngine?.Width ?? 0;
-        public int Height => ScreenEngine?.Height ?? 0;
+        public int Width => ScreenManager?.Width ?? 0;
+        public int Height => ScreenManager?.Height ?? 0;
 
-        internal ScreenManager ScreenEngine { get; set; }
+        internal ScreenManager ScreenManager { get; set; }
 
         public Control Content
         {
@@ -233,7 +234,7 @@ namespace MonoGame.PortableUI
 
         private void IterateVisualTree<T>(Control control, T args, Func<Control, T, bool> actionFunc, Action<Control, T> action, Func<Control, T, bool> treeFunc) where T : BaseEventHandlerArgs
         {
-            if (control is TextBlock)
+            if (control.IsGone)
                 return;
             var goIntoTree = treeFunc?.Invoke(control, args) ?? actionFunc(control, args);
             if (!goIntoTree)

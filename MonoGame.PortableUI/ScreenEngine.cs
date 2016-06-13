@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI.Common;
+using MonoGame.PortableUI.Controls;
 
 namespace MonoGame.PortableUI
 {
@@ -12,6 +13,7 @@ namespace MonoGame.PortableUI
 
         public static float ScaleFactor { get; set; }
 
+        public static Control FocusedControl { get; set; }
 
         public static Rect? _Rect { get; set; }
 
@@ -20,7 +22,7 @@ namespace MonoGame.PortableUI
             get
             {
                 if (_manager == null)
-                    throw new TypeInitializationException("ScreenEngine", new ArgumentNullException());
+                    throw new TypeInitializationException("ScreenManager", new ArgumentNullException());
                 return _manager;
             }
         }

@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices.ComTypes;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using MonoGame.PortableUI.Controls;
 
 namespace MonoGame.PortableUI
 {
@@ -9,6 +11,8 @@ namespace MonoGame.PortableUI
     {
         private SpriteBatch _spriteBatch;
 
+        public Control FocusedControl { get; set; }
+        
         internal ScreenManager(Game game) : base(game)
         {
             ScreenHistory = new Stack<Screen>();
@@ -57,7 +61,7 @@ namespace MonoGame.PortableUI
 
         public void NavigateToScreen<TScreen>(TScreen screen) where TScreen : Screen
         {
-            screen.ScreenEngine = this;
+            screen.ScreenManager = this;
 
             ScreenHistory.Push(screen);
         }

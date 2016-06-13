@@ -31,8 +31,9 @@ namespace MonoGame.PortableUI.Controls
             {
                 _textColor = value;
                 InvalidateLayout(false);
-            }           
+            }
         }
+        public Vector2 MeasuredText { get; private set; }
 
         public string Text
         {
@@ -40,6 +41,7 @@ namespace MonoGame.PortableUI.Controls
             set
             {
                 _text = value ?? "";
+                MeasuredText = Font.MeasureString(_text);
                 InvalidateLayout(true);
             }
         }
@@ -77,18 +79,17 @@ namespace MonoGame.PortableUI.Controls
             rect -= Margin;
             base.OnDraw(spriteBatch, rect);
             var offset = rect.Offset;
-            var measureString = Font.MeasureString(Text);
-            offset.Y += (rect.Height - measureString.Y) / 2;
+            offset.Y += (rect.Height - MeasuredText.Y) / 2;
 
             switch (TextAlignment)
             {
                 case TextAlignment.Left:
                     break;
                 case TextAlignment.Center:
-                    offset.X += (rect.Width - measureString.X) / 2;
+                    offset.X += (rect.Width - MeasuredText.X) / 2;
                     break;
                 case TextAlignment.Right:
-                    offset.X += rect.Width - measureString.X;
+                    offset.X += rect.Width - MeasuredText.X;
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
