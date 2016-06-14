@@ -53,7 +53,7 @@ namespace SampleApp.Screens
             };
             //button.Click += Button_Click;
             button2.Checked += Button2_Checked;
-            button3.LongPress += Button3_LongClick;
+            button3.LongTouch += Button3LongTouch;
             button3.Click += Button3_Click;
             var grid = new Grid()
             {
@@ -192,7 +192,7 @@ namespace SampleApp.Screens
         {
             Debug.WriteLine("Click " + (sender as Button).Text);
         }
-        private void Button3_LongClick(object sender, EventArgs e)
+        private void Button3LongTouch(object sender, EventArgs e)
         {
             Debug.WriteLine("LongPress " + (sender as Button).Text);
         }
