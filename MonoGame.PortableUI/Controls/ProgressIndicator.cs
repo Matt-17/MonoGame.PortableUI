@@ -39,31 +39,33 @@ namespace MonoGame.PortableUI.Controls
             var dict = new Dictionary<int, double>();
             for (int i = 0; i < maxValue-2; i++)
             {
-                dict.Add(i, GetSize(i, maxValue));
+                double d;
+                var abs = Precalculate(i, maxValue, out d);
+                dict.Add(i, abs);
             }
             var keyValuePairs = dict.OrderBy(x => x.Value);
             foreach (var pair in keyValuePairs)
             {
-                GetValue(spriteBatch, rect, pair.Key, maxValue);
+                DrawRectangle(spriteBatch, rect, pair.Key, maxValue);
             }
         }
 
-        private double GetSize(int a, int max)
+        private void DrawRectangle(SpriteBatch spriteBatch, Rect rect, int i, int maxValue)
         {
-            var d = ScreenManager.Time.TotalSeconds * Math.PI + Math.PI / max * a;
-            return Math.Abs(Math.Cos(d + Math.PI / 4));
+            double rad;
+            var value = Precalculate(i, maxValue, out rad);
+            var size = (float)(value * (MaxSize - MinSize) + MinSize);
+            var top = rect.Top + (float)((1 - Math.Abs(Math.Sin(rad))) * (rect.Height - size));
+            var color = Foreground;
+            color.A = (byte)(value * 204 + 51);
+            var rectangle = new Rect(rect.Left + (rect.Width - size) / 2, top, size, size);
+            new SolidColorBrush(color).Draw(spriteBatch, rectangle);
         }
 
-        private void GetValue(SpriteBatch spriteBatch, Rect rect, int a, int max)
+        private static double Precalculate(int i, int maxValue, out double rad)
         {
-            var d = ScreenManager.Time.TotalSeconds * Math.PI + Math.PI / max * a;
-            var abs = Math.Abs(Math.Cos(d + Math.PI / 4));
-            var size = (float)(abs * (MaxSize - MinSize) + MinSize);
-            var top = rect.Top + (float)((1 - Math.Abs(Math.Sin(d))) * (rect.Height - size));
-            var rectangle = new Rect(rect.Left + (rect.Width - size) / 2, top, size, size);
-            var color = Foreground;
-            color.A = (byte)(abs * 204 + 51);
-            new SolidColorBrush(color).Draw(spriteBatch, rectangle);
+            rad = ScreenManager.Time.TotalSeconds*Math.PI + Math.PI/maxValue*i;
+            return Math.Abs(Math.Sin(rad - Math.PI/4));
         }
     }
 }
