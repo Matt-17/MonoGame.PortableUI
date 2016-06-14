@@ -7,7 +7,6 @@ using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls.Events;
 using MonoGame.PortableUI.Controls.Input;
 using MonoGame.PortableUI.Exceptions;
-using MonoGame.PortableUI.Media;
 
 namespace MonoGame.PortableUI.Controls
 {
@@ -17,7 +16,6 @@ namespace MonoGame.PortableUI.Controls
         private float _height;
         private bool _isGone;
         private bool _isVisible;
-        private bool _isFocused;
         private FrameworkElement _parent;
         private float _width;
         internal bool LastMouseLeftButtonState;
@@ -26,7 +24,7 @@ namespace MonoGame.PortableUI.Controls
 
         public bool IsFocused
         {
-            get { return (ScreenEngine.FocusedControl == this); }
+            get { return ScreenEngine.FocusedControl == this; }
             set { ScreenEngine.FocusedControl = value ? this : null; }
         }
 
