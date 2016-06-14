@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Exceptions;
 
 namespace MonoGame.PortableUI
@@ -77,13 +78,5 @@ namespace MonoGame.PortableUI
                 throw new FontMissingException($"{font}-{style.ToString().ToLower()}-{size}");
             }
         }
-    }
-
-    public enum FontStyle
-    {
-        Regular,
-        Bold,
-        Italic,
-        BoldItalic
     }
 }

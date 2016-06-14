@@ -268,16 +268,4 @@ namespace MonoGame.PortableUI
                 action(control, args);
         }
     }
-
-    public class ScrollWheelChangedEventHandlerArgs : BaseEventHandlerArgs
-    {
-        public PointF Position { get; set; }
-        public int Delta { get; set; }
-
-        public ScrollWheelChangedEventHandlerArgs(PointF position, int delta)
-        {
-            Position = position;
-            Delta = delta;
-        }
-    }
 }

@@ -44,7 +44,7 @@
     <Compile Include="Controls\Border.cs" />
     <Compile Include="Controls\Button.cs" />
     <Compile Include="Controls\CheckBox.cs" />
-    <Compile Include="Common\CheckedEventArgs.cs" />
+    <Compile Include="Controls\Events\CheckedEventArgs.cs" />
     <Compile Include="Common\ColumnDefinition.cs" />
     <Compile Include="Controls\Events\CollectionChangedEvent.cs" />
     <Compile Include="Controls\ComboBox.cs" />
@@ -90,6 +90,7 @@
     <Compile Include="Exceptions\DefaultFontMissingException.cs" />
     <Compile Include="FontManager.cs" />
     <Compile Include="Exceptions\FontMissingException.cs" />
+    <Compile Include="Common\FontStyle.cs" />
     <Compile Include="Media\Brush.cs" />
     <Compile Include="Media\GradientBrush.cs" />
     <Compile Include="Media\NineTileBrush.cs" />
@@ -108,6 +109,7 @@
     <Compile Include="Controls\Control.cs" />
     <Compile Include="ScreenEngine.cs" />
     <Compile Include="ScreenManager.cs" />
+    <Compile Include="Controls\Events\ScrollWheelChangedEventHandlerArgs.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="MonoGame.Framework, Version=3.1.2.0, Culture=neutral, processorArchitecture=MSIL">
