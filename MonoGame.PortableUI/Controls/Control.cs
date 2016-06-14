@@ -17,11 +17,18 @@ namespace MonoGame.PortableUI.Controls
         private float _height;
         private bool _isGone;
         private bool _isVisible;
+        private bool _isFocused;
         private FrameworkElement _parent;
         private float _width;
         internal bool LastMouseLeftButtonState;
         internal bool LastMouseRightButtonState;
         private Control _contextMenu;
+
+        public bool IsFocused
+        {
+            get { return (ScreenEngine.FocusedControl == this); }
+            set { ScreenEngine.FocusedControl = value ? this : null; }
+        }
 
         internal Screen Screen
         {
