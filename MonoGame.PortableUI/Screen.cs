@@ -15,11 +15,12 @@ namespace MonoGame.PortableUI
 {
     public abstract class Screen : FrameworkElement
     {
-        private readonly ButtonState[] _mouseStates =
+
+        protected Dictionary<MouseButton, ButtonState> MouseButtonStates { get; } = new Dictionary<MouseButton, ButtonState>
         {
-            ButtonState.Released, // Left button
-            ButtonState.Released, // Middle button
-            ButtonState.Released // Right button
+            {MouseButton.Left, ButtonState.Released},
+            {MouseButton.Middle, ButtonState.Released},
+            {MouseButton.Right, ButtonState.Released},
         };
 
         public override FrameworkElement Parent
@@ -85,17 +86,17 @@ namespace MonoGame.PortableUI
             yield return Content;
         }
 
-        private static IEnumerable<Control> GetVisualTreeAsList(Control content, bool addTreeWhichIsGone = true)
-        {
-            if (content.IsGone && !addTreeWhichIsGone)
-                yield break;
-            var descendants = content.GetDescendants();
-            foreach (var child in descendants.SelectMany(control => GetVisualTreeAsList(control, addTreeWhichIsGone)))
-            {
-                yield return child;
-            }
-            yield return content;
-        }
+        //private static IEnumerable<Control> GetVisualTreeAsList(Control content, bool addTreeWhichIsGone = true)
+        //{
+        //    if (content.IsGone && !addTreeWhichIsGone)
+        //        yield break;
+        //    var descendants = content.GetDescendants();
+        //    foreach (var child in descendants.SelectMany(control => GetVisualTreeAsList(control, addTreeWhichIsGone)))
+        //    {
+        //        yield return child;
+        //    }
+        //    yield return content;
+        //}
 
         internal void Draw(SpriteBatch spriteBatch)
         {
@@ -183,30 +184,12 @@ namespace MonoGame.PortableUI
                 LastMousePosition = mousePosition;
             }
 
-            HandleMouseButton(mouseState.LeftButton, ButtonState.Pressed, 0, mousePosition, content, (c, a) =>
-            {
-                if (c.LastMouseLeftButtonState) return;
-                c.OnMouseLeftDown(a);
-                c.LastMouseLeftButtonState = true;
-            });
-            HandleMouseButton(mouseState.LeftButton, ButtonState.Released, 0, mousePosition, content, (c, a) =>
-            {
-                if (!c.LastMouseLeftButtonState) return;
-                c.OnMouseLeftUp(a);
-                c.LastMouseLeftButtonState = false;
-            });
-            HandleMouseButton(mouseState.RightButton, ButtonState.Pressed, 1, mousePosition, content, (c, a) =>
-            {
-                if (c.LastMouseRightButtonState) return;
-                c.OnMouseRightDown(a);
-                c.LastMouseRightButtonState = true;
-            });
-            HandleMouseButton(mouseState.RightButton, ButtonState.Released, 1, mousePosition, content, (c, a) =>
-            {
-                if (!c.LastMouseRightButtonState) return;
-                c.OnMouseRightUp(a);
-                c.LastMouseRightButtonState = false;
-            });
+            HandleMouseButton(mouseState.LeftButton, ButtonState.Pressed,  MouseButton.Left, mousePosition, content, (c, a) => c.OnMouseDown(a));
+            HandleMouseButton(mouseState.LeftButton, ButtonState.Released, MouseButton.Left, mousePosition, content, (c, a) => c.OnMouseUp(a));
+            HandleMouseButton(mouseState.RightButton, ButtonState.Pressed, MouseButton.Right, mousePosition, content, (c, a) => c.OnMouseDown(a));
+            HandleMouseButton(mouseState.RightButton, ButtonState.Released, MouseButton.Right, mousePosition, content, (c, a) => c.OnMouseUp(a));
+            HandleMouseButton(mouseState.MiddleButton, ButtonState.Pressed, MouseButton.Middle, mousePosition, content, (c, a) => c.OnMouseDown(a));
+            HandleMouseButton(mouseState.MiddleButton, ButtonState.Released, MouseButton.Middle, mousePosition, content, (c, a) => c.OnMouseUp(a));
 
             if (touchState.State == TouchLocationState.Pressed)
             {
@@ -244,19 +227,17 @@ namespace MonoGame.PortableUI
             }
         }
 
-        private void HandleMouseButton(ButtonState buttonState, ButtonState pressed, int index0, PointF mousePosition, Control content, Action<Control, MouseButtonEventHandlerArgs> action)
+        private void HandleMouseButton(ButtonState buttonState, ButtonState newState, MouseButton button, PointF position, Control control, Action<Control, MouseButtonEventHandlerArgs> action)
         {
-            if (buttonState == pressed && _mouseStates[index0] != pressed)
-            {
-                _mouseStates[index0] = pressed;
-                var args = new MouseButtonEventHandlerArgs(mousePosition);
-
-                IterateVisualTree(content, args,
-                    (c, a) => c.BoundingRect.Contains(a.AbsolutePoint),
-                    action,
-                    null
-                    );
-            }
+            if (buttonState != newState || MouseButtonStates[button] == newState)
+                return;
+            MouseButtonStates[button] = newState;
+            var args = new MouseButtonEventHandlerArgs(position, button);
+            IterateVisualTree(control, args,
+                (c, a) => c.BoundingRect.Contains(a.AbsolutePoint),
+                action,
+                null
+            );
         }
 
         private void IterateVisualTree<T>(Control control, T args, Func<Control, T, bool> actionFunc, Action<Control, T> action, Func<Control, T, bool> treeFunc) where T : BaseEventHandlerArgs
