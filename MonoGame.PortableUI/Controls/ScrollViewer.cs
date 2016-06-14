@@ -14,6 +14,24 @@ namespace MonoGame.PortableUI.Controls
             TouchDown += ScrollViewer_MouseLeftDown;
             TouchDown += ScrollViewer_MouseMove;
             TouchDown += ScrollViewer_MouseLeftUp;
+            ScrollWheelChanged += ScrollViewer_ScrollWheelChanged;
+        }
+
+        private void ScrollViewer_ScrollWheelChanged(object sender, ScrollWheelChangedEventHandlerArgs args)
+        {
+            var d = args.Delta/50;
+            if (ScrollOrientation == Orientation.Horizontal)
+                _offset.X += d;
+            else
+                _offset.Y += d;
+
+            var boundingRect = Content.BoundingRect;
+            boundingRect.Offset = _offset;
+            if (ScrollOrientation == Orientation.Horizontal)
+                boundingRect.Width = Size.Infinity;
+            else
+                boundingRect.Height = Size.Infinity;
+            Content.UpdateLayout(boundingRect);
         }
 
         private void ScrollViewer_MouseLeftUp(object sender, TouchEventHandlerArgs args)
