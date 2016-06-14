@@ -73,6 +73,9 @@ namespace MonoGame.PortableUI.Controls
         {
             base.OnDraw(spriteBatch, rect);
 
+            if (!IsFocused)
+                return;
+
             if (ScreenManager.Time.Milliseconds > 500)
                 return;
 
