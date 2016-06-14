@@ -1,6 +1,7 @@
 using System;
 using Microsoft.Xna.Framework;
 using MonoGame.PortableUI.Common;
+using MonoGame.PortableUI.Controls.Events;
 using MonoGame.PortableUI.Media;
 
 namespace MonoGame.PortableUI.Controls

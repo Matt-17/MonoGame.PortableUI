@@ -6,6 +6,7 @@ using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
+using MonoGame.PortableUI.Controls.Events;
 using MonoGame.PortableUI.Media;
 
 namespace SampleApp.Screens

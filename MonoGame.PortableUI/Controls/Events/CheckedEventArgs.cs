@@ -1,4 +1,4 @@
-namespace MonoGame.PortableUI.Common
+namespace MonoGame.PortableUI.Controls.Events
 {
     public class CheckedEventArgs
     {
