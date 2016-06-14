@@ -60,15 +60,15 @@ namespace MonoGame.PortableUI.Controls
             get { return _contextMenu; }
             set
             {
-                LongPress -= Control_LongPress;
+                LongTouch -= ControlLongTouch;
                 _contextMenu = value;
                 if (_contextMenu == null)
                     return;
-                LongPress += Control_LongPress;
+                LongTouch += ControlLongTouch;
             }
         }
 
-        private void Control_LongPress(object sender, EventArgs e)
+        private void ControlLongTouch(object sender, EventArgs e)
         {
             var boundingRect = BoundingRect - Margin;
             var pointF = boundingRect;
@@ -192,7 +192,7 @@ namespace MonoGame.PortableUI.Controls
 
         public event EventHandler Click;
         public event EventHandler RightClick;
-        public event EventHandler LongPress;
+        public event EventHandler LongTouch;
         public event KeyPressedEventHandler KeyPressed;
 
         private void _longPressTimer_Elapsed(object sender, EventArgs e)
@@ -201,7 +201,7 @@ namespace MonoGame.PortableUI.Controls
             LeftButtonState = ButtonStates.Released;
             TouchState = TouchStates.Released;
             OnStateChanged();
-            LongPress?.Invoke(this, EventArgs.Empty);
+            LongTouch?.Invoke(this, EventArgs.Empty);
         }
 
         protected internal virtual void OnDraw(SpriteBatch spriteBatch, Rect rect)
@@ -262,9 +262,9 @@ namespace MonoGame.PortableUI.Controls
             return new Size(width, height) + Margin;
         }
 
-        protected virtual void OnLongPress()
+        protected virtual void OnLongTouch()
         {
-            LongPress?.Invoke(this, EventArgs.Empty);
+            LongTouch?.Invoke(this, EventArgs.Empty);
         }
 
         #region Events
@@ -304,9 +304,7 @@ namespace MonoGame.PortableUI.Controls
         {
             LeftButtonState = ButtonStates.Pressed;
             MouseLeftDown?.Invoke(this, args);
-            OnStateChanged();
-            if (LongPress != null)
-                _longPressTimer?.Start();
+            OnStateChanged();                 
             if (Click != null)
                 args.Handled = true;
         }
@@ -315,8 +313,7 @@ namespace MonoGame.PortableUI.Controls
         internal virtual void OnMouseLeftUp(MouseButtonEventHandlerArgs args)
         {
             if (LeftButtonState == ButtonStates.Pressed)
-            {
-                _longPressTimer.Stop();
+            {                                 
                 LeftButtonState = ButtonStates.Released;
                 MouseLeftUp?.Invoke(this, args);
                 OnStateChanged();
@@ -354,7 +351,7 @@ namespace MonoGame.PortableUI.Controls
             TouchState = TouchStates.Touched;
             TouchDown?.Invoke(this, args);
             OnStateChanged();
-            if (LongPress != null)
+            if (LongTouch != null)
                 _longPressTimer?.Start();
 
             if (Click != null)
@@ -385,8 +382,7 @@ namespace MonoGame.PortableUI.Controls
         }
 
         internal virtual void OnMouseMove(MouseMoveEventHandlerArgs args)
-        {
-            _longPressTimer.Stop();
+        {                             
             MouseMove?.Invoke(this, args);
         }
 
