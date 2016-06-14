@@ -17,6 +17,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Content", "Content", "{AB0C11C8-D7FA-41CE-8C05-B6F747C457C4}"
 	ProjectSection(SolutionItems) = preProject
 		Content\Content.mgcb = Content\Content.mgcb
+		README.md = README.md
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleClient.iOS", "SampleClient.iOS\SampleClient.iOS.csproj", "{9273C92B-6E29-4AEC-8545-596EF07512E6}"
