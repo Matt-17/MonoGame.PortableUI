@@ -11,21 +11,21 @@ namespace MonoGame.PortableUI.Controls
         public Orientation ScrollOrientation { get; set; }
         public ScrollViewer()
         {
-            MouseLeftDown += ScrollViewer_MouseLeftDown;
-            MouseMove += ScrollViewer_MouseMove;
-            MouseLeftUp += ScrollViewer_MouseLeftUp;
+            TouchDown += ScrollViewer_MouseLeftDown;
+            TouchDown += ScrollViewer_MouseMove;
+            TouchDown += ScrollViewer_MouseLeftUp;
         }
 
-        private void ScrollViewer_MouseLeftUp(object sender, MouseButtonEventHandlerArgs args)
+        private void ScrollViewer_MouseLeftUp(object sender, TouchEventHandlerArgs args)
         {
             _mouse = null;
         }
 
-        private void ScrollViewer_MouseMove(object sender, MouseMoveEventHandlerArgs args)
+        private void ScrollViewer_MouseMove(object sender, TouchEventHandlerArgs args)
         {
             if (_mouse != null)
             {
-                var point = args.AbsolutePoint;
+                var point = args.Position;
                 var diff = point - _mouse.Value;
                 if (ScrollOrientation == Orientation.Horizontal)
                     _offset.X += diff.X;
@@ -42,9 +42,9 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
-        private void ScrollViewer_MouseLeftDown(object sender, MouseButtonEventHandlerArgs args)
+        private void ScrollViewer_MouseLeftDown(object sender, TouchEventHandlerArgs args)
         {
-            _mouse = args.AbsolutePoint;
+            _mouse = args.Position;
         }
 
         public override void UpdateLayout(Rect rect)

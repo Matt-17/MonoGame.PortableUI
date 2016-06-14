@@ -12,10 +12,10 @@ namespace MonoGame.PortableUI.Controls
         {
             _position = position;
             Content = content;
-            MouseLeftDown += FlyOut_MouseLeftDown;
+            MouseDown += FlyOutMouseDown;
         }
 
-        private void FlyOut_MouseLeftDown(object sender, Events.MouseButtonEventHandlerArgs args)
+        private void FlyOutMouseDown(object sender, Events.MouseButtonEventHandlerArgs args)
         {
             Screen.FlyOut = null;
         }

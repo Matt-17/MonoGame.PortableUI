@@ -1,7 +1,9 @@
 using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Input;
 using MonoGame.PortableUI.Common;
+using MonoGame.PortableUI.Controls.Events;
 using MonoGame.PortableUI.Controls.Input;
 using MonoGame.PortableUI.Media;
 
@@ -35,7 +37,7 @@ namespace MonoGame.PortableUI.Controls
         {
             base.OnDraw(spriteBatch, rect);
             var clientRect = rect - Margin;
-            if (LeftButtonState == ButtonStates.Pressed || TouchState == TouchStates.Touched)
+            if (MouseButtonStates[MouseButton.Left] == ButtonState.Pressed || TouchState == TouchStates.Touched)
                 PressedColor.Draw(spriteBatch, clientRect);
             else if (HoverState == HoverStates.Hovering)
                 HoverColor.Draw(spriteBatch, clientRect);
@@ -108,7 +110,7 @@ namespace MonoGame.PortableUI.Controls
             var color = TextColor;
             if (HoverState == HoverStates.Hovering && HoverTextColor != null)
                 color = (Color)HoverTextColor;
-            if ((LeftButtonState == ButtonStates.Pressed || TouchState == TouchStates.Touched) && PressedTextColor != null)
+            if ((MouseButtonStates[MouseButton.Left] == ButtonState.Pressed || TouchState == TouchStates.Touched) && PressedTextColor != null)
                 color = (Color)PressedTextColor;
             textBlock.TextColor = color;
         }
