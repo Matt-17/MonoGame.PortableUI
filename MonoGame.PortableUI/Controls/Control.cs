@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
 using Microsoft.Xna.Framework;
@@ -16,32 +15,13 @@ namespace MonoGame.PortableUI.Controls
     public abstract class Control : FrameworkElement
     {
         private readonly Timer _longPressTimer;
+
+        private Control _contextMenu;
         private float _height;
         private bool _isGone;
         private bool _isVisible;
         private FrameworkElement _parent;
         private float _width;
-
-        protected Dictionary<MouseButton, ButtonState> MouseButtonStates { get; } = new Dictionary<MouseButton, ButtonState>
-        {
-            {MouseButton.Left, ButtonState.Released},
-            {MouseButton.Middle, ButtonState.Released},
-            {MouseButton.Right, ButtonState.Released},
-        };
-
-        private Control _contextMenu;
-
-        public bool IsFocused
-        {
-            get { return ScreenEngine.FocusedControl == this; }
-            set { ScreenEngine.FocusedControl = value ? this : null; }
-        }
-
-        internal Screen Screen
-        {
-            get { return Parent as Screen ?? (Parent as Control)?.Screen; }
-
-        }
 
         protected Control()
         {
@@ -62,6 +42,24 @@ namespace MonoGame.PortableUI.Controls
             _longPressTimer.Elapsed += _longPressTimer_Elapsed;
         }
 
+        protected Dictionary<MouseButton, ButtonState> MouseButtonStates { get; } = new Dictionary<MouseButton, ButtonState>
+        {
+            {MouseButton.Left, ButtonState.Released},
+            {MouseButton.Middle, ButtonState.Released},
+            {MouseButton.Right, ButtonState.Released}
+        };
+
+        public bool IsFocused
+        {
+            get { return ScreenEngine.FocusedControl == this; }
+            set { ScreenEngine.FocusedControl = value ? this : null; }
+        }
+
+        internal Screen Screen
+        {
+            get { return Parent as Screen ?? (Parent as Control)?.Screen; }
+        }
+
         public object Tag { get; set; }
 
         public Control ContextMenu
@@ -69,22 +67,14 @@ namespace MonoGame.PortableUI.Controls
             get { return _contextMenu; }
             set
             {
-                LongTouch -= ControlLongTouch;
-                RightClick -= ControlLongTouch;
+                LongTouch -= ShowContextMenu;
+                RightClick -= ShowContextMenu;
                 _contextMenu = value;
                 if (_contextMenu == null)
                     return;
-                LongTouch += ControlLongTouch;
-                RightClick += ControlLongTouch;
+                LongTouch += ShowContextMenu;
+                RightClick += ShowContextMenu;
             }
-        }
-
-        private void ControlLongTouch(object sender, EventArgs e)
-        {
-            var boundingRect = BoundingRect - Margin;
-            var pointF = boundingRect;
-            pointF.Top -= ContextMenu.MeasureLayout().Height;
-            Screen.CreateFlyOut(pointF, ContextMenu);
         }
 
         protected HoverStates HoverState { get; set; }
@@ -169,10 +159,18 @@ namespace MonoGame.PortableUI.Controls
 
         internal PointF RenderedPosition
         {
-            get { return new PointF((int)((Position.X + Margin.Left) * ScreenEngine.ScaleFactor), (int)((Position.Y + Margin.Top) * ScreenEngine.ScaleFactor)); }
+            get { return new PointF((int) ((Position.X + Margin.Left)*ScreenEngine.ScaleFactor), (int) ((Position.Y + Margin.Top)*ScreenEngine.ScaleFactor)); }
         }
 
         internal PointF Position { get; set; }
+
+        private void ShowContextMenu(object sender, EventArgs e)
+        {
+            var boundingRect = BoundingRect - Margin;
+            var pointF = boundingRect;
+            pointF.Top -= ContextMenu.MeasureLayout().Height;
+            Screen.CreateFlyOut(pointF, ContextMenu);
+        }
 
 
         public override void InvalidateLayout(bool boundsChanged)
@@ -198,11 +196,6 @@ namespace MonoGame.PortableUI.Controls
         {
             RightClick?.Invoke(this, EventArgs.Empty);
         }
-
-        public event EventHandler Click;
-        public event EventHandler RightClick;
-        public event EventHandler LongTouch;
-        public event KeyPressedEventHandler KeyPressed;
 
         private void _longPressTimer_Elapsed(object sender, EventArgs e)
         {
@@ -237,7 +230,7 @@ namespace MonoGame.PortableUI.Controls
                     if (!Height.IsFixed() && rect.Height.IsFixed()) measuredSize.Height = rect.Height;
                     break;
                 case VerticalAlignment.Center:
-                    offset.Y += (rect.Height - measuredSize.Height) / 2;
+                    offset.Y += (rect.Height - measuredSize.Height)/2;
                     break;
                 case VerticalAlignment.Bottom:
                     offset.Y += rect.Height - measuredSize.Height;
@@ -250,7 +243,7 @@ namespace MonoGame.PortableUI.Controls
                     if (!Width.IsFixed() && rect.Width.IsFixed()) measuredSize.Width = rect.Width;
                     break;
                 case HorizontalAlignment.Center:
-                    offset.X += (rect.Width - measuredSize.Width) / 2;
+                    offset.X += (rect.Width - measuredSize.Width)/2;
                     break;
                 case HorizontalAlignment.Right:
                     offset.X += rect.Width - measuredSize.Width;
@@ -275,6 +268,11 @@ namespace MonoGame.PortableUI.Controls
             LongTouch?.Invoke(this, EventArgs.Empty);
         }
 
+        protected virtual void OnStateChanged()
+        {
+            StateChanged?.Invoke(this, EventArgs.Empty);
+        }
+
         #region Events
 
         public event MouseMoveEventHandler MouseEnter;
@@ -286,6 +284,11 @@ namespace MonoGame.PortableUI.Controls
         public event TouchEventHandler TouchUp;
         public event TouchEventHandler TouchMove;
         public event TouchEventHandler TouchCancel;
+
+        public event EventHandler Click;
+        public event EventHandler RightClick;
+        public event EventHandler LongTouch;
+        public event KeyPressedEventHandler KeyPressed;
 
         #endregion
 
@@ -399,10 +402,5 @@ namespace MonoGame.PortableUI.Controls
         }
 
         #endregion
-
-        protected virtual void OnStateChanged()
-        {
-            StateChanged?.Invoke(this, EventArgs.Empty);
-        }
     }
 }
