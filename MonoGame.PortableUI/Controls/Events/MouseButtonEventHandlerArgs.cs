@@ -1,5 +1,6 @@
 using Microsoft.Xna.Framework.Input;
 using MonoGame.PortableUI.Common;
+using MonoGame.PortableUI.Controls.Input;
 
 namespace MonoGame.PortableUI.Controls.Events
 {
@@ -13,12 +14,5 @@ namespace MonoGame.PortableUI.Controls.Events
 
         public MouseButton Button { get; set; }         
         public PointF AbsolutePoint { get; set; }
-    }
-
-    public enum MouseButton
-    {
-        Left,
-        Middle,
-        Right
     }
 }

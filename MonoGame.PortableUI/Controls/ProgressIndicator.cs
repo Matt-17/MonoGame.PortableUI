@@ -52,12 +52,12 @@ namespace MonoGame.PortableUI.Controls
 
         private void DrawRectangle(SpriteBatch spriteBatch, Rect rect, int i, int maxValue)
         {
+            var color = Foreground;
             double rad;
             var value = Precalculate(i, maxValue, out rad);
+            color.A = (byte)(value * 204 + 51);
             var size = (float)(value * (MaxSize - MinSize) + MinSize);
             var top = rect.Top + (float)((1 - Math.Abs(Math.Sin(rad))) * (rect.Height - size));
-            var color = Foreground;
-            color.A = (byte)(value * 204 + 51);
             var rectangle = new Rect(rect.Left + (rect.Width - size) / 2, top, size, size);
             new SolidColorBrush(color).Draw(spriteBatch, rectangle);
         }
