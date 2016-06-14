@@ -36,7 +36,9 @@
   <ItemGroup>
     <Compile Include="Animation\Animation.cs" />
     <Compile Include="Animation\AnimationExtension.cs" />
+    <Compile Include="Common\PointF.cs" />
     <Compile Include="Common\Rect.cs" />
+    <Compile Include="Common\SizeEx.cs" />
     <Compile Include="Common\Timer.cs" />
     <Compile Include="Controls\Events\BaseEventHandlerArgs.cs" />
     <Compile Include="Controls\Border.cs" />
@@ -52,6 +54,7 @@
     <Compile Include="Controls\ContentPresenter.cs" />
     <Compile Include="Controls\ControlCollection.cs" />
     <Compile Include="Controls\Events\CollectionChangedEventArgs.cs" />
+    <Compile Include="Controls\Input\MouseButton.cs" />
     <Compile Include="Controls\FlyOut.cs" />
     <Compile Include="Controls\Grid.cs" />
     <Compile Include="Common\HelperEx.cs" />
@@ -71,7 +74,8 @@
     <Compile Include="Controls\Events\MouseButtonEventHandlerArgs.cs" />
     <Compile Include="Controls\Events\MouseMoveEventHandler.cs" />
     <Compile Include="Controls\Events\MouseMoveEventHandlerArgs.cs" />
-    <Compile Include="Controls\Stretch.cs" />
+    <Compile Include="Common\Stretch.cs" />
+    <Compile Include="Controls\Events\ScrollWheelChangedEventHandler.cs" />
     <Compile Include="Controls\TabControl.cs" />
     <Compile Include="Controls\TabItem.cs" />
     <Compile Include="Controls\Events\TouchEventHandler.cs" />

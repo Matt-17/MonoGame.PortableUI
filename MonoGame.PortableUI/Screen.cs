@@ -9,6 +9,7 @@ using Microsoft.Xna.Framework.Input.Touch;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
 using MonoGame.PortableUI.Controls.Events;
+using MonoGame.PortableUI.Controls.Input;
 using MonoGame.PortableUI.Media;
 
 namespace MonoGame.PortableUI

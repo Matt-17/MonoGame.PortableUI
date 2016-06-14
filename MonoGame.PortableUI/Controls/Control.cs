@@ -409,6 +409,4 @@ namespace MonoGame.PortableUI.Controls
             ScrollWheelChanged?.Invoke(this, args);
         }
     }
-
-    public delegate void ScrollWheelChangedEventHandler(object sender, ScrollWheelChangedEventHandlerArgs args);
 }
