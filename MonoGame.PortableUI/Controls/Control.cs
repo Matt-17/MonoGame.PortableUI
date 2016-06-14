@@ -61,10 +61,12 @@ namespace MonoGame.PortableUI.Controls
             set
             {
                 LongTouch -= ControlLongTouch;
+                RightClick -= ControlLongTouch;
                 _contextMenu = value;
                 if (_contextMenu == null)
                     return;
                 LongTouch += ControlLongTouch;
+                RightClick += ControlLongTouch;
             }
         }
 
@@ -304,7 +306,7 @@ namespace MonoGame.PortableUI.Controls
         {
             LeftButtonState = ButtonStates.Pressed;
             MouseLeftDown?.Invoke(this, args);
-            OnStateChanged();                 
+            OnStateChanged();
             if (Click != null)
                 args.Handled = true;
         }
@@ -313,7 +315,7 @@ namespace MonoGame.PortableUI.Controls
         internal virtual void OnMouseLeftUp(MouseButtonEventHandlerArgs args)
         {
             if (LeftButtonState == ButtonStates.Pressed)
-            {                                 
+            {
                 LeftButtonState = ButtonStates.Released;
                 MouseLeftUp?.Invoke(this, args);
                 OnStateChanged();
@@ -325,25 +327,25 @@ namespace MonoGame.PortableUI.Controls
                 args.Handled = true;
         }
 
-        internal virtual void OnMouseRightDown(Point position)
+        internal virtual void OnMouseRightDown(MouseButtonEventHandlerArgs args)
         {
             RightButtonState = ButtonStates.Pressed;
-            MouseRightDown?.Invoke(this, new MouseButtonEventHandlerArgs(position));
+            MouseRightDown?.Invoke(this, args);
             OnStateChanged();
         }
 
-        internal virtual void OnMouseRightUp(Point position)
+        internal virtual void OnMouseRightUp(MouseButtonEventHandlerArgs args)
         {
 
             if (RightButtonState == ButtonStates.Pressed)
             {
                 RightButtonState = ButtonStates.Released;
-                MouseRightUp?.Invoke(this, new MouseButtonEventHandlerArgs(position));
+                MouseRightUp?.Invoke(this, args);
                 OnStateChanged();
                 OnRightClick();
             }
             else
-                MouseRightUp?.Invoke(this, new MouseButtonEventHandlerArgs(position));
+                MouseRightUp?.Invoke(this, args);
         }
 
         internal virtual void OnTouchDown(TouchEventHandlerArgs args)
@@ -382,7 +384,7 @@ namespace MonoGame.PortableUI.Controls
         }
 
         internal virtual void OnMouseMove(MouseMoveEventHandlerArgs args)
-        {                             
+        {
             MouseMove?.Invoke(this, args);
         }
 

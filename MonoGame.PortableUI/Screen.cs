@@ -183,36 +183,31 @@ namespace MonoGame.PortableUI
                 LastMousePosition = mousePosition;
             }
 
-            if (mouseState.LeftButton == ButtonState.Pressed && _mouseStates[0] != ButtonState.Pressed)
+            HandleMouseButton(mouseState.LeftButton, ButtonState.Pressed, 0, mousePosition, content, (c, a) =>
             {
-                _mouseStates[0] = ButtonState.Pressed;
-                var args = new MouseButtonEventHandlerArgs(mousePosition);
-                IterateVisualTree(content, args,
-                    (c, a) => c.BoundingRect.Contains(a.AbsolutePoint),
-                    (c, a) =>
-                    {
-                        if (c.LastMouseLeftButtonState) return;
-                        c.OnMouseLeftDown(a);
-                        c.LastMouseLeftButtonState = true;
-                    },
-                    null
-                    );
-            }
-            if (mouseState.LeftButton == ButtonState.Released && _mouseStates[0] != ButtonState.Released)
+                if (c.LastMouseLeftButtonState) return;
+                c.OnMouseLeftDown(a);
+                c.LastMouseLeftButtonState = true;
+            });
+            HandleMouseButton(mouseState.LeftButton, ButtonState.Released, 0, mousePosition, content, (c, a) =>
             {
-                _mouseStates[0] = ButtonState.Released;
-                var args = new MouseButtonEventHandlerArgs(mousePosition);
-                IterateVisualTree(content, args,
-                    (c, a) => c.BoundingRect.Contains(a.AbsolutePoint),
-                    (c, a) =>
-                    {
-                        if (!c.LastMouseLeftButtonState) return;
-                        c.OnMouseLeftUp(a);
-                        c.LastMouseLeftButtonState = false;
-                    },
-                    null
-                    );
-            }
+                if (!c.LastMouseLeftButtonState) return;
+                c.OnMouseLeftUp(a);
+                c.LastMouseLeftButtonState = false;
+            });
+            HandleMouseButton(mouseState.RightButton, ButtonState.Pressed, 1, mousePosition, content, (c, a) =>
+            {
+                if (c.LastMouseRightButtonState) return;
+                c.OnMouseRightDown(a);
+                c.LastMouseRightButtonState = true;
+            });
+            HandleMouseButton(mouseState.RightButton, ButtonState.Released, 1, mousePosition, content, (c, a) =>
+            {
+                if (!c.LastMouseRightButtonState) return;
+                c.OnMouseRightUp(a);
+                c.LastMouseRightButtonState = false;
+            });
+
             if (touchState.State == TouchLocationState.Pressed)
             {
                 var args = new TouchEventHandlerArgs(touchPosition);
@@ -246,6 +241,21 @@ namespace MonoGame.PortableUI
                     null
                     );
                 LastTouchPosition = touchPosition;
+            }
+        }
+
+        private void HandleMouseButton(ButtonState buttonState, ButtonState pressed, int index0, PointF mousePosition, Control content, Action<Control, MouseButtonEventHandlerArgs> action)
+        {
+            if (buttonState == pressed && _mouseStates[index0] != pressed)
+            {
+                _mouseStates[index0] = pressed;
+                var args = new MouseButtonEventHandlerArgs(mousePosition);
+
+                IterateVisualTree(content, args,
+                    (c, a) => c.BoundingRect.Contains(a.AbsolutePoint),
+                    action,
+                    null
+                    );
             }
         }
 
