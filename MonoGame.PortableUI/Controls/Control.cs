@@ -280,6 +280,7 @@ namespace MonoGame.PortableUI.Controls
         public event MouseMoveEventHandler MouseMove;
         public event MouseButtonEventHandler MouseDown;
         public event MouseButtonEventHandler MouseUp;
+        public event ScrollWheelChangedEventHandler ScrollWheelChanged;
         public event TouchEventHandler TouchDown;
         public event TouchEventHandler TouchUp;
         public event TouchEventHandler TouchMove;
@@ -402,5 +403,12 @@ namespace MonoGame.PortableUI.Controls
         }
 
         #endregion
+
+        protected internal virtual void OnScrollWheelChanged(ScrollWheelChangedEventHandlerArgs args)
+        {
+            ScrollWheelChanged?.Invoke(this, args);
+        }
     }
+
+    public delegate void ScrollWheelChangedEventHandler(object sender, ScrollWheelChangedEventHandlerArgs args);
 }

@@ -33,6 +33,7 @@ namespace MonoGame.PortableUI
 
         internal PointF LastMousePosition;
         internal PointF LastTouchPosition;
+        internal int LastScrollWheelValue;
         private FlyOut _flyOut;
 
         protected Screen()
@@ -190,6 +191,15 @@ namespace MonoGame.PortableUI
             HandleMouseButton(mouseState.RightButton, ButtonState.Released, MouseButton.Right, mousePosition, content, (c, a) => c.OnMouseUp(a));
             HandleMouseButton(mouseState.MiddleButton, ButtonState.Pressed, MouseButton.Middle, mousePosition, content, (c, a) => c.OnMouseDown(a));
             HandleMouseButton(mouseState.MiddleButton, ButtonState.Released, MouseButton.Middle, mousePosition, content, (c, a) => c.OnMouseUp(a));
+            if (mouseState.ScrollWheelValue != LastScrollWheelValue)
+            {
+                var args = new ScrollWheelChangedEventHandlerArgs(mousePosition, mouseState.ScrollWheelValue - LastScrollWheelValue);
+
+                IterateVisualTree(content, args, (c, a) => c.BoundingRect.Contains(a.Position), (c, a) => { c.OnScrollWheelChanged(a); }, null);
+
+                LastScrollWheelValue = mouseState.ScrollWheelValue;
+            }
+
 
             if (touchState.State == TouchLocationState.Pressed)
             {
@@ -255,6 +265,18 @@ namespace MonoGame.PortableUI
             }
             if (actionFunc(control, args))
                 action(control, args);
+        }
+    }
+
+    public class ScrollWheelChangedEventHandlerArgs : BaseEventHandlerArgs
+    {
+        public PointF Position { get; set; }
+        public int Delta { get; set; }
+
+        public ScrollWheelChangedEventHandlerArgs(PointF position, int delta)
+        {
+            Position = position;
+            Delta = delta;
         }
     }
 }
