@@ -2,9 +2,9 @@ using MonoGame.PortableUI.Common;
 
 namespace MonoGame.PortableUI.Controls.Events
 {
-    public class TouchEventHandlerArgs : BaseEventHandlerArgs
+    public class TouchEventArgs : BaseEventArgs
     {
-        public TouchEventHandlerArgs(PointF position)
+        public TouchEventArgs(PointF position)
         {
             Position = position;
         }

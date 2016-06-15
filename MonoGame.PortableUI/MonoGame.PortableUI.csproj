@@ -40,15 +40,15 @@
     <Compile Include="Common\Rect.cs" />
     <Compile Include="Common\SizeEx.cs" />
     <Compile Include="Common\Timer.cs" />
-    <Compile Include="Controls\Events\BaseEventHandlerArgs.cs" />
+    <Compile Include="Controls\Events\BaseEventArgs.cs" />
     <Compile Include="Controls\Border.cs" />
     <Compile Include="Controls\Button.cs" />
     <Compile Include="Controls\CheckBox.cs" />
     <Compile Include="Controls\Events\CheckedEventArgs.cs" />
     <Compile Include="Common\ColumnDefinition.cs" />
-    <Compile Include="Controls\Events\CollectionChangedEvent.cs" />
+    <Compile Include="Controls\Events\CollectionChangedEventHandler.cs" />
     <Compile Include="Controls\ComboBox.cs" />
-    <Compile Include="Controls\Events\ContentChangedEvent.cs" />
+    <Compile Include="Controls\Events\ContentChangedEventHandler.cs" />
     <Compile Include="Controls\Events\ContentChangedEventArgs.cs" />
     <Compile Include="Controls\ContentControl.cs" />
     <Compile Include="Controls\ContentPresenter.cs" />
@@ -67,17 +67,17 @@
     <Compile Include="Controls\Image.cs" />
     <Compile Include="Controls\KeyboardCommand.cs" />
     <Compile Include="Controls\Events\KeyPressedEventHandler.cs" />
-    <Compile Include="Controls\Events\KeyPressedEventHandlerArgs.cs" />
+    <Compile Include="Controls\Events\KeyPressedEventArgs.cs" />
     <Compile Include="Controls\ListBox.cs" />
     <Compile Include="Controls\Input\TouchStates.cs" />
     <Compile Include="Controls\Events\MouseEventHandler.cs" />
-    <Compile Include="Controls\Events\MouseEventHandlerArgs.cs" />
+    <Compile Include="Controls\Events\MouseEventArgs.cs" />
     <Compile Include="Common\Stretch.cs" />
     <Compile Include="Controls\Events\ScrollWheelChangedEventHandler.cs" />
     <Compile Include="Controls\TabControl.cs" />
     <Compile Include="Controls\TabItem.cs" />
     <Compile Include="Controls\Events\TouchEventHandler.cs" />
-    <Compile Include="Controls\Events\TouchEventHandlerArgs.cs" />
+    <Compile Include="Controls\Events\TouchEventArgs.cs" />
     <Compile Include="Exceptions\MultipleParentException.cs" />
     <Compile Include="Common\Orientation.cs" />
     <Compile Include="Controls\Panel.cs" />
@@ -107,7 +107,7 @@
     <Compile Include="Controls\Control.cs" />
     <Compile Include="ScreenEngine.cs" />
     <Compile Include="ScreenManager.cs" />
-    <Compile Include="Controls\Events\ScrollWheelChangedEventHandlerArgs.cs" />
+    <Compile Include="Controls\Events\ScrollWheelChangedEventArgs.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="MonoGame.Framework, Version=3.1.2.0, Culture=neutral, processorArchitecture=MSIL">

@@ -10,7 +10,7 @@ namespace MonoGame.PortableUI.Controls
     {
         private Control _content;
 
-        public event ContentChangedEvent ContentChanged;
+        public event ContentChangedEventHandler ContentChanged;
 
         protected virtual void OnContentChanged(Control newControl)
         {

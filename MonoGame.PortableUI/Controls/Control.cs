@@ -296,7 +296,7 @@ namespace MonoGame.PortableUI.Controls
 
         #region Event handlers
 
-        internal void OnMouseEnter(MouseEventHandlerArgs args)
+        internal void OnMouseEnter(MouseEventArgs args)
         {
             HoverState = HoverStates.Hovering;
             foreach (var button in MouseButtonStates.Where(x => x.Value == ButtonState.Pressed))
@@ -308,14 +308,14 @@ namespace MonoGame.PortableUI.Controls
             OnStateChanged();
         }
 
-        internal void OnMouseLeave(MouseEventHandlerArgs args)
+        internal void OnMouseLeave(MouseEventArgs args)
         {
             HoverState = HoverStates.NotHovering;
             MouseLeave?.Invoke(this, args);
             OnStateChanged();
         }
 
-        internal void OnMouseDown(MouseEventHandlerArgs args)
+        internal void OnMouseDown(MouseEventArgs args)
         {
             foreach (var button in args.Buttons)
                 MouseButtonStates[button] = ButtonState.Pressed;
@@ -326,7 +326,7 @@ namespace MonoGame.PortableUI.Controls
         }
 
 
-        internal void OnMouseUp(MouseEventHandlerArgs args)
+        internal void OnMouseUp(MouseEventArgs args)
         {
             //foreach (var button in args.Buttons)
             var changed = new List<MouseButton>();
@@ -353,7 +353,7 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
-        internal void OnTouchDown(TouchEventHandlerArgs args)
+        internal void OnTouchDown(TouchEventArgs args)
         {
             TouchState = TouchStates.Touched;
             TouchDown?.Invoke(this, args);
@@ -365,7 +365,7 @@ namespace MonoGame.PortableUI.Controls
                 args.Handled = true;
         }
 
-        internal void OnTouchUp(TouchEventHandlerArgs args)
+        internal void OnTouchUp(TouchEventArgs args)
         {
             _longPressTimer.Stop();
             if (TouchState == TouchStates.Touched)
@@ -384,17 +384,17 @@ namespace MonoGame.PortableUI.Controls
                 TouchUp?.Invoke(this, args);
         }
 
-        internal void OnTouchMove(TouchEventHandlerArgs args)
+        internal void OnTouchMove(TouchEventArgs args)
         {
             TouchMove?.Invoke(this, args);
         }
 
-        internal void OnMouseMove(MouseEventHandlerArgs args)
+        internal void OnMouseMove(MouseEventArgs args)
         {
             MouseMove?.Invoke(this, args);
         }
 
-        internal void OnTouchCancel(TouchEventHandlerArgs args)
+        internal void OnTouchCancel(TouchEventArgs args)
         {
             _longPressTimer.Stop();
             TouchState = TouchStates.Released;
@@ -404,18 +404,18 @@ namespace MonoGame.PortableUI.Controls
 
         public void OnKeyPressed(string key)
         {
-            KeyPressed?.Invoke(this, new KeyPressedEventHandlerArgs(key));
+            KeyPressed?.Invoke(this, new KeyPressedEventArgs(key));
         }
 
 
         public void OnKeyPressed(KeyboardCommand key)
         {
-            KeyPressed?.Invoke(this, new KeyPressedEventHandlerArgs(key));
+            KeyPressed?.Invoke(this, new KeyPressedEventArgs(key));
         }
 
         #endregion
 
-        protected internal virtual void OnScrollWheelChanged(ScrollWheelChangedEventHandlerArgs args)
+        protected internal virtual void OnScrollWheelChanged(ScrollWheelChangedEventArgs args)
         {
             ScrollWheelChanged?.Invoke(this, args);
         }

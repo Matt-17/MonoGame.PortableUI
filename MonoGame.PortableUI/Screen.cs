@@ -185,7 +185,7 @@ namespace MonoGame.PortableUI
                     buttons.Add(MouseButton.Right);
                 if (mouseState.MiddleButton == ButtonState.Pressed)
                     buttons.Add(MouseButton.Middle);
-                var args = new MouseEventHandlerArgs(mousePosition, buttons);
+                var args = new MouseEventArgs(mousePosition, buttons);
                 IterateVisualTree(content, args,
                     (c, a) => c.BoundingRect.Contains(a.Position) && !c.BoundingRect.Contains(LastMousePosition), (c, a) => { c.OnMouseEnter(a); }, (c, a) => c.BoundingRect.Contains(a.Position));
                 IterateVisualTree(content, args, (c, a) => c.BoundingRect.Contains(a.Position) && c.BoundingRect.Contains(LastMousePosition), (c, a) => { c.OnMouseMove(a); }, null);
@@ -201,7 +201,7 @@ namespace MonoGame.PortableUI
             HandleMouseButton(mouseState.MiddleButton, ButtonState.Released, MouseButton.Middle, mousePosition, content, (c, a) => c.OnMouseUp(a));
             if (mouseState.ScrollWheelValue != LastScrollWheelValue)
             {
-                var args = new ScrollWheelChangedEventHandlerArgs(mousePosition, mouseState.ScrollWheelValue - LastScrollWheelValue);
+                var args = new ScrollWheelChangedEventArgs(mousePosition, mouseState.ScrollWheelValue - LastScrollWheelValue);
 
                 IterateVisualTree(content, args, (c, a) => c.BoundingRect.Contains(a.Position), (c, a) => { c.OnScrollWheelChanged(a); }, null);
 
@@ -211,7 +211,7 @@ namespace MonoGame.PortableUI
 
             if (touchState.State == TouchLocationState.Pressed)
             {
-                var args = new TouchEventHandlerArgs(touchPosition);
+                var args = new TouchEventArgs(touchPosition);
                 IterateVisualTree(content, args,
                     (c, a) => c.BoundingRect.Contains(a.Position),
                     (c, a) => { c.OnTouchDown(a); },
@@ -221,7 +221,7 @@ namespace MonoGame.PortableUI
             }
             if (touchState.State == TouchLocationState.Released)
             {
-                var args = new TouchEventHandlerArgs(touchPosition);
+                var args = new TouchEventArgs(touchPosition);
                 IterateVisualTree(content, args,
                     (c, a) => c.BoundingRect.Contains(a.Position),
                     (c, a) => { c.OnTouchUp(a); },
@@ -230,7 +230,7 @@ namespace MonoGame.PortableUI
             }
             if (touchState.State == TouchLocationState.Moved && touchPosition != LastTouchPosition)
             {
-                var args = new TouchEventHandlerArgs(touchPosition);
+                var args = new TouchEventArgs(touchPosition);
                 IterateVisualTree(content, args,
                     (c, a) => c.BoundingRect.Contains(a.Position) || c.BoundingRect.Contains(LastTouchPosition),
                     (c, a) =>
@@ -246,12 +246,12 @@ namespace MonoGame.PortableUI
             }
         }
 
-        private void HandleMouseButton(ButtonState buttonState, ButtonState newState, MouseButton button, PointF position, Control control, Action<Control, MouseEventHandlerArgs> action)
+        private void HandleMouseButton(ButtonState buttonState, ButtonState newState, MouseButton button, PointF position, Control control, Action<Control, MouseEventArgs> action)
         {
             if (buttonState != newState || MouseButtonStates[button] == newState)
                 return;
             MouseButtonStates[button] = newState;
-            var args = new MouseEventHandlerArgs(position, button);
+            var args = new MouseEventArgs(position, button);
             IterateVisualTree(control, args,
                 (c, a) => c.BoundingRect.Contains(a.Position),
                 action,
@@ -259,7 +259,7 @@ namespace MonoGame.PortableUI
             );
         }
 
-        private void IterateVisualTree<T>(Control control, T args, Func<Control, T, bool> actionFunc, Action<Control, T> action, Func<Control, T, bool> treeFunc) where T : BaseEventHandlerArgs
+        private void IterateVisualTree<T>(Control control, T args, Func<Control, T, bool> actionFunc, Action<Control, T> action, Func<Control, T, bool> treeFunc) where T : BaseEventArgs
         {
             if (control.IsGone)
                 return;
