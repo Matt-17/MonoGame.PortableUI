@@ -66,6 +66,8 @@ namespace MonoGame.PortableUI.Controls
 
         public ToggleButton()
         {
+            ToggleBrush = new Color(0.3f, 0.3f, 0.3f);
+            ToggleTextColor = Color.White;
             Click += ToggleButton_Click;
         }
 

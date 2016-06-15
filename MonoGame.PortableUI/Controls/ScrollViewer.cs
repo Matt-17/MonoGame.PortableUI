@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Microsoft.Xna.Framework;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls.Events;
 
@@ -30,19 +31,13 @@ namespace MonoGame.PortableUI.Controls
             if (ScrollOrientation == Orientation.Horizontal)
             {
                 var x = _offset.X + p.X;
-                if (x < 0)
-                    x = 0;
-                if (x < -boundingRect.Width)
-                    x = -boundingRect.Width;
+                x = MathHelper.Clamp(x, -boundingRect.Width, 0);
                 _offset.X = x;
             }
             else
             {
                 var y = _offset.Y + p.Y;
-                if (y > 0)
-                    y = 0;
-                if (y < -boundingRect.Height)
-                    y = -boundingRect.Height;
+                y = MathHelper.Clamp(y, -boundingRect.Height, 0);
                 _offset.Y = y;
             }
 
