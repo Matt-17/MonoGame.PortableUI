@@ -1,6 +1,6 @@
 namespace MonoGame.PortableUI.Common
 {
-    public class ColumnDefinition
+    public class ColumnDefinition : GridDefinition
     {
         public ColumnDefinition()
         {

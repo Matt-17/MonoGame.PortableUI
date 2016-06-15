@@ -36,10 +36,13 @@
   <ItemGroup>
     <Compile Include="Animation\Animation.cs" />
     <Compile Include="Animation\AnimationExtension.cs" />
+    <Compile Include="Common\GridDefinitionList.cs" />
+    <Compile Include="Common\GridDefinition.cs" />
     <Compile Include="Common\PointF.cs" />
     <Compile Include="Common\Rect.cs" />
     <Compile Include="Common\SizeEx.cs" />
     <Compile Include="Common\Timer.cs" />
+    <Compile Include="Common\ColumnDefinitionCollection.cs" />
     <Compile Include="Controls\Events\BaseEventArgs.cs" />
     <Compile Include="Controls\Border.cs" />
     <Compile Include="Controls\Button.cs" />
@@ -74,6 +77,7 @@
     <Compile Include="Controls\Events\MouseEventArgs.cs" />
     <Compile Include="Common\Stretch.cs" />
     <Compile Include="Controls\Events\ScrollWheelChangedEventHandler.cs" />
+    <Compile Include="Common\RowDefinitionCollection.cs" />
     <Compile Include="Controls\TabControl.cs" />
     <Compile Include="Controls\TabItem.cs" />
     <Compile Include="Controls\Events\TouchEventHandler.cs" />
