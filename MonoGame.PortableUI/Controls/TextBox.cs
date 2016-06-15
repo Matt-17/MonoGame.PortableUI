@@ -30,6 +30,12 @@ namespace MonoGame.PortableUI.Controls
             CursorPosition = 0;
             CursorColor = Color.Black;
             KeyPressed += HandleKeyPressed;
+            Click += OnClick;
+        }
+
+        private void OnClick(object sender, EventArgs eventArgs)
+        {
+            ScreenEngine.FocusedControl = this;
         }
 
         private void HandleKeyPressed(object sender, KeyPressedEventHandlerArgs args)
@@ -83,12 +89,6 @@ namespace MonoGame.PortableUI.Controls
             var x = rect.Left+measuredText.X;
             var top = (rect.Height - measuredText2.Y)/2+rect.Top;
             CursorColor.Draw(spriteBatch, new Rect(x, top, 1, measuredText2.Y));      
-        }
-
-        public override void OnClick()
-        {
-            base.OnClick();
-            ScreenEngine.FocusedControl = this;
         }
     }
 }
