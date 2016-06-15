@@ -15,27 +15,27 @@ namespace MonoGame.PortableUI.Controls
 
             if (Orientation == Orientation.Vertical)
             {
-                size.Width += Children.Max(child => child.MeasureLayout().Width);
+                size.Width += Children.Count > 0 ? Children.Max(child => child.MeasureLayout().Width) : 0;
                 size.Height += Children.Sum(child => child.MeasureLayout().Height);
             }
             else
             {
                 size.Width += Children.Sum(child => child.MeasureLayout().Width);
-                size.Height += Children.Max(child => child.MeasureLayout().Height);
+                size.Height += Children.Count > 0 ? Children.Max(child => child.MeasureLayout().Height) : 0;
             }
 
             return size;
         }
 
         public override void UpdateLayout(Rect rect)
-        {                                                   
+        {
             base.UpdateLayout(rect);
             var contentRect = BoundingRect - Margin;
 
             if (Orientation == Orientation.Vertical)
                 contentRect.Height = Size.Infinity;
             else
-                contentRect.Width = Size.Infinity;      
+                contentRect.Width = Size.Infinity;
 
             foreach (var child in Children)
             {
@@ -45,7 +45,7 @@ namespace MonoGame.PortableUI.Controls
                     contentRect.Top += child.BoundingRect.Height;
                 else
                     contentRect.Left += child.BoundingRect.Width;
-            }                                                       
+            }
         }
     }
 }
