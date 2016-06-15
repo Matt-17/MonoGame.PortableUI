@@ -5,14 +5,14 @@ using MonoGame.PortableUI.Controls.Input;
 
 namespace MonoGame.PortableUI.Controls.Events
 {
-    public class MouseEventHandlerArgs : BaseEventHandlerArgs
+    public class MouseEventArgs : BaseEventArgs
     {
-        public MouseEventHandlerArgs(PointF position, List<MouseButton> buttons)
+        public MouseEventArgs(PointF position, List<MouseButton> buttons)
         {
             Position = position;
             Buttons = buttons;
         }
-        public MouseEventHandlerArgs(PointF position, MouseButton mouseButton)
+        public MouseEventArgs(PointF position, MouseButton mouseButton)
         {
             Position = position;
             Buttons = new List<MouseButton> { mouseButton};
