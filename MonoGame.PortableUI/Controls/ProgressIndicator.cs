@@ -15,7 +15,7 @@ namespace MonoGame.PortableUI.Controls
         public ProgressIndicator()
         {
             Foreground = Color.DarkBlue;
-            Height = 50;
+            Height = 48;
             MinSize = 6;
             MaxSize = 12;
         }
@@ -32,8 +32,7 @@ namespace MonoGame.PortableUI.Controls
 
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
-            base.OnDraw(spriteBatch, rect);
-            rect -= Margin;
+            base.OnDraw(spriteBatch, rect);         
             const int maxValue = 5;
 
             var dict = new Dictionary<int, double>();

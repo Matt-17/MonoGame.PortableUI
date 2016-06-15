@@ -75,8 +75,7 @@ namespace MonoGame.PortableUI.Controls
         }
 
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
-        {
-            rect -= Margin;
+        {                    
             base.OnDraw(spriteBatch, rect);
             var offset = rect.Offset;
             offset.Y += (rect.Height - MeasuredText.Y) / 2;

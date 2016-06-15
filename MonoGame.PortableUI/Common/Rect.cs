@@ -110,7 +110,12 @@ namespace MonoGame.PortableUI.Common
         {
             return p + r;
         }
+               
+        public static Rect operator -(Rect r, PointF p)
+        {
+            return new Rect(p.X - r.Left, p.Y - r.Top, r.Width, r.Height);
 
+        }
         public Rect AtOrigin()
         {
             return new Rect(Width, Height);

@@ -36,8 +36,8 @@ namespace MonoGame.PortableUI.Controls
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
             base.OnDraw(spriteBatch, rect);
-            var clientRect = rect - Margin;
-            if (MouseButtonStates[MouseButton.Left] == ButtonState.Pressed || TouchState == TouchStates.Touched)
+            var clientRect = rect;
+            if (HoverState == HoverStates.Hovering && MouseButtonStates[MouseButton.Left] == ButtonState.Pressed || TouchState == TouchStates.Touched)
                 PressedColor.Draw(spriteBatch, clientRect);
             else if (HoverState == HoverStates.Hovering)
                 HoverColor.Draw(spriteBatch, clientRect);

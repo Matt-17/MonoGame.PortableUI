@@ -146,10 +146,10 @@ namespace MonoGame.PortableUI
 
 
             //invalidDrawing = false;
-            control.OnDraw(spriteBatch, control.BoundingRect);
+            control.OnDraw(spriteBatch, control.ClippingRect);
 
             var oldRect = new Rect(spriteBatch.GraphicsDevice.ScissorRectangle);
-            spriteBatch.GraphicsDevice.ScissorRectangle = oldRect ^ control.BoundingRect;
+            spriteBatch.GraphicsDevice.ScissorRectangle = oldRect ^ control.ClippingRect;
             foreach (var c in control.GetDescendants())
             {
                 DrawControl(spriteBatch, c);
@@ -178,11 +178,18 @@ namespace MonoGame.PortableUI
             var content = FlyOut ?? Content;
             if (mousePosition != LastMousePosition)
             {
-                var args = new MouseMoveEventHandlerArgs(LastMousePosition, mousePosition);
+                List<MouseButton> buttons = new List<MouseButton>();
+                if (mouseState.LeftButton == ButtonState.Pressed)
+                    buttons.Add(MouseButton.Left);
+                if (mouseState.RightButton == ButtonState.Pressed)
+                    buttons.Add(MouseButton.Right);
+                if (mouseState.MiddleButton == ButtonState.Pressed)
+                    buttons.Add(MouseButton.Middle);
+                var args = new MouseEventHandlerArgs(mousePosition, buttons);
                 IterateVisualTree(content, args,
-                    (c, a) => c.BoundingRect.Contains(a.AbsolutePoint) && !c.BoundingRect.Contains(a.OldPoint), (c, a) => { c.OnMouseEnter(a); }, (c, a) => c.BoundingRect.Contains(a.AbsolutePoint));
-                IterateVisualTree(content, args, (c, a) => c.BoundingRect.Contains(a.AbsolutePoint) && c.BoundingRect.Contains(a.OldPoint), (c, a) => { c.OnMouseMove(a); }, null);
-                IterateVisualTree(content, args, (c, a) => !c.BoundingRect.Contains(a.AbsolutePoint) && c.BoundingRect.Contains(a.OldPoint), (c, a) => { c.OnMouseLeave(a); }, (c, a) => c.BoundingRect.Contains(a.OldPoint));
+                    (c, a) => c.BoundingRect.Contains(a.Position) && !c.BoundingRect.Contains(LastMousePosition), (c, a) => { c.OnMouseEnter(a); }, (c, a) => c.BoundingRect.Contains(a.Position));
+                IterateVisualTree(content, args, (c, a) => c.BoundingRect.Contains(a.Position) && c.BoundingRect.Contains(LastMousePosition), (c, a) => { c.OnMouseMove(a); }, null);
+                IterateVisualTree(content, args, (c, a) => !c.BoundingRect.Contains(a.Position) && c.BoundingRect.Contains(LastMousePosition), (c, a) => { c.OnMouseLeave(a); }, (c, a) => c.BoundingRect.Contains(LastMousePosition));
                 LastMousePosition = mousePosition;
             }
 
@@ -238,14 +245,14 @@ namespace MonoGame.PortableUI
             }
         }
 
-        private void HandleMouseButton(ButtonState buttonState, ButtonState newState, MouseButton button, PointF position, Control control, Action<Control, MouseButtonEventHandlerArgs> action)
+        private void HandleMouseButton(ButtonState buttonState, ButtonState newState, MouseButton button, PointF position, Control control, Action<Control, MouseEventHandlerArgs> action)
         {
             if (buttonState != newState || MouseButtonStates[button] == newState)
                 return;
             MouseButtonStates[button] = newState;
-            var args = new MouseButtonEventHandlerArgs(position, button);
+            var args = new MouseEventHandlerArgs(position, button);
             IterateVisualTree(control, args,
-                (c, a) => c.BoundingRect.Contains(a.AbsolutePoint),
+                (c, a) => c.BoundingRect.Contains(a.Position),
                 action,
                 null
             );
