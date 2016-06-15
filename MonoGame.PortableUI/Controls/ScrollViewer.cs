@@ -1,4 +1,4 @@
-using Microsoft.Xna.Framework;
+using System.Diagnostics;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls.Events;
 
@@ -6,7 +6,7 @@ namespace MonoGame.PortableUI.Controls
 {
     public class ScrollViewer : ContentControl
     {
-        private Point? _mouse;
+        private PointF? _mouse;
         private PointF _offset;
         public Orientation ScrollOrientation { get; set; }
         public ScrollViewer()
@@ -19,19 +19,51 @@ namespace MonoGame.PortableUI.Controls
 
         private void ScrollViewer_ScrollWheelChanged(object sender, ScrollWheelChangedEventHandlerArgs args)
         {
-            var d = args.Delta/50;
-            if (ScrollOrientation == Orientation.Horizontal)
-                _offset.X += d;
-            else
-                _offset.Y += d;
+            var d = args.Delta / 10f;
+            UpdatePosition(new PointF(d, d));
+        }
 
+        private void UpdatePosition(PointF p)
+        {
             var boundingRect = Content.BoundingRect;
-            boundingRect.Offset = _offset;
+            boundingRect.Offset -= _offset;
+            if (ScrollOrientation == Orientation.Horizontal)
+            {
+                var x = _offset.X + p.X;
+                if (x < 0)
+                    x = 0;
+                if (x < -boundingRect.Width)
+                    x = -boundingRect.Width;
+                _offset.X = x;
+            }
+            else
+            {
+                var y = _offset.Y + p.Y;
+                if (y > 0)
+                    y = 0;
+                if (y < -boundingRect.Height)
+                    y = -boundingRect.Height;
+                _offset.Y = y;
+            }
+
+            Debug.WriteLine($"{_offset}");
+
+            boundingRect.Offset += _offset;
             if (ScrollOrientation == Orientation.Horizontal)
                 boundingRect.Width = Size.Infinity;
             else
                 boundingRect.Height = Size.Infinity;
             Content.UpdateLayout(boundingRect);
+        }
+
+        public override void UpdateLayout(Rect rect)
+        {
+        //    var boundingRect = Content.BoundingRect;
+            //boundingRect.Offset -= _offset;
+            base.UpdateLayout(rect);
+            //boundingRect.Offset += _offset;
+         //   Content.UpdateLayout(rect - _offset);
+
         }
 
         private void ScrollViewer_MouseLeftUp(object sender, TouchEventHandlerArgs args)
@@ -43,32 +75,14 @@ namespace MonoGame.PortableUI.Controls
         {
             if (_mouse != null)
             {
-                var point = args.Position;
-                var diff = point - _mouse.Value;
-                if (ScrollOrientation == Orientation.Horizontal)
-                    _offset.X += diff.X;
-                else
-                    _offset.Y += diff.Y;
-                var boundingRect = Content.BoundingRect;
-                boundingRect.Offset = _offset;
-                if (ScrollOrientation == Orientation.Horizontal)
-                    boundingRect.Width = Size.Infinity;
-                else
-                    boundingRect.Height = Size.Infinity;
-                Content.UpdateLayout(boundingRect);
-                _mouse = point;
+                UpdatePosition(args.Position - _mouse.Value);
+                _mouse = args.Position;
             }
         }
 
         private void ScrollViewer_MouseLeftDown(object sender, TouchEventHandlerArgs args)
         {
             _mouse = args.Position;
-        }
-
-        public override void UpdateLayout(Rect rect)
-        {
-            base.UpdateLayout(rect);
-            _offset = Content.BoundingRect.Offset;
         }
     }
 }

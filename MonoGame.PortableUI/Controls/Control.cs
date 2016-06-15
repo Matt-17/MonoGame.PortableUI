@@ -159,7 +159,7 @@ namespace MonoGame.PortableUI.Controls
 
         internal PointF RenderedPosition
         {
-            get { return new PointF((int) ((Position.X + Margin.Left)*ScreenEngine.ScaleFactor), (int) ((Position.Y + Margin.Top)*ScreenEngine.ScaleFactor)); }
+            get { return new PointF((int)((Position.X + Margin.Left) * ScreenEngine.ScaleFactor), (int)((Position.Y + Margin.Top) * ScreenEngine.ScaleFactor)); }
         }
 
         internal PointF Position { get; set; }
@@ -207,7 +207,7 @@ namespace MonoGame.PortableUI.Controls
 
         protected internal virtual void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
-            BackgroundBrush?.Draw(spriteBatch, rect - Margin);
+            BackgroundBrush?.Draw(spriteBatch, rect);
         }
 
 
@@ -220,6 +220,7 @@ namespace MonoGame.PortableUI.Controls
             var offset = rect.Offset;
 
             BoundingRect = GetRectForAlignment(rect, measuredSize, offset);
+            ClippingRect = BoundingRect - Margin;
         }
 
         protected Rect GetRectForAlignment(Rect rect, Size measuredSize, PointF offset)
@@ -230,7 +231,7 @@ namespace MonoGame.PortableUI.Controls
                     if (!Height.IsFixed() && rect.Height.IsFixed()) measuredSize.Height = rect.Height;
                     break;
                 case VerticalAlignment.Center:
-                    offset.Y += (rect.Height - measuredSize.Height)/2;
+                    offset.Y += (rect.Height - measuredSize.Height) / 2;
                     break;
                 case VerticalAlignment.Bottom:
                     offset.Y += rect.Height - measuredSize.Height;
@@ -243,7 +244,7 @@ namespace MonoGame.PortableUI.Controls
                     if (!Width.IsFixed() && rect.Width.IsFixed()) measuredSize.Width = rect.Width;
                     break;
                 case HorizontalAlignment.Center:
-                    offset.X += (rect.Width - measuredSize.Width)/2;
+                    offset.X += (rect.Width - measuredSize.Width) / 2;
                     break;
                 case HorizontalAlignment.Right:
                     offset.X += rect.Width - measuredSize.Width;
@@ -275,11 +276,11 @@ namespace MonoGame.PortableUI.Controls
 
         #region Events
 
-        public event MouseMoveEventHandler MouseEnter;
-        public event MouseMoveEventHandler MouseLeave;
-        public event MouseMoveEventHandler MouseMove;
-        public event MouseButtonEventHandler MouseDown;
-        public event MouseButtonEventHandler MouseUp;
+        public event MouseEventHandler MouseEnter;
+        public event MouseEventHandler MouseLeave;
+        public event MouseEventHandler MouseMove;
+        public event MouseEventHandler MouseDown;
+        public event MouseEventHandler MouseUp;
         public event ScrollWheelChangedEventHandler ScrollWheelChanged;
         public event TouchEventHandler TouchDown;
         public event TouchEventHandler TouchUp;
@@ -295,52 +296,61 @@ namespace MonoGame.PortableUI.Controls
 
         #region Event handlers
 
-        internal void OnMouseEnter(MouseMoveEventHandlerArgs args)
+        internal void OnMouseEnter(MouseEventHandlerArgs args)
         {
             HoverState = HoverStates.Hovering;
+            foreach (var button in MouseButtonStates.Where(x => x.Value == ButtonState.Pressed))
+            {
+                if (!args.Buttons.Contains(button.Key))
+                    MouseButtonStates[button.Key] = ButtonState.Released;
+            }
             MouseEnter?.Invoke(this, args);
             OnStateChanged();
         }
 
-        internal void OnMouseLeave(MouseMoveEventHandlerArgs args)
+        internal void OnMouseLeave(MouseEventHandlerArgs args)
         {
             HoverState = HoverStates.NotHovering;
             MouseLeave?.Invoke(this, args);
             OnStateChanged();
         }
 
-        internal void OnMouseDown(MouseButtonEventHandlerArgs args)
+        internal void OnMouseDown(MouseEventHandlerArgs args)
         {
-            MouseButtonStates[args.Button] = ButtonState.Pressed;
-            Debug.WriteLine("Pressed");
+            foreach (var button in args.Buttons)
+                MouseButtonStates[button] = ButtonState.Pressed;
             MouseDown?.Invoke(this, args);
             OnStateChanged();
-            if ((Click != null && args.Button == MouseButton.Left) || (RightClick != null && args.Button == MouseButton.Right))
+            if ((Click != null && args.Buttons.Contains(MouseButton.Left)) || (RightClick != null && args.Buttons.Contains(MouseButton.Right)))
                 args.Handled = true;
         }
 
 
-        internal void OnMouseUp(MouseButtonEventHandlerArgs args)
+        internal void OnMouseUp(MouseEventHandlerArgs args)
         {
-            Debug.WriteLine("Released");
-            if (MouseButtonStates[args.Button] == ButtonState.Pressed)
+            //foreach (var button in args.Buttons)
+            var changed = new List<MouseButton>();
+            foreach (var button in args.Buttons)
             {
-                MouseButtonStates[args.Button] = ButtonState.Released;
-                MouseUp?.Invoke(this, args);
-                OnStateChanged();
-                if (Click != null && args.Button == MouseButton.Left)
+                if (MouseButtonStates[button] == ButtonState.Pressed)
                 {
-                    OnClick();
-                    args.Handled = true;
+                    MouseButtonStates[button] = ButtonState.Released;
+                    changed.Add(button);
                 }
-                if (RightClick != null && args.Button == MouseButton.Right)
-                {
-                    OnRightClick();
-                    args.Handled = true;
-                }
+
             }
-            else
-                MouseUp?.Invoke(this, args);
+            MouseUp?.Invoke(this, args);
+            OnStateChanged();
+            if (Click != null && changed.Contains(MouseButton.Left))
+            {
+                OnClick();
+                args.Handled = true;
+            }
+            if (RightClick != null && changed.Contains(MouseButton.Right))
+            {
+                OnRightClick();
+                args.Handled = true;
+            }
         }
 
         internal void OnTouchDown(TouchEventHandlerArgs args)
@@ -378,7 +388,7 @@ namespace MonoGame.PortableUI.Controls
             TouchMove?.Invoke(this, args);
         }
 
-        internal void OnMouseMove(MouseMoveEventHandlerArgs args)
+        internal void OnMouseMove(MouseEventHandlerArgs args)
         {
             MouseMove?.Invoke(this, args);
         }

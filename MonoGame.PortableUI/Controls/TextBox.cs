@@ -77,15 +77,12 @@ namespace MonoGame.PortableUI.Controls
                 return;
 
             if (ScreenManager.Time.Milliseconds > 500)
-                return;
-
-            rect -= Margin;
+                return;         
             var measuredText = Font.MeasureString(Text.Substring(0, CursorPosition));
             var measuredText2= Font.MeasureString("abcdefghiojklmyfLMH");
             var x = rect.Left+measuredText.X;
             var top = (rect.Height - measuredText2.Y)/2+rect.Top;
-            CursorColor.Draw(spriteBatch, new Rect(x, top, 1, measuredText2.Y));
-
+            CursorColor.Draw(spriteBatch, new Rect(x, top, 1, measuredText2.Y));      
         }
 
         public override void OnClick()

@@ -15,7 +15,7 @@ namespace MonoGame.PortableUI.Controls
             MouseDown += FlyOutMouseDown;
         }
 
-        private void FlyOutMouseDown(object sender, Events.MouseButtonEventHandlerArgs args)
+        private void FlyOutMouseDown(object sender, Events.MouseEventHandlerArgs args)
         {
             Screen.FlyOut = null;
         }

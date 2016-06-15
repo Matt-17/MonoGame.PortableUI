@@ -70,10 +70,8 @@
     <Compile Include="Controls\Events\KeyPressedEventHandlerArgs.cs" />
     <Compile Include="Controls\ListBox.cs" />
     <Compile Include="Controls\Input\TouchStates.cs" />
-    <Compile Include="Controls\Events\MouseButtonEventHandler.cs" />
-    <Compile Include="Controls\Events\MouseButtonEventHandlerArgs.cs" />
-    <Compile Include="Controls\Events\MouseMoveEventHandler.cs" />
-    <Compile Include="Controls\Events\MouseMoveEventHandlerArgs.cs" />
+    <Compile Include="Controls\Events\MouseEventHandler.cs" />
+    <Compile Include="Controls\Events\MouseEventHandlerArgs.cs" />
     <Compile Include="Common\Stretch.cs" />
     <Compile Include="Controls\Events\ScrollWheelChangedEventHandler.cs" />
     <Compile Include="Controls\TabControl.cs" />

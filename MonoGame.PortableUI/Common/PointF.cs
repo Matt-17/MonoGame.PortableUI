@@ -12,14 +12,14 @@ namespace MonoGame.PortableUI.Common
         public override bool Equals(object obj)
         {
             if (ReferenceEquals(null, obj)) return false;
-            return obj is PointF && Equals((PointF) obj);
+            return obj is PointF && Equals((PointF)obj);
         }
 
         public override int GetHashCode()
         {
             unchecked
             {
-                return (X.GetHashCode()*397) ^ Y.GetHashCode();
+                return (X.GetHashCode() * 397) ^ Y.GetHashCode();
             }
         }
 
@@ -51,6 +51,16 @@ namespace MonoGame.PortableUI.Common
             return new PointF((int)X, (int)Y);
         }
 
+
+        public static PointF operator +(PointF p1, PointF p2)
+        {
+            return new PointF(p1.X + p2.X, p1.Y + p2.Y);
+        }
+
+        public static PointF operator -(PointF p1, PointF p2)
+        {
+            return new PointF(p1.X - p2.X, p1.Y - p2.Y);
+        }
         public static bool operator ==(PointF r1, PointF r2)
         {
             return r1.Equals(r2);
@@ -61,5 +71,9 @@ namespace MonoGame.PortableUI.Common
             return !(r1 == r2);
         }
 
+        public override string ToString()
+        {
+            return $"X: {X}, Y: {Y}";
+        }
     }
 }

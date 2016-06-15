@@ -25,7 +25,7 @@ namespace MonoGame.PortableUI.Controls
                 return;
 
             if (TintColor != Color.Transparent)
-                spriteBatch.Draw(Source, destinationRectangle: rect, color: TintColor);
+                spriteBatch.Draw(Source, rect, TintColor);
             else
                 spriteBatch.Draw(Source, destinationRectangle: rect);
         }
@@ -39,14 +39,13 @@ namespace MonoGame.PortableUI.Controls
             var offset = rect.Offset;
             
             BoundingRect = GetRectForAlignment(rect, measuredSize, offset);
+            ClippingRect = BoundingRect - Margin;
         }
 
         private Size GetImageSize(Rect rect)
         {
             if (Source == null)
-                return Size.Empty;
-
-            rect -= Margin;
+                return Size.Empty;    
 
             var widthGap = rect.Width / Source.Width;
             var heightGap = rect.Height / Source.Height;
