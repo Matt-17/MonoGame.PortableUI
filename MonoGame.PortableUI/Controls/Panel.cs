@@ -17,6 +17,11 @@ namespace MonoGame.PortableUI.Controls
         }
 
 
+        public void AddChild(Control control)
+        {
+            Children.Add(control);
+        }
+
         protected Panel()
         {
             _children = new ControlCollection(this);
