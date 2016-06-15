@@ -47,7 +47,7 @@ namespace MonoGame.PortableUI.Controls
                     CursorPosition += args.Key.Length;
                     break;
                 case KeyboardCommand.Backspace:
-                    if (Text.Length > 0)
+                    if (Text.Length > 0 && CursorPosition > 0)
                     {
                         CursorPosition--;
                         Text = Text.Remove(CursorPosition, 1);
