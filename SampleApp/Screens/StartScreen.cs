@@ -15,8 +15,8 @@ namespace SampleApp.Screens
     {
         public StartScreen()
         {
-            var contextMenu = new Grid { Height = 50, Width = 50, BackgroundBrush = Color.MediumVioletRed};
-            var child = new Button {Text = "Tt"};
+            var contextMenu = new Grid { Height = 50, Width = 50, BackgroundBrush = Color.MediumVioletRed };
+            var child = new Button { Text = "Tt" };
             child.Click += Button_Click;
             contextMenu.AddChild(child);
             var button = new Button
@@ -59,18 +59,18 @@ namespace SampleApp.Screens
             var grid = new Grid()
             {
                 BackgroundBrush = Color.DarkOrange,
-                ColumnDefinitions = new List<ColumnDefinition>
+                ColumnDefinitions =
                 {
                     new ColumnDefinition { Width = new GridLength(2, GridLengthUnit.Relative)},
-                    new ColumnDefinition(),
+                    new ColumnDefinition { Width = GridLength.Auto},
                     new ColumnDefinition { Width = new GridLength(20)},
                 },
-                RowDefinitions = new List<RowDefinition>
+                RowDefinitions =
                 {
                     new RowDefinition(),
                     new RowDefinition(),
                     new RowDefinition { Height = new GridLength(30)},
-                    new RowDefinition { Height = new GridLength(3.5f, GridLengthUnit.Relative) }
+                    new RowDefinition { Height = GridLength.Auto }
                 },
                 Width = 140,
                 Height = 140
@@ -92,13 +92,15 @@ namespace SampleApp.Screens
 
             };
 
-            grid.AddChild(new Border()
+            grid.AddChild(new Border
             {
                 BorderColor = Color.Lime,
                 BackgroundBrush = Color.LimeGreen,
-                BorderWidth = new Thickness(5)
+                BorderWidth = new Thickness(5),
+                Width = 45,
+                Height = 45,
             }, 3, 1);
-            grid.AddChild(new Border()
+            grid.AddChild(new Border
             {
                 BackgroundBrush = Color.LimeGreen,
             }, 2, 2);
