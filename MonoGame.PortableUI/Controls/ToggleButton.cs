@@ -24,7 +24,7 @@ namespace MonoGame.PortableUI.Controls
                 if (_backgroundColor == null)
                     _backgroundColor = BackgroundBrush;
                 BackgroundBrush = IsChecked ? ToggleBrush : _backgroundColor;
-                OnStateChanged();
+                ChangeVisualState();
                 InvalidateLayout(false);
             }
         }
@@ -35,14 +35,14 @@ namespace MonoGame.PortableUI.Controls
             set
             {
                 _toggleBrush = value;
-                OnStateChanged();
+                ChangeVisualState();
                 InvalidateLayout(false);
             }
         }
 
-        protected override void OnStateChanged()
+        internal override void ChangeVisualState()
         {
-            base.OnStateChanged();
+            base.ChangeVisualState();
             if (IsChecked)
             {
                 var textBlock = Content as TextBlock;
@@ -57,7 +57,7 @@ namespace MonoGame.PortableUI.Controls
             set
             {
                 _toggleTextColor = value;
-                OnStateChanged();
+                ChangeVisualState();
                 InvalidateLayout(false);
             }
         }
@@ -75,7 +75,7 @@ namespace MonoGame.PortableUI.Controls
         {
             IsChecked = !IsChecked;
             OnChecked(IsChecked);
-            OnStateChanged();
+            ChangeVisualState();
         }
 
         protected virtual void OnChecked(bool e)

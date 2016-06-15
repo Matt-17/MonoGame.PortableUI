@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -183,8 +182,6 @@ namespace MonoGame.PortableUI.Controls
             return Enumerable.Empty<Control>();
         }
 
-        public event EventHandler StateChanged;
-
         public virtual void OnClick()
         {
             //if (this is TextBox)
@@ -201,7 +198,7 @@ namespace MonoGame.PortableUI.Controls
         {
             _longPressTimer?.Stop();
             TouchState = TouchStates.Released;
-            OnStateChanged();
+            ChangeVisualState();
             LongTouch?.Invoke(this, EventArgs.Empty);
         }
 
@@ -269,9 +266,8 @@ namespace MonoGame.PortableUI.Controls
             LongTouch?.Invoke(this, EventArgs.Empty);
         }
 
-        protected virtual void OnStateChanged()
+        internal virtual void ChangeVisualState()
         {
-            StateChanged?.Invoke(this, EventArgs.Empty);
         }
 
         #region Events
@@ -305,14 +301,14 @@ namespace MonoGame.PortableUI.Controls
                     MouseButtonStates[button.Key] = ButtonState.Released;
             }
             MouseEnter?.Invoke(this, args);
-            OnStateChanged();
+            ChangeVisualState();
         }
 
         internal void OnMouseLeave(MouseEventArgs args)
         {
             HoverState = HoverStates.NotHovering;
             MouseLeave?.Invoke(this, args);
-            OnStateChanged();
+            ChangeVisualState();
         }
 
         internal void OnMouseDown(MouseEventArgs args)
@@ -320,7 +316,7 @@ namespace MonoGame.PortableUI.Controls
             foreach (var button in args.Buttons)
                 MouseButtonStates[button] = ButtonState.Pressed;
             MouseDown?.Invoke(this, args);
-            OnStateChanged();
+            ChangeVisualState();
             if ((Click != null && args.Buttons.Contains(MouseButton.Left)) || (RightClick != null && args.Buttons.Contains(MouseButton.Right)))
                 args.Handled = true;
         }
@@ -340,7 +336,7 @@ namespace MonoGame.PortableUI.Controls
 
             }
             MouseUp?.Invoke(this, args);
-            OnStateChanged();
+            ChangeVisualState();
             if (Click != null && changed.Contains(MouseButton.Left))
             {
                 OnClick();
@@ -357,7 +353,7 @@ namespace MonoGame.PortableUI.Controls
         {
             TouchState = TouchStates.Touched;
             TouchDown?.Invoke(this, args);
-            OnStateChanged();
+            ChangeVisualState();
             if (LongTouch != null)
                 _longPressTimer?.Start();
 
@@ -372,7 +368,7 @@ namespace MonoGame.PortableUI.Controls
             {
                 TouchState = TouchStates.Released;
                 TouchUp?.Invoke(this, args);
-                OnStateChanged();
+                ChangeVisualState();
 
                 if (Click != null)
                 {
@@ -399,7 +395,7 @@ namespace MonoGame.PortableUI.Controls
             _longPressTimer.Stop();
             TouchState = TouchStates.Released;
             TouchCancel?.Invoke(this, args);
-            OnStateChanged();
+            ChangeVisualState();
         }
 
         public void OnKeyPressed(string key)
@@ -419,5 +415,10 @@ namespace MonoGame.PortableUI.Controls
         {
             ScrollWheelChanged?.Invoke(this, args);
         }
+    }
+
+    public static class VisualTreeHelper
+    {
+
     }
 }

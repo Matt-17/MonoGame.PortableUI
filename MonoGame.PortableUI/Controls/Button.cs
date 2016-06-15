@@ -21,7 +21,6 @@ namespace MonoGame.PortableUI.Controls
 
         public Button()
         {
-            StateChanged += OnStateChanged;
             Padding = new Thickness(8);
             BackgroundBrush = Color.White;
             HoverColor = new Color(0, 0, 0, 0.2f);
@@ -74,7 +73,7 @@ namespace MonoGame.PortableUI.Controls
             set
             {
                 _textColor = value;
-                OnStateChanged();
+                ChangeVisualState();
                 InvalidateLayout(false);
             }
         }
@@ -85,7 +84,7 @@ namespace MonoGame.PortableUI.Controls
             set
             {
                 _pressedTextColor = value;
-                OnStateChanged();
+                ChangeVisualState();
                 InvalidateLayout(false);
             }
         }
@@ -96,12 +95,12 @@ namespace MonoGame.PortableUI.Controls
             set
             {
                 _hoverTextColor = value;
-                OnStateChanged();       
+                ChangeVisualState();       
                 InvalidateLayout(false);
             }
         }
 
-        protected virtual void OnStateChanged(object sender, EventArgs eventArgs)
+        internal override void ChangeVisualState()
         {
             var textBlock = Content as TextBlock;
             if (textBlock == null)

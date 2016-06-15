@@ -27,10 +27,14 @@ namespace MonoGame.PortableUI.Controls
 
         public TextBox()
         {
+            BackgroundBrush = Color.White;
             CursorPosition = 0;
             CursorColor = Color.Black;
             KeyPressed += HandleKeyPressed;
             Click += OnClick;
+            Height = 28;
+            Text = "TextBox1";
+
         }
 
         private void OnClick(object sender, EventArgs eventArgs)
@@ -64,6 +68,7 @@ namespace MonoGame.PortableUI.Controls
                     if (CursorPosition < Text.Length)
                         CursorPosition++;
                     break;
+
                 case KeyboardCommand.CursorUp:
                     //TODO cursor up handling
                     break;
@@ -83,12 +88,12 @@ namespace MonoGame.PortableUI.Controls
                 return;
 
             if (ScreenManager.Time.Milliseconds > 500)
-                return;         
+                return;
             var measuredText = Font.MeasureString(Text.Substring(0, CursorPosition));
-            var measuredText2= Font.MeasureString("abcdefghiojklmyfLMH");
-            var x = rect.Left+measuredText.X;
-            var top = (rect.Height - measuredText2.Y)/2+rect.Top;
-            CursorColor.Draw(spriteBatch, new Rect(x, top, 1, measuredText2.Y));      
+            var x = rect.Left + measuredText.X;
+            var height = Font.MeasureString("|").Y;
+            var top = (rect.Height - height) / 2 + rect.Top;
+            CursorColor.Draw(spriteBatch, new Rect(x, top, 1, height));
         }
     }
 }

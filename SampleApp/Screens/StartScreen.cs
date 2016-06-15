@@ -121,6 +121,7 @@ namespace SampleApp.Screens
                 Children = {
                     button2,
                     button,
+                    new TextBox(),
                     innerStackPanel,
                     new ScrollViewer() {
                         Height = 100,
