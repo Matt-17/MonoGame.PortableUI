@@ -193,7 +193,7 @@ namespace MonoGame.PortableUI
                 LastMousePosition = mousePosition;
             }
 
-            HandleMouseButton(mouseState.LeftButton, ButtonState.Pressed,  MouseButton.Left, mousePosition, content, (c, a) => c.OnMouseDown(a));
+            HandleMouseButton(mouseState.LeftButton, ButtonState.Pressed, MouseButton.Left, mousePosition, content, (c, a) => c.OnMouseDown(a));
             HandleMouseButton(mouseState.LeftButton, ButtonState.Released, MouseButton.Left, mousePosition, content, (c, a) => c.OnMouseUp(a));
             HandleMouseButton(mouseState.RightButton, ButtonState.Pressed, MouseButton.Right, mousePosition, content, (c, a) => c.OnMouseDown(a));
             HandleMouseButton(mouseState.RightButton, ButtonState.Released, MouseButton.Right, mousePosition, content, (c, a) => c.OnMouseUp(a));
@@ -217,6 +217,7 @@ namespace MonoGame.PortableUI
                     (c, a) => { c.OnTouchDown(a); },
                     null
                     );
+                LastTouchPosition = touchPosition;
             }
             if (touchState.State == TouchLocationState.Released)
             {
