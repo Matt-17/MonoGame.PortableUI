@@ -373,18 +373,19 @@ namespace MonoGame.PortableUI.Controls
                 TouchState = TouchStates.Released;
                 TouchUp?.Invoke(this, args);
                 OnStateChanged();
-                OnClick();
+
+                if (Click != null)
+                {
+                    OnClick();
+                    args.Handled = true;
+                }
             }
             else
                 TouchUp?.Invoke(this, args);
-
-            if (Click != null)
-                args.Handled = true;
         }
 
         internal void OnTouchMove(TouchEventHandlerArgs args)
         {
-            _longPressTimer.Stop();
             TouchMove?.Invoke(this, args);
         }
 

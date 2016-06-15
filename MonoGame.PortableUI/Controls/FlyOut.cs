@@ -1,6 +1,7 @@
 using System;
 using Microsoft.Xna.Framework;
 using MonoGame.PortableUI.Common;
+using MonoGame.PortableUI.Controls.Events;
 
 namespace MonoGame.PortableUI.Controls
 {
@@ -12,12 +13,8 @@ namespace MonoGame.PortableUI.Controls
         {
             _position = position;
             Content = content;
-            MouseDown += FlyOutMouseDown;
-        }
-
-        private void FlyOutMouseDown(object sender, Events.MouseEventHandlerArgs args)
-        {
-            Screen.FlyOut = null;
+            MouseDown += (sender, args) => Screen.FlyOut = null;
+            TouchDown += (sender, args) => Screen.FlyOut = null;
         }
 
         public override void UpdateLayout(Rect rect)
