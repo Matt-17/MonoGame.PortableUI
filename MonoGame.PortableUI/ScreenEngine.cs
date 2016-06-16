@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
 
@@ -9,68 +8,71 @@ namespace MonoGame.PortableUI
 {
     public class ScreenEngine
     {
-        private static ScreenManager _manager;
+        public Game Game { get; set; }
+        private readonly ScreenComponent _component;
+
+        private ScreenEngine(Game game)
+        {
+            Game = game;
+            ScreenHistory = new Stack<Screen>();
+            _component = new ScreenComponent(this, game);
+            ScaleFactor = 1;
+            Component.Initialize();
+
+        }
 
         public static float ScaleFactor { get; set; }
 
         public static Control FocusedControl { get; set; }
 
-        public static Rect? _Rect { get; set; }
+        public Rect ScreenRect { get; set; }
 
-        internal static ScreenManager Manager
+        internal ScreenComponent Component => _component;
+
+        public static DrawableGameComponent ScreenComponent
         {
             get
             {
-                if (_manager == null)
-                    throw new TypeInitializationException("ScreenManager", new ArgumentNullException());
-                return _manager;
+                if (Instance == null)
+                    throw new TypeInitializationException("ScreenEngine", new ArgumentNullException());
+                return Instance.Component;
             }
         }
 
-        public static void Initialize(Game game)
+        public static ScreenEngine Instance { get; private set; }
+
+        public static ScreenEngine Initialize(Game game)
         {
-            _manager = new ScreenManager(game);
-            if (_Rect != null)
-            {
-                _manager.Width = (int) _Rect.Value.Width;
-                _manager.Height =(int) _Rect.Value.Height ;
-                _manager.ActiveScreen?.InvalidateLayout(true);
-            }
-            game.Components.Add(Manager);
-
-
-            ScaleFactor = 1;
-
-            Manager.Initialize();
+            Instance = new ScreenEngine(game);
+            return Instance;
         }
 
 
-        public static void NavigateToScreen<T>(T screen) where T : Screen
+        public void SetScreenSize(int width, int height)
         {
-            Manager.NavigateToScreen(screen);
+            ScreenRect = new Rect(width, height);
+            ActiveScreen?.InvalidateLayout(true);
         }
 
-        public static void SetScreenSize(int width, int height)
+        public Stack<Screen> ScreenHistory { get; }
+        public Screen ActiveScreen => ScreenHistory.Count > 0 ? ScreenHistory.Peek() : null;
+
+        public void NavigateToScreen<T>(T screen) where T : Screen
         {
-            if (_manager != null)
-            {
-                _manager.Width = width;
-                _manager.Height = height;
-                _manager.ActiveScreen?.InvalidateLayout(true);
-            }
-            else
-            {
-                _Rect = new Rect(width, height);
-            }
+            screen.ScreenEngine = this;
+            ScreenHistory.Push(screen);
         }
 
-        public static void NavigateBack()
+        public void NavigateBack()
         {
-            Manager.NavigateBack();
+            var screen = Instance.ScreenHistory.Pop();
+            screen.ScreenEngine = null;
         }
 
-        public static void SetScreenSize()
+        public void Update(GameTime gameTime)
         {
+            ScreenSystem.TotalTime = gameTime.TotalGameTime;
+            ActiveScreen.Update();
         }
     }
 }

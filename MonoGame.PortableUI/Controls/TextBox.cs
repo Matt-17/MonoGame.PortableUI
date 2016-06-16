@@ -92,7 +92,7 @@ namespace MonoGame.PortableUI.Controls
             if (!IsFocused)
                 return;
 
-            if (ScreenManager.Time.Milliseconds > 500)
+            if (ScreenSystem.TotalTime.Milliseconds > 500)
                 return;
             var measuredText = Font.MeasureString(Text.Substring(0, CursorPosition));
             var x = rect.Left + measuredText.X;
@@ -104,6 +104,11 @@ namespace MonoGame.PortableUI.Controls
         protected virtual void OnTextChanged(TextChangedEventArgs args)
         {
             TextChanged?.Invoke(this, args);
+        }
+
+        public void Focus()
+        {
+            ScreenEngine.FocusedControl = this;
         }
     }
 

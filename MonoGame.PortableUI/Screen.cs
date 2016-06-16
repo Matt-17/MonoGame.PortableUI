@@ -43,10 +43,9 @@ namespace MonoGame.PortableUI
 
         public bool Initialized { get; set; }
 
-        public int Width => ScreenManager?.Width ?? 0;
-        public int Height => ScreenManager?.Height ?? 0;
+        public Rect ScreenRect => ScreenEngine?.ScreenRect ?? Rect.Empty;
 
-        internal ScreenManager ScreenManager { get; set; }
+        protected internal ScreenEngine ScreenEngine { get; set; }
 
         public Control Content
         {
@@ -80,7 +79,7 @@ namespace MonoGame.PortableUI
 
         public override void InvalidateLayout(bool boundsChanged)
         {
-            Content?.UpdateLayout(new Rect(Width, Height));
+            Content?.UpdateLayout(ScreenRect);
         }
 
         public override IEnumerable<Control> GetDescendants()
@@ -105,7 +104,7 @@ namespace MonoGame.PortableUI
             if (BackgroundBrush != null)
             {
                 spriteBatch.Begin();
-                BackgroundBrush.Draw(spriteBatch, new Rect(Width, Height));
+                BackgroundBrush.Draw(spriteBatch, ScreenRect);
                 spriteBatch.End();
             }
             spriteBatch.GraphicsDevice.ScissorRectangle = Content.BoundingRect;
@@ -125,7 +124,7 @@ namespace MonoGame.PortableUI
         internal void CreateFlyOut(Rect position, Control content)
         {
             FlyOut = new FlyOut(position, content);
-            FlyOut.UpdateLayout(new Rect(Width, Height));
+            FlyOut.UpdateLayout(ScreenRect);
         }
 
         private static void DrawControl(SpriteBatch spriteBatch, Control control)
@@ -157,7 +156,7 @@ namespace MonoGame.PortableUI
             spriteBatch.GraphicsDevice.ScissorRectangle = oldRect;
         }
 
-        internal void Update(TimeSpan elapsed)
+        internal void Update()
         {
             if (!Initialized)
             {

@@ -50,8 +50,7 @@ namespace MonoGame.PortableUI.Controls
 
         public bool IsFocused
         {
-            get { return ScreenEngine.FocusedControl == this; }
-            set { ScreenEngine.FocusedControl = value ? this : null; }
+            get { return ScreenEngine.FocusedControl == this; }          
         }
 
         internal Screen Screen
@@ -185,7 +184,7 @@ namespace MonoGame.PortableUI.Controls
         public virtual void OnClick()
         {
             //if (this is TextBox)
-            //    ScreenManager.FocusedControl = this;
+            //    ScreenEngine.FocusedControl = this;
             Click?.Invoke(this, EventArgs.Empty);
         }
 

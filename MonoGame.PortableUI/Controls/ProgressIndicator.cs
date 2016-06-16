@@ -63,7 +63,7 @@ namespace MonoGame.PortableUI.Controls
 
         private static double Precalculate(int i, int maxValue, out double rad)
         {
-            rad = ScreenManager.Time.TotalSeconds*Math.PI + Math.PI/maxValue*i;
+            rad = ScreenSystem.TotalTime.TotalSeconds*Math.PI + Math.PI/maxValue*i;
             return Math.Abs(Math.Sin(rad - Math.PI/4));
         }
     }
