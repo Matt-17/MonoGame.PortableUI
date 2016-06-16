@@ -77,7 +77,7 @@ namespace MonoGame.PortableUI.Controls
             return GetGridPosition(control).ColumnSpan;
         }
 
-        public void AddChild(Control child, int row = 0, int column = 0, int rowSpan = 0, int columnSpan = 0)
+        public void AddChild(Control child, int row = 0, int column = 0, int rowSpan = 1, int columnSpan = 1)
         {
             Children.Add(child);
             SetRow(child, row);
