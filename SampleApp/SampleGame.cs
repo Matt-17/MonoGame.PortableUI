@@ -11,6 +11,7 @@ namespace SampleApp
         private bool _invalid;
         private int _width;
         private int _height;
+        private ScreenEngine _screenEngine;
 
         public SampleGame()
         {
@@ -25,15 +26,16 @@ namespace SampleApp
 
         public new void Initialize()
         {
-            
+
         }
 
         protected override void LoadContent()
         {
             FontManager.LoadFonts(this, "Segoe");
-            ScreenEngine.Initialize(this);
-            ScreenEngine.NavigateToScreen(new StartScreen());
-            ScreenEngine.SetScreenSize(_graphics.PreferredBackBufferWidth, _graphics.PreferredBackBufferHeight);
+            _screenEngine = ScreenEngine.Initialize(this);
+            Components.Add(ScreenEngine.ScreenComponent);
+            _screenEngine.NavigateToScreen(new StartScreen());
+            _screenEngine.SetScreenSize(_graphics.PreferredBackBufferWidth, _graphics.PreferredBackBufferHeight);
         }
 
         protected override void Update(GameTime gameTime)
@@ -45,7 +47,7 @@ namespace SampleApp
                 _graphics.PreferredBackBufferWidth = _width;
                 _graphics.PreferredBackBufferHeight = _height;
                 _graphics.ApplyChanges();
-                ScreenEngine.SetScreenSize(_width, _height);
+                _screenEngine.SetScreenSize(_width, _height);
                 _invalid = false;
             }
 
