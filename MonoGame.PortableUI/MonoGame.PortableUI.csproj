@@ -41,6 +41,7 @@
     <Compile Include="Common\PointF.cs" />
     <Compile Include="Common\Rect.cs" />
     <Compile Include="Common\SizeEx.cs" />
+    <Compile Include="Common\System.cs" />
     <Compile Include="Common\Timer.cs" />
     <Compile Include="Common\ColumnDefinitionCollection.cs" />
     <Compile Include="Controls\Events\BaseEventArgs.cs" />
@@ -110,7 +111,7 @@
     <Compile Include="Controls\ToggleButton.cs" />
     <Compile Include="Controls\Control.cs" />
     <Compile Include="ScreenEngine.cs" />
-    <Compile Include="ScreenManager.cs" />
+    <Compile Include="ScreenComponent.cs" />
     <Compile Include="Controls\Events\ScrollWheelChangedEventArgs.cs" />
   </ItemGroup>
   <ItemGroup>

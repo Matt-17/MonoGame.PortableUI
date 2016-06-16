@@ -14,7 +14,7 @@ namespace MonoGame.PortableUI.Media
             {
                 if (_pixel == null)
                 {
-                    _pixel = new Texture2D(ScreenEngine.Manager.Game.GraphicsDevice, 1, 1);
+                    _pixel = new Texture2D(ScreenEngine.Instance.Game.GraphicsDevice, 1, 1);
                     _pixel.SetData(new[] { Color.White });
                 }
                 return _pixel;
