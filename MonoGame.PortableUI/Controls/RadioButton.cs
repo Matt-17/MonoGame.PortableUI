@@ -57,7 +57,7 @@ namespace MonoGame.PortableUI.Controls
             if (list.Count == 0)
                 RadioButtonDictionary.Remove(radioGroup);
         }
-
+        private bool _isSettingGroup = false;
         private static void SetGroupChecked(string radioGroup, RadioButton radioButton)
         {
             if (!RadioButtonDictionary.ContainsKey(radioGroup))
@@ -65,14 +65,17 @@ namespace MonoGame.PortableUI.Controls
             var list = RadioButtonDictionary[radioGroup];
             foreach (var button in list)
             {
+                button._isSettingGroup = true;
                 button.IsChecked = button == radioButton;
+                button._isSettingGroup = false;
             }
         }
 
         protected override void OnChecked(bool e)
         {
+            if (!_isSettingGroup)
+                RadioButton.SetGroupChecked(RadioGroup, this);
             base.OnChecked(e);
-            RadioButton.SetGroupChecked(RadioGroup, this);
         }
     }
 }

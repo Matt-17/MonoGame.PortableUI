@@ -24,8 +24,8 @@ namespace MonoGame.PortableUI.Controls
                 if (_backgroundColor == null)
                     _backgroundColor = BackgroundBrush;
                 BackgroundBrush = IsChecked ? ToggleBrush : _backgroundColor;
+                OnChecked(IsChecked);
                 ChangeVisualState();
-                InvalidateLayout(false);
             }
         }
 
@@ -57,8 +57,7 @@ namespace MonoGame.PortableUI.Controls
             set
             {
                 _toggleTextColor = value;
-                ChangeVisualState();
-                InvalidateLayout(false);
+                ChangeVisualState();      
             }
         }
 
