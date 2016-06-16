@@ -20,10 +20,17 @@ namespace MonoGame.PortableUI.Controls
             get { return base.Text; }
             set
             {
+                if (base.Text == value)
+                    return;
+                var oldText = base.Text;
                 base.Text = value;
                 CursorPosition = Math.Min(CursorPosition, Text.Length);
+                OnTextChanged(new TextChangedEventArgs(value, oldText));
             }
         }
+
+
+        public event TextChangedEventHandler TextChanged;
 
         public TextBox()
         {
@@ -33,8 +40,6 @@ namespace MonoGame.PortableUI.Controls
             KeyPressed += HandleKeyPressed;
             Click += OnClick;
             Height = 28;
-            Text = "TextBox1";
-
         }
 
         private void OnClick(object sender, EventArgs eventArgs)
@@ -94,6 +99,25 @@ namespace MonoGame.PortableUI.Controls
             var height = Font.MeasureString("|").Y;
             var top = (rect.Height - height) / 2 + rect.Top;
             CursorColor.Draw(spriteBatch, new Rect(x, top, 1, height));
+        }
+
+        protected virtual void OnTextChanged(TextChangedEventArgs args)
+        {
+            TextChanged?.Invoke(this, args);
+        }
+    }
+
+    public delegate void TextChangedEventHandler(object sender, TextChangedEventArgs args);
+
+    public class TextChangedEventArgs
+    {
+        public string NewText { get; set; }
+        public string OldText { get; set; }
+
+        public TextChangedEventArgs(string newText, string oldText)
+        {
+            NewText = newText;
+            OldText = oldText;
         }
     }
 }
