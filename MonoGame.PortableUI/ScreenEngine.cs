@@ -47,6 +47,21 @@ namespace MonoGame.PortableUI
             return Instance;
         }
 
+        public void RegisterKeyboard(string inputScope, IKeyboard keyboard)
+        {
+        }
+
+        public void UnregisterKeyboard(string inputScope)
+        {
+        }
+
+        internal void RequestKeyboard(string inputScope)
+        {
+        }
+
+        internal void HideKeyboard()
+        {
+        }
 
         public void SetScreenSize(int width, int height)
         {

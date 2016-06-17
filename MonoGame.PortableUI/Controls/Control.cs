@@ -301,7 +301,7 @@ namespace MonoGame.PortableUI.Controls
         public event EventHandler Click;
         public event EventHandler RightClick;
         public event EventHandler LongTouch;
-        public event KeyPressedEventHandler KeyPressed;
+        public event KeyEventHandler KeyPressed;
 
         #endregion
 
@@ -420,13 +420,13 @@ namespace MonoGame.PortableUI.Controls
 
         public void OnKeyPressed(string key)
         {
-            KeyPressed?.Invoke(this, new KeyPressedEventArgs(key));
+            KeyPressed?.Invoke(this, new KeyEventArgs(key));
         }
 
 
         public void OnKeyPressed(KeyboardCommand key)
         {
-            KeyPressed?.Invoke(this, new KeyPressedEventArgs(key));
+            KeyPressed?.Invoke(this, new KeyEventArgs(key));
         }
 
         #endregion

@@ -47,7 +47,7 @@ namespace MonoGame.PortableUI.Controls
             ScreenEngine.FocusedControl = this;
         }
 
-        private void HandleKeyPressed(object sender, KeyPressedEventArgs args)
+        private void HandleKeyPressed(object sender, KeyEventArgs args)
         {
             switch (args.Command)
             {

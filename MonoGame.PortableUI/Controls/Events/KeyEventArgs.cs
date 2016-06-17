@@ -1,14 +1,14 @@
 namespace MonoGame.PortableUI.Controls.Events
 {
-    public class KeyPressedEventArgs
+    public class KeyEventArgs
     {
-        public KeyPressedEventArgs(string key)
+        public KeyEventArgs(string key)
         {
             Command = KeyboardCommand.Input;
             Key = key;
         }
 
-        public KeyPressedEventArgs(KeyboardCommand command)
+        public KeyEventArgs(KeyboardCommand command)
         {
             Command = command;
         }
