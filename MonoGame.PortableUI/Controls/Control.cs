@@ -15,7 +15,7 @@ namespace MonoGame.PortableUI.Controls
     {
         private readonly Timer _longPressTimer;
 
-        private Control _contextMenu;
+        private ContextMenu _contextMenu;
         private float _height;
         private bool _isGone;
         private bool _isVisible;
@@ -50,7 +50,7 @@ namespace MonoGame.PortableUI.Controls
 
         public bool IsFocused
         {
-            get { return ScreenEngine.FocusedControl == this; }          
+            get { return ScreenEngine.FocusedControl == this; }
         }
 
         internal Screen Screen
@@ -60,7 +60,7 @@ namespace MonoGame.PortableUI.Controls
 
         public object Tag { get; set; }
 
-        public Control ContextMenu
+        public ContextMenu ContextMenu
         {
             get { return _contextMenu; }
             set
@@ -294,7 +294,7 @@ namespace MonoGame.PortableUI.Controls
         internal void OnMouseEnter(MouseEventArgs args)
         {
             HoverState = HoverStates.Hovering;
-            foreach (var button in MouseButtonStates.Where(x => x.Value == ButtonState.Pressed))
+            foreach (var button in MouseButtonStates.Where(x => x.Value == ButtonState.Pressed).ToList())
             {
                 if (!args.Buttons.Contains(button.Key))
                     MouseButtonStates[button.Key] = ButtonState.Released;
@@ -414,6 +414,20 @@ namespace MonoGame.PortableUI.Controls
         {
             ScrollWheelChanged?.Invoke(this, args);
         }
+    }
+
+    public class ContextMenu : Control
+    {
+        public MenuItemList Items { get; set; }
+    }
+
+    public class MenuItemList : List<MenuItem>
+    {
+    }
+
+    public class MenuItem : Control
+    {
+        public string Text { get; set; }
     }
 
     public static class VisualTreeHelper

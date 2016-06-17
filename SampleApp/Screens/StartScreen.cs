@@ -15,10 +15,10 @@ namespace SampleApp.Screens
     {
         public StartScreen()
         {
-            var contextMenu = new Grid { Height = 50, Width = 50, BackgroundBrush = Color.MediumVioletRed };
-            var child = new Button { Text = "Tt" };
+            var contextMenu = new ContextMenu { Height = 50, Width = 50, BackgroundBrush = Color.MediumVioletRed };
+            var child = new MenuItem { Text = "Tt" };
             child.Click += Button_Click;
-            contextMenu.AddChild(child);
+            contextMenu.Items.Add(child);
             var button = new Button
             {
                 BackgroundBrush = Color.DarkRed,
