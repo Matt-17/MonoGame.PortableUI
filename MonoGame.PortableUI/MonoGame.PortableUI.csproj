@@ -60,6 +60,7 @@
     <Compile Include="Controls\ContentPresenter.cs" />
     <Compile Include="Controls\ControlCollection.cs" />
     <Compile Include="Controls\Events\CollectionChangedEventArgs.cs" />
+    <Compile Include="Controls\IKeyboard.cs" />
     <Compile Include="Controls\Input\MouseButton.cs" />
     <Compile Include="Controls\FlyOut.cs" />
     <Compile Include="Controls\Grid.cs" />
@@ -71,9 +72,12 @@
     <Compile Include="Controls\Input\ButtonStates.cs" />
     <Compile Include="Controls\FrameworkElement.cs" />
     <Compile Include="Controls\Image.cs" />
+    <Compile Include="Controls\Key.cs" />
     <Compile Include="Controls\KeyboardCommand.cs" />
-    <Compile Include="Controls\Events\KeyPressedEventHandler.cs" />
-    <Compile Include="Controls\Events\KeyPressedEventArgs.cs" />
+    <Compile Include="Controls\Events\KeyEventHandler.cs" />
+    <Compile Include="Controls\Events\KeyEventArgs.cs" />
+    <Compile Include="Controls\KeyboardHiddenEventArgs.cs" />
+    <Compile Include="Controls\KeyboardHiddenEventHandler.cs" />
     <Compile Include="Controls\ListBox.cs" />
     <Compile Include="Controls\Input\TouchStates.cs" />
     <Compile Include="Controls\Events\MouseEventHandler.cs" />

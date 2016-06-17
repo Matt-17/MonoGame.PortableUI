@@ -117,7 +117,7 @@ namespace MonoGame.PortableUI
                 control.ResetInputs();
             }
         }
-
+        
         internal void CreateContextMenu(PointF position, ContextMenu content, bool optimizeForTouch)
         {
             FlyOut = new FlyOut(position, content.ContextMenuType == ContextMenuTypes.OpenAndHold)
