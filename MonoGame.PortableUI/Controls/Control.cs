@@ -11,14 +11,12 @@ using MonoGame.PortableUI.Exceptions;
 
 namespace MonoGame.PortableUI.Controls
 {
-    public abstract class Control : FrameworkElement
+    public abstract class Control : UIElement
     {
         private readonly Timer _longPressTimer;
 
         private ContextMenu _contextMenu;
         private float _height;
-        private bool _isGone;
-        private bool _isVisible;
         private FrameworkElement _parent;
         private float _width;
         private bool _suppressUpdate;
@@ -130,26 +128,6 @@ namespace MonoGame.PortableUI.Controls
         public Vector2 Translation { get; set; }
 
         public double Opacity { get; set; }
-
-        public bool IsVisible
-        {
-            get { return _isVisible; }
-            set
-            {
-                _isVisible = value;
-                InvalidateLayout(false);
-            }
-        }
-
-        public bool IsGone
-        {
-            get { return _isGone; }
-            set
-            {
-                _isGone = value;
-                InvalidateLayout(true);
-            }
-        }
 
         public void SuppressUpdate(bool suppress)
         {
