@@ -61,7 +61,7 @@ namespace MonoGame.PortableUI
             }
         }
 
-        internal FlyOut FlyOut
+        private FlyOut FlyOut
         {
             get { return _flyOut; }
             set

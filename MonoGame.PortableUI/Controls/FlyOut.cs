@@ -1,5 +1,4 @@
 using System;
-using Microsoft.Xna.Framework;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls.Events;
 
@@ -12,15 +11,17 @@ namespace MonoGame.PortableUI.Controls
         public FlyOut(PointF position, bool removeOnRelease)
         {
             _position = position;
+            MouseEventHandler onMouseDown = (sender, args) => Screen?.ClearFlyOut();
+            TouchEventHandler onTouchDown = (sender, args) => Screen?.ClearFlyOut();
             if (removeOnRelease)
             {
-                MouseUp += (sender, args) => { if (Screen != null) Screen.FlyOut = null; };
-                TouchUp += (sender, args) => { if (Screen != null) Screen.FlyOut = null; };
+                MouseUp += onMouseDown;
+                TouchUp += onTouchDown;
             }
             else
             {
-                MouseDown += (sender, args) => Screen.FlyOut = null;
-                TouchDown += (sender, args) => Screen.FlyOut = null;
+                MouseDown += onMouseDown;
+                TouchDown += onTouchDown;
             }
         }
 
