@@ -8,7 +8,6 @@ using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls.Events;
 using MonoGame.PortableUI.Controls.Input;
 using MonoGame.PortableUI.Exceptions;
-using MonoGame.PortableUI.Media;
 
 namespace MonoGame.PortableUI.Controls
 {
@@ -22,6 +21,7 @@ namespace MonoGame.PortableUI.Controls
         private bool _isVisible;
         private FrameworkElement _parent;
         private float _width;
+        public bool HandleTouchDownEnter { get; set; }
 
         protected Control()
         {
@@ -67,11 +67,13 @@ namespace MonoGame.PortableUI.Controls
             set
             {
                 LongTouch -= ShowContextMenuTouch;
+                MouseDown -= ShowContextMenuDown;
                 RightClick -= ShowContextMenuClick;
                 _contextMenu = value;
                 if (_contextMenu == null)
                     return;
                 LongTouch += ShowContextMenuTouch;
+                MouseDown += ShowContextMenuDown;
                 RightClick += ShowContextMenuClick;
             }
         }
@@ -164,7 +166,8 @@ namespace MonoGame.PortableUI.Controls
         internal PointF Position { get; set; }
 
         private void ShowContextMenuTouch(object sender, EventArgs e) { ShowContextMenu(true); }
-        private void ShowContextMenuClick(object sender, EventArgs e) { ShowContextMenu(false); }
+        private void ShowContextMenuClick(object sender, EventArgs args) { if (ContextMenu.ContextMenuType == ContextMenuTypes.OpenAndClick) ShowContextMenu(false); }
+        private void ShowContextMenuDown(object sender, MouseEventArgs args) { if (args.Buttons.Any(x => x == MouseButton.Right) && ContextMenu.ContextMenuType == ContextMenuTypes.OpenAndHold) ShowContextMenu(false); }
 
         private void ShowContextMenu(bool optimizeForTouch)
         {
@@ -383,6 +386,11 @@ namespace MonoGame.PortableUI.Controls
 
         internal void OnTouchMove(TouchEventArgs args)
         {
+            if (HandleTouchDownEnter)
+            {
+                TouchState = TouchStates.Touched;
+                ChangeVisualState();
+            }
             TouchMove?.Invoke(this, args);
         }
 
@@ -426,60 +434,5 @@ namespace MonoGame.PortableUI.Controls
             HoverState = HoverStates.NotHovering;
             ChangeVisualState();
         }
-    }
-
-    public class ContextMenu
-    {
-        public MenuItemList Items { get; }
-        public Brush BackgroundBrush { get; set; }
-
-        public ContextMenu()
-        {
-            Items = new MenuItemList();
-            BackgroundBrush = Color.Silver;
-        }
-
-        internal Control CreateControl(Screen screen, bool optimizeForTouch)
-        {
-            var stackPanel = new StackPanel()
-            {
-                BackgroundBrush = BackgroundBrush
-            };
-            if (optimizeForTouch)
-                stackPanel.Orientation = Orientation.Horizontal;
-            float maxWidth = 0;
-            foreach (var item in Items)
-            {
-                var button = new Button
-                {
-                    Text = item.Text,
-                    Height = optimizeForTouch ? 40 : 28,
-                };
-                button.MouseUp += (sender, args) => screen.ClearFlyOut();
-                button.TouchUp += (sender, args) => screen.ClearFlyOut();
-                button.Click += (s, e) => item.Action();
-                var width = button.MeasureLayout().Width;
-                if (width > maxWidth)
-                    maxWidth = width;
-                stackPanel.AddChild(button);
-            }
-            stackPanel.Width = maxWidth;
-            return stackPanel;
-        }
-    }
-
-    public class MenuItemList : List<MenuItem>
-    {
-    }
-
-    public class MenuItem
-    {
-        public string Text { get; set; }
-        public Action Action { get; set; }
-    }
-
-    public static class VisualTreeHelper
-    {
-
     }
 }

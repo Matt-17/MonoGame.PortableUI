@@ -44,6 +44,8 @@
     <Compile Include="Common\System.cs" />
     <Compile Include="Common\Timer.cs" />
     <Compile Include="Common\ColumnDefinitionCollection.cs" />
+    <Compile Include="Controls\ContextMenu.cs" />
+    <Compile Include="Controls\ContextMenuTypes.cs" />
     <Compile Include="Controls\Events\BaseEventArgs.cs" />
     <Compile Include="Controls\Border.cs" />
     <Compile Include="Controls\Button.cs" />
@@ -79,10 +81,15 @@
     <Compile Include="Common\Stretch.cs" />
     <Compile Include="Controls\Events\ScrollWheelChangedEventHandler.cs" />
     <Compile Include="Common\RowDefinitionCollection.cs" />
+    <Compile Include="Controls\MenuItem.cs" />
+    <Compile Include="Controls\MenuItemList.cs" />
     <Compile Include="Controls\TabControl.cs" />
     <Compile Include="Controls\TabItem.cs" />
     <Compile Include="Controls\Events\TouchEventHandler.cs" />
     <Compile Include="Controls\Events\TouchEventArgs.cs" />
+    <Compile Include="Controls\TextChangedEventArgs.cs" />
+    <Compile Include="Controls\TextChangedEventHandler.cs" />
+    <Compile Include="Controls\VisualTreeHelper.cs" />
     <Compile Include="Exceptions\MultipleParentException.cs" />
     <Compile Include="Common\Orientation.cs" />
     <Compile Include="Controls\Panel.cs" />
