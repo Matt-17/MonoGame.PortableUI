@@ -302,6 +302,11 @@ namespace MonoGame.PortableUI.Controls
         public event EventHandler RightClick;
         public event EventHandler LongTouch;
         public event KeyEventHandler KeyPressed;
+        public event KeyEventHandler KeyDown;
+        public event KeyEventHandler KeyUp;
+
+        public event GotFocusEventHandler GotFocus;
+        public event LostFocusEventHandler LostFocus;
 
         #endregion
 
@@ -444,6 +449,26 @@ namespace MonoGame.PortableUI.Controls
             MouseButtonStates[MouseButton.Right] = ButtonState.Released;
             HoverState = HoverStates.NotHovering;
             ChangeVisualState();
+        }
+
+        protected virtual void OnGotFocus(GotFocusEventArgs args)
+        {
+            GotFocus?.Invoke(this, args);
+        }
+
+        protected virtual void OnLostFocus(LostFocusEventArgs args)
+        {
+            LostFocus?.Invoke(this, args);
+        }
+
+        protected virtual void OnKeyDown(KeyEventArgs args)
+        {
+            KeyDown?.Invoke(this, args);
+        }
+
+        protected virtual void OnKeyUp(KeyEventArgs args)
+        {
+            KeyUp?.Invoke(this, args);
         }
     }
 }
