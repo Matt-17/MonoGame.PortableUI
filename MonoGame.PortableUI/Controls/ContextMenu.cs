@@ -25,7 +25,6 @@ namespace MonoGame.PortableUI.Controls
             };
             if (optimizeForTouch)
                 stackPanel.Orientation = Orientation.Horizontal;
-            float maxWidth = 0;
             foreach (var item in Items)
             {
                 var button = new Button
@@ -33,6 +32,8 @@ namespace MonoGame.PortableUI.Controls
                     Text = item.Text,
                     Height = optimizeForTouch ? 40 : 28,
                 };
+                if (!optimizeForTouch)
+                    button.TextAlignment = TextAlignment.Left;
                 button.MouseUp += (sender, args) => { screen.ClearFlyOut(); args.Handled = true; };
                 button.TouchUp += (sender, args) => { screen.ClearFlyOut(); args.Handled = true; };
                 if (ContextMenuType == ContextMenuTypes.OpenAndClick)
@@ -43,12 +44,8 @@ namespace MonoGame.PortableUI.Controls
                     button.MouseUp += (sender, args) => item.Action();
                     button.TouchUp += (sender, args) => item.Action();
                 }
-                var width = button.MeasureLayout().Width;
-                if (width > maxWidth)
-                    maxWidth = width;
                 stackPanel.AddChild(button);
             }
-            stackPanel.Width = maxWidth;
             return stackPanel;
         }
     }

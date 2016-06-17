@@ -31,6 +31,9 @@ namespace MonoGame.PortableUI.Controls
             var size = Content.MeasureLayout();
             var pos = new Rect(_position, size);
             pos.Top -= size.Height;
+            var overflow = pos.Right - Screen.ScreenRect.Width;
+            if (overflow > 0)
+                pos.Left -= overflow;
             Content.UpdateLayout(pos);
         }
 

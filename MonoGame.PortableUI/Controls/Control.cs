@@ -21,6 +21,7 @@ namespace MonoGame.PortableUI.Controls
         private bool _isVisible;
         private FrameworkElement _parent;
         private float _width;
+        private bool _suppressUpdate;
         public bool HandleTouchDownEnter { get; set; }
 
         protected Control()
@@ -150,6 +151,11 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        public void SuppressUpdate(bool suppress)
+        {
+            _suppressUpdate = suppress;
+        }
+
         public bool IsEnabled { get; set; }
 
         public HorizontalAlignment HorizontalAlignment { get; set; }
@@ -178,6 +184,8 @@ namespace MonoGame.PortableUI.Controls
 
         public override void InvalidateLayout(bool boundsChanged)
         {
+            if (_suppressUpdate)
+                return;
             Parent?.InvalidateLayout(boundsChanged);
         }
 
@@ -214,6 +222,9 @@ namespace MonoGame.PortableUI.Controls
 
         public virtual void UpdateLayout(Rect rect)
         {
+            if (_suppressUpdate)
+                return;
+
             if (IsGone)
                 BoundingRect = Rect.Empty;
 

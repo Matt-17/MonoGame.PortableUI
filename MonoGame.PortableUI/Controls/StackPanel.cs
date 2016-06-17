@@ -15,13 +15,17 @@ namespace MonoGame.PortableUI.Controls
 
             if (Orientation == Orientation.Vertical)
             {
-                size.Width += Children.Count > 0 ? Children.Max(child => child.MeasureLayout().Width) : 0;
-                size.Height += Children.Sum(child => child.MeasureLayout().Height);
+                if (!Width.IsFixed())
+                    size.Width += Children.Count > 0 ? Children.Max(child => child.MeasureLayout().Width) : 0;
+                if (!Height.IsFixed())
+                    size.Height += Children.Sum(child => child.MeasureLayout().Height);
             }
             else
             {
-                size.Width += Children.Sum(child => child.MeasureLayout().Width);
-                size.Height += Children.Count > 0 ? Children.Max(child => child.MeasureLayout().Height) : 0;
+                if (!Width.IsFixed())
+                    size.Width += Children.Sum(child => child.MeasureLayout().Width);
+                if (!Height.IsFixed())
+                    size.Height += Children.Count > 0 ? Children.Max(child => child.MeasureLayout().Height) : 0;
             }
 
             return size;
