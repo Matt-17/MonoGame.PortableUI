@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
+using MonoGame.PortableUI.Controls.Events;
 
 namespace MonoGame.PortableUI
 {
@@ -10,6 +11,7 @@ namespace MonoGame.PortableUI
     {
         public Game Game { get; set; }
         private readonly ScreenComponent _component;
+        private static Control _focusedControl;
 
         private ScreenEngine(Game game)
         {
@@ -23,7 +25,17 @@ namespace MonoGame.PortableUI
 
         public static float ScaleFactor { get; set; }
 
-        public static Control FocusedControl { get; set; }
+        public static Control FocusedControl
+        {
+            get { return _focusedControl; }
+            set
+            {
+                var oldElement = _focusedControl;
+                _focusedControl = value;
+                oldElement?.OnLostFocus(new LostFocusEventArgs(_focusedControl));
+                _focusedControl?.OnGotFocus(new GotFocusEventArgs(oldElement));
+            }
+        }
 
         public Rect ScreenRect { get; set; }
 
