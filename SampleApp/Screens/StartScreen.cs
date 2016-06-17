@@ -15,8 +15,10 @@ namespace SampleApp.Screens
     {
         public StartScreen()
         {
-            var contextMenu = new ContextMenu();
-            contextMenu.BackgroundBrush = Color.Violet;
+            var contextMenu = new ContextMenu {
+                BackgroundBrush = Color.Violet,
+                ContextMenuType = ContextMenuTypes.OpenAndHold,
+            };
             contextMenu.Items.Add(new MenuItem
             {
                 Text = "Context item 1",

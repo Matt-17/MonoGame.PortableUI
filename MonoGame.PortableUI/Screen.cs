@@ -132,7 +132,7 @@ namespace MonoGame.PortableUI
 
         internal void CreateContextMenu(PointF position, ContextMenu content, bool optimizeForTouch)
         {
-            FlyOut = new FlyOut(position)
+            FlyOut = new FlyOut(position, content.ContextMenuType == ContextMenuTypes.OpenAndHold)
             {
                 Content = content.CreateControl(this, optimizeForTouch)
             };
