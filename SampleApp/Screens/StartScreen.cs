@@ -15,25 +15,14 @@ namespace SampleApp.Screens
     {
         public StartScreen()
         {
-            var contextMenu = new ContextMenu {
+            var contextMenu = new ContextMenu
+            {
                 BackgroundBrush = Color.Violet,
                 ContextMenuType = ContextMenuTypes.OpenAndHold,
             };
-            contextMenu.Items.Add(new MenuItem
-            {
-                Text = "Context item 1",
-                Action = Button_Click
-            });
-            contextMenu.Items.Add(new MenuItem
-            {
-                Text = "Context item 2",
-                Action = Button_Click
-            });
-            contextMenu.Items.Add(new MenuItem
-            {
-                Text = "Context item 3",
-                Action = Button_Click
-            });
+            contextMenu.Items.Add(new MenuItem("Context item 1", Button_Click));
+            contextMenu.Items.Add(new MenuItem("Context item 2", Button_Click));
+            contextMenu.Items.Add(new MenuItem("Context item 3", Button_Click));
             var button = new Button
             {
                 BackgroundBrush = Color.DarkRed,
