@@ -29,6 +29,11 @@ namespace SampleApp.Screens
                 Text = "Context item 2",
                 Action = Button_Click
             });
+            contextMenu.Items.Add(new MenuItem
+            {
+                Text = "Context item 3",
+                Action = Button_Click
+            });
             var button = new Button
             {
                 BackgroundBrush = Color.DarkRed,

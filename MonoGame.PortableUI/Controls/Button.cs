@@ -18,6 +18,7 @@ namespace MonoGame.PortableUI.Controls
         private Color _textColor;
         private Color? _pressedTextColor;
         private Color? _hoverTextColor;
+        private TextAlignment _textAlignment;
 
         public Button()
         {
@@ -26,6 +27,7 @@ namespace MonoGame.PortableUI.Controls
             HoverColor = new Color(0, 0, 0, 0.2f);
             PressedColor = new Color(0, 0, 0, 0.4f);
             TextColor = Color.Black;
+            TextAlignment = TextAlignment.Center;
             //var grid = new Grid();
             //grid.AddChild(new Rect { BackgroundBrush = Color.DarkMagenta });
             //grid.AddChild(new ContentPresenter(this));
@@ -57,13 +59,31 @@ namespace MonoGame.PortableUI.Controls
             set
             {
                 var textBlock = Content as TextBlock;
-                if (textBlock == null)
+                if (textBlock == null && Content == null)
                 {
                     textBlock = new TextBlock();
-                    textBlock.TextAlignment = TextAlignment.Center;
+                    SetTextAlignment(textBlock);
                     Content = textBlock;
                 }
-                textBlock.Text = value;
+                if (textBlock != null)
+                    textBlock.Text = value;
+            }
+        }
+
+        private void SetTextAlignment(TextBlock textBlock)
+        {
+            textBlock.TextAlignment = TextAlignment;
+            switch (TextAlignment)
+            {
+                case TextAlignment.Left:
+                    textBlock.HorizontalAlignment = HorizontalAlignment.Left;
+                    break;
+                case TextAlignment.Right:
+                    textBlock.HorizontalAlignment = HorizontalAlignment.Right;
+                    break;
+                default:
+                    textBlock.HorizontalAlignment = HorizontalAlignment.Center;
+                    break;
             }
         }
 
@@ -95,8 +115,25 @@ namespace MonoGame.PortableUI.Controls
             set
             {
                 _hoverTextColor = value;
-                ChangeVisualState();       
+                ChangeVisualState();
                 InvalidateLayout(false);
+            }
+        }
+
+        public TextAlignment TextAlignment
+        {
+            get
+            {
+                return _textAlignment;
+            }
+            set
+            {
+                _textAlignment = value;
+                var textBlock = Content as TextBlock;
+                if (textBlock != null)
+                {
+                    SetTextAlignment(textBlock);
+                }
             }
         }
 
