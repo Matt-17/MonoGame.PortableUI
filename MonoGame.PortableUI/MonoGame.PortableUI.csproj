@@ -97,6 +97,7 @@
     <Compile Include="Controls\Events\TouchEventArgs.cs" />
     <Compile Include="Controls\Events\TextChangedEventArgs.cs" />
     <Compile Include="Controls\Events\TextChangedEventHandler.cs" />
+    <Compile Include="Controls\UIElement.cs" />
     <Compile Include="Controls\VisualTreeHelper.cs" />
     <Compile Include="Exceptions\MultipleParentException.cs" />
     <Compile Include="Common\Orientation.cs" />
