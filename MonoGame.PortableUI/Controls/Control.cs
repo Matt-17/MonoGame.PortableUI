@@ -423,13 +423,13 @@ namespace MonoGame.PortableUI.Controls
             ChangeVisualState();
         }
 
-        public void OnKeyPressed(string key)
+        protected internal void OnKeyPressed(string key)
         {
             KeyPressed?.Invoke(this, new KeyEventArgs(key));
         }
 
 
-        public void OnKeyPressed(KeyboardCommand key)
+        protected internal void OnKeyPressed(KeyboardCommand key)
         {
             KeyPressed?.Invoke(this, new KeyEventArgs(key));
         }
@@ -451,12 +451,12 @@ namespace MonoGame.PortableUI.Controls
             ChangeVisualState();
         }
 
-        protected virtual void OnGotFocus(GotFocusEventArgs args)
+        protected internal virtual void OnGotFocus(GotFocusEventArgs args)
         {
             GotFocus?.Invoke(this, args);
         }
 
-        protected virtual void OnLostFocus(LostFocusEventArgs args)
+        protected internal virtual void OnLostFocus(LostFocusEventArgs args)
         {
             LostFocus?.Invoke(this, args);
         }
@@ -469,6 +469,11 @@ namespace MonoGame.PortableUI.Controls
         protected virtual void OnKeyUp(KeyEventArgs args)
         {
             KeyUp?.Invoke(this, args);
+        }
+
+        public void Focus()
+        {
+            ScreenEngine.FocusedControl = this;
         }
     }
 }

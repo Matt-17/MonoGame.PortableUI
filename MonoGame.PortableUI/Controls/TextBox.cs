@@ -105,10 +105,5 @@ namespace MonoGame.PortableUI.Controls
         {
             TextChanged?.Invoke(this, args);
         }
-
-        public void Focus()
-        {
-            ScreenEngine.FocusedControl = this;
-        }
     }
 }
