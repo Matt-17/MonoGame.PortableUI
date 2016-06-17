@@ -87,17 +87,17 @@ namespace MonoGame.PortableUI
             yield return Content;
         }
 
-        //private static IEnumerable<Control> GetVisualTreeAsList(Control content, bool addTreeWhichIsGone = true)
-        //{
-        //    if (content.IsGone && !addTreeWhichIsGone)
-        //        yield break;
-        //    var descendants = content.GetDescendants();
-        //    foreach (var child in descendants.SelectMany(control => GetVisualTreeAsList(control, addTreeWhichIsGone)))
-        //    {
-        //        yield return child;
-        //    }
-        //    yield return content;
-        //}
+        private static IEnumerable<Control> GetVisualTreeAsList(Control content, bool addTreeWhichIsGone = true)
+        {
+            if (content.IsGone && !addTreeWhichIsGone)
+                yield break;
+            var descendants = content.GetDescendants();
+            foreach (var child in descendants.SelectMany(control => GetVisualTreeAsList(control, addTreeWhichIsGone)))
+            {
+                yield return child;
+            }
+            yield return content;
+        }
 
         internal void Draw(SpriteBatch spriteBatch)
         {
@@ -121,9 +121,21 @@ namespace MonoGame.PortableUI
             }
         }
 
-        internal void CreateFlyOut(Rect position, Control content)
+        internal void OnNavigationFrom(object sender)
         {
-            FlyOut = new FlyOut(position, content);
+            var list = GetVisualTreeAsList(Content);
+            foreach (var control in list)
+            {
+                control.ResetInputs();
+            }
+        }
+
+        internal void CreateContextMenu(PointF position, ContextMenu content, bool optimizeForTouch)
+        {
+            FlyOut = new FlyOut(position)
+            {
+                Content = content.CreateControl(this, optimizeForTouch)
+            };
             FlyOut.UpdateLayout(ScreenRect);
         }
 
@@ -273,6 +285,11 @@ namespace MonoGame.PortableUI
             }
             if (actionFunc(control, args))
                 action(control, args);
+        }
+
+        public void ClearFlyOut()
+        {
+            FlyOut = null;
         }
     }
 }

@@ -7,12 +7,11 @@ namespace MonoGame.PortableUI.Controls
 {
     public class FlyOut : ContentControl, IDisposable
     {
-        private readonly Rect _position;
+        private readonly PointF _position;
 
-        public FlyOut(Rect position, Control content)
+        public FlyOut(PointF position)
         {
             _position = position;
-            Content = content;
             MouseDown += (sender, args) => Screen.FlyOut = null;
             TouchDown += (sender, args) => Screen.FlyOut = null;
         }
@@ -20,7 +19,10 @@ namespace MonoGame.PortableUI.Controls
         public override void UpdateLayout(Rect rect)
         {
             base.UpdateLayout(rect);
-            Content.UpdateLayout(_position);
+            var size = Content.MeasureLayout ();
+            var pos = new Rect(_position, size);
+            pos.Top -= size.Height;
+            Content.UpdateLayout(pos);
         }
 
         public void Dispose()
