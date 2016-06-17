@@ -15,10 +15,18 @@ namespace SampleApp.Screens
     {
         public StartScreen()
         {
-            var contextMenu = new ContextMenu { Height = 50, Width = 50, BackgroundBrush = Color.MediumVioletRed };
-            var child = new MenuItem { Text = "Tt" };
-            child.Click += Button_Click;
-            contextMenu.Items.Add(child);
+            var contextMenu = new ContextMenu();
+            contextMenu.BackgroundBrush = Color.Violet;
+            contextMenu.Items.Add(new MenuItem
+            {
+                Text = "Context item 1",
+                Action = Button_Click
+            });
+            contextMenu.Items.Add(new MenuItem
+            {
+                Text = "Context item 2",
+                Action = Button_Click
+            });
             var button = new Button
             {
                 BackgroundBrush = Color.DarkRed,
@@ -211,7 +219,7 @@ namespace SampleApp.Screens
             InvalidateLayout(true);
         }
 
-        private void Button_Click(object sender, EventArgs e)
+        private void Button_Click()
         {
             ScreenEngine.NavigateToScreen(new SecondScreen());
         }

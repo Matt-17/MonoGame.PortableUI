@@ -8,6 +8,7 @@ using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls.Events;
 using MonoGame.PortableUI.Controls.Input;
 using MonoGame.PortableUI.Exceptions;
+using MonoGame.PortableUI.Media;
 
 namespace MonoGame.PortableUI.Controls
 {
@@ -65,13 +66,13 @@ namespace MonoGame.PortableUI.Controls
             get { return _contextMenu; }
             set
             {
-                LongTouch -= ShowContextMenu;
-                RightClick -= ShowContextMenu;
+                LongTouch -= ShowContextMenuTouch;
+                RightClick -= ShowContextMenuClick;
                 _contextMenu = value;
                 if (_contextMenu == null)
                     return;
-                LongTouch += ShowContextMenu;
-                RightClick += ShowContextMenu;
+                LongTouch += ShowContextMenuTouch;
+                RightClick += ShowContextMenuClick;
             }
         }
 
@@ -162,14 +163,15 @@ namespace MonoGame.PortableUI.Controls
 
         internal PointF Position { get; set; }
 
-        private void ShowContextMenu(object sender, EventArgs e)
+        private void ShowContextMenuTouch(object sender, EventArgs e) { ShowContextMenu(true); }
+        private void ShowContextMenuClick(object sender, EventArgs e) { ShowContextMenu(false); }
+
+        private void ShowContextMenu(bool optimizeForTouch)
         {
             var boundingRect = BoundingRect - Margin;
             var pointF = boundingRect;
-            pointF.Top -= ContextMenu.MeasureLayout().Height;
-            Screen.CreateFlyOut(pointF, ContextMenu);
+            Screen.CreateContextMenu(pointF.Offset, ContextMenu, optimizeForTouch);
         }
-
 
         public override void InvalidateLayout(bool boundsChanged)
         {
@@ -414,20 +416,66 @@ namespace MonoGame.PortableUI.Controls
         {
             ScrollWheelChanged?.Invoke(this, args);
         }
+
+        public void ResetInputs()
+        {
+            TouchState = TouchStates.Released;
+            MouseButtonStates[MouseButton.Left] = ButtonState.Released;
+            MouseButtonStates[MouseButton.Middle] = ButtonState.Released;
+            MouseButtonStates[MouseButton.Right] = ButtonState.Released;
+            HoverState = HoverStates.NotHovering;
+            ChangeVisualState();
+        }
     }
 
-    public class ContextMenu : Control
+    public class ContextMenu
     {
-        public MenuItemList Items { get; set; }
+        public MenuItemList Items { get; }
+        public Brush BackgroundBrush { get; set; }
+
+        public ContextMenu()
+        {
+            Items = new MenuItemList();
+            BackgroundBrush = Color.Silver;
+        }
+
+        internal Control CreateControl(Screen screen, bool optimizeForTouch)
+        {
+            var stackPanel = new StackPanel()
+            {
+                BackgroundBrush = BackgroundBrush
+            };
+            if (optimizeForTouch)
+                stackPanel.Orientation = Orientation.Horizontal;
+            float maxWidth = 0;
+            foreach (var item in Items)
+            {
+                var button = new Button
+                {
+                    Text = item.Text,
+                    Height = optimizeForTouch ? 40 : 28,
+                };
+                button.MouseUp += (sender, args) => screen.ClearFlyOut();
+                button.TouchUp += (sender, args) => screen.ClearFlyOut();
+                button.Click += (s, e) => item.Action();
+                var width = button.MeasureLayout().Width;
+                if (width > maxWidth)
+                    maxWidth = width;
+                stackPanel.AddChild(button);
+            }
+            stackPanel.Width = maxWidth;
+            return stackPanel;
+        }
     }
 
     public class MenuItemList : List<MenuItem>
     {
     }
 
-    public class MenuItem : Control
+    public class MenuItem
     {
         public string Text { get; set; }
+        public Action Action { get; set; }
     }
 
     public static class VisualTreeHelper
