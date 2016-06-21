@@ -15,6 +15,8 @@ namespace MonoGame.PortableUI.Controls
 
         public event EventHandler EnterPressed;
 
+        public string InputScope { get; set; }
+
         public new string Text
         {
             get { return base.Text; }
@@ -45,6 +47,19 @@ namespace MonoGame.PortableUI.Controls
         private void OnClick(object sender, EventArgs eventArgs)
         {
             ScreenEngine.FocusedControl = this;
+            ScreenEngine.Instance.CurrentKeyboard.Control.KeyPressed += HandleKeyPressed;
+        }
+
+        protected internal override void OnGotFocus(GotFocusEventArgs args)
+        {
+            base.OnGotFocus(args);
+            ScreenEngine.Instance.RequestKeyboard(InputScope);
+        }
+
+        protected internal override void OnLostFocus(LostFocusEventArgs args)
+        {
+            base.OnLostFocus(args);
+            ScreenEngine.Instance.HideKeyboard();
         }
 
         private void HandleKeyPressed(object sender, KeyEventArgs args)

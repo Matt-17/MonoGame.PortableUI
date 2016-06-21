@@ -12,12 +12,15 @@ namespace MonoGame.PortableUI
         public Game Game { get; set; }
         private readonly ScreenComponent _component;
         private static Control _focusedControl;
+        private readonly Dictionary<string, IKeyboard> _keyboards;
+        internal IKeyboard CurrentKeyboard;
 
         private ScreenEngine(Game game)
         {
             Game = game;
             ScreenHistory = new Stack<Screen>();
             _component = new ScreenComponent(this, game);
+            _keyboards = new Dictionary<string, IKeyboard>();
             ScaleFactor = 1;
             Component.Initialize();
 
@@ -59,20 +62,29 @@ namespace MonoGame.PortableUI
             return Instance;
         }
 
-        public void RegisterKeyboard(string inputScope, IKeyboard keyboard)
+        public void RegisterKeyboard(IKeyboard keyboard, string inputScope = "default")
         {
+            _keyboards.Add(inputScope, keyboard);
         }
 
-        public void UnregisterKeyboard(string inputScope)
+        public void UnregisterKeyboard(string inputScope = "default")
         {
+            _keyboards.Remove(inputScope);
         }
 
         internal void RequestKeyboard(string inputScope)
         {
+            inputScope = inputScope ?? "default";
+            CurrentKeyboard = _keyboards[inputScope];
+            CurrentKeyboard.Control.UpdateLayout(new Rect(0, ScreenRect.Height - CurrentKeyboard.Height, ScreenRect.Width, CurrentKeyboard.Height));
+            ActiveScreen.ShowKeyboard();
+            CurrentKeyboard.OnKeyboardAppear();
         }
 
         internal void HideKeyboard()
         {
+            ActiveScreen.HideKeyboard();
+            CurrentKeyboard.OnKeyboardDisappear();
         }
 
         public void SetScreenSize(int width, int height)

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices.ComTypes;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
 
 namespace MonoGame.PortableUI
@@ -39,8 +40,10 @@ namespace MonoGame.PortableUI
 
         public override void Draw(GameTime gameTime)
         {
-            base.Draw(gameTime);
+            //base.Draw(gameTime);
             _screenEngine.ActiveScreen.Draw(_spriteBatch);
+            //TODO draw keyboard
+            //_screenEngine.CurrentKeyboard?.Control.OnDraw(_spriteBatch, new Rect(0, _screenEngine.ScreenRect.Height - _screenEngine.CurrentKeyboard.Height, _screenEngine.ScreenRect.Width, _screenEngine.CurrentKeyboard.Height));
         }
 
         public override void Update(GameTime gameTime)
