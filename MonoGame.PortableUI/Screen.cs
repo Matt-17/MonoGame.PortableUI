@@ -30,7 +30,7 @@ namespace MonoGame.PortableUI
             internal set { }
         }
 
-        private Control _content;
+        private Grid _mainGrid;
 
         internal PointF LastMousePosition;
         internal PointF LastTouchPosition;
@@ -39,6 +39,15 @@ namespace MonoGame.PortableUI
 
         protected Screen()
         {
+            _mainGrid = new Grid
+            {
+                RowDefinitions =
+                {
+                    new RowDefinition(),
+                    new RowDefinition {Height = GridLength.Auto}
+                }
+            };
+            _mainGrid.Parent = this;
         }
 
         public bool Initialized { get; set; }
@@ -49,14 +58,17 @@ namespace MonoGame.PortableUI
 
         public Control Content
         {
-            get { return _content; }
+            get { return _mainGrid.Children[0]; }
             set
             {
-                if (_content != null)
-                    _content.Parent = null;
-                _content = value;
-                if (_content != null)
-                    _content.Parent = this;
+                //if (_mainGrid != null)
+                //    _mainGrid.Parent = null;
+                if (_mainGrid.Children.Count == 0)
+                    _mainGrid.AddChild(value);
+                else
+                    _mainGrid.Children[0] = value;
+                //if (_mainGrid != null)
+                //    _mainGrid.Parent = this;
                 InvalidateLayout(true);
             }
         }
@@ -77,14 +89,15 @@ namespace MonoGame.PortableUI
             }
         }
 
+
         public override void InvalidateLayout(bool boundsChanged)
         {
-            Content?.UpdateLayout(ScreenRect);
+            _mainGrid?.UpdateLayout(ScreenRect);
         }
 
         public override IEnumerable<Control> GetDescendants()
         {
-            yield return Content;
+            yield return _mainGrid;
         }
 
         internal void Draw(SpriteBatch spriteBatch)
@@ -95,10 +108,11 @@ namespace MonoGame.PortableUI
                 BackgroundBrush.Draw(spriteBatch, ScreenRect);
                 spriteBatch.End();
             }
-            spriteBatch.GraphicsDevice.ScissorRectangle = Content.BoundingRect;
+            spriteBatch.GraphicsDevice.ScissorRectangle = _mainGrid.BoundingRect;
 
             spriteBatch.Begin(SpriteSortMode.Immediate, rasterizerState: new RasterizerState { ScissorTestEnable = true });
-            DrawControl(spriteBatch, Content);
+            
+            DrawControl(spriteBatch, _mainGrid);
             spriteBatch.End();
 
             if (FlyOut != null)
@@ -107,11 +121,13 @@ namespace MonoGame.PortableUI
                 DrawControl(spriteBatch, FlyOut);
                 spriteBatch.End();
             }
+
+            
         }
 
         internal void OnNavigationFrom(object sender)
         {
-            var list = VisualTreeHelper.GetVisualTreeAsList(Content);
+            var list = VisualTreeHelper.GetVisualTreeAsList(_mainGrid);
             foreach (var control in list)
             {
                 control.ResetInputs();
@@ -174,7 +190,14 @@ namespace MonoGame.PortableUI
             var touchPosition = (PointF)touchState.Position.ToPoint();
             var mousePosition = (PointF)mouseState.Position;
 
-            var content = FlyOut ?? Content;
+            Control content;
+
+            if (FlyOut != null)
+                content = FlyOut;
+            else
+                content = _mainGrid;
+
+            //var content = FlyOut ?? Content;
             if (mousePosition != LastMousePosition)
             {
                 List<MouseButton> buttons = new List<MouseButton>();
@@ -261,6 +284,18 @@ namespace MonoGame.PortableUI
         public void ClearFlyOut()
         {
             FlyOut = null;
+        }
+
+        public void ShowKeyboard()
+        {
+            _mainGrid.AddChild(ScreenEngine.CurrentKeyboard.Control, 1);
+            _mainGrid.InvalidateLayout(true);
+        }
+
+        public void HideKeyboard()
+        {
+            _mainGrid.Children.Remove(ScreenEngine.CurrentKeyboard.Control);
+            _mainGrid.InvalidateLayout(true);
         }
     }
 }

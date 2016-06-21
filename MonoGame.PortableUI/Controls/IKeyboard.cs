@@ -4,7 +4,7 @@ namespace MonoGame.PortableUI.Controls
 {
     public interface IKeyboard
     {
-        int Height { get; }
+        float Height { get; }
         Control Control { get; }
         void OnKeyboardAppear();
         void OnKeyboardDisappear();
