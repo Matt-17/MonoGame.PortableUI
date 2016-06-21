@@ -58,17 +58,13 @@ namespace MonoGame.PortableUI
 
         public Control Content
         {
-            get { return _mainGrid.Children[0]; }
+            get { return _mainGrid.Children.Count > 0 ? _mainGrid.Children[0] : null; }
             set
             {
-                //if (_mainGrid != null)
-                //    _mainGrid.Parent = null;
                 if (_mainGrid.Children.Count == 0)
                     _mainGrid.AddChild(value);
                 else
                     _mainGrid.Children[0] = value;
-                //if (_mainGrid != null)
-                //    _mainGrid.Parent = this;
                 InvalidateLayout(true);
             }
         }
@@ -121,8 +117,6 @@ namespace MonoGame.PortableUI
                 DrawControl(spriteBatch, FlyOut);
                 spriteBatch.End();
             }
-
-            
         }
 
         internal void OnNavigationFrom(object sender)
@@ -197,7 +191,6 @@ namespace MonoGame.PortableUI
             else
                 content = _mainGrid;
 
-            //var content = FlyOut ?? Content;
             if (mousePosition != LastMousePosition)
             {
                 List<MouseButton> buttons = new List<MouseButton>();

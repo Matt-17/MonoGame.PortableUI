@@ -40,10 +40,7 @@ namespace MonoGame.PortableUI
 
         public override void Draw(GameTime gameTime)
         {
-            //base.Draw(gameTime);
             _screenEngine.ActiveScreen.Draw(_spriteBatch);
-            //TODO draw keyboard
-            //_screenEngine.CurrentKeyboard?.Control.OnDraw(_spriteBatch, new Rect(0, _screenEngine.ScreenRect.Height - _screenEngine.CurrentKeyboard.Height, _screenEngine.ScreenRect.Width, _screenEngine.CurrentKeyboard.Height));
         }
 
         public override void Update(GameTime gameTime)
