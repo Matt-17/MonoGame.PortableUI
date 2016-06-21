@@ -61,7 +61,6 @@ namespace MonoGame.PortableUI.Controls
             var size = base.MeasureLayout();
 
             var vector2 = Font.MeasureString(Text);
-            size.Height += vector2.Y;
             size.Width += vector2.X;
 
             return size;
