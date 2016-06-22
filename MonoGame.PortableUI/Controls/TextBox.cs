@@ -58,8 +58,8 @@ namespace MonoGame.PortableUI.Controls
         protected internal override void OnLostFocus(LostFocusEventArgs args)
         {
             base.OnLostFocus(args);
-            ScreenEngine.Instance.HideKeyboard();
             ScreenEngine.Instance.CurrentKeyboard.Control.KeyPressed -= HandleKeyPressed;
+            ScreenEngine.Instance.HideKeyboard();
         }
 
         private void HandleKeyPressed(object sender, KeyEventArgs args)

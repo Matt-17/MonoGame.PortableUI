@@ -83,8 +83,11 @@ namespace MonoGame.PortableUI
 
         internal void HideKeyboard()
         {
+            if (CurrentKeyboard == null)
+                return;
             ActiveScreen.HideKeyboard();
             CurrentKeyboard.OnKeyboardDisappear();
+            CurrentKeyboard = null;
         }
 
         public void SetScreenSize(int width, int height)
@@ -98,12 +101,14 @@ namespace MonoGame.PortableUI
 
         public void NavigateToScreen<T>(T screen) where T : Screen
         {
+            FocusedControl = null;
             screen.ScreenEngine = this;
             ScreenHistory.Push(screen);
         }
 
         public void NavigateBack()
         {
+            FocusedControl = null;
             var screen = Instance.ScreenHistory.Pop();
             screen.ScreenEngine = null;
         }
