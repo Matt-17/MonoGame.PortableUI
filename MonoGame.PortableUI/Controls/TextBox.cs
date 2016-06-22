@@ -39,7 +39,6 @@ namespace MonoGame.PortableUI.Controls
             BackgroundBrush = Color.White;
             CursorPosition = 0;
             CursorColor = Color.Black;
-            KeyPressed += HandleKeyPressed;
             Click += OnClick;
             Height = 28;
         }
@@ -47,19 +46,20 @@ namespace MonoGame.PortableUI.Controls
         private void OnClick(object sender, EventArgs eventArgs)
         {
             ScreenEngine.FocusedControl = this;
-            ScreenEngine.Instance.CurrentKeyboard.Control.KeyPressed += HandleKeyPressed;
         }
 
         protected internal override void OnGotFocus(GotFocusEventArgs args)
         {
             base.OnGotFocus(args);
             ScreenEngine.Instance.RequestKeyboard(InputScope);
+            ScreenEngine.Instance.CurrentKeyboard.Control.KeyPressed += HandleKeyPressed;
         }
 
         protected internal override void OnLostFocus(LostFocusEventArgs args)
         {
             base.OnLostFocus(args);
             ScreenEngine.Instance.HideKeyboard();
+            ScreenEngine.Instance.CurrentKeyboard.Control.KeyPressed -= HandleKeyPressed;
         }
 
         private void HandleKeyPressed(object sender, KeyEventArgs args)
