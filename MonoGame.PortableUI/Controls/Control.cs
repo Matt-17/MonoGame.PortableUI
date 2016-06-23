@@ -406,6 +406,10 @@ namespace MonoGame.PortableUI.Controls
             KeyPressed?.Invoke(this, new KeyEventArgs(key));
         }
 
+        protected internal void OnKeyPressed(char key)
+        {
+            KeyPressed?.Invoke(this, new KeyEventArgs(key));
+        }
 
         protected internal void OnKeyPressed(KeyboardCommand key)
         {

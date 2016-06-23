@@ -62,14 +62,40 @@ namespace MonoGame.PortableUI.Controls
             ScreenEngine.Instance.HideKeyboard();
         }
 
-        private void HandleKeyPressed(object sender, KeyEventArgs args)
+        protected internal virtual void HandleKeyPressed(object sender, KeyEventArgs args)
         {
-            switch (args.Command)
+            switch (args.InputType)
             {
-                case KeyboardCommand.Input:
-                    Text = Text.Insert(CursorPosition, args.Key);
-                    CursorPosition += args.Key.Length;
+                case InputType.Char:
+                    HandleCharPressed(args.Char);
+                    
                     break;
+                case InputType.Command:
+                    HandleCommandPressed(args.Command);
+                    break;
+                case InputType.Function:
+                    HandleFunctionPressed(args.Function);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+
+        protected internal virtual void HandleCharPressed(char c)
+        {
+            Text = Text.Insert(CursorPosition, c.ToString());
+            CursorPosition++;
+        }
+
+        protected internal virtual void HandleFunctionPressed(string function)
+        {
+            
+        }
+
+        protected internal virtual void HandleCommandPressed(KeyboardCommand command)
+        {
+            switch (command)
+            {
                 case KeyboardCommand.Backspace:
                     if (Text.Length > 0 && CursorPosition > 0)
                     {
@@ -88,7 +114,6 @@ namespace MonoGame.PortableUI.Controls
                     if (CursorPosition < Text.Length)
                         CursorPosition++;
                     break;
-
                 case KeyboardCommand.CursorUp:
                     //TODO cursor up handling
                     break;
@@ -112,7 +137,7 @@ namespace MonoGame.PortableUI.Controls
             var measuredText = Font.MeasureString(Text.Substring(0, CursorPosition));
             var x = rect.Left + measuredText.X;
             var height = Font.MeasureString("|").Y;
-            var top = (rect.Height - height) / 2 + rect.Top;
+            var top = (rect.Height - height)/2 + rect.Top;
             CursorColor.Draw(spriteBatch, new Rect(x, top, 1, height));
         }
 
