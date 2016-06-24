@@ -12,44 +12,61 @@ namespace MonoGame.PortableUI.Controls
         public Color TintColor { get; set; }
 
         public Stretch Stretch { get; set; }
-
-        public Image()
-        {
-            VerticalAlignment = VerticalAlignment.Center;
-            HorizontalAlignment = HorizontalAlignment.Center;
-        }
-
+        
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
+            base.OnDraw(spriteBatch, rect);
+
             if (Source == null)
                 return;
 
-            if (TintColor != Color.Transparent)
-                spriteBatch.Draw(Source, rect, TintColor);
-            else
-                spriteBatch.Draw(Source, destinationRectangle: rect);
-        }
+            var x = rect.Left;
+            var y = rect.Top;
 
-        public override void UpdateLayout(Rect rect)
-        {
-            if (IsGone)
-                BoundingRect = Rect.Empty;
-
-            var measuredSize = GetImageSize(rect);
-            var offset = rect.Offset;
+            var imageSize = GetImageSize((Size)rect);
+            if (HorizontalAlignment == HorizontalAlignment.Stretch)
+                x += (rect.Width - imageSize.Width) / 2;
             
-            BoundingRect = GetRectForAlignment(rect, measuredSize, offset);
-            ClippingRect = BoundingRect - Margin;
+            var destinationRectangle = new Rect(new PointF(x,y), imageSize);
+
+            if (TintColor != Color.Transparent)
+                spriteBatch.Draw(Source, destinationRectangle, TintColor);
+            else
+                spriteBatch.Draw(Source, destinationRectangle: destinationRectangle);
         }
 
-        private Size GetImageSize(Rect rect)
+        public override Size MeasureLayout()
+        {
+            var size = base.MeasureLayout();
+
+            if (size.Height != 0 && size.Width != 0)
+                return size;
+
+            if (size.Height == 0)
+                size.Height = Source.Height;
+
+            if (size.Width == 0)
+                size.Width = Source.Width;
+
+            size = GetImageSize(size);
+
+            if (Height.IsFixed())
+                size.Height = Height;
+
+            if (Width.IsFixed())
+                size.Width = Width;
+
+            return size;
+        }
+
+        private Size GetImageSize(Size size)
         {
             if (Source == null)
-                return Size.Empty;    
+                return Size.Empty;
 
-            var widthGap = rect.Width / Source.Width;
-            var heightGap = rect.Height / Source.Height;
-            
+            var widthGap = size.Width / Source.Width;
+            var heightGap = size.Height / Source.Height;
+
             float newWidth;
             float newHeight;
 
@@ -63,40 +80,40 @@ namespace MonoGame.PortableUI.Controls
 
                     if (widthGap < heightGap)
                     {
-                        newWidth = rect.Width;
-                        var scalingFactor = newWidth/Source.Width;
-                        newHeight = Source.Height*scalingFactor;
+                        newWidth = size.Width;
+                        var scalingFactor = newWidth / Source.Width;
+                        newHeight = Source.Height * scalingFactor;
                     }
                     else
                     {
-                        newHeight = rect.Height;
-                        var scalingFactor = newHeight/Source.Height;
-                        newWidth = Source.Width*scalingFactor;
+                        newHeight = size.Height;
+                        var scalingFactor = newHeight / Source.Height;
+                        newWidth = Source.Width * scalingFactor;
                     }
                     break;
                 case Stretch.UniformToFill:
                     if (widthGap > heightGap)
                     {
-                        newWidth = rect.Width;
-                        var scalingFactor = newWidth/Source.Width;
-                        newHeight = Source.Height*scalingFactor;
+                        newWidth = size.Width;
+                        var scalingFactor = newWidth / Source.Width;
+                        newHeight = Source.Height * scalingFactor;
                     }
                     else
                     {
-                        newHeight = rect.Height;
-                        var scalingFactor = newHeight/Source.Height;
-                        newWidth = Source.Width*scalingFactor;
+                        newHeight = size.Height;
+                        var scalingFactor = newHeight / Source.Height;
+                        newWidth = Source.Width * scalingFactor;
                     }
-                    break;
+                    return new Size(newWidth, newHeight);
                 case Stretch.Fill:
-                    newWidth = rect.Width;
-                    newHeight = rect.Height;
+                    newWidth = size.Width;
+                    newHeight = size.Height;
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
-            
-            return new Size(Width.IsFixed() ? Width : newWidth, Height.IsFixed() ? Height : newHeight);
+
+            return new Size(newWidth, newHeight);
         }
     }
 }
