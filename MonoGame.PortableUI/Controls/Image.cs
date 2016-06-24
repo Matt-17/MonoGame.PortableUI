@@ -27,6 +27,9 @@ namespace MonoGame.PortableUI.Controls
             if (HorizontalAlignment == HorizontalAlignment.Stretch)
                 x += (rect.Width - imageSize.Width) / 2;
             
+            if (VerticalAlignment == VerticalAlignment.Center)
+                y += (rect.Height - imageSize.Height) / 2;
+
             var destinationRectangle = new Rect(new PointF(x,y), imageSize);
 
             if (TintColor != Color.Transparent)
