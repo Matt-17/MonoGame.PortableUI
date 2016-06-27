@@ -141,12 +141,7 @@ namespace MonoGame.PortableUI.Controls
         public VerticalAlignment VerticalAlignment { get; set; }
 
         public bool SnapToPixel { get; set; }
-
-        internal PointF RenderedPosition
-        {
-            get { return new PointF((int)((Position.X + Margin.Left) * ScreenEngine.ScaleFactor), (int)((Position.Y + Margin.Top) * ScreenEngine.ScaleFactor)); }
-        }
-
+        
         internal PointF Position { get; set; }
 
         private void ShowContextMenuTouch(object sender, EventArgs e) { ShowContextMenu(true); }
