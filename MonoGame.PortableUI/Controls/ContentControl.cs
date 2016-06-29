@@ -62,9 +62,5 @@ namespace MonoGame.PortableUI.Controls
             if (Content != null)
                 yield return Content;
         }
-
-        protected ContentControl()
-        {
-        }
     }
 }
