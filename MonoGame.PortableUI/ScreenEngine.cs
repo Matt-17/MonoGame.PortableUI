@@ -13,7 +13,9 @@ namespace MonoGame.PortableUI
         private readonly ScreenComponent _component;
         private static Control _focusedControl;
         private readonly Dictionary<string, IKeyboard> _keyboards;
-        internal IKeyboard CurrentKeyboard;
+
+        //probably better if it's internal. making it public for a small hack
+        public IKeyboard CurrentKeyboard;
 
         private ScreenEngine(Game game)
         {
@@ -72,7 +74,8 @@ namespace MonoGame.PortableUI
             _keyboards.Remove(inputScope);
         }
 
-        internal void RequestKeyboard(string inputScope)
+        //probably better if it's internal. making it public for a small hack
+        public void RequestKeyboard(string inputScope)
         {
             inputScope = inputScope ?? "default";
             CurrentKeyboard = _keyboards[inputScope];
@@ -81,7 +84,8 @@ namespace MonoGame.PortableUI
             CurrentKeyboard.OnKeyboardAppear();
         }
 
-        internal void HideKeyboard()
+        //probably better if it's internal. making it public for a small hack
+        public void HideKeyboard()
         {
             if (CurrentKeyboard == null)
                 return;
