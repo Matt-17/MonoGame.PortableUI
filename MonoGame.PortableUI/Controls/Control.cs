@@ -308,6 +308,7 @@ namespace MonoGame.PortableUI.Controls
         {
             foreach (var button in args.Buttons)
                 MouseButtonStates[button] = ButtonState.Pressed;
+            Focus();
             MouseDown?.Invoke(this, args);
             ChangeVisualState();
             if ((Click != null && args.Buttons.Contains(MouseButton.Left)) || (RightClick != null && args.Buttons.Contains(MouseButton.Right)))
