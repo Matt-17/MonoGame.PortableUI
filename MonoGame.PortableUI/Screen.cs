@@ -106,7 +106,7 @@ namespace MonoGame.PortableUI
             }
             spriteBatch.GraphicsDevice.ScissorRectangle = _mainGrid.BoundingRect;
 
-            spriteBatch.Begin(SpriteSortMode.Immediate, rasterizerState: new RasterizerState { ScissorTestEnable = true });
+            spriteBatch.Begin(SpriteSortMode.Immediate, rasterizerState: new RasterizerState { ScissorTestEnable = true, MultiSampleAntiAlias = true});
             
             DrawControl(spriteBatch, _mainGrid);
             spriteBatch.End();
