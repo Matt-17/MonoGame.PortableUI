@@ -281,7 +281,8 @@ namespace MonoGame.PortableUI
 
         public void ShowKeyboard()
         {
-            _mainGrid.AddChild(ScreenEngine.CurrentKeyboard.Control, 1);
+            if (ScreenEngine.CurrentKeyboard != null)
+                _mainGrid.AddChild(ScreenEngine.CurrentKeyboard.Control, 1);
             _mainGrid.InvalidateLayout(true);
         }
 
