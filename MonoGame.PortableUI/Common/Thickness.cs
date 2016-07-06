@@ -41,12 +41,12 @@ namespace MonoGame.PortableUI.Common
 
         public static Size operator +(Size rect, Thickness t)
         {
-            return new Size(rect.Width + t.Right + t.Left, rect.Height + t.Bottom + t.Top).Clamp();
+            return new Size(rect.Width + t.Right + t.Left, rect.Height + t.Bottom + t.Top);
         }
 
         public static Size operator -(Size rect, Thickness t)
         {
-            return new Size(rect.Width - t.Right - t.Left, rect.Height - t.Bottom - t.Top).Clamp();
+            return new Size(rect.Width - t.Right - t.Left, rect.Height - t.Bottom - t.Top);
         }
 
         public static Rect operator -(Rect rect, Thickness t)
