@@ -6,4 +6,4 @@ This is a MonoGame UI Framework in favor of all supported platforms. Means Windo
 
 This project is under *pre-alpha* development. You *should not use* this yet *except for testing*. 
 
-Feel free to add *requests* and *problems* in *early stage*. :bug:
+Feel free to add *requests* and *problems* in *early stage*. 
