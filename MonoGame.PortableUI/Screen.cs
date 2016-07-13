@@ -106,7 +106,7 @@ namespace MonoGame.PortableUI
             }
             spriteBatch.GraphicsDevice.ScissorRectangle = _mainGrid.BoundingRect;
 
-            spriteBatch.Begin(SpriteSortMode.Immediate, rasterizerState: new RasterizerState { ScissorTestEnable = true });
+            spriteBatch.Begin(SpriteSortMode.Immediate, rasterizerState: new RasterizerState { ScissorTestEnable = true, MultiSampleAntiAlias = true});
             
             DrawControl(spriteBatch, _mainGrid);
             spriteBatch.End();
@@ -281,7 +281,8 @@ namespace MonoGame.PortableUI
 
         public void ShowKeyboard()
         {
-            _mainGrid.AddChild(ScreenEngine.CurrentKeyboard.Control, 1);
+            if (ScreenEngine.CurrentKeyboard != null)
+                _mainGrid.AddChild(ScreenEngine.CurrentKeyboard.Control, 1);
             _mainGrid.InvalidateLayout(true);
         }
 

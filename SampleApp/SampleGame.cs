@@ -16,6 +16,7 @@ namespace SampleApp
         public SampleGame()
         {
             _graphics = new GraphicsDeviceManager(this);
+            _graphics.PreferMultiSampling = true;
             Content.RootDirectory = "Content";
             IsMouseVisible = true;
             //Window.AllowUserResizing = true;

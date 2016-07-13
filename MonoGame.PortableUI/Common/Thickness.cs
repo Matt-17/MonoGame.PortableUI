@@ -34,14 +34,19 @@ namespace MonoGame.PortableUI.Common
             return $"{Left}, {Top}, {Right}, {Bottom}";
         }
 
+        public static implicit operator Thickness(float i)
+        {
+            return new Thickness(i);
+        }
+
         public static Size operator +(Size rect, Thickness t)
         {
-            return new Size(rect.Width + t.Right + t.Left, rect.Height + t.Bottom + t.Top).Clamp();
+            return new Size(rect.Width + t.Right + t.Left, rect.Height + t.Bottom + t.Top);
         }
 
         public static Size operator -(Size rect, Thickness t)
         {
-            return new Size(rect.Width - t.Right - t.Left, rect.Height - t.Bottom - t.Top).Clamp();
+            return new Size(rect.Width - t.Right - t.Left, rect.Height - t.Bottom - t.Top);
         }
 
         public static Rect operator -(Rect rect, Thickness t)

@@ -10,7 +10,6 @@ namespace MonoGame.PortableUI
     public class ScreenEngine
     {
         public Game Game { get; set; }
-        private readonly ScreenComponent _component;
         private static Control _focusedControl;
         private readonly Dictionary<string, IKeyboard> _keyboards;
 
@@ -21,7 +20,7 @@ namespace MonoGame.PortableUI
         {
             Game = game;
             ScreenHistory = new Stack<Screen>();
-            _component = new ScreenComponent(this, game);
+            Component = new ScreenComponent(this, game);
             _keyboards = new Dictionary<string, IKeyboard>();
             ScaleFactor = 1;
             Component.Initialize();
@@ -44,7 +43,7 @@ namespace MonoGame.PortableUI
 
         public Rect ScreenRect { get; set; }
 
-        internal ScreenComponent Component => _component;
+        internal ScreenComponent Component { get; }
 
         public static DrawableGameComponent ScreenComponent
         {
@@ -71,17 +70,19 @@ namespace MonoGame.PortableUI
 
         public void UnregisterKeyboard(string inputScope = "default")
         {
-            _keyboards.Remove(inputScope);
+            if (_keyboards.ContainsKey(inputScope))
+                _keyboards.Remove(inputScope);
         }
 
         //probably better if it's internal. making it public for a small hack
         public void RequestKeyboard(string inputScope)
         {
             inputScope = inputScope ?? "default";
-            CurrentKeyboard = _keyboards[inputScope];
-            CurrentKeyboard.Control.UpdateLayout(new Rect(0, ScreenRect.Height - CurrentKeyboard.Height, ScreenRect.Width, CurrentKeyboard.Height));
+            if (_keyboards.ContainsKey(inputScope))
+                CurrentKeyboard = _keyboards[inputScope];
+            CurrentKeyboard?.Control.UpdateLayout(new Rect(0, ScreenRect.Height - CurrentKeyboard.Height, ScreenRect.Width, CurrentKeyboard.Height));
             ActiveScreen.ShowKeyboard();
-            CurrentKeyboard.OnKeyboardAppear();
+            CurrentKeyboard?.OnKeyboardAppear();
         }
 
         //probably better if it's internal. making it public for a small hack
