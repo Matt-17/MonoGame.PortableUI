@@ -31,7 +31,10 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        public string HintText { get; set; } = "Hint text";
+        public Color HintTextColor { get; set; } = Color.Silver;
 
+        public Thickness Padding { get; set; }
         public event TextChangedEventHandler TextChanged;
 
         public TextBox()
@@ -41,6 +44,7 @@ namespace MonoGame.PortableUI.Controls
             CursorColor = Color.Black;
             Click += OnClick;
             Height = 28;
+            Padding = 4;
         }
 
         private void OnClick(object sender, EventArgs eventArgs)
@@ -52,13 +56,15 @@ namespace MonoGame.PortableUI.Controls
         {
             base.OnGotFocus(args);
             ScreenEngine.Instance.RequestKeyboard(InputScope);
-            ScreenEngine.Instance.CurrentKeyboard.Control.KeyPressed += HandleKeyPressed;
+            if (ScreenEngine.Instance.CurrentKeyboard != null)
+                ScreenEngine.Instance.CurrentKeyboard.Control.KeyPressed += HandleKeyPressed;
         }
 
         protected internal override void OnLostFocus(LostFocusEventArgs args)
         {
             base.OnLostFocus(args);
-            ScreenEngine.Instance.CurrentKeyboard.Control.KeyPressed -= HandleKeyPressed;
+            if (ScreenEngine.Instance.CurrentKeyboard != null)
+                ScreenEngine.Instance.CurrentKeyboard.Control.KeyPressed -= HandleKeyPressed;
             ScreenEngine.Instance.HideKeyboard();
         }
 
@@ -128,6 +134,7 @@ namespace MonoGame.PortableUI.Controls
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
             base.OnDraw(spriteBatch, rect);
+            rect -= Padding;
 
             if (!IsFocused)
                 return;
