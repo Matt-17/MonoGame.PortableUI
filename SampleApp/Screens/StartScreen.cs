@@ -18,7 +18,7 @@ namespace SampleApp.Screens
             var contextMenu = new ContextMenu
             {
                 BackgroundBrush = Color.Violet,
-                ContextMenuType = ContextMenuTypes.OpenAndHold,
+                ContextMenuType = ContextMenuTypes.OpenAndClick,
             };
             contextMenu.Items.Add(new MenuItem("Context item 1", Button_Click));
             contextMenu.Items.Add(new MenuItem("Context item 2", Button_Click));
