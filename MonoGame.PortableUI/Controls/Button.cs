@@ -44,7 +44,7 @@ namespace MonoGame.PortableUI.Controls
                 HoverColor.Draw(spriteBatch, clientRect);
         }
 
-        #region 
+        #region Properties
 
         public Brush HoverColor { get; set; }
         public Brush PressedColor { get; set; }
