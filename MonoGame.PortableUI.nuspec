@@ -4,7 +4,7 @@
     <id>MonoGame.PortableUI</id>
     <version>$version$</version>
     <title>MonoGame.PortableUI</title>
-    <authors>Matthias Voigt, Marcus Katscher</authors>
+    <authors>Matthias Voigt</authors>
     <licenseUrl>https://raw.githubusercontent.com/Matt-17/MonoGame.PortableUI/master/LICENSE</licenseUrl>
     <projectUrl>https://github.com/Matt-17/MonoGame.PortableUI/</projectUrl>
     <iconUrl>https://raw.githubusercontent.com/Matt-17/MonoGame.PortableUI/master/icon.png</iconUrl>
