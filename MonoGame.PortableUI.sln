@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25123.0
+# Visual Studio 15
+VisualStudioVersion = 15.0.27004.2008
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MonoGame.PortableUI", "MonoGame.PortableUI\MonoGame.PortableUI.csproj", "{EA46B3A2-3118-4546-8BAD-19F6B74E8FDD}"
 EndProject
@@ -17,6 +17,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Content", "Content", "{AB0C11C8-D7FA-41CE-8C05-B6F747C457C4}"
 	ProjectSection(SolutionItems) = preProject
 		Content\Content.mgcb = Content\Content.mgcb
+		MonoGame.PortableUI.nuspec = MonoGame.PortableUI.nuspec
 		README.md = README.md
 	EndProjectSection
 EndProject
@@ -196,5 +197,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {B9065BE3-B934-4F17-A36E-7981C6520594}
 	EndGlobalSection
 EndGlobal
