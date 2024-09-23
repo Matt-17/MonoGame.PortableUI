@@ -1,0 +1,12 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageVersion Include="MonoGame.Content.Builder.Task" Version="3.8.4.1" />
+    <PackageVersion Include="MonoGame.Framework.DesktopGL" Version="3.8.4.1" />
+    <PackageVersion Include="MSTest" Version="4.2.3" />
+    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0" />
+  </ItemGroup>
+</Project>
