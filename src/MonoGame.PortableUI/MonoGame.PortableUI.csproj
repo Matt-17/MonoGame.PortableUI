@@ -1,151 +1,27 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <MinimumVisualStudioVersion>10.0</MinimumVisualStudioVersion>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{EA46B3A2-3118-4546-8BAD-19F6B74E8FDD}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>MonoGame.PortableUI</RootNamespace>
-    <AssemblyName>MonoGame.PortableUI</AssemblyName>
-    <DefaultLanguage>de-DE</DefaultLanguage>
-    <FileAlignment>512</FileAlignment>
-    <ProjectTypeGuids>{786C830F-07A1-408B-BD7F-6EE04809D6DB};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
-    <TargetFrameworkProfile>Profile111</TargetFrameworkProfile>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
+    <PackageId>MonoGame.PortableUI</PackageId>
+    <Title>MonoGame.PortableUI</Title>
+    <Description>A lightweight code-first UI layer for MonoGame.</Description>
+    <Authors>Matthias Voigt;Marcus Katscher</Authors>
+    <Company>code-ix</Company>
+    <Product>MonoGame.PortableUI</Product>
+    <Version>0.2.0-alpha.1</Version>
+    <PackageVersion>0.2.0-alpha.1</PackageVersion>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/Matt-17/MonoGame.PortableUI</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Animation\Animation.cs" />
-    <Compile Include="Animation\AnimationExtension.cs" />
-    <Compile Include="Common\GridDefinitionList.cs" />
-    <Compile Include="Common\GridDefinition.cs" />
-    <Compile Include="Common\PointF.cs" />
-    <Compile Include="Common\Rect.cs" />
-    <Compile Include="Common\SizeEx.cs" />
-    <Compile Include="Common\System.cs" />
-    <Compile Include="Common\Timer.cs" />
-    <Compile Include="Common\ColumnDefinitionCollection.cs" />
-    <Compile Include="Controls\ContextMenu.cs" />
-    <Compile Include="Controls\ContextMenuTypes.cs" />
-    <Compile Include="Controls\Events\BaseEventArgs.cs" />
-    <Compile Include="Controls\Border.cs" />
-    <Compile Include="Controls\Button.cs" />
-    <Compile Include="Controls\CheckBox.cs" />
-    <Compile Include="Controls\Events\CheckedEventArgs.cs" />
-    <Compile Include="Common\ColumnDefinition.cs" />
-    <Compile Include="Controls\Events\CollectionChangedEventHandler.cs" />
-    <Compile Include="Controls\ComboBox.cs" />
-    <Compile Include="Controls\Events\ContentChangedEventHandler.cs" />
-    <Compile Include="Controls\Events\ContentChangedEventArgs.cs" />
-    <Compile Include="Controls\ContentControl.cs" />
-    <Compile Include="Controls\ContentPresenter.cs" />
-    <Compile Include="Controls\ControlCollection.cs" />
-    <Compile Include="Controls\Events\CollectionChangedEventArgs.cs" />
-    <Compile Include="Controls\Events\GotFocusEventArgs.cs" />
-    <Compile Include="Controls\Events\GotFocusEventHandler.cs" />
-    <Compile Include="Controls\IKeyboard.cs" />
-    <Compile Include="Controls\Input\MouseButton.cs" />
-    <Compile Include="Controls\FlyOut.cs" />
-    <Compile Include="Controls\Grid.cs" />
-    <Compile Include="Common\HelperEx.cs" />
-    <Compile Include="Common\GridLength.cs" />
-    <Compile Include="Common\GridLengthUnit.cs" />
-    <Compile Include="Common\HorizontalAlignment.cs" />
-    <Compile Include="Controls\Input\HoverStates.cs" />
-    <Compile Include="Controls\Input\ButtonStates.cs" />
-    <Compile Include="Controls\FrameworkElement.cs" />
-    <Compile Include="Controls\Image.cs" />
-    <Compile Include="Controls\Key.cs" />
-    <Compile Include="Controls\KeyboardCommand.cs" />
-    <Compile Include="Controls\Events\KeyEventHandler.cs" />
-    <Compile Include="Controls\Events\KeyEventArgs.cs" />
-    <Compile Include="Controls\Events\KeyboardHiddenEventArgs.cs" />
-    <Compile Include="Controls\Events\KeyboardHiddenEventHandler.cs" />
-    <Compile Include="Controls\ListBox.cs" />
-    <Compile Include="Controls\Input\TouchStates.cs" />
-    <Compile Include="Controls\Events\MouseEventHandler.cs" />
-    <Compile Include="Controls\Events\MouseEventArgs.cs" />
-    <Compile Include="Common\Stretch.cs" />
-    <Compile Include="Controls\Events\ScrollWheelChangedEventHandler.cs" />
-    <Compile Include="Common\RowDefinitionCollection.cs" />
-    <Compile Include="Controls\Events\LostFocusEventArgs.cs" />
-    <Compile Include="Controls\Events\LostFocusEventHandler.cs" />
-    <Compile Include="Controls\MenuItem.cs" />
-    <Compile Include="Controls\MenuItemList.cs" />
-    <Compile Include="Controls\TabControl.cs" />
-    <Compile Include="Controls\TabItem.cs" />
-    <Compile Include="Controls\Events\TouchEventHandler.cs" />
-    <Compile Include="Controls\Events\TouchEventArgs.cs" />
-    <Compile Include="Controls\Events\TextChangedEventArgs.cs" />
-    <Compile Include="Controls\Events\TextChangedEventHandler.cs" />
-    <Compile Include="Controls\UIElement.cs" />
-    <Compile Include="Controls\VisualTreeHelper.cs" />
-    <Compile Include="Exceptions\MultipleParentException.cs" />
-    <Compile Include="Common\Orientation.cs" />
-    <Compile Include="Controls\Panel.cs" />
-    <Compile Include="Controls\ProgressIndicator.cs" />
-    <Compile Include="Common\RowDefinition.cs" />
-    <Compile Include="Common\TextAlignment.cs" />
-    <Compile Include="Common\VerticalAlignment.cs" />
-    <Compile Include="Exceptions\DefaultFontMissingException.cs" />
-    <Compile Include="FontManager.cs" />
-    <Compile Include="Exceptions\FontMissingException.cs" />
-    <Compile Include="Common\FontStyle.cs" />
-    <Compile Include="Media\Brush.cs" />
-    <Compile Include="Media\GradientBrush.cs" />
-    <Compile Include="Media\NineTileBrush.cs" />
-    <Compile Include="Media\SolidColorBrush.cs" />
-    <Compile Include="Media\TileBrush.cs" />
-    <Compile Include="Screen.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Controls\RadioButton.cs" />
-    <Compile Include="Controls\ScrollViewer.cs" />
-    <Compile Include="Common\Size.cs" />
-    <Compile Include="Controls\StackPanel.cs" />
-    <Compile Include="Controls\TextBlock.cs" />
-    <Compile Include="Controls\TextBox.cs" />
-    <Compile Include="Common\Thickness.cs" />
-    <Compile Include="Controls\ToggleButton.cs" />
-    <Compile Include="Controls\Control.cs" />
-    <Compile Include="ScreenEngine.cs" />
-    <Compile Include="ScreenComponent.cs" />
-    <Compile Include="Controls\Events\ScrollWheelChangedEventArgs.cs" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" />
+    <PackageReference Include="MonoGame.Framework.DesktopGL" />
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="MonoGame.Framework, Version=3.6.0.1625, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\MonoGame.Framework.Portable.3.6.0.1625\lib\portable-net45+win8+wpa81\MonoGame.Framework.dll</HintPath>
-    </Reference>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config">
-      <SubType>Designer</SubType>
-    </None>
-  </ItemGroup>
-  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Portable\$(TargetFrameworkVersion)\Microsoft.Portable.CSharp.targets" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
-  -->
 </Project>

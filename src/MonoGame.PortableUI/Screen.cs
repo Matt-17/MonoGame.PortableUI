@@ -175,13 +175,14 @@ namespace MonoGame.PortableUI
             }
 
             var mouseState = Mouse.GetState();
-            TouchLocation touchState;
+            TouchLocation touchState = default(TouchLocation);
             var touchCollection = TouchPanel.GetState();
-            if (touchCollection.Count > 0)
+            var hasTouch = touchCollection.Count > 0;
+            if (hasTouch)
             {
                 touchState = touchCollection[0];
             }
-            var touchPosition = (PointF)touchState.Position.ToPoint();
+            var touchPosition = hasTouch ? (PointF)touchState.Position.ToPoint() : LastTouchPosition;
             var mousePosition = (PointF)mouseState.Position;
 
             Control content;
@@ -224,7 +225,7 @@ namespace MonoGame.PortableUI
             }
 
 
-            if (touchState.State == TouchLocationState.Pressed)
+            if (hasTouch && touchState.State == TouchLocationState.Pressed)
             {
                 var args = new TouchEventArgs(touchPosition);
                 VisualTreeHelper.IterateVisualTree(content, args,
@@ -234,7 +235,7 @@ namespace MonoGame.PortableUI
                     );
                 LastTouchPosition = touchPosition;
             }
-            if (touchState.State == TouchLocationState.Released)
+            if (hasTouch && touchState.State == TouchLocationState.Released)
             {
                 var args = new TouchEventArgs(touchPosition);
                 VisualTreeHelper.IterateVisualTree(content, args,
@@ -243,7 +244,7 @@ namespace MonoGame.PortableUI
                     null
                     );
             }
-            if (touchState.State == TouchLocationState.Moved && touchPosition != LastTouchPosition)
+            if (hasTouch && touchState.State == TouchLocationState.Moved && touchPosition != LastTouchPosition)
             {
                 var args = new TouchEventArgs(touchPosition);
                 VisualTreeHelper.IterateVisualTree(content, args,
