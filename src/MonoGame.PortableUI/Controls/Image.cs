@@ -32,10 +32,7 @@ namespace MonoGame.PortableUI.Controls
 
             var destinationRectangle = new Rect(new PointF(x,y), imageSize);
 
-            if (TintColor != Color.Transparent)
-                spriteBatch.Draw(Source, destinationRectangle, TintColor);
-            else
-                spriteBatch.Draw(Source, destinationRectangle: destinationRectangle);
+            spriteBatch.Draw(Source, destinationRectangle, TintColor == Color.Transparent ? Color.White : TintColor);
         }
 
         public override Size MeasureLayout()

@@ -1,2 +1,8 @@
 <Solution>
+  <Folder Name="/src/">
+    <Project Path="src/MonoGame.PortableUI/MonoGame.PortableUI.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MonoGame.PortableUI.Tests/MonoGame.PortableUI.Tests.csproj" />
+  </Folder>
 </Solution>
