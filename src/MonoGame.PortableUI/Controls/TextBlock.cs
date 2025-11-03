@@ -3,6 +3,7 @@ using System.Diagnostics;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI.Common;
+using MonoGame.PortableUI.Text;
 
 namespace MonoGame.PortableUI.Controls
 {
@@ -10,6 +11,7 @@ namespace MonoGame.PortableUI.Controls
     {
         private TextAlignment _textAlignment;
         protected SpriteFont Font;
+        private ITextMeasurer _textMeasurer;
         private string _text = "";
         private int _textSize;
         private Color _textColor;
@@ -41,7 +43,7 @@ namespace MonoGame.PortableUI.Controls
             set
             {
                 _text = value ?? "";
-                MeasuredText = Font.MeasureString(_text);
+                MeasuredText = MeasureText(_text);
                 InvalidateLayout(true);
             }
         }
@@ -60,7 +62,7 @@ namespace MonoGame.PortableUI.Controls
         {
             var size = base.MeasureLayout();
 
-            var vector2 = Font.MeasureString(Text);
+            var vector2 = MeasureText(Text);
             size.Width = Width.IsFixed() ? Width : vector2.X;
             if (vector2.Y > size.Height)
                 size.Height = vector2.Y;
@@ -72,8 +74,27 @@ namespace MonoGame.PortableUI.Controls
         public TextBlock()
         {
             Font = FontManager.DefaultFont;
+            _textMeasurer = Font != null ? new SpriteFontTextMeasurer(Font) : ApproximateTextMeasurer.Default;
             TextColor = Color.Black;
             TextAlignment = TextAlignment.Left;
+        }
+
+        public ITextMeasurer TextMeasurer
+        {
+            get { return _textMeasurer; }
+            set
+            {
+                _textMeasurer = value ?? ApproximateTextMeasurer.Default;
+                MeasuredText = MeasureText(Text);
+                InvalidateLayout(true);
+            }
+        }
+
+        protected Vector2 MeasureText(string text)
+        {
+            if (Font != null)
+                return Font.MeasureString(text ?? "");
+            return TextMeasurer.MeasureString(text ?? "");
         }
 
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
@@ -98,7 +119,8 @@ namespace MonoGame.PortableUI.Controls
 
             if (SnapToPixel)
                 offset = offset.ToInts();
-            spriteBatch.DrawString(Font, Text, offset, TextColor);
+            if (Font != null)
+                spriteBatch.DrawString(Font, Text, offset, TextColor);
         }
     }
 }
