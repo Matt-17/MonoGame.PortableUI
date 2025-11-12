@@ -16,18 +16,20 @@ namespace MonoGame.PortableUI
         //probably better if it's internal. making it public for a small hack
         public IKeyboard CurrentKeyboard;
 
-        private ScreenEngine(Game game)
+        private ScreenEngine(Game game, ScreenEngineOptions options)
         {
             Game = game;
+            Options = options;
             ScreenHistory = new Stack<Screen>();
             Component = new ScreenComponent(this, game);
             _keyboards = new Dictionary<string, IKeyboard>();
             ScaleFactor = 1;
-            Component.Initialize();
-
+            if (!game.Components.Contains(Component) && options.AddComponentToGame)
+                game.Components.Add(Component);
         }
 
         public static float ScaleFactor { get; set; }
+        public ScreenEngineOptions Options { get; }
 
         public static Control FocusedControl
         {
@@ -59,13 +61,23 @@ namespace MonoGame.PortableUI
 
         public static ScreenEngine Initialize(Game game)
         {
-            Instance = new ScreenEngine(game);
+            return Initialize(game, new ScreenEngineOptions());
+        }
+
+        public static ScreenEngine Initialize(Game game, bool addComponent)
+        {
+            return Initialize(game, new ScreenEngineOptions { AddComponentToGame = addComponent });
+        }
+
+        public static ScreenEngine Initialize(Game game, ScreenEngineOptions options)
+        {
+            Instance = new ScreenEngine(game, options ?? new ScreenEngineOptions());
             return Instance;
         }
 
         public void RegisterKeyboard(IKeyboard keyboard, string inputScope = "default")
         {
-            _keyboards.Add(inputScope, keyboard);
+            _keyboards[inputScope ?? "default"] = keyboard;
         }
 
         public void UnregisterKeyboard(string inputScope = "default")
@@ -81,7 +93,7 @@ namespace MonoGame.PortableUI
             if (_keyboards.ContainsKey(inputScope))
                 CurrentKeyboard = _keyboards[inputScope];
             CurrentKeyboard?.Control.UpdateLayout(new Rect(0, ScreenRect.Height - CurrentKeyboard.Height, ScreenRect.Width, CurrentKeyboard.Height));
-            ActiveScreen.ShowKeyboard();
+            ActiveScreen?.ShowKeyboard();
             CurrentKeyboard?.OnKeyboardAppear();
         }
 
@@ -90,7 +102,7 @@ namespace MonoGame.PortableUI
         {
             if (CurrentKeyboard == null)
                 return;
-            ActiveScreen.HideKeyboard();
+            ActiveScreen?.HideKeyboard();
             CurrentKeyboard.OnKeyboardDisappear();
             CurrentKeyboard = null;
         }
@@ -113,15 +125,17 @@ namespace MonoGame.PortableUI
 
         public void NavigateBack()
         {
+            if (ScreenHistory.Count == 0)
+                return;
             FocusedControl = null;
-            var screen = Instance.ScreenHistory.Pop();
+            var screen = ScreenHistory.Pop();
             screen.ScreenEngine = null;
         }
 
         public void Update(GameTime gameTime)
         {
             ScreenSystem.TotalTime = gameTime.TotalGameTime;
-            ActiveScreen.Update();
+            ActiveScreen?.Update();
         }
     }
 }
