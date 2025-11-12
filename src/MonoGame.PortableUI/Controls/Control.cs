@@ -33,6 +33,10 @@ namespace MonoGame.PortableUI.Controls
             Margin = new Thickness(0);
             Width = Size.Auto;
             Height = Size.Auto;
+            MinWidth = 0;
+            MinHeight = 0;
+            MaxWidth = Size.Infinity;
+            MaxHeight = Size.Infinity;
             HorizontalAlignment = HorizontalAlignment.Stretch;
             VerticalAlignment = VerticalAlignment.Stretch;
             Position = new PointF(0, 0);
@@ -114,6 +118,11 @@ namespace MonoGame.PortableUI.Controls
                 InvalidateLayout(true);
             }
         }
+
+        public float MinWidth { get; set; }
+        public float MaxWidth { get; set; }
+        public float MinHeight { get; set; }
+        public float MaxHeight { get; set; }
 
         public Rect BoundingRect { get; protected set; }
         public Rect ClientRect { get; protected set; }
@@ -235,6 +244,7 @@ namespace MonoGame.PortableUI.Controls
                     offset.X += rect.Width - measuredSize.Width;
                     break;
             }
+            measuredSize = ApplyConstraints(measuredSize);
             return new Rect(offset, measuredSize);
         }
 
@@ -246,7 +256,20 @@ namespace MonoGame.PortableUI.Controls
             var width = Width.IsFixed() ? Width : 0;
             var height = Height.IsFixed() ? Height : 0;
 
-            return new Size(width, height) + Margin;
+            return ApplyConstraints(new Size(width, height)) + Margin;
+        }
+
+        protected Size ApplyConstraints(Size size)
+        {
+            if (MinWidth.IsFixed())
+                size.Width = Math.Max(size.Width, MinWidth);
+            if (MinHeight.IsFixed())
+                size.Height = Math.Max(size.Height, MinHeight);
+            if (MaxWidth.IsFixed())
+                size.Width = Math.Min(size.Width, MaxWidth);
+            if (MaxHeight.IsFixed())
+                size.Height = Math.Min(size.Height, MaxHeight);
+            return size;
         }
 
         protected virtual void OnLongTouch()

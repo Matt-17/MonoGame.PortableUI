@@ -1,13 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using MonoGame.PortableUI.Common;
 
 namespace MonoGame.PortableUI.Controls
 {
     public class Grid : Panel
     {
-        private struct GridPosition
+        private class GridPosition
         {
             public int Row { get; set; }
             public int Column { get; set; }
@@ -24,40 +25,33 @@ namespace MonoGame.PortableUI.Controls
         public RowDefinitionCollection RowDefinitions { get; }
         public ColumnDefinitionCollection ColumnDefinitions { get; }
 
-        private static readonly Dictionary<Control, GridPosition> ControlGridPositionDictionary = new Dictionary<Control, GridPosition>();
+        private static readonly ConditionalWeakTable<Control, GridPosition> ControlGridPositionDictionary = new ConditionalWeakTable<Control, GridPosition>();
 
         private static GridPosition GetGridPosition(Control control)
         {
-            GridPosition gridPosition = new GridPosition();
-            if (ControlGridPositionDictionary.ContainsKey(control))
-                gridPosition = ControlGridPositionDictionary[control];
-            return gridPosition;
+            return ControlGridPositionDictionary.GetValue(control, _ => new GridPosition());
         }
 
         public static void SetRow(Control control, int row)
         {
             var gridPosition = GetGridPosition(control);
             gridPosition.Row = row;
-            ControlGridPositionDictionary[control] = gridPosition;
         }
 
         public static void SetColumn(Control control, int column)
         {
             var gridPosition = GetGridPosition(control);
             gridPosition.Column = column;
-            ControlGridPositionDictionary[control] = gridPosition;
         }
         public static void SetRowSpan(Control control, int rowSpan)
         {
             var gridPosition = GetGridPosition(control);
             gridPosition.RowSpan = rowSpan;
-            ControlGridPositionDictionary[control] = gridPosition;
         }
         public static void SetColumnSpan(Control control, int columnSpan)
         {
             var gridPosition = GetGridPosition(control);
             gridPosition.ColumnSpan = columnSpan;
-            ControlGridPositionDictionary[control] = gridPosition;
         }
 
         public static int GetRow(Control control)
@@ -94,10 +88,10 @@ namespace MonoGame.PortableUI.Controls
             var rowHeights = GetRowHeights(rect);
             var columnWidths = GetColumnWidths(rect);
 
-            var row = Math.Min(GetRow(child), rowCount);
-            var column = Math.Min(GetColumn(child), coloumnCount);
-            var rowSpan = Math.Max(GetRowSpan(child), 1);
-            var columnSpan = Math.Max(GetColumnSpan(child), 1);
+            var row = Math.Min(Math.Max(GetRow(child), 0), rowCount - 1);
+            var column = Math.Min(Math.Max(GetColumn(child), 0), coloumnCount - 1);
+            var rowSpan = Math.Min(Math.Max(GetRowSpan(child), 1), rowCount - row);
+            var columnSpan = Math.Min(Math.Max(GetColumnSpan(child), 1), coloumnCount - column);
 
             var rectangle = new Rect(
                 columnWidths.Take(column).Sum() + rect.Left,
@@ -146,7 +140,7 @@ namespace MonoGame.PortableUI.Controls
 
             if (!starLeftover.IsFixed())
                 starLeftover = 0;
-            var starSingleValue = starLeftover / starRows;
+            var starSingleValue = starRows > 0 ? starLeftover / starRows : 0;
             var result = new List<int>();
             foreach (var gridLength in rowDefinitions.Select((row, i) => new { row.Height, Index = i }))
             {
@@ -176,7 +170,7 @@ namespace MonoGame.PortableUI.Controls
                 }
             }
             var f = (int)rect.Height - result.Sum();
-            if (f > 0)
+            if (f > 0 && result.Count > 0)
                 result[result.Count - 1] += f;
             return result;
         }
@@ -232,7 +226,7 @@ namespace MonoGame.PortableUI.Controls
             var starLeftover = Math.Max(0, rect.Width - absoluteColumns - autoColumns);
             if (!starLeftover.IsFixed())
                 starLeftover = 0;
-            var starSingleValue = starLeftover / starColumns;
+            var starSingleValue = starColumns > 0 ? starLeftover / starColumns : 0;
             var result = new List<int>();
             foreach (var gridLength in columnDefinitions.Select((column, i) => new { column.Width, Index = i }))
             {
@@ -262,7 +256,7 @@ namespace MonoGame.PortableUI.Controls
                 }
             }
             var f = (int)rect.Width - result.Sum();
-            if (f > 0)
+            if (f > 0 && result.Count > 0)
                 result[result.Count - 1] += f;
             return result;
         }

@@ -36,8 +36,11 @@ namespace MonoGame.PortableUI.Controls
         public void Clear()
         {
             var controls = _controls.ToArray();
+            foreach (var control in controls)
+                UnsetParent(control);
             _controls.Clear();
-            OnElementsRemoved(controls);
+            if (controls.Length > 0)
+                OnElementsRemoved(controls);
         }
 
         public bool Contains(Control item)
@@ -52,9 +55,12 @@ namespace MonoGame.PortableUI.Controls
 
         public bool Remove(Control item)
         {
-            UnsetParent(item);
             var remove = _controls.Remove(item);
-            OnElementsRemoved(item);
+            if (remove)
+            {
+                UnsetParent(item);
+                OnElementsRemoved(item);
+            }
             return remove;
         }
 
@@ -128,6 +134,8 @@ namespace MonoGame.PortableUI.Controls
 
         private void UnsetParent(Control item)
         {
+            if (ScreenEngine.FocusedControl == item)
+                ScreenEngine.FocusedControl = null;
             item.Parent = null;
         }
 

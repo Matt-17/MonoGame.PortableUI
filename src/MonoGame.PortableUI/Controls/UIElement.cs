@@ -21,6 +21,8 @@ namespace MonoGame.PortableUI.Controls
             set
             {
                 _isGone = value;
+                if (_isGone && this is Control control && MonoGame.PortableUI.ScreenEngine.FocusedControl == control)
+                    MonoGame.PortableUI.ScreenEngine.FocusedControl = null;
                 InvalidateLayout(true);
             }
         }
