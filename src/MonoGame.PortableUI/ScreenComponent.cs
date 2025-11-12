@@ -40,7 +40,7 @@ namespace MonoGame.PortableUI
 
         public override void Draw(GameTime gameTime)
         {
-            _screenEngine.ActiveScreen.Draw(_spriteBatch);
+            _screenEngine.ActiveScreen?.Draw(_spriteBatch);
         }
 
         public override void Update(GameTime gameTime)
