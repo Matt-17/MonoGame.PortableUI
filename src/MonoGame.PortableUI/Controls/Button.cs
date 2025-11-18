@@ -64,6 +64,7 @@ namespace MonoGame.PortableUI.Controls
                     textBlock = new TextBlock();
                     SetTextAlignment(textBlock);
                     Content = textBlock;
+                    ChangeVisualState();
                 }
                 if (textBlock != null)
                     textBlock.Text = value;
@@ -133,6 +134,7 @@ namespace MonoGame.PortableUI.Controls
                 if (textBlock != null)
                 {
                     SetTextAlignment(textBlock);
+                    ChangeVisualState();
                 }
             }
         }
