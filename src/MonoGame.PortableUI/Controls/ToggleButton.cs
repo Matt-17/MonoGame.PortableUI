@@ -35,6 +35,8 @@ namespace MonoGame.PortableUI.Controls
             set
             {
                 _toggleBrush = value;
+                if (IsChecked)
+                    BackgroundBrush = _toggleBrush;
                 ChangeVisualState();
                 InvalidateLayout(false);
             }
@@ -73,8 +75,6 @@ namespace MonoGame.PortableUI.Controls
         private void ToggleButton_Click(object sender, System.EventArgs e)
         {
             IsChecked = !IsChecked;
-            OnChecked(IsChecked);
-            ChangeVisualState();
         }
 
         protected virtual void OnChecked(bool e)
