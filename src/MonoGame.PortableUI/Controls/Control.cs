@@ -20,6 +20,8 @@ namespace MonoGame.PortableUI.Controls
         private FrameworkElement _parent;
         private float _width;
         private bool _isEnabled;
+        private TimeSpan? _lastClickAt;
+        private TimeSpan? _lastRightClickAt;
         private bool _suppressUpdate;
         public bool HandleTouchDownEnter { get; set; }
 
@@ -191,11 +193,15 @@ namespace MonoGame.PortableUI.Controls
             //if (this is TextBox)
             //    ScreenEngine.FocusedControl = this;
             Click?.Invoke(this, EventArgs.Empty);
+            if (IsDoubleClick(ref _lastClickAt))
+                DoubleClick?.Invoke(this, EventArgs.Empty);
         }
 
         public virtual void OnRightClick()
         {
             RightClick?.Invoke(this, EventArgs.Empty);
+            if (IsDoubleClick(ref _lastRightClickAt))
+                RightDoubleClick?.Invoke(this, EventArgs.Empty);
         }
 
         private void _longPressTimer_Elapsed(object sender, EventArgs e)
@@ -305,7 +311,9 @@ namespace MonoGame.PortableUI.Controls
         public event TouchEventHandler TouchCancel;
 
         public event EventHandler Click;
+        public event EventHandler DoubleClick;
         public event EventHandler RightClick;
+        public event EventHandler RightDoubleClick;
         public event EventHandler LongTouch;
         public event KeyEventHandler KeyPressed;
         public event KeyEventHandler KeyDown;
@@ -487,6 +495,15 @@ namespace MonoGame.PortableUI.Controls
             if (!IsEnabled || !IsVisible || IsGone)
                 return;
             ScreenEngine.FocusedControl = this;
+        }
+
+        private static bool IsDoubleClick(ref TimeSpan? lastClickAt)
+        {
+            var now = ScreenSystem.TotalTime;
+            var threshold = ScreenEngine.Instance?.Options.DoubleClickThreshold ?? TimeSpan.FromMilliseconds(400);
+            var isDoubleClick = lastClickAt.HasValue && now - lastClickAt.Value <= threshold;
+            lastClickAt = now;
+            return isDoubleClick;
         }
     }
 }
