@@ -36,6 +36,8 @@ namespace MonoGame.PortableUI
             get { return _focusedControl; }
             set
             {
+                if (_focusedControl == value)
+                    return;
                 var oldElement = _focusedControl;
                 _focusedControl = value;
                 oldElement?.OnLostFocus(new LostFocusEventArgs(_focusedControl));
