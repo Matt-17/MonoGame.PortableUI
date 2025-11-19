@@ -19,6 +19,7 @@ namespace MonoGame.PortableUI.Controls
         private float _height;
         private FrameworkElement _parent;
         private float _width;
+        private bool _isEnabled;
         private bool _suppressUpdate;
         public bool HandleTouchDownEnter { get; set; }
 
@@ -143,7 +144,16 @@ namespace MonoGame.PortableUI.Controls
             _suppressUpdate = suppress;
         }
 
-        public bool IsEnabled { get; set; }
+        public bool IsEnabled
+        {
+            get { return _isEnabled; }
+            set
+            {
+                _isEnabled = value;
+                if (!_isEnabled && ScreenEngine.FocusedControl == this)
+                    ScreenEngine.FocusedControl = null;
+            }
+        }
 
         public HorizontalAlignment HorizontalAlignment { get; set; }
 
@@ -474,6 +484,8 @@ namespace MonoGame.PortableUI.Controls
 
         public void Focus()
         {
+            if (!IsEnabled || !IsVisible || IsGone)
+                return;
             ScreenEngine.FocusedControl = this;
         }
     }
