@@ -92,6 +92,8 @@ namespace MonoGame.PortableUI.Controls
             get { return _parent; }
             internal set
             {
+                if (_parent == value)
+                    return;
                 if (_parent != null && value != null)
                     throw new MultipleParentException();
                 _parent = value;
