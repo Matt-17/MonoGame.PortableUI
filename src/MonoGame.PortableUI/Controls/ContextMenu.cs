@@ -1,5 +1,7 @@
+using System;
 using Microsoft.Xna.Framework;
 using MonoGame.PortableUI.Common;
+using MonoGame.PortableUI.Controls.Events;
 using MonoGame.PortableUI.Media;
 
 namespace MonoGame.PortableUI.Controls
@@ -8,6 +10,12 @@ namespace MonoGame.PortableUI.Controls
     {
         public MenuItemList Items { get; }
         public Brush BackgroundBrush { get; set; }
+
+        public event EventHandler Opening;
+        public event EventHandler Opened;
+        public event EventHandler Closing;
+        public event EventHandler Closed;
+        public event EventHandler<MenuItemInvokedEventArgs> ItemInvoked;
 
         public ContextMenu()
         {
@@ -37,16 +45,42 @@ namespace MonoGame.PortableUI.Controls
                 button.MouseUp += (sender, args) => { screen.ClearFlyOut(); args.Handled = true; };
                 button.TouchUp += (sender, args) => { screen.ClearFlyOut(); args.Handled = true; };
                 if (ContextMenuType == ContextMenuTypes.OpenAndClick)
-                    button.Click += (s, e) => item.Action();
+                    button.Click += (s, e) => InvokeMenuItem(item);
                 else
                 {
                     button.HandleTouchDownEnter = true;
-                    button.MouseUp += (sender, args) => item.Action();
-                    button.TouchUp += (sender, args) => item.Action();
+                    button.MouseUp += (sender, args) => InvokeMenuItem(item);
+                    button.TouchUp += (sender, args) => InvokeMenuItem(item);
                 }
                 stackPanel.AddChild(button);
             }
             return stackPanel;
+        }
+
+        internal void OnOpening()
+        {
+            Opening?.Invoke(this, EventArgs.Empty);
+        }
+
+        internal void OnOpened()
+        {
+            Opened?.Invoke(this, EventArgs.Empty);
+        }
+
+        internal void OnClosing()
+        {
+            Closing?.Invoke(this, EventArgs.Empty);
+        }
+
+        internal void OnClosed()
+        {
+            Closed?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void InvokeMenuItem(MenuItem item)
+        {
+            item.Action?.Invoke();
+            ItemInvoked?.Invoke(this, new MenuItemInvokedEventArgs(item));
         }
     }
 }
