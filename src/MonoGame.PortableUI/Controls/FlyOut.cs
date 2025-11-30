@@ -7,6 +7,12 @@ namespace MonoGame.PortableUI.Controls
     public class FlyOut : ContentControl, IDisposable
     {
         private readonly PointF _position;
+        private bool _isOpen;
+
+        public event EventHandler Showing;
+        public event EventHandler Shown;
+        public event EventHandler Dismissing;
+        public event EventHandler Dismissed;
 
         public FlyOut(PointF position, bool removeOnRelease)
         {
@@ -40,6 +46,36 @@ namespace MonoGame.PortableUI.Controls
         public void Dispose()
         {
             Content = null;
+        }
+
+        internal void NotifyShowing()
+        {
+            if (_isOpen)
+                return;
+            Showing?.Invoke(this, EventArgs.Empty);
+        }
+
+        internal void NotifyShown()
+        {
+            if (_isOpen)
+                return;
+            _isOpen = true;
+            Shown?.Invoke(this, EventArgs.Empty);
+        }
+
+        internal void NotifyDismissing()
+        {
+            if (!_isOpen)
+                return;
+            Dismissing?.Invoke(this, EventArgs.Empty);
+        }
+
+        internal void NotifyDismissed()
+        {
+            if (!_isOpen)
+                return;
+            _isOpen = false;
+            Dismissed?.Invoke(this, EventArgs.Empty);
         }
     }
 }

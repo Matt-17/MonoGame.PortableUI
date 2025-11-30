@@ -36,6 +36,7 @@ namespace MonoGame.PortableUI
         internal PointF LastTouchPosition;
         internal int LastScrollWheelValue;
         private FlyOut _flyOut;
+        private ContextMenu _activeContextMenu;
 
         protected Screen()
         {
@@ -76,12 +77,21 @@ namespace MonoGame.PortableUI
             {
                 if (_flyOut != null)
                 {
+                    _activeContextMenu?.OnClosing();
+                    _flyOut.NotifyDismissing();
                     _flyOut.Parent = null;
                     _flyOut.Dispose();
+                    _flyOut.NotifyDismissed();
+                    _activeContextMenu?.OnClosed();
+                    _activeContextMenu = null;
                 }
                 _flyOut = value;
                 if (_flyOut != null)
+                {
+                    _flyOut.NotifyShowing();
                     _flyOut.Parent = this;
+                    _flyOut.NotifyShown();
+                }
             }
         }
 
@@ -130,11 +140,14 @@ namespace MonoGame.PortableUI
         
         internal void CreateContextMenu(PointF position, ContextMenu content, bool optimizeForTouch)
         {
+            content.OnOpening();
+            _activeContextMenu = content;
             FlyOut = new FlyOut(position, content.ContextMenuType == ContextMenuTypes.OpenAndHold)
             {
                 Content = content.CreateControl(this, optimizeForTouch)
             };
             FlyOut.UpdateLayout(ScreenRect);
+            content.OnOpened();
         }
 
         private static void DrawControl(SpriteBatch spriteBatch, Control control)
