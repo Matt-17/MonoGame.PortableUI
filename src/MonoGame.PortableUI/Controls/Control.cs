@@ -17,6 +17,10 @@ namespace MonoGame.PortableUI.Controls
 
         private ContextMenu _contextMenu;
         private float _height;
+        private float _maxHeight;
+        private float _maxWidth;
+        private float _minHeight;
+        private float _minWidth;
         private FrameworkElement _parent;
         private float _width;
         private bool _isEnabled;
@@ -124,10 +128,53 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
-        public float MinWidth { get; set; }
-        public float MaxWidth { get; set; }
-        public float MinHeight { get; set; }
-        public float MaxHeight { get; set; }
+        public float MinWidth
+        {
+            get { return _minWidth; }
+            set
+            {
+                _minWidth = value;
+                if (MaxWidth.IsFixed() && MaxWidth < _minWidth)
+                    _maxWidth = _minWidth;
+                InvalidateLayout(true);
+            }
+        }
+
+        public float MaxWidth
+        {
+            get { return _maxWidth; }
+            set
+            {
+                _maxWidth = value;
+                if (_maxWidth.IsFixed() && _maxWidth < MinWidth)
+                    _minWidth = _maxWidth;
+                InvalidateLayout(true);
+            }
+        }
+
+        public float MinHeight
+        {
+            get { return _minHeight; }
+            set
+            {
+                _minHeight = value;
+                if (MaxHeight.IsFixed() && MaxHeight < _minHeight)
+                    _maxHeight = _minHeight;
+                InvalidateLayout(true);
+            }
+        }
+
+        public float MaxHeight
+        {
+            get { return _maxHeight; }
+            set
+            {
+                _maxHeight = value;
+                if (_maxHeight.IsFixed() && _maxHeight < MinHeight)
+                    _minHeight = _maxHeight;
+                InvalidateLayout(true);
+            }
+        }
 
         public Rect BoundingRect { get; protected set; }
         public Rect ClientRect { get; protected set; }
