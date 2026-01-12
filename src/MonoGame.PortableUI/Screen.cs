@@ -205,6 +205,9 @@ namespace MonoGame.PortableUI
             else
                 content = _mainGrid;
 
+            foreach (var control in VisualTreeHelper.GetVisualTreeAsList(content, false))
+                control.UpdateTimers();
+
             if (mousePosition != LastMousePosition)
             {
                 List<MouseButton> buttons = new List<MouseButton>();
@@ -295,13 +298,15 @@ namespace MonoGame.PortableUI
 
         public void ShowKeyboard()
         {
-            if (ScreenEngine.CurrentKeyboard != null)
+            if (ScreenEngine.CurrentKeyboard != null && !_mainGrid.Children.Contains(ScreenEngine.CurrentKeyboard.Control))
                 _mainGrid.AddChild(ScreenEngine.CurrentKeyboard.Control, 1);
             _mainGrid.InvalidateLayout(true);
         }
 
         public void HideKeyboard()
         {
+            if (ScreenEngine.CurrentKeyboard == null)
+                return;
             _mainGrid.Children.Remove(ScreenEngine.CurrentKeyboard.Control);
             _mainGrid.InvalidateLayout(true);
         }
