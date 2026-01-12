@@ -519,6 +519,11 @@ namespace MonoGame.PortableUI.Controls
             ChangeVisualState();
         }
 
+        internal void UpdateTimers()
+        {
+            _longPressTimer.Update();
+        }
+
         protected internal virtual void OnGotFocus(GotFocusEventArgs args)
         {
             GotFocus?.Invoke(this, args);

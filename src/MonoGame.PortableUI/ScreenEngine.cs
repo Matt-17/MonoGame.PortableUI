@@ -92,8 +92,9 @@ namespace MonoGame.PortableUI
         public void RequestKeyboard(string inputScope)
         {
             inputScope = inputScope ?? "default";
-            if (_keyboards.ContainsKey(inputScope))
-                CurrentKeyboard = _keyboards[inputScope];
+            if (!_keyboards.TryGetValue(inputScope, out var keyboard))
+                return;
+            CurrentKeyboard = keyboard;
             CurrentKeyboard?.Control.UpdateLayout(new Rect(0, ScreenRect.Height - CurrentKeyboard.Height, ScreenRect.Width, CurrentKeyboard.Height));
             ActiveScreen?.ShowKeyboard();
             CurrentKeyboard?.OnKeyboardAppear();
