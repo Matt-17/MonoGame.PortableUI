@@ -42,6 +42,9 @@ namespace MonoGame.PortableUI.Controls
             if (size.Height != 0 && size.Width != 0)
                 return size;
 
+            if (Source == null)
+                return size;
+
             if (size.Height == 0)
                 size.Height = Source.Height;
 
@@ -62,6 +65,9 @@ namespace MonoGame.PortableUI.Controls
         private Size GetImageSize(Size size)
         {
             if (Source == null)
+                return Size.Empty;
+
+            if (Source.Width == 0 || Source.Height == 0 || size.Width == 0 || size.Height == 0)
                 return Size.Empty;
 
             var widthGap = size.Width / Source.Width;
