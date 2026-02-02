@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/samples/">
+    <Project Path="samples/MonoGame.PortableUI.Demo/MonoGame.PortableUI.Demo.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/MonoGame.PortableUI/MonoGame.PortableUI.csproj" />
   </Folder>
