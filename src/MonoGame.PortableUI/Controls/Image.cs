@@ -40,10 +40,10 @@ namespace MonoGame.PortableUI.Controls
             var size = base.MeasureLayout();
 
             if (size.Height != 0 && size.Width != 0)
-                return size;
+                return ApplyConstraints(size);
 
             if (Source == null)
-                return size;
+                return ApplyConstraints(size);
 
             if (size.Height == 0)
                 size.Height = Source.Height;
@@ -59,7 +59,7 @@ namespace MonoGame.PortableUI.Controls
             if (Width.IsFixed())
                 size.Width = Width;
 
-            return size;
+            return ApplyConstraints(size);
         }
 
         private Size GetImageSize(Size size)

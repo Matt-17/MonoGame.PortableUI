@@ -68,7 +68,7 @@ namespace MonoGame.PortableUI.Controls
                 size.Height = vector2.Y;
             //size.Height = Height;
 
-            return size;
+            return ApplyConstraints(size);
         }
 
         public TextBlock()

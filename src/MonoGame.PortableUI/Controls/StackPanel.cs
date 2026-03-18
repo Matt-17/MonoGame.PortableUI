@@ -28,7 +28,7 @@ namespace MonoGame.PortableUI.Controls
                     size.Height += Children.Count > 0 ? Children.Max(child => child.MeasureLayout().Height) : 0;
             }
 
-            return size;
+            return ApplyConstraints(size);
         }
 
         public override void UpdateLayout(Rect rect)
