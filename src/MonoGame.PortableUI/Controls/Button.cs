@@ -66,7 +66,7 @@ namespace MonoGame.PortableUI.Controls
                     Content = textBlock;
                     ChangeVisualState();
                 }
-                if (textBlock != null)
+                if (textBlock != null && textBlock.Text != value)
                     textBlock.Text = value;
             }
         }

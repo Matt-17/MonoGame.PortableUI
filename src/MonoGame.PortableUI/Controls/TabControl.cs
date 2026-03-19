@@ -117,8 +117,13 @@ namespace MonoGame.PortableUI.Controls
                 item.Parent = i == SelectedIndex ? this : null;
                 var button = _headerButtons[i];
                 button.Tag = i;
-                button.Text = string.IsNullOrEmpty(item.Header) ? $"Tab {i + 1}" : item.Header;
-                button.BackgroundBrush = i == SelectedIndex ? SelectedHeaderBackground : HeaderBackground;
+                var headerText = string.IsNullOrEmpty(item.Header) ? $"Tab {i + 1}" : item.Header;
+                if (button.Text != headerText)
+                    button.Text = headerText;
+
+                var headerBrush = i == SelectedIndex ? SelectedHeaderBackground : HeaderBackground;
+                if (!ReferenceEquals(button.BackgroundBrush, headerBrush))
+                    button.BackgroundBrush = headerBrush;
             }
         }
 

@@ -31,6 +31,8 @@ namespace MonoGame.PortableUI.Controls
             get { return _textColor; }
             set
             {
+                if (_textColor == value)
+                    return;
                 _textColor = value;
                 InvalidateLayout(false);
             }
@@ -42,7 +44,10 @@ namespace MonoGame.PortableUI.Controls
             get { return _text; }
             set
             {
-                _text = value ?? "";
+                value = value ?? "";
+                if (_text == value)
+                    return;
+                _text = value;
                 MeasuredText = MeasureText(_text);
                 InvalidateLayout(true);
             }
@@ -53,6 +58,8 @@ namespace MonoGame.PortableUI.Controls
             get { return _textSize; }
             set
             {
+                if (_textSize == value)
+                    return;
                 _textSize = value;
                 InvalidateLayout(true);
             }
