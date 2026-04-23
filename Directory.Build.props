@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <NoWarn>$(NoWarn);1591</NoWarn>
     <Deterministic>true</Deterministic>
     <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
     <RepositoryUrl>https://github.com/Matt-17/MonoGame.PortableUI</RepositoryUrl>
