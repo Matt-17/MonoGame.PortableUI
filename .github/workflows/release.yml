@@ -1,0 +1,75 @@
+name: Publish NuGet
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    environment: release
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Restore tools
+        run: dotnet tool restore
+
+      - name: Restore
+        run: dotnet restore MonoGame.PortableUI.slnx
+
+      - name: Determine package version
+        shell: pwsh
+        run: |
+          $match = [regex]::Match($env:GITHUB_REF_NAME, '^v(?<version>[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?)$')
+          if (-not $match.Success) {
+              throw "Release tags must use vMAJOR.MINOR.PATCH or vMAJOR.MINOR.PATCH-PRERELEASE, for example v0.2.0 or v0.2.0-alpha.2."
+          }
+
+          $version = $match.Groups['version'].Value
+          "PACKAGE_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "Package version: $version"
+
+      - name: Build
+        shell: pwsh
+        run: dotnet build MonoGame.PortableUI.slnx --configuration Release --no-restore -p:Version=$env:PACKAGE_VERSION -p:PackageVersion=$env:PACKAGE_VERSION
+
+      - name: Test
+        run: dotnet test MonoGame.PortableUI.slnx --configuration Release --no-build
+
+      - name: Pack
+        shell: pwsh
+        run: dotnet pack src/MonoGame.PortableUI/MonoGame.PortableUI.csproj --configuration Release --no-build --output artifacts/packages -p:Version=$env:PACKAGE_VERSION -p:PackageVersion=$env:PACKAGE_VERSION
+
+      - name: Validate package
+        shell: pwsh
+        run: ./eng/validate-package.ps1 -PackageDirectory artifacts/packages -ExpectedVersion $env:PACKAGE_VERSION
+
+      - name: NuGet login
+        id: login
+        uses: NuGet/login@v1.2.0
+        with:
+          user: ${{ vars.NUGET_USER }}
+
+      - name: Push
+        shell: pwsh
+        run: |
+          $packages = Get-ChildItem -LiteralPath artifacts/packages -Filter '*.nupkg'
+          if ($packages.Count -eq 0) {
+              throw "No .nupkg files found in artifacts/packages."
+          }
+
+          foreach ($package in $packages) {
+              dotnet nuget push $package.FullName --api-key "${{ steps.login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+          }

@@ -1,6 +1,8 @@
 param(
     [Parameter(Mandatory = $true)]
-    [string]$PackageDirectory
+    [string]$PackageDirectory,
+
+    [string]$ExpectedVersion
 )
 
 $ErrorActionPreference = 'Stop'
@@ -44,6 +46,19 @@ foreach ($package in $packages) {
 
         if (-not $content.Contains('<license type="expression">MIT</license>')) {
             throw "$($package.Name) does not contain the MIT license expression."
+        }
+
+        if (-not [string]::IsNullOrWhiteSpace($ExpectedVersion)) {
+            [xml]$document = $content
+            $versionNode = $document.SelectSingleNode("/*[local-name()='package']/*[local-name()='metadata']/*[local-name()='version']")
+
+            if ($null -eq $versionNode) {
+                throw "$($package.Name) does not contain a package version."
+            }
+
+            if ($versionNode.InnerText -ne $ExpectedVersion) {
+                throw "$($package.Name) has version $($versionNode.InnerText), expected $ExpectedVersion."
+            }
         }
     }
     finally {

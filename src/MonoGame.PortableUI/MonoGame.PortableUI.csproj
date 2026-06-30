@@ -6,8 +6,7 @@
     <Authors>Matthias Voigt;Marcus Katscher</Authors>
     <Company>code-ix</Company>
     <Product>MonoGame.PortableUI</Product>
-    <Version>0.2.0-alpha.1</Version>
-    <PackageVersion>0.2.0-alpha.1</PackageVersion>
+    <Version>0.0.0-local</Version>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/Matt-17/MonoGame.PortableUI</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
