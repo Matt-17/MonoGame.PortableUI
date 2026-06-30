@@ -1,6 +1,6 @@
 # MonoGame.PortableUI
 
-MonoGame.PortableUI is a lightweight code-first UI layer for MonoGame. The modernized `0.2.0-alpha.1` line targets .NET 8 and the current stable MonoGame DesktopGL package line.
+MonoGame.PortableUI is a lightweight code-first UI layer for MonoGame. The modernized package line targets .NET 8 and the current stable MonoGame DesktopGL package line.
 
 This branch intentionally removes the legacy PCL, Xamarin Android/iOS and WindowsDX project set. DesktopGL is the verified demo platform for this release line; mobile platforms can be reintroduced later on current MonoGame and .NET platform projects instead of the deprecated Xamarin/PCL toolchain.
 
@@ -36,14 +36,14 @@ The package ID remains `MonoGame.PortableUI`. Packaging is SDK-based and uses mo
 - repository metadata and SourceLink
 - symbol packages via `.snupkg`
 
-The first modern package version is `0.2.0-alpha.1`.
+The project file uses `0.0.0-local` as a local fallback. Published package versions are derived from release tags such as `v0.2.0-alpha.1`.
 
 ## Release Flow
 
 `master` is the release source. The old `release` branch is no longer used for active development.
 
 1. Merge changes into `master`.
-2. Create a tag such as `v0.2.0-alpha.1`.
-3. GitHub Actions builds, tests and packs.
+2. Create a tag such as `v0.2.0-alpha.2`.
+3. GitHub Actions derives the package version from the tag, then builds, tests and packs.
 4. The NuGet publish workflow uses Trusted Publishing for tags.
-5. NuGet.org still needs the one-time trusted publisher setup for this repository, workflow file and `nuget` environment.
+5. NuGet.org still needs the one-time trusted publisher setup for this repository, `release.yml` workflow file and `release` environment.
