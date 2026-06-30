@@ -77,6 +77,21 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void Textbox_accepts_key_pressed_events()
+        {
+            var textBox = new KeyboardBackedTextBox();
+
+            textBox.Press('a');
+            textBox.Press('b');
+            textBox.Press(KeyboardCommand.CursorLeft);
+            textBox.Press('X');
+            textBox.Press(KeyboardCommand.Backspace);
+
+            Assert.AreEqual("ab", textBox.Text);
+            Assert.AreEqual(1, textBox.CursorPosition);
+        }
+
+        [TestMethod]
         public void Textblock_without_font_uses_text_measurer()
         {
             var text = new TextBlock
@@ -105,6 +120,19 @@ namespace MonoGame.PortableUI.Tests
             public Vector2 MeasureString(string text)
             {
                 return new Vector2((text ?? "").Length * _characterWidth, _height);
+            }
+        }
+
+        private sealed class KeyboardBackedTextBox : TextBox
+        {
+            public void Press(char key)
+            {
+                OnKeyPressed(key);
+            }
+
+            public void Press(KeyboardCommand command)
+            {
+                OnKeyPressed(command);
             }
         }
     }

@@ -104,6 +104,9 @@ namespace MonoGame.PortableUI.Controls
 
         private List<int> GetRowHeights(Rect rect)
         {
+            if (RowDefinitions.Count == 0)
+                return new List<int> { rect.Height.IsFixed() ? (int)rect.Height : 0 };
+
             var autoRows = 0f;
             var starRows = 0f;
             var absoluteRows = 0f;
@@ -191,6 +194,9 @@ namespace MonoGame.PortableUI.Controls
 
         private List<int> GetColumnWidths(Rect rect)
         {
+            if (ColumnDefinitions.Count == 0)
+                return new List<int> { rect.Width.IsFixed() ? (int)rect.Width : 0 };
+
             // floats
             var autoColumns = 0f;
             var starColumns = 0f;

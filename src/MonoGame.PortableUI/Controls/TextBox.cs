@@ -44,6 +44,7 @@ namespace MonoGame.PortableUI.Controls
             BackgroundBrush = Color.White;
             CursorPosition = 0;
             CursorColor = Color.Black;
+            KeyPressed += HandleKeyPressed;
             Click += OnClick;
             MouseUp += OnMouseUp;
             TouchUp += OnTouchUp;

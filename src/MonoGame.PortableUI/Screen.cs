@@ -37,6 +37,7 @@ namespace MonoGame.PortableUI
         internal int LastScrollWheelValue;
         private FlyOut _flyOut;
         private ContextMenu _activeContextMenu;
+        private Keys[] _lastPressedKeys = Array.Empty<Keys>();
 
         protected Screen()
         {
@@ -208,6 +209,8 @@ namespace MonoGame.PortableUI
             foreach (var control in VisualTreeHelper.GetVisualTreeAsList(content, false))
                 control.UpdateTimers();
 
+            HandleKeyboardInput();
+
             if (mousePosition != LastMousePosition)
             {
                 List<MouseButton> buttons = new List<MouseButton>();
@@ -275,6 +278,119 @@ namespace MonoGame.PortableUI
                     null
                     );
                 LastTouchPosition = touchPosition;
+            }
+        }
+
+        private void HandleKeyboardInput()
+        {
+            var keyboardState = Keyboard.GetState();
+            var pressedKeys = keyboardState.GetPressedKeys();
+            var focusedControl = ScreenEngine.FocusedControl;
+
+            if (focusedControl != null)
+            {
+                foreach (var key in pressedKeys)
+                {
+                    if (_lastPressedKeys.Contains(key))
+                        continue;
+
+                    var command = TryGetKeyboardCommand(key);
+                    if (command.HasValue)
+                    {
+                        focusedControl.OnKeyPressed(command.Value);
+                        continue;
+                    }
+
+                    var character = TryGetCharacter(key, keyboardState);
+                    if (character.HasValue)
+                        focusedControl.OnKeyPressed(character.Value);
+                }
+            }
+
+            _lastPressedKeys = pressedKeys;
+        }
+
+        private static KeyboardCommand? TryGetKeyboardCommand(Keys key)
+        {
+            switch (key)
+            {
+                case Keys.Back:
+                    return KeyboardCommand.Backspace;
+                case Keys.Enter:
+                    return KeyboardCommand.Enter;
+                case Keys.Left:
+                    return KeyboardCommand.CursorLeft;
+                case Keys.Right:
+                    return KeyboardCommand.CursorRight;
+                case Keys.Up:
+                    return KeyboardCommand.CursorUp;
+                case Keys.Down:
+                    return KeyboardCommand.CursorDown;
+                default:
+                    return null;
+            }
+        }
+
+        private static char? TryGetCharacter(Keys key, KeyboardState keyboardState)
+        {
+            var shifted = keyboardState.IsKeyDown(Keys.LeftShift) || keyboardState.IsKeyDown(Keys.RightShift);
+            var keyValue = (int)key;
+
+            if (keyValue >= (int)Keys.A && keyValue <= (int)Keys.Z)
+            {
+                var letter = (char)('a' + keyValue - (int)Keys.A);
+                return shifted ? char.ToUpperInvariant(letter) : letter;
+            }
+
+            if (keyValue >= (int)Keys.D0 && keyValue <= (int)Keys.D9)
+            {
+                const string normal = "0123456789";
+                const string shiftedDigits = ")!@#$%^&*(";
+                var index = keyValue - (int)Keys.D0;
+                return shifted ? shiftedDigits[index] : normal[index];
+            }
+
+            if (keyValue >= (int)Keys.NumPad0 && keyValue <= (int)Keys.NumPad9)
+                return (char)('0' + keyValue - (int)Keys.NumPad0);
+
+            switch (key)
+            {
+                case Keys.Space:
+                    return ' ';
+                case Keys.Decimal:
+                    return '.';
+                case Keys.Add:
+                    return '+';
+                case Keys.Subtract:
+                    return '-';
+                case Keys.Multiply:
+                    return '*';
+                case Keys.Divide:
+                    return '/';
+                case Keys.OemComma:
+                    return shifted ? '<' : ',';
+                case Keys.OemPeriod:
+                    return shifted ? '>' : '.';
+                case Keys.OemMinus:
+                    return shifted ? '_' : '-';
+                case Keys.OemPlus:
+                    return shifted ? '+' : '=';
+                case Keys.OemQuestion:
+                    return shifted ? '?' : '/';
+                case Keys.OemSemicolon:
+                    return shifted ? ':' : ';';
+                case Keys.OemQuotes:
+                    return shifted ? '"' : '\'';
+                case Keys.OemOpenBrackets:
+                    return shifted ? '{' : '[';
+                case Keys.OemCloseBrackets:
+                    return shifted ? '}' : ']';
+                case Keys.OemPipe:
+                    return shifted ? '|' : '\\';
+                case Keys.OemTilde:
+                    return shifted ? '~' : '`';
+                default:
+                    return null;
             }
         }
 
