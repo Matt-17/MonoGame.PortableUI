@@ -22,44 +22,82 @@ namespace MonoGame.PortableUI.Demo
         {
             var root = new Grid
             {
-                Margin = 18,
-                ColumnDefinitions =
+                Margin = 14,
+                RowDefinitions =
                 {
-                    new ColumnDefinition { Width = new GridLength(320) },
-                    new ColumnDefinition()
+                    new RowDefinition { Height = GridLength.Auto },
+                    new RowDefinition()
                 }
             };
 
-            var side = CreateSidePanel();
-            Grid.SetColumn(side, 0);
-            root.AddChild(side);
+            var header = CreateHeader();
+            root.AddChild(header);
 
             var tabs = CreateTabs();
-            Grid.SetColumn(tabs, 1);
-            root.AddChild(tabs);
+            root.AddChild(tabs, row: 1);
 
             return root;
         }
 
-        private Control CreateSidePanel()
+        private Control CreateHeader()
         {
             var panel = new StackPanel
             {
                 Orientation = Orientation.Vertical,
-                BackgroundBrush = new Color(236, 238, 241),
-                Margin = new Thickness(0, 0, 14, 0)
+                BackgroundBrush = new Color(236, 239, 243),
+                Margin = new Thickness(0, 0, 0, 12)
             };
 
             var title = Label("PortableUI Demo");
             title.TextColor = new Color(35, 38, 43);
             title.TextSize = 18;
-            title.Margin = new Thickness(12, 12, 12, 4);
+            title.Margin = new Thickness(12, 10, 12, 2);
             panel.AddChild(title);
 
-            var next = new TextButton("Open second screen") { Margin = new Thickness(0, 12), Height = 38 };
+            _status.TextColor = new Color(84, 91, 102);
+            _status.Margin = new Thickness(12, 0, 12, 4);
+            panel.AddChild(_status);
+
+            var next = new TextButton("Open second screen")
+            {
+                Margin = new Thickness(12, 4, 12, 10),
+                Height = 36,
+                BackgroundBrush = Color.White,
+                TextColor = new Color(35, 38, 43)
+            };
             next.Click += (sender, args) => ScreenEngine.NavigateToScreen(new SecondScreen());
             panel.AddChild(next);
 
+            return panel;
+        }
+
+        private Control CreateControlSamples()
+        {
+            var panel = new StackPanel
+            {
+                Orientation = Orientation.Vertical,
+                Margin = 14
+            };
+
+            panel.AddChild(Label("Text input"));
+            panel.AddChild(new TextBox
+            {
+                HintText = "Type here",
+                Margin = new Thickness(0, 6, 0, 12),
+                Height = 36
+            });
+
+            panel.AddChild(Label("Button states"));
+            panel.AddChild(new Button
+            {
+                Text = "Hover / press me",
+                Height = 38,
+                Margin = new Thickness(0, 6, 0, 12),
+                HoverTextColor = Color.DarkSlateBlue,
+                PressedTextColor = Color.White
+            });
+
+            panel.AddChild(Label("Selection"));
             var combo = new ComboBox { Margin = new Thickness(0, 4), Height = 36 };
             combo.Items.Add("Compact density");
             combo.Items.Add("Comfortable density");
@@ -72,16 +110,18 @@ namespace MonoGame.PortableUI.Demo
             toggle.Checked += (sender, args) => _status.Text = args.IsChecked ? "Toggle checked" : "Toggle unchecked";
             panel.AddChild(toggle);
 
-            var radioA = new RadioButton { Text = "Radio option A", RadioGroup = "demo", Margin = new Thickness(0, 4), Height = 32 };
-            var radioB = new RadioButton { Text = "Radio option B", RadioGroup = "demo", Margin = new Thickness(0, 4), Height = 32 };
+            var radioA = new RadioButton { Text = "Radio option A", RadioGroup = "demo", Margin = new Thickness(0, 6, 0, 4), Height = 32 };
+            var radioB = new RadioButton { Text = "Radio option B", RadioGroup = "demo", Margin = new Thickness(0, 0, 0, 12), Height = 32 };
             panel.AddChild(radioA);
             panel.AddChild(radioB);
 
+            panel.AddChild(Label("Icon button"));
             var imageButton = new ImageButton { Source = _deleteIcon, Width = 44, Height = 44, Margin = new Thickness(0, 8) };
             imageButton.Click += (sender, args) => _status.Text = "ImageButton clicked";
             panel.AddChild(imageButton);
 
-            var menuButton = new TextButton("Open context menu") { Margin = new Thickness(0, 8), Height = 36 };
+            panel.AddChild(Label("Context menu"));
+            var menuButton = new TextButton("Open context menu") { Margin = new Thickness(0, 4), Height = 36 };
             var menu = new ContextMenu();
             menu.Items.Add(new MenuItem("First command", () => _status.Text = "First command"));
             menu.Items.Add(new MenuItem("Second command", () => _status.Text = "Second command"));
@@ -89,7 +129,6 @@ namespace MonoGame.PortableUI.Demo
             menuButton.ContextMenu = menu;
             panel.AddChild(menuButton);
 
-            panel.AddChild(_status);
             return panel;
         }
 
@@ -97,7 +136,6 @@ namespace MonoGame.PortableUI.Demo
         {
             var tabs = new TabControl
             {
-                Margin = new Thickness(18, 0, 0, 0),
                 BackgroundBrush = new Color(248, 249, 250)
             };
 
@@ -110,19 +148,12 @@ namespace MonoGame.PortableUI.Demo
 
         private Control CreateControlsTab()
         {
-            var panel = new StackPanel { Orientation = Orientation.Vertical, Margin = 18 };
-            panel.AddChild(Label("Text input"));
-            panel.AddChild(new TextBox { HintText = "Type here", Margin = new Thickness(0, 8), Height = 36, MinWidth = 260 });
-            panel.AddChild(Label("Button states"));
-            panel.AddChild(new Button
+            return new ScrollViewer
             {
-                Text = "Hover / press me",
-                Height = 38,
-                Margin = new Thickness(0, 8),
-                HoverTextColor = Color.DarkSlateBlue,
-                PressedTextColor = Color.White
-            });
-            return panel;
+                Content = CreateControlSamples(),
+                BackgroundBrush = new Color(248, 249, 250),
+                ScrollOrientation = Orientation.Vertical
+            };
         }
 
         private Control CreateScrollTab()
@@ -136,7 +167,7 @@ namespace MonoGame.PortableUI.Demo
             return new ScrollViewer
             {
                 Content = stack,
-                Margin = 18,
+                Margin = 14,
                 BackgroundBrush = new Color(242, 244, 247),
                 ScrollOrientation = Orientation.Vertical
             };
@@ -146,7 +177,7 @@ namespace MonoGame.PortableUI.Demo
         {
             var grid = new Grid
             {
-                Margin = 18,
+                Margin = 14,
                 RowDefinitions =
                 {
                     new RowDefinition { Height = GridLength.Auto },
@@ -160,11 +191,11 @@ namespace MonoGame.PortableUI.Demo
                 BorderColor = new Color(55, 92, 170),
                 BorderWidth = 2,
                 Padding = 14,
-                Content = Label("Border inside Grid row with constrained content")
+                Content = Label("Border in an auto row")
             };
             grid.AddChild(border);
 
-            var bottom = Label("Resize the window to exercise layout invalidation.");
+            var bottom = Label("Resize the window. Layout stays visible.");
             Grid.SetRow(bottom, 1);
             bottom.VerticalAlignment = VerticalAlignment.Bottom;
             grid.AddChild(bottom);

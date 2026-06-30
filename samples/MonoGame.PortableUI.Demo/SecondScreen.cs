@@ -21,10 +21,17 @@ namespace MonoGame.PortableUI.Demo
             {
                 Text = "Second screen",
                 TextColor = new Color(35, 38, 43),
-                TextSize = 18
+                TextSize = 18,
+                Margin = new Thickness(12, 12, 12, 4)
             });
 
-            var back = new TextButton("Navigate back") { Height = 38, Margin = new Thickness(0, 12) };
+            var back = new TextButton("Navigate back")
+            {
+                Height = 48,
+                Margin = new Thickness(12, 8, 12, 12),
+                BackgroundBrush = Color.White,
+                TextColor = new Color(35, 38, 43)
+            };
             back.Click += (sender, args) => ScreenEngine.NavigateBack();
             panel.AddChild(back);
 

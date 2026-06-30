@@ -38,6 +38,40 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void Grid_without_explicit_definitions_stretches_children_to_available_axis()
+        {
+            var screenGrid = new Grid
+            {
+                RowDefinitions =
+                {
+                    new RowDefinition()
+                }
+            };
+            var contentGrid = new Grid
+            {
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition { Width = new GridLength(320) },
+                    new ColumnDefinition()
+                }
+            };
+            var side = new Border();
+            var main = new Border();
+            contentGrid.AddChild(side);
+            contentGrid.AddChild(main, column: 1);
+            screenGrid.AddChild(contentGrid);
+
+            screenGrid.UpdateLayout(new Rect(0, 0, 800, 480));
+
+            Assert.AreEqual(800, contentGrid.BoundingRect.Width);
+            Assert.AreEqual(480, contentGrid.BoundingRect.Height);
+            Assert.AreEqual(320, side.BoundingRect.Width);
+            Assert.AreEqual(480, side.BoundingRect.Height);
+            Assert.AreEqual(480, main.BoundingRect.Width);
+            Assert.AreEqual(480, main.BoundingRect.Height);
+        }
+
+        [TestMethod]
         public void Empty_stack_panel_is_measurable()
         {
             var panel = new StackPanel();
