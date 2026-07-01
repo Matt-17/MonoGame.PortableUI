@@ -26,7 +26,7 @@ jobs:
         run: dotnet restore MonoGame.PortableUI.slnx
 
       - name: Build
-        run: dotnet build MonoGame.PortableUI.slnx --configuration Release --no-restore
+        run: dotnet build MonoGame.PortableUI.slnx --configuration Release --no-restore -p:TreatWarningsAsErrors=true
 
       - name: Test
         run: dotnet test MonoGame.PortableUI.slnx --configuration Release --no-build
