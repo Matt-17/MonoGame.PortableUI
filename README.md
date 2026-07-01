@@ -46,4 +46,4 @@ The project file uses `0.0.0-local` as a local fallback. Published package versi
 2. Create a tag such as `v0.2.0-alpha.2`.
 3. GitHub Actions derives the package version from the tag, then builds, tests and packs.
 4. The NuGet publish workflow uses Trusted Publishing for tags.
-5. NuGet.org still needs the one-time trusted publisher setup for this repository, `release.yml` workflow file and `release` environment.
+5. NuGet.org still needs the one-time trusted publisher setup for this repository, `release-nuget.yml` workflow file and `NuGet` environment.

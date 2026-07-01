@@ -13,7 +13,7 @@
    git push origin v0.2.0-alpha.2
    ```
 
-4. GitHub Actions runs `.github/workflows/release.yml`.
+4. GitHub Actions runs `.github/workflows/release-nuget.yml`.
 5. The workflow derives the package version from the tag, restores tools, builds, tests, packs, validates metadata and publishes the `.nupkg` to NuGet.
 6. Create a GitHub Release from the tag and include the changelog section plus package artifacts when useful.
 
@@ -25,8 +25,8 @@ Configure Trusted Publishing on NuGet.org with:
 
 - package: `MonoGame.PortableUI`
 - repository: `Matt-17/MonoGame.PortableUI`
-- workflow file: `release.yml`
-- environment: `release`
+- workflow file: `release-nuget.yml`
+- environment: `NuGet`
 
 The workflow expects the NuGet Trusted Publishing login action to provide `NUGET_API_KEY`. If NuGet requires the username input for this package owner, set `NUGET_USER` as a repository or environment variable. This value must be the NuGet username that created the trusted publishing policy, not necessarily the package owner.
 
