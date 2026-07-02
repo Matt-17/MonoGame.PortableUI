@@ -117,6 +117,18 @@ namespace MonoGame.PortableUI
             ActiveScreen?.InvalidateLayout(true);
         }
 
+        internal bool ApplyViewportSize(int width, int height)
+        {
+            if (Options.ScreenSizeMode != ScreenSizeMode.Viewport)
+                return false;
+
+            if (ScreenRect.Width == width && ScreenRect.Height == height)
+                return false;
+
+            SetScreenSize(width, height);
+            return true;
+        }
+
         public Stack<Screen> ScreenHistory { get; }
         public Screen? ActiveScreen => ScreenHistory.Count > 0 ? ScreenHistory.Peek() : null;
 

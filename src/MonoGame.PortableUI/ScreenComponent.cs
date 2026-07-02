@@ -1,9 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Runtime.InteropServices.ComTypes;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
 
 namespace MonoGame.PortableUI
@@ -25,6 +21,7 @@ namespace MonoGame.PortableUI
         public override void Initialize()
         {
             base.Initialize();
+            ApplyViewportSize();
             _spriteBatch = new SpriteBatch(GraphicsDevice);
         }
 
@@ -46,7 +43,14 @@ namespace MonoGame.PortableUI
 
         public override void Update(GameTime gameTime)
         {
+            ApplyViewportSize();
             _screenEngine.Update(gameTime);
+        }
+
+        private void ApplyViewportSize()
+        {
+            var viewport = GraphicsDevice.Viewport;
+            _screenEngine.ApplyViewportSize(viewport.Width, viewport.Height);
         }
     }
 }
