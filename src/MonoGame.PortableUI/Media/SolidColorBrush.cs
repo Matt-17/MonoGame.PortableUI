@@ -6,7 +6,7 @@ namespace MonoGame.PortableUI.Media
 {
     public class SolidColorBrush : Brush
     {
-        private static Texture2D _pixel;
+        private static Texture2D? _pixel;
 
         public static Texture2D Pixel
         {
@@ -14,7 +14,7 @@ namespace MonoGame.PortableUI.Media
             {
                 if (_pixel == null)
                 {
-                    _pixel = new Texture2D(ScreenEngine.Instance.Game.GraphicsDevice, 1, 1);
+                    _pixel = new Texture2D(ScreenEngine.Instance!.Game.GraphicsDevice, 1, 1);
                     _pixel.SetData(new[] { Color.White });
                 }
                 return _pixel;

@@ -11,11 +11,11 @@ namespace MonoGame.PortableUI.Controls
         public MenuItemList Items { get; }
         public Brush BackgroundBrush { get; set; }
 
-        public event EventHandler Opening;
-        public event EventHandler Opened;
-        public event EventHandler Closing;
-        public event EventHandler Closed;
-        public event EventHandler<MenuItemInvokedEventArgs> ItemInvoked;
+        public event EventHandler? Opening;
+        public event EventHandler? Opened;
+        public event EventHandler? Closing;
+        public event EventHandler? Closed;
+        public event EventHandler<MenuItemInvokedEventArgs>? ItemInvoked;
 
         public ContextMenu()
         {
@@ -25,7 +25,7 @@ namespace MonoGame.PortableUI.Controls
 
         public ContextMenuTypes ContextMenuType { get; set; }
 
-        internal Control CreateControl(Screen screen, bool optimizeForTouch)
+        internal Control CreateControl(Screen? screen, bool optimizeForTouch)
         {
             var stackPanel = new StackPanel()
             {
@@ -42,8 +42,8 @@ namespace MonoGame.PortableUI.Controls
                 };
                 if (!optimizeForTouch)
                     button.TextAlignment = TextAlignment.Left;
-                button.MouseUp += (sender, args) => { screen.ClearFlyOut(); args.Handled = true; };
-                button.TouchUp += (sender, args) => { screen.ClearFlyOut(); args.Handled = true; };
+                button.MouseUp += (sender, args) => { screen?.ClearFlyOut(); args.Handled = true; };
+                button.TouchUp += (sender, args) => { screen?.ClearFlyOut(); args.Handled = true; };
                 if (ContextMenuType == ContextMenuTypes.OpenAndClick)
                     button.Click += (s, e) => InvokeMenuItem(item);
                 else

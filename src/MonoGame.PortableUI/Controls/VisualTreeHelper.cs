@@ -19,7 +19,7 @@ namespace MonoGame.PortableUI.Controls
             yield return content;
         }
 
-        internal static void IterateVisualTree<T>(Control control, T args, Func<Control, T, bool> actionFunc, Action<Control, T> action, Func<Control, T, bool> treeFunc) where T : BaseEventArgs
+        internal static void IterateVisualTree<T>(Control control, T args, Func<Control, T, bool> actionFunc, Action<Control, T> action, Func<Control, T, bool>? treeFunc) where T : BaseEventArgs
         {
             if (control.IsGone || !control.IsVisible || !control.IsEnabled)
                 return;

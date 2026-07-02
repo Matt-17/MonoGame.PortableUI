@@ -6,7 +6,7 @@ namespace MonoGame.PortableUI.Media
 {
     public class GradientBrush : Brush
     {
-        private Texture2D _texture;
+        private Texture2D? _texture;
         private Rect _rect;
         private Color _startColor;
         private Color _endColor;
@@ -64,7 +64,8 @@ namespace MonoGame.PortableUI.Media
         public override void Draw(SpriteBatch spriteBatch, Rect rect)
         {              
             RecreateTexture(spriteBatch, (Size)rect);
-            spriteBatch.Draw(_texture, rect, Color.White);
+            if (_texture != null)
+                spriteBatch.Draw(_texture, rect, Color.White);
         }
     }
 }

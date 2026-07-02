@@ -40,7 +40,7 @@ namespace MonoGame.PortableUI.Controls
             ScrollWheelChanged += ScrollViewerScrollWheelChanged;
         }
 
-        private void ScrollViewerScrollWheelChanged(object sender, ScrollWheelChangedEventArgs args)
+        private void ScrollViewerScrollWheelChanged(object? sender, ScrollWheelChangedEventArgs args)
         {
             var delta = -args.Delta / 4f;
             if (ScrollOrientation == Orientation.Horizontal)
@@ -82,7 +82,7 @@ namespace MonoGame.PortableUI.Controls
             DrawScrollBars(spriteBatch, rect - Margin - Padding);
         }
 
-        private void ScrollViewerTouchUp(object sender, TouchEventArgs args)
+        private void ScrollViewerTouchUp(object? sender, TouchEventArgs args)
         {
             _touchPosition = null;
             if (EnableFling)
@@ -96,7 +96,7 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
-        private void ScrollViewerTouchMove(object sender, TouchEventArgs args)
+        private void ScrollViewerTouchMove(object? sender, TouchEventArgs args)
         {
             if (_touchPosition != null)
             {
@@ -106,7 +106,7 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
-        private void ScrollViewerTouchDown(object sender, TouchEventArgs args)
+        private void ScrollViewerTouchDown(object? sender, TouchEventArgs args)
         {
             _touchPosition = args.Position;
             _lastTouchDelta = new PointF();

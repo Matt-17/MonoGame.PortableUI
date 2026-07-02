@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/MonoGame.PortableUI.Benchmarks/MonoGame.PortableUI.Benchmarks.csproj" />
+  </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/MonoGame.PortableUI.Demo/MonoGame.PortableUI.Demo.csproj" />
   </Folder>

@@ -38,7 +38,7 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
-        public TabItem SelectedItem => SelectedIndex >= 0 && SelectedIndex < Items.Count ? Items[SelectedIndex] : null;
+        public TabItem? SelectedItem => SelectedIndex >= 0 && SelectedIndex < Items.Count ? Items[SelectedIndex] : null;
 
         public override Size MeasureLayout()
         {
@@ -107,7 +107,11 @@ namespace MonoGame.PortableUI.Controls
                     Parent = this,
                     TextAlignment = TextAlignment.Center
                 };
-                button.Click += (sender, args) => SelectedIndex = (int)((Button)sender).Tag;
+                button.Click += (sender, args) =>
+                {
+                    if (sender is Button { Tag: int tabIndex })
+                        SelectedIndex = tabIndex;
+                };
                 _headerButtons.Add(button);
             }
 

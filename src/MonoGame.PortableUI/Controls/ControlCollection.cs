@@ -125,7 +125,7 @@ namespace MonoGame.PortableUI.Controls
             CollectionChanged?.Invoke(this, new CollectionChangedEventArgs(new[] {added}, new[] {removed}));
         }
 
-        public event CollectionChangedEventHandler CollectionChanged;
+        public event CollectionChangedEventHandler? CollectionChanged;
 
         protected virtual void OnCollectionChanged(CollectionChangedEventArgs args)
         {

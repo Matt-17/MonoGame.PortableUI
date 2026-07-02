@@ -9,15 +9,15 @@ namespace MonoGame.PortableUI.Controls
 {
     public class TextBox : TextBlock
     {
-        private IKeyboard _attachedKeyboard;
+        private IKeyboard? _attachedKeyboard;
 
         public int CursorPosition { get; set; }
 
         public Brush CursorColor { get; set; }
 
-        public event EventHandler EnterPressed;
+        public event EventHandler? EnterPressed;
 
-        public string InputScope { get; set; }
+        public string? InputScope { get; set; }
 
         public new string Text
         {
@@ -37,7 +37,7 @@ namespace MonoGame.PortableUI.Controls
         public Color HintTextColor { get; set; } = Color.Silver;
 
         public Thickness Padding { get; set; }
-        public event TextChangedEventHandler TextChanged;
+        public event TextChangedEventHandler? TextChanged;
 
         public TextBox()
         {
@@ -52,17 +52,17 @@ namespace MonoGame.PortableUI.Controls
             Padding = 4;
         }
 
-        private void OnClick(object sender, EventArgs eventArgs)
+        private void OnClick(object? sender, EventArgs eventArgs)
         {
             Focus();
         }
 
-        private void OnMouseUp(object sender, MouseEventArgs args)
+        private void OnMouseUp(object? sender, MouseEventArgs args)
         {
             SetCursorFromPosition(args.Position);
         }
 
-        private void OnTouchUp(object sender, TouchEventArgs args)
+        private void OnTouchUp(object? sender, TouchEventArgs args)
         {
             SetCursorFromPosition(args.Position);
         }
@@ -70,18 +70,18 @@ namespace MonoGame.PortableUI.Controls
         protected internal override void OnGotFocus(GotFocusEventArgs args)
         {
             base.OnGotFocus(args);
-            ScreenEngine.Instance.RequestKeyboard(InputScope);
-            AttachKeyboard(ScreenEngine.Instance.CurrentKeyboard);
+            ScreenEngine.Instance?.RequestKeyboard(InputScope);
+            AttachKeyboard(ScreenEngine.Instance?.CurrentKeyboard);
         }
 
         protected internal override void OnLostFocus(LostFocusEventArgs args)
         {
             base.OnLostFocus(args);
             DetachKeyboard();
-            ScreenEngine.Instance.HideKeyboard();
+            ScreenEngine.Instance?.HideKeyboard();
         }
 
-        protected internal virtual void HandleKeyPressed(object sender, KeyEventArgs args)
+        protected internal virtual void HandleKeyPressed(object? sender, KeyEventArgs args)
         {
             switch (args.InputType)
             {
@@ -93,7 +93,7 @@ namespace MonoGame.PortableUI.Controls
                     HandleCommandPressed(args.Command);
                     break;
                 case InputType.Function:
-                    HandleFunctionPressed(args.Function);
+                    HandleFunctionPressed(args.Function ?? "");
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -176,7 +176,7 @@ namespace MonoGame.PortableUI.Controls
             TextChanged?.Invoke(this, args);
         }
 
-        private void AttachKeyboard(IKeyboard keyboard)
+        private void AttachKeyboard(IKeyboard? keyboard)
         {
             if (_attachedKeyboard == keyboard)
                 return;

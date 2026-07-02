@@ -15,13 +15,13 @@ namespace MonoGame.PortableUI.Controls
     {
         private readonly Timer _longPressTimer;
 
-        private ContextMenu _contextMenu;
+        private ContextMenu? _contextMenu;
         private float _height;
         private float _maxHeight;
         private float _maxWidth;
         private float _minHeight;
         private float _minWidth;
-        private FrameworkElement _parent;
+        private FrameworkElement? _parent;
         private float _width;
         private bool _isEnabled;
         private TimeSpan? _lastClickAt;
@@ -49,7 +49,7 @@ namespace MonoGame.PortableUI.Controls
             Position = new PointF(0, 0);
 
             _longPressTimer = new Timer(300);
-            _longPressTimer.Elapsed += _longPressTimer_Elapsed;
+            _longPressTimer.Elapsed += OnLongPressTimerElapsed;
         }
 
         protected Dictionary<MouseButton, ButtonState> MouseButtonStates { get; } = new Dictionary<MouseButton, ButtonState>
@@ -64,14 +64,14 @@ namespace MonoGame.PortableUI.Controls
             get { return ScreenEngine.FocusedControl == this; }
         }
 
-        internal Screen Screen
+        internal Screen? Screen
         {
             get { return Parent as Screen ?? (Parent as Control)?.Screen; }
         }
 
-        public object Tag { get; set; }
+        public object? Tag { get; set; }
 
-        public ContextMenu ContextMenu
+        public ContextMenu? ContextMenu
         {
             get { return _contextMenu; }
             set
@@ -91,7 +91,7 @@ namespace MonoGame.PortableUI.Controls
         protected HoverStates HoverState { get; set; }
         protected TouchStates TouchState { get; set; }
 
-        public override FrameworkElement Parent
+        public override FrameworkElement? Parent
         {
             get { return _parent; }
             internal set
@@ -214,15 +214,16 @@ namespace MonoGame.PortableUI.Controls
         
         internal PointF Position { get; set; }
 
-        private void ShowContextMenuTouch(object sender, EventArgs e) { ShowContextMenu(true); }
-        private void ShowContextMenuClick(object sender, EventArgs args) { if (ContextMenu.ContextMenuType == ContextMenuTypes.OpenAndClick) ShowContextMenu(false); }
-        private void ShowContextMenuDown(object sender, MouseEventArgs args) { if (args.Buttons.Any(x => x == MouseButton.Right) && ContextMenu.ContextMenuType == ContextMenuTypes.OpenAndHold) ShowContextMenu(false); }
+        private void ShowContextMenuTouch(object? sender, EventArgs e) { ShowContextMenu(true); }
+        private void ShowContextMenuClick(object? sender, EventArgs args) { if (ContextMenu?.ContextMenuType == ContextMenuTypes.OpenAndClick) ShowContextMenu(false); }
+        private void ShowContextMenuDown(object? sender, MouseEventArgs args) { if (args.Buttons.Any(x => x == MouseButton.Right) && ContextMenu?.ContextMenuType == ContextMenuTypes.OpenAndHold) ShowContextMenu(false); }
 
         private void ShowContextMenu(bool optimizeForTouch)
         {
             var boundingRect = BoundingRect - Margin;
             var pointF = boundingRect;
-            Screen.CreateContextMenu(pointF.Offset, ContextMenu, optimizeForTouch);
+            if (Screen != null && ContextMenu != null)
+                Screen.CreateContextMenu(pointF.Offset, ContextMenu, optimizeForTouch);
         }
 
         public override void InvalidateLayout(bool boundsChanged)
@@ -253,7 +254,7 @@ namespace MonoGame.PortableUI.Controls
                 RightDoubleClick?.Invoke(this, EventArgs.Empty);
         }
 
-        private void _longPressTimer_Elapsed(object sender, EventArgs e)
+        private void OnLongPressTimerElapsed(object? sender, EventArgs e)
         {
             _longPressTimer?.Stop();
             TouchState = TouchStates.Released;
@@ -348,28 +349,28 @@ namespace MonoGame.PortableUI.Controls
 
         #region Events
 
-        public event MouseEventHandler MouseEnter;
-        public event MouseEventHandler MouseLeave;
-        public event MouseEventHandler MouseMove;
-        public event MouseEventHandler MouseDown;
-        public event MouseEventHandler MouseUp;
-        public event ScrollWheelChangedEventHandler ScrollWheelChanged;
-        public event TouchEventHandler TouchDown;
-        public event TouchEventHandler TouchUp;
-        public event TouchEventHandler TouchMove;
-        public event TouchEventHandler TouchCancel;
+        public event MouseEventHandler? MouseEnter;
+        public event MouseEventHandler? MouseLeave;
+        public event MouseEventHandler? MouseMove;
+        public event MouseEventHandler? MouseDown;
+        public event MouseEventHandler? MouseUp;
+        public event ScrollWheelChangedEventHandler? ScrollWheelChanged;
+        public event TouchEventHandler? TouchDown;
+        public event TouchEventHandler? TouchUp;
+        public event TouchEventHandler? TouchMove;
+        public event TouchEventHandler? TouchCancel;
 
-        public event EventHandler Click;
-        public event EventHandler DoubleClick;
-        public event EventHandler RightClick;
-        public event EventHandler RightDoubleClick;
-        public event EventHandler LongTouch;
-        public event KeyEventHandler KeyPressed;
-        public event KeyEventHandler KeyDown;
-        public event KeyEventHandler KeyUp;
+        public event EventHandler? Click;
+        public event EventHandler? DoubleClick;
+        public event EventHandler? RightClick;
+        public event EventHandler? RightDoubleClick;
+        public event EventHandler? LongTouch;
+        public event KeyEventHandler? KeyPressed;
+        public event KeyEventHandler? KeyDown;
+        public event KeyEventHandler? KeyUp;
 
-        public event GotFocusEventHandler GotFocus;
-        public event LostFocusEventHandler LostFocus;
+        public event GotFocusEventHandler? GotFocus;
+        public event LostFocusEventHandler? LostFocus;
 
         #endregion
 

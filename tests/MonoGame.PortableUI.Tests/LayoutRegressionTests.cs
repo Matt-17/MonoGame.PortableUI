@@ -72,6 +72,61 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void Grid_auto_definitions_ignore_spanning_children_when_measuring()
+        {
+            var grid = new Grid
+            {
+                RowDefinitions =
+                {
+                    new RowDefinition { Height = GridLength.Auto },
+                    new RowDefinition(),
+                    new RowDefinition { Height = new GridLength(40) }
+                },
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition { Width = GridLength.Auto },
+                    new ColumnDefinition(),
+                    new ColumnDefinition { Width = new GridLength(260) }
+                }
+            };
+            var auto = new FixedSizeControl(new Size(120, 42));
+            var star = new FixedSizeControl(new Size(160, 42));
+            var fixedSize = new FixedSizeControl(new Size(160, 42));
+            var spanningPreview = new FixedSizeControl(new Size(900, 120));
+            var spanningFooter = new FixedSizeControl(new Size(500, 20));
+            grid.AddChild(auto);
+            grid.AddChild(star, column: 1);
+            grid.AddChild(fixedSize, column: 2);
+            grid.AddChild(spanningPreview, row: 1, columnSpan: 3);
+            grid.AddChild(spanningFooter, row: 2, columnSpan: 3);
+
+            grid.UpdateLayout(new Rect(0, 0, 1000, 300));
+
+            Assert.AreEqual(120, auto.BoundingRect.Width);
+            Assert.AreEqual(620, star.BoundingRect.Width);
+            Assert.AreEqual(260, fixedSize.BoundingRect.Width);
+            Assert.AreEqual(42, auto.BoundingRect.Height);
+            Assert.AreEqual(218, spanningPreview.BoundingRect.Height);
+            Assert.AreEqual(40, spanningFooter.BoundingRect.Height);
+        }
+
+        [TestMethod]
+        public void Content_control_measurement_includes_padding_and_margin()
+        {
+            var border = new Border
+            {
+                Margin = new Thickness(0, 0, 12, 0),
+                Padding = new Thickness(12, 10, 14, 10),
+                Content = new FixedSizeControl(new Size(100, 20))
+            };
+
+            var size = border.MeasureLayout();
+
+            Assert.AreEqual(138, size.Width);
+            Assert.AreEqual(40, size.Height);
+        }
+
+        [TestMethod]
         public void Empty_stack_panel_is_measurable()
         {
             var panel = new StackPanel();
@@ -117,6 +172,21 @@ namespace MonoGame.PortableUI.Tests
             public Microsoft.Xna.Framework.Vector2 MeasureString(string text)
             {
                 return new Microsoft.Xna.Framework.Vector2(_width, _height);
+            }
+        }
+
+        private sealed class FixedSizeControl : Control
+        {
+            private readonly Size _size;
+
+            public FixedSizeControl(Size size)
+            {
+                _size = size;
+            }
+
+            public override Size MeasureLayout()
+            {
+                return _size;
             }
         }
     }

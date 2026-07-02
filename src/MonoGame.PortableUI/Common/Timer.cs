@@ -13,7 +13,7 @@ namespace MonoGame.PortableUI.Common
 
         public int WaitTime { get; set; }
         public bool IsRunning { get; set; }
-        public event EventHandler Elapsed;
+        public event EventHandler? Elapsed;
 
         public void Start()
         {

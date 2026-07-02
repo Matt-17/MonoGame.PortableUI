@@ -9,7 +9,7 @@ namespace MonoGame.PortableUI.Controls
     public class RadioButton : ToggleButton
     {
         private static readonly Dictionary<string, List<RadioButton>> RadioButtonDictionary = new Dictionary<string, List<RadioButton>>();
-        private string _radioGroup;
+        private string _radioGroup = "";
 
         public string RadioGroup
         {
@@ -32,7 +32,7 @@ namespace MonoGame.PortableUI.Controls
             return radioButtons.Select((b, i) => new { RadioButton = b, Index = i }).Single(x => x.RadioButton.IsChecked).Index;
         }
 
-        private static void AddToList(string radioGroup, RadioButton radioButton)
+        private static void AddToList(string? radioGroup, RadioButton radioButton)
         {
             if (string.IsNullOrEmpty(radioGroup))
                 return;
@@ -46,7 +46,7 @@ namespace MonoGame.PortableUI.Controls
             list.Add(radioButton);
         }
 
-        private static void RemoveFromList(string radioGroup, RadioButton radioButton)
+        private static void RemoveFromList(string? radioGroup, RadioButton radioButton)
         {
             if (string.IsNullOrEmpty(radioGroup))
                 return;

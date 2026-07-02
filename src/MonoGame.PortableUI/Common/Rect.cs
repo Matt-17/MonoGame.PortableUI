@@ -10,7 +10,7 @@ namespace MonoGame.PortableUI.Common
             return Top.Equals(other.Top) && Left.Equals(other.Left) && Width.Equals(other.Width) && Height.Equals(other.Height);
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (ReferenceEquals(null, obj)) return false;
             return obj is Rect && Equals((Rect)obj);

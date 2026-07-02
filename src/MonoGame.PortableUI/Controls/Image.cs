@@ -7,7 +7,7 @@ namespace MonoGame.PortableUI.Controls
 {
     public class Image : Control
     {
-        public Texture2D Source { get; set; }
+        public Texture2D? Source { get; set; }
 
         public Color TintColor { get; set; }
 

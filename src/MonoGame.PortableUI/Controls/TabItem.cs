@@ -2,6 +2,6 @@ namespace MonoGame.PortableUI.Controls
 {
     public class TabItem : ContentControl
     {
-        public string Header { get; set; }
+        public string Header { get; set; } = "";
     }
 }

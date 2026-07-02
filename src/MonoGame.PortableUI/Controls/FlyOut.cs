@@ -9,10 +9,10 @@ namespace MonoGame.PortableUI.Controls
         private readonly PointF _position;
         private bool _isOpen;
 
-        public event EventHandler Showing;
-        public event EventHandler Shown;
-        public event EventHandler Dismissing;
-        public event EventHandler Dismissed;
+        public event EventHandler? Showing;
+        public event EventHandler? Shown;
+        public event EventHandler? Dismissing;
+        public event EventHandler? Dismissed;
 
         public FlyOut(PointF position, bool removeOnRelease)
         {
@@ -34,13 +34,13 @@ namespace MonoGame.PortableUI.Controls
         public override void UpdateLayout(Rect rect)
         {
             base.UpdateLayout(rect);
-            var size = Content.MeasureLayout();
+            var size = Content?.MeasureLayout() ?? Size.Empty;
             var pos = new Rect(_position, size);
             pos.Top -= size.Height;
-            var overflow = pos.Right - Screen.ScreenRect.Width;
+            var overflow = pos.Right - (Screen?.ScreenRect.Width ?? rect.Width);
             if (overflow > 0)
                 pos.Left -= overflow;
-            Content.UpdateLayout(pos);
+            Content?.UpdateLayout(pos);
         }
 
         public void Dispose()

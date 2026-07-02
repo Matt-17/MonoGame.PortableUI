@@ -43,7 +43,7 @@ jobs:
 
       - name: Build
         shell: pwsh
-        run: dotnet build MonoGame.PortableUI.slnx --configuration Release --no-restore -p:Version=$env:PACKAGE_VERSION -p:PackageVersion=$env:PACKAGE_VERSION
+        run: dotnet build MonoGame.PortableUI.slnx --configuration Release --no-restore -p:TreatWarningsAsErrors=true -p:Version=$env:PACKAGE_VERSION -p:PackageVersion=$env:PACKAGE_VERSION
 
       - name: Test
         run: dotnet test MonoGame.PortableUI.slnx --configuration Release --no-build

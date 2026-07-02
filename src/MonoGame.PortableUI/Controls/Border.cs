@@ -8,7 +8,7 @@ namespace MonoGame.PortableUI.Controls
 {
     public class Border : ContentControl
     {
-        public Brush BorderColor { get; set; }
+        public Brush? BorderColor { get; set; }
         public Thickness BorderWidth { get; set; }
 
         private IEnumerable<Rect> GetBorderRects(Rect rect)
