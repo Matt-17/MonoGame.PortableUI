@@ -8,16 +8,16 @@ namespace MonoGame.PortableUI.Controls
 {
     public abstract class ContentControl : Control
     {
-        private Control _content;
+        private Control? _content;
 
-        public event ContentChangedEventHandler ContentChanged;
+        public event ContentChangedEventHandler? ContentChanged;
 
-        protected virtual void OnContentChanged(Control newControl)
+        protected virtual void OnContentChanged(Control? newControl)
         {
             ContentChanged?.Invoke(this, new ContentChangedEventArgs(newControl));
         }
 
-        public Control Content
+        public Control? Content
         {
             get { return _content; }
             set

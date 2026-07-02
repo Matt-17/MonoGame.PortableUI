@@ -16,6 +16,7 @@ namespace MonoGame.PortableUI.Tests
             tabs.SelectedIndex = 42;
 
             Assert.AreEqual(1, tabs.SelectedIndex);
+            Assert.IsNotNull(tabs.SelectedItem);
             Assert.AreEqual("Two", tabs.SelectedItem.Header);
         }
 

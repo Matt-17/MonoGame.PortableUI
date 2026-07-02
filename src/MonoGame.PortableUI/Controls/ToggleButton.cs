@@ -8,10 +8,10 @@ namespace MonoGame.PortableUI.Controls
 {
     public class ToggleButton : Button
     {
-        private Brush _backgroundColor;
+        private Brush? _backgroundColor;
         private bool _isChecked;
         private Color? _toggleTextColor;
-        private Brush _toggleBrush;
+        private Brush _toggleBrush = new SolidColorBrush(Color.White);
 
         public bool IsChecked
         {
@@ -63,7 +63,7 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
-        public event EventHandler<CheckedEventArgs> Checked;
+        public event EventHandler<CheckedEventArgs>? Checked;
 
         public ToggleButton()
         {
@@ -72,7 +72,7 @@ namespace MonoGame.PortableUI.Controls
             Click += ToggleButton_Click;
         }
 
-        private void ToggleButton_Click(object sender, System.EventArgs e)
+        private void ToggleButton_Click(object? sender, System.EventArgs e)
         {
             IsChecked = !IsChecked;
         }

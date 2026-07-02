@@ -10,11 +10,11 @@ namespace MonoGame.PortableUI
     public class ScreenEngine
     {
         public Game Game { get; set; }
-        private static Control _focusedControl;
+        private static Control? _focusedControl;
         private readonly Dictionary<string, IKeyboard> _keyboards;
 
         //probably better if it's internal. making it public for a small hack
-        public IKeyboard CurrentKeyboard;
+        public IKeyboard? CurrentKeyboard;
 
         private ScreenEngine(Game game, ScreenEngineOptions options)
         {
@@ -31,7 +31,7 @@ namespace MonoGame.PortableUI
         public static float ScaleFactor { get; set; }
         public ScreenEngineOptions Options { get; }
 
-        public static Control FocusedControl
+        public static Control? FocusedControl
         {
             get { return _focusedControl; }
             set
@@ -59,7 +59,7 @@ namespace MonoGame.PortableUI
             }
         }
 
-        public static ScreenEngine Instance { get; private set; }
+        public static ScreenEngine? Instance { get; private set; }
 
         public static ScreenEngine Initialize(Game game)
         {
@@ -77,19 +77,20 @@ namespace MonoGame.PortableUI
             return Instance;
         }
 
-        public void RegisterKeyboard(IKeyboard keyboard, string inputScope = "default")
+        public void RegisterKeyboard(IKeyboard keyboard, string? inputScope = "default")
         {
             _keyboards[inputScope ?? "default"] = keyboard;
         }
 
-        public void UnregisterKeyboard(string inputScope = "default")
+        public void UnregisterKeyboard(string? inputScope = "default")
         {
+            inputScope = inputScope ?? "default";
             if (_keyboards.ContainsKey(inputScope))
                 _keyboards.Remove(inputScope);
         }
 
         //probably better if it's internal. making it public for a small hack
-        public void RequestKeyboard(string inputScope)
+        public void RequestKeyboard(string? inputScope)
         {
             inputScope = inputScope ?? "default";
             if (!_keyboards.TryGetValue(inputScope, out var keyboard))
@@ -117,7 +118,7 @@ namespace MonoGame.PortableUI
         }
 
         public Stack<Screen> ScreenHistory { get; }
-        public Screen ActiveScreen => ScreenHistory.Count > 0 ? ScreenHistory.Peek() : null;
+        public Screen? ActiveScreen => ScreenHistory.Count > 0 ? ScreenHistory.Peek() : null;
 
         public void NavigateToScreen<T>(T screen) where T : Screen
         {

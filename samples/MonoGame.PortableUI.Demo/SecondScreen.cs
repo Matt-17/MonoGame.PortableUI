@@ -32,7 +32,7 @@ namespace MonoGame.PortableUI.Demo
                 BackgroundBrush = Color.White,
                 TextColor = new Color(35, 38, 43)
             };
-            back.Click += (sender, args) => ScreenEngine.NavigateBack();
+            back.Click += (sender, args) => ScreenEngine?.NavigateBack();
             panel.AddChild(back);
 
             Content = panel;

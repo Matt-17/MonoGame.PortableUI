@@ -4,7 +4,7 @@ namespace MonoGame.PortableUI.Controls
 {
     public class MenuItem
     {
-        public MenuItem(string text, Action action)
+        public MenuItem(string text, Action? action)
         {
             Text = text;
             Action = action;
@@ -14,7 +14,7 @@ namespace MonoGame.PortableUI.Controls
         {
         }
 
-        public string Text { get; set; }
-        public Action Action { get; set; }
+        public string Text { get; set; } = "";
+        public Action? Action { get; set; }
     }
 }

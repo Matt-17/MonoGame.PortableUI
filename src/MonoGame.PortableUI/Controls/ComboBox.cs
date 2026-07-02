@@ -34,11 +34,11 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
-        public object SelectedItem => SelectedIndex >= 0 && SelectedIndex < Items.Count ? Items[SelectedIndex] : null;
+        public object? SelectedItem => SelectedIndex >= 0 && SelectedIndex < Items.Count ? Items[SelectedIndex] : null;
 
-        public event EventHandler SelectionChanged;
+        public event EventHandler? SelectionChanged;
 
-        private void ComboBoxClick(object sender, EventArgs e)
+        private void ComboBoxClick(object? sender, EventArgs e)
         {
             if (Screen == null || Items.Count == 0)
                 return;

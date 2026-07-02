@@ -14,7 +14,7 @@ namespace MonoGame.PortableUI.Controls
     /// </summary>
     public class Button : ContentControl
     {
-        protected internal Control Template;
+        protected internal Control? Template;
         private Color _textColor;
         private Color? _pressedTextColor;
         private Color? _hoverTextColor;
@@ -54,7 +54,7 @@ namespace MonoGame.PortableUI.Controls
             get
             {
                 var textBlock = Content as TextBlock;
-                return textBlock?.Text;
+                return textBlock?.Text ?? "";
             }
             set
             {

@@ -16,8 +16,9 @@ namespace MonoGame.PortableUI.Tests
         {
             var button = new Button { TextColor = Color.Red, Text = "Run" };
 
-            var text = (TextBlock)button.Content;
+            var text = (TextBlock?)button.Content;
 
+            Assert.IsNotNull(text);
             Assert.AreEqual(Color.Red, text.TextColor);
         }
 

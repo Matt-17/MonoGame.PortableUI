@@ -28,7 +28,7 @@ namespace MonoGame.PortableUI.Controls
             _children.CollectionChanged += _children_CollectionChanged;
         }     
 
-        private void _children_CollectionChanged(object sender, CollectionChangedEventArgs args)
+        private void _children_CollectionChanged(object? sender, CollectionChangedEventArgs args)
         {                                        
             InvalidateLayout(true);
         }

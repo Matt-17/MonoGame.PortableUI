@@ -14,7 +14,7 @@ namespace MonoGame.PortableUI.Controls
             Content = _image;
         }
 
-        public Texture2D Source
+        public Texture2D? Source
         {
             get { return _image.Source; }
             set { _image.Source = value; }

@@ -7,14 +7,22 @@ namespace MonoGame.PortableUI.Demo
 {
     public sealed class MainScreen : Screen
     {
+        private static readonly Color Ink = new Color(28, 31, 35);
+        private static readonly Color Paper = new Color(244, 246, 248);
+        private static readonly Color Panel = new Color(232, 237, 240);
+        private static readonly Color Line = new Color(82, 101, 111);
+        private static readonly Color Teal = new Color(20, 126, 133);
+        private static readonly Color Amber = new Color(213, 151, 54);
+        private static readonly Color Red = new Color(174, 68, 62);
+
         private readonly Texture2D _deleteIcon;
         private readonly TextBlock _status;
 
         public MainScreen(Texture2D deleteIcon)
         {
             _deleteIcon = deleteIcon;
-            BackgroundBrush = new Color(29, 31, 36);
-            _status = Label("Ready");
+            BackgroundBrush = Ink;
+            _status = Label("Ready", new Color(207, 214, 219));
             Content = CreateLayout();
         }
 
@@ -22,162 +30,244 @@ namespace MonoGame.PortableUI.Demo
         {
             var root = new Grid
             {
-                Margin = 14,
+                Margin = 16,
                 RowDefinitions =
                 {
                     new RowDefinition { Height = GridLength.Auto },
-                    new RowDefinition()
+                    new RowDefinition(),
+                    new RowDefinition { Height = GridLength.Auto }
                 }
             };
 
-            var header = CreateHeader();
-            root.AddChild(header);
-
-            var tabs = CreateTabs();
-            root.AddChild(tabs, row: 1);
-
+            root.AddChild(CreateHeader());
+            root.AddChild(CreateTabs(), row: 1);
+            root.AddChild(CreateStatusStrip(), row: 2);
             return root;
         }
 
         private Control CreateHeader()
         {
-            var panel = new StackPanel
+            var header = new Grid
             {
-                Orientation = Orientation.Vertical,
-                BackgroundBrush = new Color(236, 239, 243),
-                Margin = new Thickness(0, 0, 0, 12)
+                Margin = new Thickness(0, 0, 0, 12),
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition(),
+                    new ColumnDefinition { Width = new GridLength(210) }
+                }
             };
 
-            var title = Label("PortableUI Demo");
-            title.TextColor = new Color(35, 38, 43);
-            title.TextSize = 18;
-            title.Margin = new Thickness(12, 10, 12, 2);
-            panel.AddChild(title);
-
-            _status.TextColor = new Color(84, 91, 102);
-            _status.Margin = new Thickness(12, 0, 12, 4);
-            panel.AddChild(_status);
-
-            var next = new TextButton("Open second screen")
+            var titleStack = new StackPanel
             {
-                Margin = new Thickness(12, 4, 12, 10),
-                Height = 36,
-                BackgroundBrush = Color.White,
-                TextColor = new Color(35, 38, 43)
+                Orientation = Orientation.Vertical
             };
-            next.Click += (sender, args) => ScreenEngine.NavigateToScreen(new SecondScreen());
-            panel.AddChild(next);
+            titleStack.AddChild(Label("MonoGame.PortableUI", Paper, 22, new Thickness(0, 0, 0, 2)));
+            titleStack.AddChild(Label("Code-first controls for DesktopGL screens", new Color(172, 185, 192)));
+            header.AddChild(titleStack);
 
-            return panel;
-        }
+            var next = CommandButton("Open second screen", Teal, Color.White);
+            next.Height = 42;
+            next.Click += (sender, args) => ScreenEngine?.NavigateToScreen(new SecondScreen());
+            header.AddChild(next, column: 1);
 
-        private Control CreateControlSamples()
-        {
-            var panel = new StackPanel
-            {
-                Orientation = Orientation.Vertical,
-                Margin = 14
-            };
-
-            panel.AddChild(Label("Text input"));
-            panel.AddChild(new TextBox
-            {
-                HintText = "Type here",
-                Margin = new Thickness(0, 6, 0, 12),
-                Height = 36
-            });
-
-            panel.AddChild(Label("Button states"));
-            panel.AddChild(new Button
-            {
-                Text = "Hover / press me",
-                Height = 38,
-                Margin = new Thickness(0, 6, 0, 12),
-                HoverTextColor = Color.DarkSlateBlue,
-                PressedTextColor = Color.White
-            });
-
-            panel.AddChild(Label("Selection"));
-            var combo = new ComboBox { Margin = new Thickness(0, 4), Height = 36 };
-            combo.Items.Add("Compact density");
-            combo.Items.Add("Comfortable density");
-            combo.Items.Add("Large touch density");
-            combo.SelectedIndex = 1;
-            combo.SelectionChanged += (sender, args) => _status.Text = $"Combo: {combo.SelectedItem}";
-            panel.AddChild(combo);
-
-            var toggle = new ToggleButton { Text = "Toggle state", Margin = new Thickness(0, 4), Height = 36 };
-            toggle.Checked += (sender, args) => _status.Text = args.IsChecked ? "Toggle checked" : "Toggle unchecked";
-            panel.AddChild(toggle);
-
-            var radioA = new RadioButton { Text = "Radio option A", RadioGroup = "demo", Margin = new Thickness(0, 6, 0, 4), Height = 32 };
-            var radioB = new RadioButton { Text = "Radio option B", RadioGroup = "demo", Margin = new Thickness(0, 0, 0, 12), Height = 32 };
-            panel.AddChild(radioA);
-            panel.AddChild(radioB);
-
-            panel.AddChild(Label("Icon button"));
-            var imageButton = new ImageButton { Source = _deleteIcon, Width = 44, Height = 44, Margin = new Thickness(0, 8) };
-            imageButton.Click += (sender, args) => _status.Text = "ImageButton clicked";
-            panel.AddChild(imageButton);
-
-            panel.AddChild(Label("Context menu"));
-            var menuButton = new TextButton("Open context menu") { Margin = new Thickness(0, 4), Height = 36 };
-            var menu = new ContextMenu();
-            menu.Items.Add(new MenuItem("First command", () => _status.Text = "First command"));
-            menu.Items.Add(new MenuItem("Second command", () => _status.Text = "Second command"));
-            menu.ItemInvoked += (sender, args) => _status.Text = $"Invoked: {args.Item.Text}";
-            menuButton.ContextMenu = menu;
-            panel.AddChild(menuButton);
-
-            return panel;
+            return header;
         }
 
         private Control CreateTabs()
         {
             var tabs = new TabControl
             {
-                BackgroundBrush = new Color(248, 249, 250)
+                BackgroundBrush = Paper,
+                HeaderHeight = 38,
+                HeaderBackground = new Color(202, 211, 216),
+                SelectedHeaderBackground = Paper
             };
 
             tabs.Items.Add(new TabItem { Header = "Controls", Content = CreateControlsTab() });
-            tabs.Items.Add(new TabItem { Header = "Scroll", Content = CreateScrollTab() });
             tabs.Items.Add(new TabItem { Header = "Layout", Content = CreateLayoutTab() });
+            tabs.Items.Add(new TabItem { Header = "Scroll", Content = CreateScrollTab() });
+            tabs.Items.Add(new TabItem { Header = "Stress", Content = CreateStressTab() });
             tabs.SelectedIndex = 0;
             return tabs;
         }
 
         private Control CreateControlsTab()
         {
-            return new ScrollViewer
+            var grid = new Grid
             {
-                Content = CreateControlSamples(),
-                BackgroundBrush = new Color(248, 249, 250),
-                ScrollOrientation = Orientation.Vertical
+                Margin = 16,
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition(),
+                    new ColumnDefinition()
+                }
             };
+
+            grid.AddChild(CreateInputPanel());
+            grid.AddChild(CreateActionPanel(), column: 1);
+            return grid;
         }
 
-        private Control CreateScrollTab()
+        private Control CreateInputPanel()
         {
-            var stack = new StackPanel { Orientation = Orientation.Vertical };
-            for (var i = 1; i <= 30; i++)
-            {
-                stack.AddChild(new TextButton($"Scrollable row {i}") { Height = 30, Margin = new Thickness(4) });
-            }
+            var panel = PanelStack("Input and selection");
 
-            return new ScrollViewer
+            panel.AddChild(Label("TextBox", Line));
+            var textBox = new TextBox
             {
-                Content = stack,
-                Margin = 14,
-                BackgroundBrush = new Color(242, 244, 247),
-                ScrollOrientation = Orientation.Vertical
+                HintText = "Type a screen note",
+                Margin = new Thickness(0, 6, 12, 14),
+                Height = 38
             };
+            textBox.TextChanged += (sender, args) => _status.Text = $"Text: {args.NewText}";
+            panel.AddChild(textBox);
+
+            panel.AddChild(Label("ComboBox", Line));
+            var combo = new ComboBox { Margin = new Thickness(0, 6, 12, 14), Height = 38 };
+            combo.Items.Add("Compact density");
+            combo.Items.Add("Comfortable density");
+            combo.Items.Add("Touch density");
+            combo.SelectedIndex = 1;
+            combo.SelectionChanged += (sender, args) => _status.Text = $"Density: {combo.SelectedItem}";
+            panel.AddChild(combo);
+
+            var toggle = new ToggleButton
+            {
+                Text = "Toggle preview mode",
+                Margin = new Thickness(0, 0, 12, 10),
+                Height = 38,
+                BackgroundBrush = new Color(218, 225, 229),
+                TextColor = Ink,
+                ToggleBrush = Teal
+            };
+            toggle.Checked += (sender, args) => _status.Text = args.IsChecked ? "Preview mode on" : "Preview mode off";
+            panel.AddChild(toggle);
+
+            var radioA = new RadioButton { Text = "Mouse first", RadioGroup = "input", Margin = new Thickness(0, 0, 12, 4), Height = 32 };
+            var radioB = new RadioButton { Text = "Touch first", RadioGroup = "input", Margin = new Thickness(0, 0, 12, 0), Height = 32 };
+            radioA.Checked += (sender, args) => _status.Text = "Input profile: mouse";
+            radioB.Checked += (sender, args) => _status.Text = "Input profile: touch";
+            panel.AddChild(radioA);
+            panel.AddChild(radioB);
+
+            return panel;
+        }
+
+        private Control CreateActionPanel()
+        {
+            var panel = PanelStack("Buttons and menus");
+
+            var primary = CommandButton("Primary action", Teal, Color.White);
+            primary.Click += (sender, args) => _status.Text = "Primary action clicked";
+            panel.AddChild(primary);
+
+            var secondary = CommandButton("Secondary action", Amber, Ink);
+            secondary.Click += (sender, args) => _status.Text = "Secondary action clicked";
+            panel.AddChild(secondary);
+
+            var danger = CommandButton("Danger action", Red, Color.White);
+            danger.Click += (sender, args) => _status.Text = "Danger action clicked";
+            panel.AddChild(danger);
+
+            panel.AddChild(Label("ImageButton", Line, 14, new Thickness(0, 8, 0, 2)));
+            var imageButton = new ImageButton
+            {
+                Source = _deleteIcon,
+                Width = 46,
+                Height = 46,
+                Margin = new Thickness(0, 2, 0, 12),
+                BackgroundBrush = new Color(224, 229, 232)
+            };
+            imageButton.Click += (sender, args) => _status.Text = "ImageButton clicked";
+            panel.AddChild(imageButton);
+
+            var menuButton = CommandButton("Open context menu", new Color(62, 80, 91), Color.White);
+            var menu = new ContextMenu { BackgroundBrush = new Color(232, 237, 240) };
+            menu.Items.Add(new MenuItem("Inspect", () => _status.Text = "Inspect command"));
+            menu.Items.Add(new MenuItem("Duplicate", () => _status.Text = "Duplicate command"));
+            menu.Items.Add(new MenuItem("Archive", () => _status.Text = "Archive command"));
+            menu.ItemInvoked += (sender, args) => _status.Text = $"Menu: {args.Item.Text}";
+            menuButton.ContextMenu = menu;
+            panel.AddChild(menuButton);
+
+            return panel;
         }
 
         private Control CreateLayoutTab()
         {
             var grid = new Grid
             {
-                Margin = 14,
+                Margin = 16,
+                RowDefinitions =
+                {
+                    new RowDefinition { Height = GridLength.Auto },
+                    new RowDefinition(),
+                    new RowDefinition { Height = new GridLength(46) }
+                },
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition { Width = GridLength.Auto },
+                    new ColumnDefinition(),
+                    new ColumnDefinition { Width = new GridLength(260) }
+                }
+            };
+
+            var auto = InfoTile("Auto", "Measures content", Teal);
+            var star = InfoTile("Star", "Uses remaining space", Amber);
+            var fixedSize = InfoTile("Fixed", "260 px", Red, new Thickness(0));
+            grid.AddChild(auto);
+            grid.AddChild(star, column: 1);
+            grid.AddChild(fixedSize, column: 2);
+
+            var preview = new Border
+            {
+                Margin = new Thickness(0, 14, 0, 14),
+                BackgroundBrush = Color.White,
+                BorderColor = Line,
+                BorderWidth = 2,
+                Padding = 16,
+                Content = Label("Resize the window. The header, tiles and status strip keep their roles.", Ink, 16)
+            };
+            grid.AddChild(preview, row: 1, columnSpan: 3);
+
+            var bottom = Label("Grid columns: auto, star, fixed", Line);
+            bottom.VerticalAlignment = VerticalAlignment.Center;
+            grid.AddChild(bottom, row: 2, columnSpan: 3);
+            return grid;
+        }
+
+        private Control CreateScrollTab()
+        {
+            var stack = new StackPanel
+            {
+                Orientation = Orientation.Vertical,
+                Margin = 12
+            };
+
+            for (var i = 1; i <= 40; i++)
+            {
+                var row = CommandButton($"Scrollable row {i:00}", i % 3 == 0 ? Amber : new Color(224, 230, 233), Ink);
+                row.Height = 30;
+                row.Margin = new Thickness(0, 0, 8, 5);
+                var rowNumber = i;
+                row.Click += (sender, args) => _status.Text = $"Row {rowNumber:00} clicked";
+                stack.AddChild(row);
+            }
+
+            return new ScrollViewer
+            {
+                Content = stack,
+                Margin = 16,
+                BackgroundBrush = new Color(236, 240, 242),
+                ScrollOrientation = Orientation.Vertical
+            };
+        }
+
+        private Control CreateStressTab()
+        {
+            var root = new Grid
+            {
+                Margin = 16,
                 RowDefinitions =
                 {
                     new RowDefinition { Height = GridLength.Auto },
@@ -185,30 +275,128 @@ namespace MonoGame.PortableUI.Demo
                 }
             };
 
-            var border = new Border
-            {
-                BackgroundBrush = Color.White,
-                BorderColor = new Color(55, 92, 170),
-                BorderWidth = 2,
-                Padding = 14,
-                Content = Label("Border in an auto row")
-            };
-            grid.AddChild(border);
+            root.AddChild(Label("500 controls in a 20 x 25 grid", Ink, 16, new Thickness(0, 0, 0, 10)));
 
-            var bottom = Label("Resize the window. Layout stays visible.");
-            Grid.SetRow(bottom, 1);
-            bottom.VerticalAlignment = VerticalAlignment.Bottom;
-            grid.AddChild(bottom);
-            return grid;
+            var grid = new Grid
+            {
+                BackgroundBrush = new Color(238, 242, 244)
+            };
+
+            for (var row = 0; row < 25; row++)
+                grid.RowDefinitions.Add(new RowDefinition());
+
+            for (var column = 0; column < 20; column++)
+                grid.ColumnDefinitions.Add(new ColumnDefinition());
+
+            for (var row = 0; row < 25; row++)
+            {
+                for (var column = 0; column < 20; column++)
+                {
+                    var index = row * 20 + column + 1;
+                    var cell = new Border
+                    {
+                        Margin = new Thickness(1),
+                        BackgroundBrush = index % 7 == 0 ? new Color(217, 228, 230) : Color.White,
+                        BorderColor = index % 5 == 0 ? Teal : new Color(202, 211, 216),
+                        BorderWidth = 1,
+                        Padding = 2,
+                        Content = Label(index.ToString("000"), Line, 10)
+                    };
+                    grid.AddChild(cell, row, column);
+                }
+            }
+
+            root.AddChild(grid, row: 1);
+            return root;
         }
 
-        private static TextBlock Label(string text)
+        private Control CreateStatusStrip()
+        {
+            var strip = new Grid
+            {
+                Margin = new Thickness(0, 12, 0, 0),
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition { Width = new GridLength(130) },
+                    new ColumnDefinition()
+                }
+            };
+
+            strip.AddChild(Label("Status", new Color(143, 160, 168)));
+            _status.Margin = new Thickness(0);
+            strip.AddChild(_status, column: 1);
+            return strip;
+        }
+
+        private static StackPanel PanelStack(string title)
+        {
+            var panel = new StackPanel
+            {
+                Orientation = Orientation.Vertical,
+                Margin = new Thickness(0, 0, 12, 0),
+                BackgroundBrush = Panel
+            };
+            panel.AddChild(Label(title, Ink, 17, new Thickness(12, 10, 12, 8)));
+            return panel;
+        }
+
+        private static Border InfoTile(string title, string detail, Color accent)
+        {
+            return InfoTile(title, detail, accent, new Thickness(0, 0, 12, 0));
+        }
+
+        private static Border InfoTile(string title, string detail, Color accent, Thickness margin)
+        {
+            var stack = new StackPanel
+            {
+                Orientation = Orientation.Vertical,
+                Margin = 0
+            };
+            stack.AddChild(Label(title, accent, 18, new Thickness(0, 0, 0, 2)));
+            stack.AddChild(Label(detail, Line));
+
+            return new Border
+            {
+                Margin = margin,
+                BackgroundBrush = Color.White,
+                BorderColor = accent,
+                BorderWidth = 2,
+                Padding = new Thickness(12, 10, 14, 10),
+                Content = stack
+            };
+        }
+
+        private static TextButton CommandButton(string text, Color background, Color foreground)
+        {
+            return new TextButton(text)
+            {
+                Height = 38,
+                Margin = new Thickness(0, 0, 12, 8),
+                BackgroundBrush = background,
+                TextColor = foreground,
+                HoverTextColor = Color.White,
+                PressedTextColor = Color.White
+            };
+        }
+
+        private static TextBlock Label(string text, Color color)
+        {
+            return Label(text, color, 14, new Thickness(0, 3));
+        }
+
+        private static TextBlock Label(string text, Color color, int size)
+        {
+            return Label(text, color, size, new Thickness(0, 3));
+        }
+
+        private static TextBlock Label(string text, Color color, int size, Thickness margin)
         {
             return new TextBlock
             {
                 Text = text,
-                TextColor = new Color(62, 67, 75),
-                Margin = new Thickness(0, 4)
+                TextColor = color,
+                TextSize = size,
+                Margin = margin
             };
         }
     }

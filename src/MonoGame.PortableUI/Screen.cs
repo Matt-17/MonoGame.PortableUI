@@ -24,19 +24,19 @@ namespace MonoGame.PortableUI
             {MouseButton.Right, ButtonState.Released},
         };
 
-        public override FrameworkElement Parent
+        public override FrameworkElement? Parent
         {
             get { return null; }
             internal set { }
         }
 
-        private Grid _mainGrid;
+        private readonly Grid _mainGrid;
 
         internal PointF LastMousePosition;
         internal PointF LastTouchPosition;
         internal int LastScrollWheelValue;
-        private FlyOut _flyOut;
-        private ContextMenu _activeContextMenu;
+        private FlyOut? _flyOut;
+        private ContextMenu? _activeContextMenu;
         private Keys[] _lastPressedKeys = Array.Empty<Keys>();
 
         protected Screen()
@@ -56,13 +56,20 @@ namespace MonoGame.PortableUI
 
         public Rect ScreenRect => ScreenEngine?.ScreenRect ?? Rect.Empty;
 
-        protected internal ScreenEngine ScreenEngine { get; set; }
+        protected internal ScreenEngine? ScreenEngine { get; set; }
 
-        public Control Content
+        public Control? Content
         {
             get { return _mainGrid.Children.Count > 0 ? _mainGrid.Children[0] : null; }
             set
             {
+                if (value == null)
+                {
+                    _mainGrid.Children.Clear();
+                    InvalidateLayout(true);
+                    return;
+                }
+
                 if (_mainGrid.Children.Count == 0)
                     _mainGrid.AddChild(value);
                 else
@@ -71,7 +78,7 @@ namespace MonoGame.PortableUI
             }
         }
 
-        private FlyOut FlyOut
+        private FlyOut? FlyOut
         {
             get { return _flyOut; }
             set
@@ -117,7 +124,7 @@ namespace MonoGame.PortableUI
             }
             spriteBatch.GraphicsDevice.ScissorRectangle = _mainGrid.BoundingRect;
 
-            spriteBatch.Begin(SpriteSortMode.Immediate, rasterizerState: new RasterizerState { ScissorTestEnable = true, MultiSampleAntiAlias = true }, effect: ScreenEngine.Options.Effect);
+            spriteBatch.Begin(SpriteSortMode.Immediate, rasterizerState: new RasterizerState { ScissorTestEnable = true, MultiSampleAntiAlias = true }, effect: ScreenEngine?.Options.Effect);
             
             DrawControl(spriteBatch, _mainGrid);
             spriteBatch.End();
@@ -130,7 +137,7 @@ namespace MonoGame.PortableUI
             }
         }
 
-        internal void OnNavigationFrom(object sender)
+        internal void OnNavigationFrom(object? sender)
         {
             var list = VisualTreeHelper.GetVisualTreeAsList(_mainGrid);
             foreach (var control in list)
@@ -414,16 +421,18 @@ namespace MonoGame.PortableUI
 
         public void ShowKeyboard()
         {
-            if (ScreenEngine.CurrentKeyboard != null && !_mainGrid.Children.Contains(ScreenEngine.CurrentKeyboard.Control))
-                _mainGrid.AddChild(ScreenEngine.CurrentKeyboard.Control, 1);
+            var currentKeyboard = ScreenEngine?.CurrentKeyboard;
+            if (currentKeyboard != null && !_mainGrid.Children.Contains(currentKeyboard.Control))
+                _mainGrid.AddChild(currentKeyboard.Control, 1);
             _mainGrid.InvalidateLayout(true);
         }
 
         public void HideKeyboard()
         {
-            if (ScreenEngine.CurrentKeyboard == null)
+            var currentKeyboard = ScreenEngine?.CurrentKeyboard;
+            if (currentKeyboard == null)
                 return;
-            _mainGrid.Children.Remove(ScreenEngine.CurrentKeyboard.Control);
+            _mainGrid.Children.Remove(currentKeyboard.Control);
             _mainGrid.InvalidateLayout(true);
         }
     }

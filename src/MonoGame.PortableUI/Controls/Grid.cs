@@ -120,7 +120,7 @@ namespace MonoGame.PortableUI.Controls
                         foreach (var child in Children)
                         {
                             var row = GetRow(child);
-                            if (row == gridLength.Index)
+                            if (row == gridLength.Index && GetRowSpan(child) == 1)
                             {
                                 var size = child.MeasureLayout();
                                 if (size.Height > max)
@@ -154,7 +154,7 @@ namespace MonoGame.PortableUI.Controls
                         foreach (var child in Children)
                         {
                             var row = GetRow(child);
-                            if (row == gridLength.Index)
+                            if (row == gridLength.Index && GetRowSpan(child) == 1)
                             {
                                 var size = child.MeasureLayout();
                                 if (size.Height > max)
@@ -210,8 +210,8 @@ namespace MonoGame.PortableUI.Controls
                         var max = 0f;
                         foreach (var child in Children)
                         {
-                            var row = GetColumn(child);
-                            if (row == gridLength.Index)
+                            var column = GetColumn(child);
+                            if (column == gridLength.Index && GetColumnSpan(child) == 1)
                             {
                                 var size = child.MeasureLayout();
                                 if (size.Width > max)
@@ -242,8 +242,8 @@ namespace MonoGame.PortableUI.Controls
                         var max = 0f;
                         foreach (var child in Children)
                         {
-                            var row = GetColumn(child);
-                            if (row == gridLength.Index)
+                            var column = GetColumn(child);
+                            if (column == gridLength.Index && GetColumnSpan(child) == 1)
                             {
                                 var size = child.MeasureLayout();
                                 if (size.Width > max)

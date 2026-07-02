@@ -11,9 +11,9 @@ namespace MonoGame.PortableUI
     internal class ScreenComponent : DrawableGameComponent
     {
         private readonly ScreenEngine _screenEngine;
-        private SpriteBatch _spriteBatch;
+        private SpriteBatch? _spriteBatch;
 
-        public Control FocusedControl { get; set; }
+        public Control? FocusedControl { get; set; }
 
         internal ScreenComponent(ScreenEngine screenEngine, Game game) : base(game)
         {
@@ -40,7 +40,8 @@ namespace MonoGame.PortableUI
 
         public override void Draw(GameTime gameTime)
         {
-            _screenEngine.ActiveScreen?.Draw(_spriteBatch);
+            if (_spriteBatch != null)
+                _screenEngine.ActiveScreen?.Draw(_spriteBatch);
         }
 
         public override void Update(GameTime gameTime)

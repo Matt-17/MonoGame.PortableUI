@@ -9,10 +9,10 @@ namespace MonoGame.PortableUI.Tests.Common
         [TestMethod]
         public void ConstructorTest()
         {
-            Assert.AreEqual(new Size().Height, 0);
-            Assert.AreEqual(new Size().Width, 0);
-            Assert.AreEqual(new Size(10, 19).Height, 19);
-            Assert.AreEqual(new Size(10, 19).Width, 10);
+            Assert.AreEqual(0, new Size().Height);
+            Assert.AreEqual(0, new Size().Width);
+            Assert.AreEqual(19, new Size(10, 19).Height);
+            Assert.AreEqual(10, new Size(10, 19).Width);
             var size = new Size(7, 7);
             Assert.AreEqual(size.Height, size.Width);
         }

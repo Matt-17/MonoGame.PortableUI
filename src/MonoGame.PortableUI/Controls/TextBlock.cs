@@ -10,7 +10,7 @@ namespace MonoGame.PortableUI.Controls
     public class TextBlock : Control
     {
         private TextAlignment _textAlignment;
-        protected SpriteFont Font;
+        protected SpriteFont? Font;
         private ITextMeasurer _textMeasurer;
         private string _text = "";
         private int _textSize;

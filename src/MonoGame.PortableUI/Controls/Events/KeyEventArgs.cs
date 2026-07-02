@@ -22,7 +22,7 @@ namespace MonoGame.PortableUI.Controls.Events
         }
 
         public InputType InputType { get; }
-        public string Function { get; }
+        public string? Function { get; }
         public char Char { get; }
         public KeyboardCommand Command { get; }
     }

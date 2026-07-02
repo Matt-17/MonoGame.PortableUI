@@ -7,7 +7,7 @@ namespace MonoGame.PortableUI.Demo
     public sealed class DemoGame : Game
     {
         private readonly GraphicsDeviceManager _graphics;
-        private ScreenEngine _screenEngine;
+        private ScreenEngine? _screenEngine;
 
         public DemoGame()
         {
@@ -25,16 +25,16 @@ namespace MonoGame.PortableUI.Demo
         protected override void Initialize()
         {
             _screenEngine = ScreenEngine.Initialize(this);
-            ApplyScreenSize();
             Window.ClientSizeChanged += (sender, args) => ApplyScreenSize();
             base.Initialize();
+            ApplyScreenSize();
         }
 
         protected override void LoadContent()
         {
             FontManager.LoadFonts(this, "Segoe", "default", "arial");
             var deleteIcon = Content.Load<Texture2D>("Images/ic_delete");
-            _screenEngine.NavigateToScreen(new MainScreen(deleteIcon));
+            _screenEngine?.NavigateToScreen(new MainScreen(deleteIcon));
         }
 
         protected override void Draw(GameTime gameTime)

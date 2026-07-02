@@ -9,7 +9,7 @@ namespace MonoGame.PortableUI.Common
             return X.Equals(other.X) && Y.Equals(other.Y);
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (ReferenceEquals(null, obj)) return false;
             return obj is PointF && Equals((PointF)obj);
