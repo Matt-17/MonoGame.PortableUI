@@ -34,7 +34,7 @@ dotnet mgcb-editor samples/MonoGame.PortableUI.Demo/Content/Content.mgcb
 
 ## Small API Examples
 
-Initialize the screen engine from your `Game` and keep the layout in sync with the window:
+Initialize the screen engine from your `Game`. By default, PortableUI tracks the MonoGame viewport and keeps the layout in sync with the window:
 
 ```csharp
 private ScreenEngine? _screenEngine;
@@ -42,9 +42,6 @@ private ScreenEngine? _screenEngine;
 protected override void Initialize()
 {
     _screenEngine = ScreenEngine.Initialize(this);
-    _screenEngine.SetScreenSize(Window.ClientBounds.Width, Window.ClientBounds.Height);
-    Window.ClientSizeChanged += (_, _) =>
-        _screenEngine.SetScreenSize(Window.ClientBounds.Width, Window.ClientBounds.Height);
     base.Initialize();
 }
 
@@ -52,6 +49,20 @@ protected override void LoadContent()
 {
     FontManager.LoadFonts(this, "Segoe", "default");
     _screenEngine?.NavigateToScreen(new MainScreen());
+}
+```
+
+If your UI uses a virtual coordinate space instead of the actual backbuffer size, switch to manual sizing:
+
+```csharp
+protected override void Initialize()
+{
+    _screenEngine = ScreenEngine.Initialize(this, new ScreenEngineOptions
+    {
+        ScreenSizeMode = ScreenSizeMode.Manual
+    });
+    _screenEngine.SetScreenSize(1280, 720);
+    base.Initialize();
 }
 ```
 

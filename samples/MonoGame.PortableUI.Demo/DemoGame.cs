@@ -1,6 +1,5 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using MonoGame.PortableUI.Common;
 
 namespace MonoGame.PortableUI.Demo
 {
@@ -25,9 +24,7 @@ namespace MonoGame.PortableUI.Demo
         protected override void Initialize()
         {
             _screenEngine = ScreenEngine.Initialize(this);
-            Window.ClientSizeChanged += (sender, args) => ApplyScreenSize();
             base.Initialize();
-            ApplyScreenSize();
         }
 
         protected override void LoadContent()
@@ -41,11 +38,6 @@ namespace MonoGame.PortableUI.Demo
         {
             GraphicsDevice.Clear(new Color(34, 36, 40));
             base.Draw(gameTime);
-        }
-
-        private void ApplyScreenSize()
-        {
-            _screenEngine?.SetScreenSize(Window.ClientBounds.Width, Window.ClientBounds.Height);
         }
     }
 }

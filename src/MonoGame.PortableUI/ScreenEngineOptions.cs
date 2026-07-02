@@ -7,6 +7,7 @@ namespace MonoGame.PortableUI
     {
         public TimeSpan DoubleClickThreshold { get; set; } = TimeSpan.FromMilliseconds(400);
         public bool AddComponentToGame { get; set; } = true;
+        public ScreenSizeMode ScreenSizeMode { get; set; } = ScreenSizeMode.Viewport;
         public Effect? Effect { get; set; }
     }
 }
