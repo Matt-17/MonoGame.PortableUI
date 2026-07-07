@@ -28,6 +28,7 @@ namespace MonoGame.PortableUI.Controls
             PressedColor = new Color(0, 0, 0, 0.4f);
             TextColor = Color.Black;
             TextAlignment = TextAlignment.Center;
+            ShowFocusVisual = true;
             //var grid = new Grid();
             //grid.AddChild(new Rect { BackgroundBrush = Color.DarkMagenta });
             //grid.AddChild(new ContentPresenter(this));

@@ -50,6 +50,7 @@ namespace MonoGame.PortableUI.Controls
             TouchUp += OnTouchUp;
             Height = 28;
             Padding = 4;
+            ShowFocusVisual = true;
         }
 
         private void OnClick(object? sender, EventArgs eventArgs)
