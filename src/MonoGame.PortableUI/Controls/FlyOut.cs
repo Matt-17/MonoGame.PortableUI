@@ -37,9 +37,7 @@ namespace MonoGame.PortableUI.Controls
             var size = Content?.MeasureLayout() ?? Size.Empty;
             var pos = new Rect(_position, size);
             pos.Top -= size.Height;
-            var overflow = pos.Right - (Screen?.ScreenRect.Width ?? rect.Width);
-            if (overflow > 0)
-                pos.Left -= overflow;
+            pos = Screen.ClampPopupRect(pos, Screen?.ScreenRect ?? rect, 0);
             Content?.UpdateLayout(pos);
         }
 

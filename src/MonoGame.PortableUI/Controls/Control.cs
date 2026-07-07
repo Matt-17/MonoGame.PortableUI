@@ -8,12 +8,15 @@ using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls.Events;
 using MonoGame.PortableUI.Controls.Input;
 using MonoGame.PortableUI.Exceptions;
+using MonoGame.PortableUI.Media;
 
 namespace MonoGame.PortableUI.Controls
 {
     public abstract class Control : UIElement
     {
         private readonly Timer _longPressTimer;
+        private readonly Timer _toolTipHoverTimer;
+        private readonly Timer _toolTipLongPressTimer;
 
         private ContextMenu? _contextMenu;
         private float _height;
@@ -26,7 +29,10 @@ namespace MonoGame.PortableUI.Controls
         private bool _isEnabled;
         private TimeSpan? _lastClickAt;
         private TimeSpan? _lastRightClickAt;
+        private PointF _lastToolTipAnchorPosition;
         private bool _suppressUpdate;
+        private string? _toolTip;
+        private static readonly ScreenEngineOptions DefaultOptions = new ScreenEngineOptions();
         public bool HandleTouchDownEnter { get; set; }
 
         protected Control()
@@ -47,9 +53,16 @@ namespace MonoGame.PortableUI.Controls
             HorizontalAlignment = HorizontalAlignment.Stretch;
             VerticalAlignment = VerticalAlignment.Stretch;
             Position = new PointF(0, 0);
+            FocusBorderBrush = new Color(20, 126, 133);
+            FocusBorderWidth = 2;
+            DisabledOverlayBrush = new Color(210, 216, 222, 145);
 
             _longPressTimer = new Timer(300);
             _longPressTimer.Elapsed += OnLongPressTimerElapsed;
+            _toolTipHoverTimer = new Timer(0);
+            _toolTipHoverTimer.Elapsed += OnToolTipHoverTimerElapsed;
+            _toolTipLongPressTimer = new Timer(0);
+            _toolTipLongPressTimer.Elapsed += OnToolTipLongPressTimerElapsed;
         }
 
         protected Dictionary<MouseButton, ButtonState> MouseButtonStates { get; } = new Dictionary<MouseButton, ButtonState>
@@ -70,6 +83,21 @@ namespace MonoGame.PortableUI.Controls
         }
 
         public object? Tag { get; set; }
+
+        public string? ToolTip
+        {
+            get { return _toolTip; }
+            set
+            {
+                var normalized = string.IsNullOrEmpty(value) ? null : value;
+                if (_toolTip == normalized)
+                    return;
+
+                _toolTip = normalized;
+                if (_toolTip == null)
+                    ClearToolTipState();
+            }
+        }
 
         public ContextMenu? ContextMenu
         {
@@ -190,6 +218,14 @@ namespace MonoGame.PortableUI.Controls
 
         public double Opacity { get; set; }
 
+        public bool ShowFocusVisual { get; set; }
+
+        public Brush? FocusBorderBrush { get; set; }
+
+        public float FocusBorderWidth { get; set; }
+
+        public Brush? DisabledOverlayBrush { get; set; }
+
         public void SuppressUpdate(bool suppress)
         {
             _suppressUpdate = suppress;
@@ -200,9 +236,17 @@ namespace MonoGame.PortableUI.Controls
             get { return _isEnabled; }
             set
             {
+                if (_isEnabled == value)
+                    return;
+
                 _isEnabled = value;
-                if (!_isEnabled && ScreenEngine.FocusedControl == this)
-                    ScreenEngine.FocusedControl = null;
+                if (!_isEnabled)
+                {
+                    if (ScreenEngine.FocusedControl == this)
+                        ScreenEngine.FocusedControl = null;
+                    ResetInputs();
+                }
+                InvalidateLayout(false);
             }
         }
 
@@ -257,14 +301,40 @@ namespace MonoGame.PortableUI.Controls
         private void OnLongPressTimerElapsed(object? sender, EventArgs e)
         {
             _longPressTimer?.Stop();
+            _toolTipLongPressTimer.Stop();
             TouchState = TouchStates.Released;
             ChangeVisualState();
             LongTouch?.Invoke(this, EventArgs.Empty);
         }
 
+        private void OnToolTipHoverTimerElapsed(object? sender, EventArgs e)
+        {
+            ShowToolTip(_lastToolTipAnchorPosition);
+        }
+
+        private void OnToolTipLongPressTimerElapsed(object? sender, EventArgs e)
+        {
+            _toolTipLongPressTimer.Stop();
+            if (!HasToolTip || ContextMenu != null)
+                return;
+
+            TouchState = TouchStates.Released;
+            ChangeVisualState();
+            ShowToolTip(_lastToolTipAnchorPosition);
+        }
+
         protected internal virtual void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
             BackgroundBrush?.Draw(spriteBatch, rect);
+        }
+
+        protected internal virtual void OnDrawOverlay(SpriteBatch spriteBatch, Rect rect)
+        {
+            if (ShowFocusVisual && IsFocused && FocusBorderWidth > 0 && FocusBorderBrush != null)
+                DrawBorder(spriteBatch, rect, FocusBorderWidth, FocusBorderBrush);
+
+            if (!IsEnabled)
+                DisabledOverlayBrush?.Draw(spriteBatch, rect);
         }
 
 
@@ -385,18 +455,21 @@ namespace MonoGame.PortableUI.Controls
                     MouseButtonStates[button.Key] = ButtonState.Released;
             }
             MouseEnter?.Invoke(this, args);
+            StartToolTipHover(args.Position);
             ChangeVisualState();
         }
 
         internal void OnMouseLeave(MouseEventArgs args)
         {
             HoverState = HoverStates.NotHovering;
+            ClearToolTipState();
             MouseLeave?.Invoke(this, args);
             ChangeVisualState();
         }
 
         internal void OnMouseDown(MouseEventArgs args)
         {
+            ClearToolTipState();
             foreach (var button in args.Buttons)
                 MouseButtonStates[button] = ButtonState.Pressed;
             Focus();
@@ -437,6 +510,7 @@ namespace MonoGame.PortableUI.Controls
         internal void OnTouchDown(TouchEventArgs args)
         {
             TouchState = TouchStates.Touched;
+            StartToolTipLongPress(args.Position);
             TouchDown?.Invoke(this, args);
             ChangeVisualState();
             if (LongTouch != null)
@@ -449,6 +523,8 @@ namespace MonoGame.PortableUI.Controls
         internal void OnTouchUp(TouchEventArgs args)
         {
             _longPressTimer.Stop();
+            _toolTipLongPressTimer.Stop();
+            Screen?.ClearToolTip(this);
             if (TouchState == TouchStates.Touched)
             {
                 TouchState = TouchStates.Released;
@@ -467,6 +543,8 @@ namespace MonoGame.PortableUI.Controls
 
         internal void OnTouchMove(TouchEventArgs args)
         {
+            _lastToolTipAnchorPosition = args.Position;
+            Screen?.UpdateToolTip(this, args.Position);
             if (HandleTouchDownEnter)
             {
                 TouchState = TouchStates.Touched;
@@ -477,12 +555,15 @@ namespace MonoGame.PortableUI.Controls
 
         internal void OnMouseMove(MouseEventArgs args)
         {
+            _lastToolTipAnchorPosition = args.Position;
+            Screen?.UpdateToolTip(this, args.Position);
             MouseMove?.Invoke(this, args);
         }
 
         internal void OnTouchCancel(TouchEventArgs args)
         {
             _longPressTimer.Stop();
+            ClearToolTipState();
             TouchState = TouchStates.Released;
             TouchCancel?.Invoke(this, args);
             ChangeVisualState();
@@ -517,12 +598,15 @@ namespace MonoGame.PortableUI.Controls
             MouseButtonStates[MouseButton.Middle] = ButtonState.Released;
             MouseButtonStates[MouseButton.Right] = ButtonState.Released;
             HoverState = HoverStates.NotHovering;
+            ClearToolTipState();
             ChangeVisualState();
         }
 
         internal void UpdateTimers()
         {
             _longPressTimer.Update();
+            _toolTipHoverTimer.Update();
+            _toolTipLongPressTimer.Update();
         }
 
         protected internal virtual void OnGotFocus(GotFocusEventArgs args)
@@ -559,6 +643,58 @@ namespace MonoGame.PortableUI.Controls
             var isDoubleClick = lastClickAt.HasValue && now - lastClickAt.Value <= threshold;
             lastClickAt = now;
             return isDoubleClick;
+        }
+
+        private bool HasToolTip => !string.IsNullOrEmpty(_toolTip);
+
+        private ScreenEngineOptions GetOptions()
+        {
+            return Screen?.ScreenEngine?.Options ?? ScreenEngine.Instance?.Options ?? DefaultOptions;
+        }
+
+        private void StartToolTipHover(PointF position)
+        {
+            _lastToolTipAnchorPosition = position;
+            if (!HasToolTip)
+                return;
+
+            var options = GetOptions();
+            _toolTipHoverTimer.WaitTime = Math.Max(0, (int)options.ToolTipHoverDelay.TotalMilliseconds);
+            _toolTipHoverTimer.Start();
+        }
+
+        private void StartToolTipLongPress(PointF position)
+        {
+            _lastToolTipAnchorPosition = position;
+            if (!HasToolTip || ContextMenu != null)
+                return;
+
+            var options = GetOptions();
+            _toolTipLongPressTimer.WaitTime = Math.Max(0, (int)options.ToolTipLongPressDelay.TotalMilliseconds);
+            _toolTipLongPressTimer.Start();
+        }
+
+        private void ShowToolTip(PointF position)
+        {
+            if (!HasToolTip || !IsEnabled || !IsVisible || IsGone)
+                return;
+
+            Screen?.ShowToolTip(this, _toolTip!, position);
+        }
+
+        private void ClearToolTipState()
+        {
+            _toolTipHoverTimer.Stop();
+            _toolTipLongPressTimer.Stop();
+            Screen?.ClearToolTip(this);
+        }
+
+        private static void DrawBorder(SpriteBatch spriteBatch, Rect rect, float width, Brush brush)
+        {
+            brush.Draw(spriteBatch, new Rect(rect.Left, rect.Top, rect.Width, width));
+            brush.Draw(spriteBatch, new Rect(rect.Left, rect.Top, width, rect.Height));
+            brush.Draw(spriteBatch, new Rect(rect.Right - width, rect.Top, width, rect.Height));
+            brush.Draw(spriteBatch, new Rect(rect.Left, rect.Bottom - width, rect.Width, width));
         }
     }
 }

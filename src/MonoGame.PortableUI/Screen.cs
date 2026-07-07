@@ -36,8 +36,13 @@ namespace MonoGame.PortableUI
         internal PointF LastTouchPosition;
         internal int LastScrollWheelValue;
         private FlyOut? _flyOut;
+        private ToolTipPopup? _toolTip;
+        private Control? _toolTipOwner;
+        private string? _toolTipText;
+        private PointF _toolTipAnchorPosition;
         private ContextMenu? _activeContextMenu;
         private Keys[] _lastPressedKeys = Array.Empty<Keys>();
+        private static readonly ScreenEngineOptions DefaultOptions = new ScreenEngineOptions();
 
         protected Screen()
         {
@@ -135,6 +140,13 @@ namespace MonoGame.PortableUI
                 DrawControl(spriteBatch, FlyOut);
                 spriteBatch.End();
             }
+
+            if (_toolTip != null)
+            {
+                spriteBatch.Begin();
+                DrawControl(spriteBatch, _toolTip);
+                spriteBatch.End();
+            }
         }
 
         internal void OnNavigationFrom(object? sender)
@@ -148,6 +160,7 @@ namespace MonoGame.PortableUI
         
         internal void CreateContextMenu(PointF position, ContextMenu content, bool optimizeForTouch)
         {
+            ClearToolTip();
             content.OnOpening();
             _activeContextMenu = content;
             FlyOut = new FlyOut(position, content.ContextMenuType == ContextMenuTypes.OpenAndHold)
@@ -156,6 +169,67 @@ namespace MonoGame.PortableUI
             };
             FlyOut.UpdateLayout(ScreenRect);
             content.OnOpened();
+        }
+
+        internal void ShowToolTip(Control owner, string text, PointF anchorPosition)
+        {
+            if (string.IsNullOrEmpty(text) || !owner.IsEnabled || !owner.IsVisible || owner.IsGone)
+                return;
+
+            if (_toolTipOwner != owner || _toolTipText != text)
+                ClearToolTip();
+
+            if (_toolTip == null)
+            {
+                _toolTip = new ToolTipPopup(text);
+                _toolTip.Parent = this;
+                _toolTipOwner = owner;
+                _toolTipText = text;
+            }
+
+            _toolTipAnchorPosition = anchorPosition;
+            UpdateToolTipLayout();
+        }
+
+        internal void UpdateToolTip(Control owner, PointF anchorPosition)
+        {
+            if (_toolTipOwner != owner || _toolTip == null)
+                return;
+
+            _toolTipAnchorPosition = anchorPosition;
+            UpdateToolTipLayout();
+        }
+
+        internal void ClearToolTip(Control? owner = null)
+        {
+            if (owner != null && _toolTipOwner != owner)
+                return;
+
+            if (_toolTip != null)
+                _toolTip.Parent = null;
+            _toolTip = null;
+            _toolTipOwner = null;
+            _toolTipText = null;
+        }
+
+        internal bool IsToolTipVisibleFor(Control owner)
+        {
+            return _toolTipOwner == owner && _toolTip != null;
+        }
+
+        internal Rect ToolTipRect => _toolTip?.BoundingRect ?? Rect.Empty;
+
+        private void UpdateToolTipLayout()
+        {
+            if (_toolTip == null)
+                return;
+
+            var options = ScreenEngine?.Options ?? DefaultOptions;
+            var size = _toolTip.MeasureLayout();
+            var position = _toolTipAnchorPosition + options.ToolTipOffset;
+            var preferredRect = new Rect(position, size);
+            var layoutRect = ClampPopupRect(preferredRect, ScreenRect, options.ToolTipScreenPadding);
+            _toolTip.UpdateLayout(layoutRect);
         }
 
         private static void DrawControl(SpriteBatch spriteBatch, Control control)
@@ -184,6 +258,7 @@ namespace MonoGame.PortableUI
             {
                 DrawControl(spriteBatch, c);
             }
+            control.OnDrawOverlay(spriteBatch, control.ClippingRect);
             spriteBatch.GraphicsDevice.ScissorRectangle = oldRect;
         }
 
@@ -417,6 +492,31 @@ namespace MonoGame.PortableUI
         public void ClearFlyOut()
         {
             FlyOut = null;
+        }
+
+        internal static Rect ClampPopupRect(Rect preferredRect, Rect screenRect, float padding)
+        {
+            if (screenRect.Width <= 0 || screenRect.Height <= 0)
+                return preferredRect;
+
+            var result = preferredRect;
+            var availableWidth = Math.Max(0, screenRect.Width - padding * 2);
+            var availableHeight = Math.Max(0, screenRect.Height - padding * 2);
+
+            if (availableWidth > 0 && result.Width > availableWidth)
+                result.Width = availableWidth;
+            if (availableHeight > 0 && result.Height > availableHeight)
+                result.Height = availableHeight;
+
+            var minLeft = screenRect.Left + padding;
+            var maxLeft = screenRect.Right - padding - result.Width;
+            result.Left = maxLeft < minLeft ? minLeft : Math.Max(minLeft, Math.Min(result.Left, maxLeft));
+
+            var minTop = screenRect.Top + padding;
+            var maxTop = screenRect.Bottom - padding - result.Height;
+            result.Top = maxTop < minTop ? minTop : Math.Max(minTop, Math.Min(result.Top, maxTop));
+
+            return result;
         }
 
         public void ShowKeyboard()

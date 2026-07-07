@@ -67,6 +67,7 @@ namespace MonoGame.PortableUI.Demo
 
             var next = CommandButton("Open second screen", Teal, Color.White);
             next.Height = 42;
+            next.ToolTip = "Navigate to the secondary demo screen";
             next.Click += (sender, args) => ScreenEngine?.NavigateToScreen(new SecondScreen());
             header.AddChild(next, column: 1);
 
@@ -117,13 +118,14 @@ namespace MonoGame.PortableUI.Demo
             {
                 HintText = "Type a screen note",
                 Margin = new Thickness(0, 6, 12, 14),
-                Height = 38
+                Height = 38,
+                ToolTip = "Click or tap to focus text input"
             };
             textBox.TextChanged += (sender, args) => _status.Text = $"Text: {args.NewText}";
             panel.AddChild(textBox);
 
             panel.AddChild(Label("ComboBox", Line));
-            var combo = new ComboBox { Margin = new Thickness(0, 6, 12, 14), Height = 38 };
+            var combo = new ComboBox { Margin = new Thickness(0, 6, 12, 14), Height = 38, ToolTip = "Choose a density preset" };
             combo.Items.Add("Compact density");
             combo.Items.Add("Comfortable density");
             combo.Items.Add("Touch density");
@@ -138,7 +140,8 @@ namespace MonoGame.PortableUI.Demo
                 Height = 38,
                 BackgroundBrush = new Color(218, 225, 229),
                 TextColor = Ink,
-                ToggleBrush = Teal
+                ToggleBrush = Teal,
+                ToolTip = "Toggle the preview mode state"
             };
             toggle.Checked += (sender, args) => _status.Text = args.IsChecked ? "Preview mode on" : "Preview mode off";
             panel.AddChild(toggle);
@@ -158,16 +161,23 @@ namespace MonoGame.PortableUI.Demo
             var panel = PanelStack("Buttons and menus");
 
             var primary = CommandButton("Primary action", Teal, Color.White);
+            primary.ToolTip = "Run the primary demo action";
             primary.Click += (sender, args) => _status.Text = "Primary action clicked";
             panel.AddChild(primary);
 
             var secondary = CommandButton("Secondary action", Amber, Ink);
+            secondary.ToolTip = "Run the secondary demo action";
             secondary.Click += (sender, args) => _status.Text = "Secondary action clicked";
             panel.AddChild(secondary);
 
             var danger = CommandButton("Danger action", Red, Color.White);
+            danger.ToolTip = "Run the destructive demo action";
             danger.Click += (sender, args) => _status.Text = "Danger action clicked";
             panel.AddChild(danger);
+
+            var disabled = CommandButton("Disabled action", new Color(184, 193, 199), new Color(82, 101, 111));
+            disabled.IsEnabled = false;
+            panel.AddChild(disabled);
 
             panel.AddChild(Label("ImageButton", Line, 14, new Thickness(0, 8, 0, 2)));
             var imageButton = new ImageButton
@@ -176,12 +186,14 @@ namespace MonoGame.PortableUI.Demo
                 Width = 46,
                 Height = 46,
                 Margin = new Thickness(0, 2, 0, 12),
-                BackgroundBrush = new Color(224, 229, 232)
+                BackgroundBrush = new Color(224, 229, 232),
+                ToolTip = "Delete the current demo item"
             };
             imageButton.Click += (sender, args) => _status.Text = "ImageButton clicked";
             panel.AddChild(imageButton);
 
             var menuButton = CommandButton("Open context menu", new Color(62, 80, 91), Color.White);
+            menuButton.ToolTip = "Right-click or long-press to open commands";
             var menu = new ContextMenu { BackgroundBrush = new Color(232, 237, 240) };
             menu.Items.Add(new MenuItem("Inspect", () => _status.Text = "Inspect command"));
             menu.Items.Add(new MenuItem("Duplicate", () => _status.Text = "Duplicate command"));
