@@ -1,7 +1,9 @@
+using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls.Events;
+using MonoGame.PortableUI.Controls.Input;
 using MonoGame.PortableUI.Media;
 
 namespace MonoGame.PortableUI.Controls
@@ -47,6 +49,7 @@ namespace MonoGame.PortableUI.Controls
                 ScrollBy(new PointF(delta, 0), false);
             else
                 ScrollBy(new PointF(0, delta), false);
+            SynchronizeHoverAfterScroll(args.Position);
         }
 
         public void ScrollTo(PointF offset)
@@ -169,6 +172,22 @@ namespace MonoGame.PortableUI.Controls
                 ScrollOrientation == Orientation.Vertical ? Extent.Height : viewportRect.Height);
 
             Content.UpdateLayout(contentRect);
+        }
+
+        private void SynchronizeHoverAfterScroll(PointF position)
+        {
+            if (Content == null)
+                return;
+
+            var args = new MouseEventArgs(position, new List<MouseButton>());
+            foreach (var control in VisualTreeHelper.GetVisualTreeAsList(Content, false))
+            {
+                var containsPosition = control.BoundingRect.Contains(position);
+                if (containsPosition && !control.IsMouseHovering)
+                    control.OnMouseEnter(args);
+                else if (!containsPosition && control.IsMouseHovering)
+                    control.OnMouseLeave(args);
+            }
         }
 
         private void DrawScrollBars(SpriteBatch spriteBatch, Rect viewportRect)

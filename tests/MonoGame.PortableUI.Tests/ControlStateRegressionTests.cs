@@ -36,6 +36,90 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void Check_box_toggles_and_raises_checked_once_per_click()
+        {
+            var checkBox = new CheckBox { Text = "Enable" };
+            var calls = 0;
+            bool? lastValue = null;
+            checkBox.Checked += (sender, args) =>
+            {
+                calls++;
+                lastValue = args.IsChecked;
+            };
+
+            checkBox.OnClick();
+
+            Assert.IsTrue(checkBox.IsChecked);
+            Assert.AreEqual(1, calls);
+            Assert.AreEqual(true, lastValue);
+        }
+
+        [TestMethod]
+        public void Check_box_uses_visible_default_box_size()
+        {
+            var checkBox = new CheckBox();
+
+            Assert.AreEqual(20, checkBox.BoxSize);
+        }
+
+        [TestMethod]
+        public void Check_box_lays_content_to_the_right_of_the_box()
+        {
+            var content = new FixedSizeControl(new Size(40, 20));
+            var checkBox = new CheckBox
+            {
+                BoxSize = 18,
+                BoxSpacing = 6,
+                Content = content,
+                Width = 120,
+                Height = 30
+            };
+
+            checkBox.UpdateLayout(new Rect(0, 0, 120, 30));
+
+            Assert.AreEqual(24, content.BoundingRect.Left);
+            Assert.AreEqual(96, content.BoundingRect.Width);
+        }
+
+        [TestMethod]
+        public void Check_box_x_marker_stays_inside_box_and_reaches_edges()
+        {
+            var box = new Rect(4, 6, 16, 16);
+            var markerRects = CheckBox.GetCheckMarkRects(box, 2);
+            var count = 0;
+            var minLeft = float.MaxValue;
+            var minTop = float.MaxValue;
+            var maxRight = float.MinValue;
+            var maxBottom = float.MinValue;
+            var coversCenter = false;
+
+            foreach (var markerRect in markerRects)
+            {
+                count++;
+                minLeft = MathHelper.Min(minLeft, markerRect.Left);
+                minTop = MathHelper.Min(minTop, markerRect.Top);
+                maxRight = MathHelper.Max(maxRight, markerRect.Right);
+                maxBottom = MathHelper.Max(maxBottom, markerRect.Bottom);
+                if (markerRect.Contains(new PointF(12, 14)))
+                    coversCenter = true;
+
+                Assert.IsTrue(markerRect.Left >= 3.99f);
+                Assert.IsTrue(markerRect.Top >= 5.99f);
+                Assert.IsTrue(markerRect.Right <= 20.01f);
+                Assert.IsTrue(markerRect.Bottom <= 22.01f);
+                Assert.IsTrue(markerRect.Width <= 3);
+                Assert.IsTrue(markerRect.Height <= 3);
+            }
+
+            Assert.IsTrue(count > 0);
+            Assert.IsTrue(coversCenter);
+            Assert.AreEqual(4, minLeft, 0.01f);
+            Assert.AreEqual(6, minTop, 0.01f);
+            Assert.AreEqual(20, maxRight, 0.01f);
+            Assert.AreEqual(22, maxBottom, 0.01f);
+        }
+
+        [TestMethod]
         public void Focus_is_cleared_when_control_is_hidden_disabled_or_removed()
         {
             var panel = new StackPanel();
@@ -134,6 +218,21 @@ namespace MonoGame.PortableUI.Tests
             public void Press(KeyboardCommand command)
             {
                 OnKeyPressed(command);
+            }
+        }
+
+        private sealed class FixedSizeControl : Control
+        {
+            private readonly Size _size;
+
+            public FixedSizeControl(Size size)
+            {
+                _size = size;
+            }
+
+            public override Size MeasureLayout()
+            {
+                return _size;
             }
         }
     }
