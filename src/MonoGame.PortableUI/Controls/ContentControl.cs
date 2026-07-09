@@ -45,6 +45,7 @@ namespace MonoGame.PortableUI.Controls
             if (Height.IsFixed() && Width.IsFixed())
                 return size;
 
+            size -= Margin;
             size += Padding;
             size += Content?.MeasureLayout() ?? Size.Empty;
 
@@ -53,7 +54,7 @@ namespace MonoGame.PortableUI.Controls
             if (Width.IsFixed())
                 size.Width = Width;
 
-            return ApplyConstraints(size);
+            return ApplyConstraints(size) + Margin;
         }
 
         public Thickness Padding { get; set; }

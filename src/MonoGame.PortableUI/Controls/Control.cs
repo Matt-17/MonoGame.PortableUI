@@ -118,6 +118,7 @@ namespace MonoGame.PortableUI.Controls
 
         protected HoverStates HoverState { get; set; }
         protected TouchStates TouchState { get; set; }
+        internal bool IsMouseHovering => HoverState == HoverStates.Hovering;
 
         public override FrameworkElement? Parent
         {

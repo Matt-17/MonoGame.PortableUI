@@ -162,13 +162,23 @@ namespace MonoGame.PortableUI
         {
             ClearToolTip();
             content.OnOpening();
-            _activeContextMenu = content;
             FlyOut = new FlyOut(position, content.ContextMenuType == ContextMenuTypes.OpenAndHold)
             {
                 Content = content.CreateControl(this, optimizeForTouch)
             };
+            _activeContextMenu = content;
             FlyOut.UpdateLayout(ScreenRect);
             content.OnOpened();
+        }
+
+        internal void ShowFlyOut(PointF position, Control content, bool removeOnRelease)
+        {
+            ClearToolTip();
+            FlyOut = new FlyOut(position, removeOnRelease)
+            {
+                Content = content
+            };
+            FlyOut.UpdateLayout(ScreenRect);
         }
 
         internal void ShowToolTip(Control owner, string text, PointF anchorPosition)
@@ -493,6 +503,8 @@ namespace MonoGame.PortableUI
         {
             FlyOut = null;
         }
+
+        internal Control? FlyOutContent => FlyOut?.Content;
 
         internal static Rect ClampPopupRect(Rect preferredRect, Rect screenRect, float padding)
         {

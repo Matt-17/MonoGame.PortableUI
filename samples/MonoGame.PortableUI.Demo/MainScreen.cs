@@ -100,12 +100,14 @@ namespace MonoGame.PortableUI.Demo
                 ColumnDefinitions =
                 {
                     new ColumnDefinition(),
+                    new ColumnDefinition(),
                     new ColumnDefinition()
                 }
             };
 
             grid.AddChild(CreateInputPanel());
-            grid.AddChild(CreateActionPanel(), column: 1);
+            grid.AddChild(CreateListPanel(), column: 1);
+            grid.AddChild(CreateActionPanel(), column: 2);
             return grid;
         }
 
@@ -133,6 +135,19 @@ namespace MonoGame.PortableUI.Demo
             combo.SelectionChanged += (sender, args) => _status.Text = $"Density: {combo.SelectedItem}";
             panel.AddChild(combo);
 
+            var checkBox = new CheckBox
+            {
+                Text = "Enable layout guides",
+                Margin = new Thickness(0, 0, 12, 10),
+                Height = 34,
+                TextColor = Ink,
+                BoxBorderBrush = Line,
+                CheckMarkBrush = Teal,
+                ToolTip = "Toggle a checkbox state"
+            };
+            checkBox.Checked += (sender, args) => _status.Text = args.IsChecked ? "Layout guides on" : "Layout guides off";
+            panel.AddChild(checkBox);
+
             var toggle = new ToggleButton
             {
                 Text = "Toggle preview mode",
@@ -152,6 +167,34 @@ namespace MonoGame.PortableUI.Demo
             radioB.Checked += (sender, args) => _status.Text = "Input profile: touch";
             panel.AddChild(radioA);
             panel.AddChild(radioB);
+
+            return panel;
+        }
+
+        private Control CreateListPanel()
+        {
+            var panel = PanelStack("ListBox");
+
+            panel.AddChild(Label("Scrollable items", Line));
+            var listBox = new ListBox
+            {
+                Height = 190,
+                Margin = new Thickness(0, 6, 12, 10),
+                ItemHeight = 30,
+                ItemBackgroundBrush = Color.White,
+                SelectedItemBackgroundBrush = Teal,
+                ItemTextColor = Ink,
+                SelectedItemTextColor = Color.White,
+                ToolTip = "Scroll and select a list item"
+            };
+
+            for (var i = 1; i <= 24; i++)
+                listBox.Items.Add($"Inventory slot {i:00}");
+
+            listBox.SelectedIndex = 3;
+            listBox.SelectionChanged += (sender, args) => _status.Text = $"ListBox: {listBox.SelectedItem}";
+            listBox.ItemInvoked += (sender, args) => _status.Text = $"ListBox invoked: {args.Item}";
+            panel.AddChild(listBox);
 
             return panel;
         }

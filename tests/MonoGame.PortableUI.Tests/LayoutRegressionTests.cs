@@ -127,6 +127,22 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void Fixed_height_content_control_preserves_margin_outside_clipping_rect()
+        {
+            var button = new Button
+            {
+                Text = "Comfortable density",
+                Height = 38,
+                Margin = new Thickness(0, 6, 12, 14)
+            };
+
+            button.UpdateLayout(new Rect(0, 0, 220, Size.Infinity));
+
+            Assert.AreEqual(58, button.BoundingRect.Height);
+            Assert.AreEqual(38, button.ClippingRect.Height);
+        }
+
+        [TestMethod]
         public void Empty_stack_panel_is_measurable()
         {
             var panel = new StackPanel();

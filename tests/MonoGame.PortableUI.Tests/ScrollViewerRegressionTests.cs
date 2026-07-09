@@ -2,6 +2,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
 using MonoGame.PortableUI.Controls.Events;
+using MonoGame.PortableUI.Controls.Input;
 
 namespace MonoGame.PortableUI.Tests
 {
@@ -60,6 +61,28 @@ namespace MonoGame.PortableUI.Tests
             Assert.AreEqual(-viewer.RubberBandLimit, viewer.Offset.Y);
         }
 
+        [TestMethod]
+        public void Scroll_viewer_refreshes_hover_state_after_wheel_scroll()
+        {
+            var stack = new StackPanel { Orientation = Orientation.Vertical };
+            var first = new InspectableButton { Text = "One", Height = 40 };
+            var second = new InspectableButton { Text = "Two", Height = 40 };
+            stack.AddChild(first);
+            stack.AddChild(second);
+            var viewer = new ScrollViewer
+            {
+                ScrollOrientation = Orientation.Vertical,
+                Content = stack
+            };
+            viewer.UpdateLayout(new Rect(0, 0, 100, 40));
+            first.OnMouseEnter(new MouseEventArgs(new PointF(10, 20), new System.Collections.Generic.List<MouseButton>()));
+
+            viewer.OnScrollWheelChanged(new ScrollWheelChangedEventArgs(new PointF(10, 20), -120));
+
+            Assert.AreEqual(HoverStates.NotHovering, first.CurrentHoverState);
+            Assert.AreEqual(HoverStates.Hovering, second.CurrentHoverState);
+        }
+
         private static ScrollViewer CreateViewer(Size contentSize)
         {
             return new ScrollViewer
@@ -82,6 +105,11 @@ namespace MonoGame.PortableUI.Tests
             {
                 return _size;
             }
+        }
+
+        private sealed class InspectableButton : Button
+        {
+            public HoverStates CurrentHoverState => HoverState;
         }
     }
 }
