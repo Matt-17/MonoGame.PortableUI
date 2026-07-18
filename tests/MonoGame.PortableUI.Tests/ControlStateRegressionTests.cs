@@ -177,6 +177,294 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void Textbox_enforces_max_length_for_text_typing_and_paste()
+        {
+            using var game = new Game();
+            var clipboard = new FakeClipboardService { Text = "cdef" };
+            ScreenEngine.Initialize(game, new ScreenEngineOptions { AddComponentToGame = false, ClipboardService = clipboard });
+            var textBox = new KeyboardBackedTextBox { MaxLength = 3 };
+
+            textBox.Text = "abcdef";
+
+            Assert.AreEqual("abc", textBox.Text);
+
+            textBox.CursorPosition = textBox.Text.Length;
+            textBox.Press('Z');
+
+            Assert.AreEqual("abc", textBox.Text);
+
+            textBox.MaxLength = 5;
+            textBox.Press(KeyboardCommand.Paste);
+
+            Assert.AreEqual("abccd", textBox.Text);
+            Assert.AreEqual(5, textBox.CursorPosition);
+        }
+
+        [TestMethod]
+        public void Textbox_read_only_blocks_mutations_but_allows_selection_copy_and_navigation()
+        {
+            using var game = new Game();
+            var clipboard = new FakeClipboardService { Text = "paste" };
+            ScreenEngine.Initialize(game, new ScreenEngineOptions { AddComponentToGame = false, ClipboardService = clipboard });
+            var textBox = new KeyboardBackedTextBox { Text = "abcd", IsReadOnly = true };
+            textBox.Select(1, 2);
+
+            textBox.Copy();
+            textBox.Cut();
+            textBox.Press(KeyboardCommand.Backspace);
+            textBox.Press(KeyboardCommand.Delete);
+            textBox.Press(KeyboardCommand.Paste);
+            textBox.Press(KeyboardCommand.CursorLeft);
+
+            Assert.AreEqual("bc", clipboard.Text);
+            Assert.AreEqual("abcd", textBox.Text);
+            Assert.AreEqual(2, textBox.CursorPosition);
+            Assert.AreEqual(0, textBox.SelectionLength);
+        }
+
+        [TestMethod]
+        public void Textbox_replaces_selection_and_deletes_selection_first()
+        {
+            var textBox = new KeyboardBackedTextBox { Text = "abcde" };
+
+            textBox.Select(1, 3);
+            textBox.Press('X');
+
+            Assert.AreEqual("aXe", textBox.Text);
+            Assert.AreEqual(2, textBox.CursorPosition);
+
+            textBox.Text = "abcde";
+            textBox.Select(1, 3);
+            textBox.Press(KeyboardCommand.Backspace);
+
+            Assert.AreEqual("ae", textBox.Text);
+            Assert.AreEqual(1, textBox.CursorPosition);
+
+            textBox.Text = "abcde";
+            textBox.Select(1, 3);
+            textBox.Press(KeyboardCommand.Delete);
+
+            Assert.AreEqual("ae", textBox.Text);
+            Assert.AreEqual(1, textBox.CursorPosition);
+        }
+
+        [TestMethod]
+        public void Textbox_select_all_copy_cut_and_paste_use_configured_clipboard()
+        {
+            using var game = new Game();
+            var clipboard = new FakeClipboardService { Text = "ZZ" };
+            ScreenEngine.Initialize(game, new ScreenEngineOptions { AddComponentToGame = false, ClipboardService = clipboard });
+            var textBox = new KeyboardBackedTextBox { Text = "abcdef" };
+
+            textBox.Select(1, 3);
+            textBox.Copy();
+
+            Assert.AreEqual("bcd", clipboard.Text);
+            Assert.AreEqual("abcdef", textBox.Text);
+
+            textBox.Cut();
+
+            Assert.AreEqual("bcd", clipboard.Text);
+            Assert.AreEqual("aef", textBox.Text);
+            Assert.AreEqual(1, textBox.CursorPosition);
+
+            clipboard.Text = "ZZ";
+            textBox.Press(KeyboardCommand.Paste);
+
+            Assert.AreEqual("aZZef", textBox.Text);
+
+            textBox.Press(KeyboardCommand.SelectAll);
+            textBox.Press('Q');
+
+            Assert.AreEqual("Q", textBox.Text);
+        }
+
+        [TestMethod]
+        public void Textbox_password_char_masks_clipboard_copy_and_cut_but_allows_paste()
+        {
+            using var game = new Game();
+            var clipboard = new FakeClipboardService { Text = "old" };
+            ScreenEngine.Initialize(game, new ScreenEngineOptions { AddComponentToGame = false, ClipboardService = clipboard });
+            var textBox = new KeyboardBackedTextBox { Text = "secret", PasswordChar = '*' };
+
+            textBox.SelectAll();
+            textBox.Copy();
+            textBox.Cut();
+
+            Assert.AreEqual("old", clipboard.Text);
+            Assert.AreEqual("secret", textBox.Text);
+
+            textBox.CursorPosition = textBox.Text.Length;
+            clipboard.Text = "!";
+            textBox.Press(KeyboardCommand.Paste);
+
+            Assert.AreEqual("secret!", textBox.Text);
+        }
+
+        [TestMethod]
+        public void Textbox_multiline_enter_adds_newline_and_control_enter_raises_event()
+        {
+            var textBox = new KeyboardBackedTextBox { IsMultiline = true };
+            var enterPressed = 0;
+            textBox.EnterPressed += (sender, args) => enterPressed++;
+
+            textBox.Press('a');
+            textBox.Press(KeyboardCommand.Enter);
+            textBox.Press('b');
+            textBox.Press(KeyboardCommand.Enter, KeyboardModifiers.Control);
+
+            Assert.AreEqual("a\nb", textBox.Text);
+            Assert.AreEqual(1, enterPressed);
+        }
+
+        [TestMethod]
+        public void Textbox_multiline_navigation_preserves_visual_column()
+        {
+            var textBox = new KeyboardBackedTextBox
+            {
+                IsMultiline = true,
+                Text = "abc\nde\nwxyz",
+                TextMeasurer = new CharacterWidthMeasurer(10, 16)
+            };
+            textBox.CursorPosition = 9;
+
+            textBox.Press(KeyboardCommand.CursorUp);
+
+            Assert.AreEqual(6, textBox.CursorPosition);
+
+            textBox.Press(KeyboardCommand.CursorUp);
+
+            Assert.AreEqual(2, textBox.CursorPosition);
+
+            textBox.Press(KeyboardCommand.CursorDown);
+
+            Assert.AreEqual(6, textBox.CursorPosition);
+        }
+
+        [TestMethod]
+        public void Textbox_home_and_end_are_line_aware_in_multiline_mode()
+        {
+            var textBox = new KeyboardBackedTextBox
+            {
+                IsMultiline = true,
+                Text = "abc\ndef"
+            };
+            textBox.CursorPosition = 5;
+
+            textBox.Press(KeyboardCommand.Home);
+            Assert.AreEqual(4, textBox.CursorPosition);
+
+            textBox.Press(KeyboardCommand.End);
+            Assert.AreEqual(7, textBox.CursorPosition);
+
+            textBox.Press(KeyboardCommand.Home, KeyboardModifiers.Control);
+            Assert.AreEqual(0, textBox.CursorPosition);
+
+            textBox.Press(KeyboardCommand.End, KeyboardModifiers.Control);
+            Assert.AreEqual(7, textBox.CursorPosition);
+        }
+
+        [TestMethod]
+        public void Textbox_multiline_click_uses_x_and_y_position()
+        {
+            var textBox = new TextBox
+            {
+                IsMultiline = true,
+                Text = "aa\nbbbb",
+                TextMeasurer = new CharacterWidthMeasurer(10, 16),
+                Width = 200,
+                Height = 60
+            };
+            textBox.UpdateLayout(new Rect(0, 0, 200, 60));
+
+            textBox.OnMouseUp(new MouseEventArgs(new PointF(25, 24), MouseButton.Left));
+
+            Assert.AreEqual(5, textBox.CursorPosition);
+        }
+
+        [TestMethod]
+        public void Textbox_single_line_scrolls_horizontally_to_keep_cursor_visible()
+        {
+            var textBox = new KeyboardBackedTextBox
+            {
+                TextMeasurer = new CharacterWidthMeasurer(10, 16),
+                Width = 60,
+                Height = 30
+            };
+            textBox.UpdateLayout(new Rect(0, 0, 60, 30));
+
+            foreach (var character in "abcdefgh")
+                textBox.Press(character);
+
+            Assert.IsTrue(textBox.HorizontalScrollOffset > 0);
+
+            textBox.Press(KeyboardCommand.Home);
+
+            Assert.AreEqual(0, textBox.HorizontalScrollOffset);
+        }
+
+        [TestMethod]
+        public void Textbox_multiline_scrolls_vertically_to_keep_cursor_visible()
+        {
+            var textBox = new KeyboardBackedTextBox
+            {
+                IsMultiline = true,
+                Text = "a\nb\nc\nd",
+                TextMeasurer = new CharacterWidthMeasurer(10, 16),
+                Width = 120,
+                Height = 40
+            };
+            textBox.CursorPosition = textBox.Text.Length;
+            textBox.UpdateLayout(new Rect(0, 0, 120, 40));
+
+            Assert.AreEqual(32, textBox.VerticalScrollOffset);
+
+            textBox.Press(KeyboardCommand.Home, KeyboardModifiers.Control);
+
+            Assert.AreEqual(0, textBox.VerticalScrollOffset);
+        }
+
+        [TestMethod]
+        public void Textbox_multiline_cursor_rect_uses_vertical_scroll_offset()
+        {
+            var textBox = new KeyboardBackedTextBox
+            {
+                IsMultiline = true,
+                Text = "a\nb\nc\nd",
+                TextMeasurer = new CharacterWidthMeasurer(10, 16),
+                Width = 120,
+                Height = 40
+            };
+            textBox.CursorPosition = textBox.Text.Length;
+            textBox.UpdateLayout(new Rect(0, 0, 120, 40));
+
+            var textRect = textBox.ClippingRect - textBox.Padding;
+            var cursorRect = textBox.GetCursorRect(textRect);
+
+            Assert.IsTrue(cursorRect.Top >= textRect.Top);
+            Assert.IsTrue(cursorRect.Bottom <= textRect.Bottom);
+        }
+
+        [TestMethod]
+        public void Textbox_multiline_click_accounts_for_vertical_scroll_offset()
+        {
+            var textBox = new TextBox
+            {
+                IsMultiline = true,
+                Text = "a\nb\nc\nd",
+                TextMeasurer = new CharacterWidthMeasurer(10, 16),
+                Width = 120,
+                Height = 40
+            };
+            textBox.CursorPosition = textBox.Text.Length;
+            textBox.UpdateLayout(new Rect(0, 0, 120, 40));
+
+            textBox.OnMouseUp(new MouseEventArgs(new PointF(4, 4), MouseButton.Left));
+
+            Assert.AreEqual(4, textBox.CursorPosition);
+        }
+
+        [TestMethod]
         public void Textblock_without_font_uses_text_measurer()
         {
             var text = new TextBlock
@@ -218,6 +506,26 @@ namespace MonoGame.PortableUI.Tests
             public void Press(KeyboardCommand command)
             {
                 OnKeyPressed(command);
+            }
+
+            public void Press(KeyboardCommand command, KeyboardModifiers modifiers)
+            {
+                OnKeyPressed(command, modifiers);
+            }
+        }
+
+        private sealed class FakeClipboardService : IClipboardService
+        {
+            public string? Text { get; set; }
+
+            public string? GetText()
+            {
+                return Text;
+            }
+
+            public void SetText(string? text)
+            {
+                Text = text;
             }
         }
 

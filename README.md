@@ -66,6 +66,15 @@ protected override void Initialize()
 }
 ```
 
+Desktop hosts can opt into system clipboard support through the engine options:
+
+```csharp
+_screenEngine = ScreenEngine.Initialize(this, new ScreenEngineOptions
+{
+    ClipboardService = OperatingSystem.IsWindows() ? new WindowsClipboardService() : NullClipboardService.Instance
+});
+```
+
 Build screens with code-first controls:
 
 ```csharp
@@ -106,8 +115,14 @@ public sealed class MainScreen : Screen
 Handle text input and selection events:
 
 ```csharp
-var textBox = new TextBox { HintText = "Player name", Height = 36 };
+var textBox = new TextBox { HintText = "Player name", MaxLength = 24, Height = 36 };
 textBox.TextChanged += (_, args) => Console.WriteLine(args.NewText);
+textBox.SelectAll();
+
+var password = new TextBox { HintText = "Password", PasswordChar = '*', Height = 36 };
+
+var notes = new TextBox { HintText = "Notes", IsMultiline = true, Height = 96 };
+notes.EnterPressed += (_, _) => Console.WriteLine("Submitted with Ctrl+Enter");
 
 var combo = new ComboBox { Height = 36 };
 combo.Items.Add("Compact");

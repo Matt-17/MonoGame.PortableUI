@@ -378,6 +378,7 @@ namespace MonoGame.PortableUI
             var keyboardState = Keyboard.GetState();
             var pressedKeys = keyboardState.GetPressedKeys();
             var focusedControl = ScreenEngine.FocusedControl;
+            var modifiers = GetKeyboardModifiers(keyboardState);
 
             if (focusedControl != null)
             {
@@ -386,24 +387,54 @@ namespace MonoGame.PortableUI
                     if (_lastPressedKeys.Contains(key))
                         continue;
 
-                    var command = TryGetKeyboardCommand(key);
+                    var command = TryGetKeyboardCommand(key, modifiers);
                     if (command.HasValue)
                     {
-                        focusedControl.OnKeyPressed(command.Value);
+                        focusedControl.OnKeyPressed(command.Value, modifiers);
                         continue;
                     }
 
+                    if ((modifiers & (KeyboardModifiers.Control | KeyboardModifiers.Alt)) != KeyboardModifiers.None)
+                        continue;
+
                     var character = TryGetCharacter(key, keyboardState);
                     if (character.HasValue)
-                        focusedControl.OnKeyPressed(character.Value);
+                        focusedControl.OnKeyPressed(character.Value, modifiers);
                 }
             }
 
             _lastPressedKeys = pressedKeys;
         }
 
-        private static KeyboardCommand? TryGetKeyboardCommand(Keys key)
+        private static KeyboardModifiers GetKeyboardModifiers(KeyboardState keyboardState)
         {
+            var modifiers = KeyboardModifiers.None;
+            if (keyboardState.IsKeyDown(Keys.LeftShift) || keyboardState.IsKeyDown(Keys.RightShift))
+                modifiers |= KeyboardModifiers.Shift;
+            if (keyboardState.IsKeyDown(Keys.LeftControl) || keyboardState.IsKeyDown(Keys.RightControl))
+                modifiers |= KeyboardModifiers.Control;
+            if (keyboardState.IsKeyDown(Keys.LeftAlt) || keyboardState.IsKeyDown(Keys.RightAlt))
+                modifiers |= KeyboardModifiers.Alt;
+            return modifiers;
+        }
+
+        private static KeyboardCommand? TryGetKeyboardCommand(Keys key, KeyboardModifiers modifiers)
+        {
+            if ((modifiers & KeyboardModifiers.Control) != 0)
+            {
+                switch (key)
+                {
+                    case Keys.A:
+                        return KeyboardCommand.SelectAll;
+                    case Keys.C:
+                        return KeyboardCommand.Copy;
+                    case Keys.X:
+                        return KeyboardCommand.Cut;
+                    case Keys.V:
+                        return KeyboardCommand.Paste;
+                }
+            }
+
             switch (key)
             {
                 case Keys.Back:
@@ -418,6 +449,12 @@ namespace MonoGame.PortableUI
                     return KeyboardCommand.CursorUp;
                 case Keys.Down:
                     return KeyboardCommand.CursorDown;
+                case Keys.Delete:
+                    return KeyboardCommand.Delete;
+                case Keys.Home:
+                    return KeyboardCommand.Home;
+                case Keys.End:
+                    return KeyboardCommand.End;
                 default:
                     return null;
             }
