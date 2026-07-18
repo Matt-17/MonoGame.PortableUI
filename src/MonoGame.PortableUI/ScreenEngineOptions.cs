@@ -11,6 +11,7 @@ namespace MonoGame.PortableUI
         public TimeSpan ToolTipLongPressDelay { get; set; } = TimeSpan.FromMilliseconds(650);
         public PointF ToolTipOffset { get; set; } = new PointF(12, 18);
         public float ToolTipScreenPadding { get; set; } = 8;
+        public IClipboardService ClipboardService { get; set; } = NullClipboardService.Instance;
         public bool AddComponentToGame { get; set; } = true;
         public ScreenSizeMode ScreenSizeMode { get; set; } = ScreenSizeMode.Viewport;
         public Effect? Effect { get; set; }

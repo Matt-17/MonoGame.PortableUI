@@ -115,16 +115,41 @@ namespace MonoGame.PortableUI.Demo
         {
             var panel = PanelStack("Input and selection");
 
-            panel.AddChild(Label("TextBox", Line));
+            panel.AddChild(Label("Single-line TextBox", Line));
             var textBox = new TextBox
             {
                 HintText = "Type a screen note",
-                Margin = new Thickness(0, 6, 12, 14),
+                Margin = new Thickness(0, 6, 12, 10),
                 Height = 38,
                 ToolTip = "Click or tap to focus text input"
             };
             textBox.TextChanged += (sender, args) => _status.Text = $"Text: {args.NewText}";
             panel.AddChild(textBox);
+
+            panel.AddChild(Label("Password TextBox", Line));
+            var passwordBox = new TextBox
+            {
+                HintText = "Password",
+                PasswordChar = '*',
+                Margin = new Thickness(0, 6, 12, 10),
+                Height = 38,
+                ToolTip = "Password input masks display and disables copy"
+            };
+            passwordBox.TextChanged += (sender, args) => _status.Text = $"Password length: {args.NewText.Length}";
+            panel.AddChild(passwordBox);
+
+            panel.AddChild(Label("Multiline TextBox", Line));
+            var multilineBox = new TextBox
+            {
+                HintText = "Write a short note",
+                IsMultiline = true,
+                Margin = new Thickness(0, 6, 12, 14),
+                Height = 86,
+                ToolTip = "Enter adds lines; Ctrl+Enter submits"
+            };
+            multilineBox.EnterPressed += (sender, args) => _status.Text = "Multiline submitted";
+            multilineBox.TextChanged += (sender, args) => _status.Text = $"Lines: {args.NewText.Split('\n').Length}";
+            panel.AddChild(multilineBox);
 
             panel.AddChild(Label("ComboBox", Line));
             var combo = new ComboBox { Margin = new Thickness(0, 6, 12, 14), Height = 38, ToolTip = "Choose a density preset" };

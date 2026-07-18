@@ -1,3 +1,4 @@
+using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
@@ -23,7 +24,10 @@ namespace MonoGame.PortableUI.Demo
 
         protected override void Initialize()
         {
-            _screenEngine = ScreenEngine.Initialize(this);
+            _screenEngine = ScreenEngine.Initialize(this, new ScreenEngineOptions
+            {
+                ClipboardService = OperatingSystem.IsWindows() ? new WindowsClipboardService() : NullClipboardService.Instance
+            });
             base.Initialize();
         }
 
