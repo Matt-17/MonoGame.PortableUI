@@ -40,5 +40,10 @@ namespace MonoGame.PortableUI.Media
         {
             spriteBatch.Draw(Pixel, rect, Color);
         }
+
+        public override void Draw(SpriteBatch spriteBatch, Rect rect, float opacity)
+        {
+            spriteBatch.Draw(Pixel, rect, ApplyOpacity(Color, opacity));
+        }
     }
 }

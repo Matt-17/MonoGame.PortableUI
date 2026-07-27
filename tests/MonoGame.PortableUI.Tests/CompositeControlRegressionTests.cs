@@ -1,4 +1,6 @@
+using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.Xna.Framework;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
 using MonoGame.PortableUI.Controls.Events;
@@ -8,6 +10,13 @@ namespace MonoGame.PortableUI.Tests
     [TestClass]
     public class CompositeControlRegressionTests
     {
+        [TestInitialize]
+        public void ResetState()
+        {
+            ScreenEngine.FocusedControl = null;
+            ScreenSystem.TotalTime = TimeSpan.Zero;
+        }
+
         [TestMethod]
         public void Tab_control_clamps_selected_index()
         {
@@ -165,6 +174,43 @@ namespace MonoGame.PortableUI.Tests
             Assert.AreEqual(1, comboBox.SelectedIndex);
             Assert.AreEqual("Two", comboBox.SelectedItem);
             Assert.IsNull(screen.FlyOutContent);
+        }
+
+        [TestMethod]
+        public void Combo_box_dropdown_opens_downward_from_top_edge()
+        {
+            using var game = new Game();
+            var engine = ScreenEngine.Initialize(game, new ScreenEngineOptions { AddComponentToGame = false });
+            engine.SetScreenSize(300, 200);
+            var screen = new TestScreen();
+            engine.NavigateToScreen(screen);
+            var comboBox = new ComboBox
+            {
+                Width = 160,
+                Height = 32
+            };
+            comboBox.Items.Add("One");
+            comboBox.Items.Add("Two");
+            screen.Content = comboBox;
+
+            comboBox.OnClick();
+            var listBox = screen.FlyOutContent as ListBox;
+            Assert.IsNotNull(listBox);
+
+            var expectedStartScaleY = 0.96f;
+            var expectedStartTranslationY = -listBox.ClippingRect.Height * (1 - expectedStartScaleY) / 2;
+            Assert.AreEqual(1, listBox.Scale.X, 0.001f);
+            Assert.AreEqual(expectedStartScaleY, listBox.Scale.Y, 0.001f);
+            Assert.AreEqual(0, listBox.Translation.X, 0.001f);
+            Assert.AreEqual(expectedStartTranslationY, listBox.Translation.Y, 0.001f);
+
+            ScreenSystem.TotalTime = TimeSpan.FromMilliseconds(120);
+            listBox.UpdateTimers();
+
+            Assert.AreEqual(1, listBox.Scale.X, 0.001f);
+            Assert.AreEqual(1, listBox.Scale.Y, 0.001f);
+            Assert.AreEqual(0, listBox.Translation.X, 0.001f);
+            Assert.AreEqual(0, listBox.Translation.Y, 0.001f);
         }
 
         [TestMethod]

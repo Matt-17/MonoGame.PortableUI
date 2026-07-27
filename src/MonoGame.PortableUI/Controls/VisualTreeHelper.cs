@@ -23,16 +23,23 @@ namespace MonoGame.PortableUI.Controls
         {
             if (control.IsGone || !control.IsVisible || !control.IsEnabled)
                 return;
-            var goIntoTree = treeFunc?.Invoke(control, args) ?? actionFunc(control, args);
+            var actionAppliesToControl = actionFunc(control, args);
+            var goIntoTree = treeFunc?.Invoke(control, args) ?? actionAppliesToControl;
             if (!goIntoTree)
                 return;
+            if (control.CapturesInputBeforeDescendants(args) && actionAppliesToControl)
+            {
+                action(control, args);
+                if (args.Handled)
+                    return;
+            }
             foreach (var descendant in control.GetDescendants())
             {
                 IterateVisualTree(descendant, args, actionFunc, action, treeFunc);
                 if (args.Handled)
                     return;
             }
-            if (actionFunc(control, args))
+            if (actionAppliesToControl)
                 action(control, args);
         }
     }

@@ -3,6 +3,7 @@ using System.Diagnostics;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI.Common;
+using MonoGame.PortableUI.Media;
 using MonoGame.PortableUI.Text;
 
 namespace MonoGame.PortableUI.Controls
@@ -108,17 +109,18 @@ namespace MonoGame.PortableUI.Controls
         {                    
             base.OnDraw(spriteBatch, rect);
             var offset = rect.Offset;
-            offset.Y += (rect.Height - MeasuredText.Y) / 2;
+            var measuredText = new Vector2(MeasuredText.X * RenderScale.X, MeasuredText.Y * RenderScale.Y);
+            offset.Y += (rect.Height - measuredText.Y) / 2;
 
             switch (TextAlignment)
             {
                 case TextAlignment.Left:
                     break;
                 case TextAlignment.Center:
-                    offset.X += (rect.Width - MeasuredText.X) / 2;
+                    offset.X += (rect.Width - measuredText.X) / 2;
                     break;
                 case TextAlignment.Right:
-                    offset.X += rect.Width - MeasuredText.X;
+                    offset.X += rect.Width - measuredText.X;
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -127,7 +129,7 @@ namespace MonoGame.PortableUI.Controls
             if (SnapToPixel)
                 offset = offset.ToInts();
             if (Font != null)
-                spriteBatch.DrawString(Font, Text, offset, TextColor);
+                spriteBatch.DrawString(Font, Text, offset, Brush.ApplyOpacity(TextColor, RenderOpacity), 0, Vector2.Zero, RenderScale, SpriteEffects.None, 0);
         }
     }
 }
