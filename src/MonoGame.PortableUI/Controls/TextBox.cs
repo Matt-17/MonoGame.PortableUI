@@ -376,18 +376,19 @@ namespace MonoGame.PortableUI.Controls
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
             EnsureCursorVisible();
-            BackgroundBrush?.Draw(spriteBatch, rect);
+            BackgroundBrush?.Draw(spriteBatch, rect, RenderOpacity);
             var textRect = rect - Padding;
 
             if (Text.Length == 0 && !string.IsNullOrEmpty(HintText) && Font != null)
             {
                 var measuredHint = MeasureText(HintText);
+                var scaledHint = new Vector2(measuredHint.X * RenderScale.X, measuredHint.Y * RenderScale.Y);
                 var offset = textRect.Offset;
                 if (!IsMultiline)
-                    offset.Y += (textRect.Height - measuredHint.Y) / 2;
+                    offset.Y += (textRect.Height - scaledHint.Y) / 2;
                 if (SnapToPixel)
                     offset = offset.ToInts();
-                spriteBatch.DrawString(Font, HintText, offset, HintTextColor);
+                spriteBatch.DrawString(Font, HintText, offset, Brush.ApplyOpacity(HintTextColor, RenderOpacity), 0, Vector2.Zero, RenderScale, SpriteEffects.None, 0);
             }
 
             DrawSelection(spriteBatch, textRect);
@@ -619,14 +620,14 @@ namespace MonoGame.PortableUI.Controls
 
                 var beforeSelection = displayText.Substring(line.Start, rangeStart - line.Start);
                 var selected = displayText.Substring(rangeStart, rangeEnd - rangeStart);
-                var rawLeft = textRect.Left + MeasureText(beforeSelection).X - _horizontalScrollOffset;
-                var rawRight = rawLeft + Math.Max(1, MeasureText(selected).X);
+                var rawLeft = textRect.Left + (MeasureText(beforeSelection).X - _horizontalScrollOffset) * RenderScale.X;
+                var rawRight = rawLeft + Math.Max(1, MeasureText(selected).X * RenderScale.X);
                 var left = Math.Max(textRect.Left, rawLeft);
                 var right = Math.Min(textRect.Right, rawRight);
                 if (right <= left)
                     continue;
 
-                SelectionBrush.Draw(spriteBatch, new Rect(left, top, right - left, lineHeight));
+                SelectionBrush.Draw(spriteBatch, new Rect(left, top, right - left, lineHeight), RenderOpacity);
             }
         }
 
@@ -646,15 +647,15 @@ namespace MonoGame.PortableUI.Controls
                 if (!IsLineVisible(textRect, lineTop, lineHeight))
                     continue;
 
-                var visibleRange = GetVisibleTextRange(displayText, line, textRect.Width);
+                var visibleRange = GetVisibleTextRange(displayText, line, textRect.Width / Math.Max(0.001f, RenderScale.X));
                 if (visibleRange.Length <= 0)
                     continue;
 
                 var beforeVisible = displayText.Substring(line.Start, visibleRange.Start);
-                var offset = new PointF(textRect.Left + MeasureText(beforeVisible).X - _horizontalScrollOffset, lineTop);
+                var offset = new PointF(textRect.Left + (MeasureText(beforeVisible).X - _horizontalScrollOffset) * RenderScale.X, lineTop);
                 if (SnapToPixel)
                     offset = offset.ToInts();
-                spriteBatch.DrawString(Font, displayText.Substring(line.Start + visibleRange.Start, visibleRange.Length), offset, TextColor);
+                spriteBatch.DrawString(Font, displayText.Substring(line.Start + visibleRange.Start, visibleRange.Length), offset, Brush.ApplyOpacity(TextColor, RenderOpacity), 0, Vector2.Zero, RenderScale, SpriteEffects.None, 0);
             }
         }
 
@@ -670,7 +671,9 @@ namespace MonoGame.PortableUI.Controls
             if (cursorRect == Rect.Empty)
                 return;
 
-            CursorColor.Draw(spriteBatch, cursorRect);
+            cursorRect.Width = Math.Max(1, cursorRect.Width * RenderScale.X);
+            cursorRect.Height *= RenderScale.Y;
+            CursorColor.Draw(spriteBatch, cursorRect, RenderOpacity);
         }
 
         internal Rect GetCursorRect(Rect textRect)

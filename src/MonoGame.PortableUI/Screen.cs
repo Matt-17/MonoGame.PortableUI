@@ -6,6 +6,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Input.Touch;
+using MonoGame.PortableUI.Animation;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
 using MonoGame.PortableUI.Controls.Events;
@@ -36,11 +37,16 @@ namespace MonoGame.PortableUI
         internal PointF LastTouchPosition;
         internal int LastScrollWheelValue;
         private FlyOut? _flyOut;
+        private FlyOut? _dismissingFlyOut;
         private ToolTipPopup? _toolTip;
+        private ToolTipPopup? _dismissingToolTip;
         private Control? _toolTipOwner;
         private string? _toolTipText;
         private PointF _toolTipAnchorPosition;
         private ContextMenu? _activeContextMenu;
+        private ContextMenu? _dismissingContextMenu;
+        private FlyOutAnimationStyle _activeFlyOutAnimationStyle = FlyOutAnimationStyle.Popup;
+        private Control? _capturedMouseControl;
         private Keys[] _lastPressedKeys = Array.Empty<Keys>();
         private static readonly ScreenEngineOptions DefaultOptions = new ScreenEngineOptions();
 
@@ -90,13 +96,15 @@ namespace MonoGame.PortableUI
             {
                 if (_flyOut != null)
                 {
-                    _activeContextMenu?.OnClosing();
-                    _flyOut.NotifyDismissing();
-                    _flyOut.Parent = null;
-                    _flyOut.Dispose();
-                    _flyOut.NotifyDismissed();
-                    _activeContextMenu?.OnClosed();
+                    RemoveFlyOutNow(_flyOut, _activeContextMenu);
                     _activeContextMenu = null;
+                    _activeFlyOutAnimationStyle = FlyOutAnimationStyle.Popup;
+                }
+                if (_dismissingFlyOut != null)
+                {
+                    RemoveFlyOutNow(_dismissingFlyOut, _dismissingContextMenu);
+                    _dismissingFlyOut = null;
+                    _dismissingContextMenu = null;
                 }
                 _flyOut = value;
                 if (_flyOut != null)
@@ -127,26 +135,18 @@ namespace MonoGame.PortableUI
                 BackgroundBrush.Draw(spriteBatch, ScreenRect);
                 spriteBatch.End();
             }
-            spriteBatch.GraphicsDevice.ScissorRectangle = _mainGrid.BoundingRect;
 
-            spriteBatch.Begin(SpriteSortMode.Immediate, rasterizerState: new RasterizerState { ScissorTestEnable = true, MultiSampleAntiAlias = true }, effect: ScreenEngine?.Options.Effect);
-            
-            DrawControl(spriteBatch, _mainGrid);
-            spriteBatch.End();
+            DrawControlTree(spriteBatch, _mainGrid, _mainGrid.BoundingRect);
 
             if (FlyOut != null)
-            {
-                spriteBatch.Begin();
-                DrawControl(spriteBatch, FlyOut);
-                spriteBatch.End();
-            }
+                DrawControlTree(spriteBatch, FlyOut, GetOverlayScissor(FlyOut));
+            if (_dismissingFlyOut != null)
+                DrawControlTree(spriteBatch, _dismissingFlyOut, GetOverlayScissor(_dismissingFlyOut));
 
             if (_toolTip != null)
-            {
-                spriteBatch.Begin();
-                DrawControl(spriteBatch, _toolTip);
-                spriteBatch.End();
-            }
+                DrawControlTree(spriteBatch, _toolTip, GetOverlayScissor(_toolTip));
+            if (_dismissingToolTip != null)
+                DrawControlTree(spriteBatch, _dismissingToolTip, GetOverlayScissor(_dismissingToolTip));
         }
 
         internal void OnNavigationFrom(object? sender)
@@ -156,6 +156,7 @@ namespace MonoGame.PortableUI
             {
                 control.ResetInputs();
             }
+            _capturedMouseControl = null;
         }
         
         internal void CreateContextMenu(PointF position, ContextMenu content, bool optimizeForTouch)
@@ -166,8 +167,10 @@ namespace MonoGame.PortableUI
             {
                 Content = content.CreateControl(this, optimizeForTouch)
             };
+            _activeFlyOutAnimationStyle = FlyOutAnimationStyle.Popup;
             _activeContextMenu = content;
             FlyOut.UpdateLayout(ScreenRect);
+            AnimateFlyOutIn(FlyOut, _activeFlyOutAnimationStyle);
             content.OnOpened();
         }
 
@@ -178,7 +181,9 @@ namespace MonoGame.PortableUI
             {
                 Content = content
             };
+            _activeFlyOutAnimationStyle = FlyOutAnimationStyle.DropDown;
             FlyOut.UpdateLayout(ScreenRect);
+            AnimateFlyOutIn(FlyOut, _activeFlyOutAnimationStyle);
         }
 
         internal void ShowToolTip(Control owner, string text, PointF anchorPosition)
@@ -189,8 +194,10 @@ namespace MonoGame.PortableUI
             if (_toolTipOwner != owner || _toolTipText != text)
                 ClearToolTip();
 
-            if (_toolTip == null)
+            var created = _toolTip == null;
+            if (created)
             {
+                _dismissingToolTip = null;
                 _toolTip = new ToolTipPopup(text);
                 _toolTip.Parent = this;
                 _toolTipOwner = owner;
@@ -199,6 +206,8 @@ namespace MonoGame.PortableUI
 
             _toolTipAnchorPosition = anchorPosition;
             UpdateToolTipLayout();
+            if (created)
+                AnimatePopupIn(_toolTip!, 0.98, new Vector2(0, 4), TimeSpan.FromMilliseconds(100));
         }
 
         internal void UpdateToolTip(Control owner, PointF anchorPosition)
@@ -216,7 +225,16 @@ namespace MonoGame.PortableUI
                 return;
 
             if (_toolTip != null)
-                _toolTip.Parent = null;
+            {
+                var toolTip = _toolTip;
+                toolTip.Parent = null;
+                _dismissingToolTip = toolTip;
+                AnimatePopupOut(toolTip, 0.98, new Vector2(0, 4), TimeSpan.FromMilliseconds(80), () =>
+                {
+                    if (_dismissingToolTip == toolTip)
+                        _dismissingToolTip = null;
+                });
+            }
             _toolTip = null;
             _toolTipOwner = null;
             _toolTipText = null;
@@ -242,34 +260,116 @@ namespace MonoGame.PortableUI
             _toolTip.UpdateLayout(layoutRect);
         }
 
-        private static void DrawControl(SpriteBatch spriteBatch, Control control)
+        private void DrawControlTree(SpriteBatch spriteBatch, Control control, Rect scissorRect)
+        {
+            if (scissorRect.Width <= 0 || scissorRect.Height <= 0)
+                scissorRect = GetOverlayScissor(control);
+
+            spriteBatch.GraphicsDevice.ScissorRectangle = ToScissorRectangle(scissorRect);
+            spriteBatch.Begin(SpriteSortMode.Immediate, rasterizerState: new RasterizerState { ScissorTestEnable = true, MultiSampleAntiAlias = true }, effect: ScreenEngine?.Options.Effect);
+            DrawControl(spriteBatch, control, RenderContext.Root(scissorRect));
+            spriteBatch.End();
+        }
+
+        private Rect GetOverlayScissor(Control control)
+        {
+            if (ScreenRect.Width > 0 && ScreenRect.Height > 0)
+                return ScreenRect;
+
+            if (control.ClippingRect.Width > 0 && control.ClippingRect.Height > 0)
+                return control.ClippingRect;
+
+            return control.BoundingRect;
+        }
+
+        private static void DrawControl(SpriteBatch spriteBatch, Control control, RenderContext parentContext)
         {
             if (!control.IsVisible || control.IsGone)
                 return;
 
-            //if (!Visible) return;
-
-            // Controlgröße ermitteln
-            //Rectangle controlArea = new Rectangle(AbsolutePosition, ActualSize);
-            //Rectangle localRenderMask = controlArea.Intersection(renderMask);
-
-            // Scissor-Filter aktivieren
-            //batch.Begin(rasterizerState: new RasterizerState() { ScissorTestEnable = true }, samplerState: SamplerState.LinearWrap, transformMatrix: AbsoluteTransformation);
-            //OnDraw(batch, controlArea, gameTime);
-            //batch.End();
-
-
-            //invalidDrawing = false;
-            control.OnDraw(spriteBatch, control.ClippingRect);
+            var context = parentContext.ForControl(control);
+            if (context.ScissorRect.Width <= 0 || context.ScissorRect.Height <= 0)
+                return;
 
             var oldRect = new Rect(spriteBatch.GraphicsDevice.ScissorRectangle);
-            spriteBatch.GraphicsDevice.ScissorRectangle = oldRect ^ control.ClippingRect;
+            control.SetRenderState(context.Opacity, context.Scale);
+            control.OnDraw(spriteBatch, context.RenderRect);
+            spriteBatch.GraphicsDevice.ScissorRectangle = ToScissorRectangle(context.ScissorRect);
             foreach (var c in control.GetDescendants())
             {
-                DrawControl(spriteBatch, c);
+                DrawControl(spriteBatch, c, context);
             }
-            control.OnDrawOverlay(spriteBatch, control.ClippingRect);
+            control.OnDrawOverlay(spriteBatch, context.RenderRect);
             spriteBatch.GraphicsDevice.ScissorRectangle = oldRect;
+        }
+
+        private static Rectangle ToScissorRectangle(Rect rect)
+        {
+            var left = (int)Math.Floor(rect.Left);
+            var top = (int)Math.Floor(rect.Top);
+            var right = (int)Math.Ceiling(rect.Right);
+            var bottom = (int)Math.Ceiling(rect.Bottom);
+            return new Rectangle(left, top, Math.Max(0, right - left), Math.Max(0, bottom - top));
+        }
+
+        private readonly struct RenderContext
+        {
+            private readonly Matrix _transform;
+
+            private RenderContext(Matrix transform, Vector2 scale, float opacity, Rect scissorRect, Rect renderRect)
+            {
+                _transform = transform;
+                Scale = scale;
+                Opacity = opacity;
+                ScissorRect = scissorRect;
+                RenderRect = renderRect;
+            }
+
+            public Vector2 Scale { get; }
+            public float Opacity { get; }
+            public Rect ScissorRect { get; }
+            public Rect RenderRect { get; }
+
+            public static RenderContext Root(Rect scissorRect)
+            {
+                return new RenderContext(Matrix.Identity, Vector2.One, 1, scissorRect, scissorRect);
+            }
+
+            public RenderContext ForControl(Control control)
+            {
+                var transform = CreateControlTransform(control) * _transform;
+                var renderRect = TransformRect(control.ClippingRect, transform);
+                var scissorRect = ScissorRect ^ renderRect;
+                var scale = new Vector2(Scale.X * control.Scale.X, Scale.Y * control.Scale.Y);
+                var opacity = Opacity * MathHelper.Clamp((float)control.Opacity, 0, 1);
+                return new RenderContext(transform, scale, opacity, scissorRect, renderRect);
+            }
+
+            private static Matrix CreateControlTransform(Control control)
+            {
+                if (control.Scale == Vector2.One && control.Translation == Vector2.Zero)
+                    return Matrix.Identity;
+
+                var rect = control.ClippingRect;
+                var origin = new Vector2(rect.Left + rect.Width / 2, rect.Top + rect.Height / 2);
+                return Matrix.CreateTranslation(-origin.X, -origin.Y, 0)
+                    * Matrix.CreateScale(control.Scale.X, control.Scale.Y, 1)
+                    * Matrix.CreateTranslation(origin.X + control.Translation.X, origin.Y + control.Translation.Y, 0);
+            }
+
+            private static Rect TransformRect(Rect rect, Matrix transform)
+            {
+                var topLeft = Vector2.Transform(new Vector2(rect.Left, rect.Top), transform);
+                var topRight = Vector2.Transform(new Vector2(rect.Right, rect.Top), transform);
+                var bottomLeft = Vector2.Transform(new Vector2(rect.Left, rect.Bottom), transform);
+                var bottomRight = Vector2.Transform(new Vector2(rect.Right, rect.Bottom), transform);
+
+                var left = Math.Min(Math.Min(topLeft.X, topRight.X), Math.Min(bottomLeft.X, bottomRight.X));
+                var top = Math.Min(Math.Min(topLeft.Y, topRight.Y), Math.Min(bottomLeft.Y, bottomRight.Y));
+                var right = Math.Max(Math.Max(topLeft.X, topRight.X), Math.Max(bottomLeft.X, bottomRight.X));
+                var bottom = Math.Max(Math.Max(topLeft.Y, topRight.Y), Math.Max(bottomLeft.Y, bottomRight.Y));
+                return new Rect(left, top, right - left, bottom - top);
+            }
         }
 
         internal void Update()
@@ -300,23 +400,35 @@ namespace MonoGame.PortableUI
 
             foreach (var control in VisualTreeHelper.GetVisualTreeAsList(content, false))
                 control.UpdateTimers();
+            if (_toolTip != null)
+            {
+                foreach (var control in VisualTreeHelper.GetVisualTreeAsList(_toolTip, false))
+                    control.UpdateTimers();
+            }
+            if (_dismissingFlyOut != null)
+            {
+                foreach (var control in VisualTreeHelper.GetVisualTreeAsList(_dismissingFlyOut, false))
+                    control.UpdateTimers();
+            }
+            if (_dismissingToolTip != null)
+            {
+                foreach (var control in VisualTreeHelper.GetVisualTreeAsList(_dismissingToolTip, false))
+                    control.UpdateTimers();
+            }
 
             HandleKeyboardInput();
 
             if (mousePosition != LastMousePosition)
             {
-                List<MouseButton> buttons = new List<MouseButton>();
-                if (mouseState.LeftButton == ButtonState.Pressed)
-                    buttons.Add(MouseButton.Left);
-                if (mouseState.RightButton == ButtonState.Pressed)
-                    buttons.Add(MouseButton.Right);
-                if (mouseState.MiddleButton == ButtonState.Pressed)
-                    buttons.Add(MouseButton.Middle);
-                var args = new MouseEventArgs(mousePosition, buttons);
-                VisualTreeHelper.IterateVisualTree(content, args,
-                    (c, a) => c.BoundingRect.Contains(a.Position) && !c.BoundingRect.Contains(LastMousePosition), (c, a) => { c.OnMouseEnter(a); }, (c, a) => c.BoundingRect.Contains(a.Position));
-                VisualTreeHelper.IterateVisualTree(content, args, (c, a) => c.BoundingRect.Contains(a.Position) && c.BoundingRect.Contains(LastMousePosition), (c, a) => { c.OnMouseMove(a); }, null);
-                VisualTreeHelper.IterateVisualTree(content, args, (c, a) => !c.BoundingRect.Contains(a.Position) && c.BoundingRect.Contains(LastMousePosition), (c, a) => { c.OnMouseLeave(a); }, (c, a) => c.BoundingRect.Contains(LastMousePosition));
+                var buttons = GetPressedMouseButtons(mouseState);
+                if (!RouteCapturedMouseMove(mousePosition, buttons))
+                {
+                    var args = new MouseEventArgs(mousePosition, buttons);
+                    VisualTreeHelper.IterateVisualTree(content, args,
+                        (c, a) => c.BoundingRect.Contains(a.Position) && !c.BoundingRect.Contains(LastMousePosition), (c, a) => { c.OnMouseEnter(a); }, (c, a) => c.BoundingRect.Contains(a.Position));
+                    VisualTreeHelper.IterateVisualTree(content, args, (c, a) => c.BoundingRect.Contains(a.Position) && c.BoundingRect.Contains(LastMousePosition), (c, a) => { c.OnMouseMove(a); }, null);
+                    VisualTreeHelper.IterateVisualTree(content, args, (c, a) => !c.BoundingRect.Contains(a.Position) && c.BoundingRect.Contains(LastMousePosition), (c, a) => { c.OnMouseLeave(a); }, (c, a) => c.BoundingRect.Contains(LastMousePosition));
+                }
                 LastMousePosition = mousePosition;
             }
 
@@ -529,6 +641,9 @@ namespace MonoGame.PortableUI
                 return;
             MouseButtonStates[button] = newState;
             var args = new MouseEventArgs(position, button);
+            if (RouteCapturedMouseInput(args, action))
+                return;
+
             VisualTreeHelper.IterateVisualTree(control, args,
                 (c, a) => c.BoundingRect.Contains(a.Position),
                 action,
@@ -536,12 +651,185 @@ namespace MonoGame.PortableUI
             );
         }
 
+        internal Control? CapturedMouseControl => _capturedMouseControl;
+
+        internal void CaptureMouse(Control control)
+        {
+            if (control.Screen != this)
+                return;
+
+            _capturedMouseControl = control;
+        }
+
+        internal void ReleaseMouse(Control control)
+        {
+            if (_capturedMouseControl == control)
+                _capturedMouseControl = null;
+        }
+
+        internal bool RouteCapturedMouseMove(PointF position, List<MouseButton> buttons)
+        {
+            var args = new MouseEventArgs(position, buttons);
+            return RouteCapturedMouseInput(args, (control, eventArgs) => control.OnMouseMove(eventArgs));
+        }
+
+        internal bool RouteCapturedMouseUp(PointF position, MouseButton button)
+        {
+            var args = new MouseEventArgs(position, button);
+            return RouteCapturedMouseInput(args, (control, eventArgs) => control.OnMouseUp(eventArgs));
+        }
+
+        private bool RouteCapturedMouseInput(MouseEventArgs args, Action<Control, MouseEventArgs> action)
+        {
+            var captured = _capturedMouseControl;
+            if (captured == null)
+                return false;
+
+            if (captured.IsGone || !captured.IsVisible || !captured.IsEnabled)
+            {
+                _capturedMouseControl = null;
+                return false;
+            }
+
+            action(captured, args);
+            return true;
+        }
+
+        private static List<MouseButton> GetPressedMouseButtons(MouseState mouseState)
+        {
+            var buttons = new List<MouseButton>();
+            if (mouseState.LeftButton == ButtonState.Pressed)
+                buttons.Add(MouseButton.Left);
+            if (mouseState.RightButton == ButtonState.Pressed)
+                buttons.Add(MouseButton.Right);
+            if (mouseState.MiddleButton == ButtonState.Pressed)
+                buttons.Add(MouseButton.Middle);
+            return buttons;
+        }
+
         public void ClearFlyOut()
         {
-            FlyOut = null;
+            if (_flyOut == null)
+                return;
+
+            var flyOut = _flyOut;
+            var contextMenu = _activeContextMenu;
+            var animationStyle = _activeFlyOutAnimationStyle;
+            _flyOut = null;
+            _activeContextMenu = null;
+            _activeFlyOutAnimationStyle = FlyOutAnimationStyle.Popup;
+            _dismissingFlyOut = flyOut;
+            _dismissingContextMenu = contextMenu;
+            contextMenu?.OnClosing();
+            flyOut.NotifyDismissing();
+            AnimateFlyOutOut(flyOut, animationStyle, () =>
+            {
+                if (_dismissingFlyOut != flyOut)
+                    return;
+
+                flyOut.Parent = null;
+                flyOut.Dispose();
+                flyOut.NotifyDismissed();
+                contextMenu?.OnClosed();
+                _dismissingFlyOut = null;
+                if (_dismissingContextMenu == contextMenu)
+                    _dismissingContextMenu = null;
+            });
         }
 
         internal Control? FlyOutContent => FlyOut?.Content;
+
+        private enum FlyOutAnimationStyle
+        {
+            Popup,
+            DropDown
+        }
+
+        private static void AnimateFlyOutIn(FlyOut flyOut, FlyOutAnimationStyle style)
+        {
+            var animatedControl = flyOut.Content ?? flyOut;
+            if (style == FlyOutAnimationStyle.DropDown)
+                AnimateDropDownIn(animatedControl, 0.96f, TimeSpan.FromMilliseconds(120));
+            else
+                AnimatePopupIn(animatedControl, 0.96, new Vector2(0, 6), TimeSpan.FromMilliseconds(120));
+        }
+
+        private static void AnimateFlyOutOut(FlyOut flyOut, FlyOutAnimationStyle style, Action completed)
+        {
+            var animatedControl = flyOut.Content ?? flyOut;
+            if (style == FlyOutAnimationStyle.DropDown)
+                AnimateDropDownOut(animatedControl, 0.96f, TimeSpan.FromMilliseconds(90), completed);
+            else
+                AnimatePopupOut(animatedControl, 0.96, new Vector2(0, 6), TimeSpan.FromMilliseconds(90), completed);
+        }
+
+        private static void AnimatePopupIn(Control control, double startScale, Vector2 startTranslation, TimeSpan duration)
+        {
+            control.Opacity = 0;
+            control.Scale = new Vector2((float)startScale, (float)startScale);
+            control.Translation = startTranslation;
+            control.Animate()
+                .FadeTo(1)
+                .Scale(1)
+                .TranslateTo(Vector2.Zero)
+                .Duration(duration)
+                .Ease(Easings.CubicOut)
+                .Start();
+        }
+
+        private static void AnimateDropDownIn(Control control, float startScaleY, TimeSpan duration)
+        {
+            control.Opacity = 0;
+            control.Scale = new Vector2(1, startScaleY);
+            control.Translation = GetTopAnchoredScaleTranslation(control, startScaleY);
+            control.Animate()
+                .FadeTo(1)
+                .Scale(Vector2.One)
+                .TranslateTo(Vector2.Zero)
+                .Duration(duration)
+                .Ease(Easings.CubicOut)
+                .Start();
+        }
+
+        private static void AnimateDropDownOut(Control control, float targetScaleY, TimeSpan duration, Action completed)
+        {
+            control.Animate()
+                .FadeTo(0)
+                .Scale(new Vector2(1, targetScaleY))
+                .TranslateTo(GetTopAnchoredScaleTranslation(control, targetScaleY))
+                .Duration(duration)
+                .Ease(Easings.CubicOut)
+                .OnCompleted(completed)
+                .Start();
+        }
+
+        private static Vector2 GetTopAnchoredScaleTranslation(Control control, float scaleY)
+        {
+            var height = control.ClippingRect.Height > 0 ? control.ClippingRect.Height : control.BoundingRect.Height;
+            return new Vector2(0, -height * (1 - scaleY) / 2);
+        }
+
+        private static void AnimatePopupOut(Control control, double targetScale, Vector2 targetTranslation, TimeSpan duration, Action completed)
+        {
+            control.Animate()
+                .FadeTo(0)
+                .Scale(targetScale)
+                .TranslateTo(targetTranslation)
+                .Duration(duration)
+                .Ease(Easings.CubicOut)
+                .OnCompleted(completed)
+                .Start();
+        }
+
+        private static void RemoveFlyOutNow(FlyOut flyOut, ContextMenu? contextMenu)
+        {
+            contextMenu?.OnClosing();
+            flyOut.NotifyDismissing();
+            flyOut.Parent = null;
+            flyOut.Dispose();
+            flyOut.NotifyDismissed();
+            contextMenu?.OnClosed();
+        }
 
         internal static Rect ClampPopupRect(Rect preferredRect, Rect screenRect, float padding)
         {

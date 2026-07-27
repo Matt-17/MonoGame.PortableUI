@@ -58,7 +58,7 @@ namespace MonoGame.PortableUI.Controls
             var size = (float)(value * (MaxSize - MinSize) + MinSize);
             var top = rect.Top + (float)((1 - Math.Abs(Math.Sin(rad))) * (rect.Height - size));
             var rectangle = new Rect(rect.Left + (rect.Width - size) / 2, top, size, size);
-            new SolidColorBrush(color).Draw(spriteBatch, rectangle);
+            new SolidColorBrush(color).Draw(spriteBatch, rectangle, RenderOpacity);
         }
 
         private static double Precalculate(int i, int maxValue, out double rad)

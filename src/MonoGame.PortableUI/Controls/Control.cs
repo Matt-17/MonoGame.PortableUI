@@ -9,6 +9,7 @@ using MonoGame.PortableUI.Controls.Events;
 using MonoGame.PortableUI.Controls.Input;
 using MonoGame.PortableUI.Exceptions;
 using MonoGame.PortableUI.Media;
+using ControlAnimation = MonoGame.PortableUI.Animation.Animation;
 
 namespace MonoGame.PortableUI.Controls
 {
@@ -17,6 +18,7 @@ namespace MonoGame.PortableUI.Controls
         private readonly Timer _longPressTimer;
         private readonly Timer _toolTipHoverTimer;
         private readonly Timer _toolTipLongPressTimer;
+        private readonly List<ControlAnimation> _animations = new List<ControlAnimation>();
 
         private ContextMenu? _contextMenu;
         private float _height;
@@ -219,6 +221,10 @@ namespace MonoGame.PortableUI.Controls
 
         public double Opacity { get; set; }
 
+        protected float RenderOpacity { get; private set; } = 1;
+
+        protected Vector2 RenderScale { get; private set; } = Vector2.One;
+
         public bool ShowFocusVisual { get; set; }
 
         public Brush? FocusBorderBrush { get; set; }
@@ -283,6 +289,11 @@ namespace MonoGame.PortableUI.Controls
             return Enumerable.Empty<Control>();
         }
 
+        protected internal virtual bool CapturesInputBeforeDescendants(BaseEventArgs args)
+        {
+            return false;
+        }
+
         public virtual void OnClick()
         {
             //if (this is TextBox)
@@ -326,16 +337,16 @@ namespace MonoGame.PortableUI.Controls
 
         protected internal virtual void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
-            BackgroundBrush?.Draw(spriteBatch, rect);
+            BackgroundBrush?.Draw(spriteBatch, rect, RenderOpacity);
         }
 
         protected internal virtual void OnDrawOverlay(SpriteBatch spriteBatch, Rect rect)
         {
             if (ShowFocusVisual && IsFocused && FocusBorderWidth > 0 && FocusBorderBrush != null)
-                DrawBorder(spriteBatch, rect, FocusBorderWidth, FocusBorderBrush);
+                DrawBorder(spriteBatch, rect, FocusBorderWidth, FocusBorderBrush, RenderOpacity);
 
             if (!IsEnabled)
-                DisabledOverlayBrush?.Draw(spriteBatch, rect);
+                DisabledOverlayBrush?.Draw(spriteBatch, rect, RenderOpacity);
         }
 
 
@@ -623,6 +634,29 @@ namespace MonoGame.PortableUI.Controls
             _longPressTimer.Update();
             _toolTipHoverTimer.Update();
             _toolTipLongPressTimer.Update();
+            UpdateAnimations();
+        }
+
+        internal void StartAnimation(ControlAnimation animation)
+        {
+            for (var i = _animations.Count - 1; i >= 0; i--)
+            {
+                if (_animations[i].RemoveConflictingTweens(animation))
+                    _animations.RemoveAt(i);
+            }
+
+            _animations.Add(animation);
+        }
+
+        internal void RemoveAnimation(ControlAnimation animation)
+        {
+            _animations.Remove(animation);
+        }
+
+        internal void SetRenderState(float opacity, Vector2 scale)
+        {
+            RenderOpacity = opacity;
+            RenderScale = scale;
         }
 
         protected internal virtual void OnGotFocus(GotFocusEventArgs args)
@@ -705,12 +739,22 @@ namespace MonoGame.PortableUI.Controls
             Screen?.ClearToolTip(this);
         }
 
-        private static void DrawBorder(SpriteBatch spriteBatch, Rect rect, float width, Brush brush)
+        private static void DrawBorder(SpriteBatch spriteBatch, Rect rect, float width, Brush brush, float opacity)
         {
-            brush.Draw(spriteBatch, new Rect(rect.Left, rect.Top, rect.Width, width));
-            brush.Draw(spriteBatch, new Rect(rect.Left, rect.Top, width, rect.Height));
-            brush.Draw(spriteBatch, new Rect(rect.Right - width, rect.Top, width, rect.Height));
-            brush.Draw(spriteBatch, new Rect(rect.Left, rect.Bottom - width, rect.Width, width));
+            brush.Draw(spriteBatch, new Rect(rect.Left, rect.Top, rect.Width, width), opacity);
+            brush.Draw(spriteBatch, new Rect(rect.Left, rect.Top, width, rect.Height), opacity);
+            brush.Draw(spriteBatch, new Rect(rect.Right - width, rect.Top, width, rect.Height), opacity);
+            brush.Draw(spriteBatch, new Rect(rect.Left, rect.Bottom - width, rect.Width, width), opacity);
+        }
+
+        private void UpdateAnimations()
+        {
+            for (var i = _animations.Count - 1; i >= 0; i--)
+            {
+                var animation = _animations[i];
+                if (animation.Update())
+                    _animations.Remove(animation);
+            }
         }
     }
 }

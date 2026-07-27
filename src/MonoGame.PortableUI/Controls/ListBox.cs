@@ -224,6 +224,7 @@ namespace MonoGame.PortableUI.Controls
                 return;
 
             SelectedIndex = index;
+            _scrollViewer.BringIntoView((Button)sender);
             ItemInvoked?.Invoke(this, new ListBoxItemInvokedEventArgs(index, SelectedItem));
         }
 

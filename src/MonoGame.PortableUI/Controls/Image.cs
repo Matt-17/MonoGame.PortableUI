@@ -2,6 +2,7 @@ using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI.Common;
+using MonoGame.PortableUI.Media;
 
 namespace MonoGame.PortableUI.Controls
 {
@@ -31,8 +32,9 @@ namespace MonoGame.PortableUI.Controls
                 y += (rect.Height - imageSize.Height) / 2;
 
             var destinationRectangle = new Rect(new PointF(x,y), imageSize);
+            var tintColor = TintColor == Color.Transparent ? Color.White : TintColor;
 
-            spriteBatch.Draw(Source, destinationRectangle, TintColor == Color.Transparent ? Color.White : TintColor);
+            spriteBatch.Draw(Source, destinationRectangle, Brush.ApplyOpacity(tintColor, RenderOpacity));
         }
 
         public override Size MeasureLayout()

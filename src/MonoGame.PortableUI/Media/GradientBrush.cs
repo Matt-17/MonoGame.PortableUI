@@ -67,5 +67,12 @@ namespace MonoGame.PortableUI.Media
             if (_texture != null)
                 spriteBatch.Draw(_texture, rect, Color.White);
         }
+
+        public override void Draw(SpriteBatch spriteBatch, Rect rect, float opacity)
+        {
+            RecreateTexture(spriteBatch, (Size)rect);
+            if (_texture != null)
+                spriteBatch.Draw(_texture, rect, ApplyOpacity(Color.White, opacity));
+        }
     }
 }
