@@ -1,9 +1,11 @@
 using System;
+using System.Collections.Generic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.Xna.Framework;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
 using MonoGame.PortableUI.Controls.Events;
+using MonoGame.PortableUI.Controls.Input;
 
 namespace MonoGame.PortableUI.Tests
 {
@@ -80,6 +82,115 @@ namespace MonoGame.PortableUI.Tests
             Assert.IsNotNull(invoked);
             Assert.AreEqual(1, invoked.Index);
             Assert.AreEqual("Two", invoked.Item);
+        }
+
+        [TestMethod]
+        public void List_box_item_mouse_down_updates_selection_without_invoking_item()
+        {
+            var listBox = new ListBox();
+            listBox.Items.Add("One");
+            listBox.Items.Add("Two");
+            ListBoxItemInvokedEventArgs? invoked = null;
+            listBox.ItemInvoked += (sender, args) => invoked = args;
+            listBox.UpdateLayout(new Rect(0, 0, 160, 80));
+
+            listBox.ItemButtons[1].OnMouseDown(new MouseEventArgs(new PointF(10, 42), MouseButton.Left));
+
+            Assert.AreEqual(1, listBox.SelectedIndex);
+            Assert.AreEqual("Two", listBox.SelectedItem);
+            Assert.IsNull(invoked);
+            Assert.AreSame(listBox, ScreenEngine.FocusedControl);
+        }
+
+        [TestMethod]
+        public void List_box_rows_do_not_use_button_focus_visual_or_pressed_animation()
+        {
+            var listBox = new ListBox();
+            listBox.Items.Add("One");
+            listBox.UpdateLayout(new Rect(0, 0, 160, 40));
+
+            Assert.IsFalse(listBox.ShowFocusVisual);
+            Assert.IsFalse(listBox.ItemButtons[0].ShowFocusVisual);
+            Assert.IsFalse(listBox.ItemButtons[0].AnimatePressedState);
+        }
+
+        [TestMethod]
+        public void List_box_mouse_drag_selects_entered_item_from_same_list()
+        {
+            var listBox = new ListBox();
+            listBox.Items.Add("One");
+            listBox.Items.Add("Two");
+            listBox.Items.Add("Three");
+            listBox.UpdateLayout(new Rect(0, 0, 160, 120));
+
+            listBox.ItemButtons[0].OnMouseDown(new MouseEventArgs(new PointF(10, 14), MouseButton.Left));
+            listBox.ItemButtons[2].OnMouseEnter(new MouseEventArgs(new PointF(10, 70), new List<MouseButton> { MouseButton.Left }));
+
+            Assert.AreEqual(2, listBox.SelectedIndex);
+            Assert.AreEqual("Three", listBox.SelectedItem);
+        }
+
+        [TestMethod]
+        public void List_box_captured_mouse_release_invokes_only_the_started_item()
+        {
+            using var game = new Game();
+            var engine = ScreenEngine.Initialize(game, new ScreenEngineOptions { AddComponentToGame = false });
+            engine.SetScreenSize(160, 120);
+            var screen = new TestScreen();
+            engine.NavigateToScreen(screen);
+            var listBox = new ListBox
+            {
+                Width = 160,
+                Height = 120
+            };
+            listBox.Items.Add("One");
+            listBox.Items.Add("Two");
+            listBox.Items.Add("Three");
+            ListBoxItemInvokedEventArgs? invoked = null;
+            listBox.ItemInvoked += (sender, args) => invoked = args;
+            screen.Content = listBox;
+            screen.InvalidateLayout(true);
+
+            listBox.ItemButtons[0].OnMouseDown(new MouseEventArgs(new PointF(10, 14), MouseButton.Left));
+            Assert.AreSame(listBox, screen.CapturedMouseControl);
+
+            Assert.IsTrue(screen.RouteCapturedMouseMove(new PointF(10, 70), new List<MouseButton> { MouseButton.Left }));
+            Assert.IsTrue(screen.RouteCapturedMouseUp(new PointF(10, 70), MouseButton.Left));
+
+            Assert.AreEqual(2, listBox.SelectedIndex);
+            Assert.AreEqual("Three", listBox.SelectedItem);
+            Assert.IsNull(invoked);
+            Assert.IsNull(screen.CapturedMouseControl);
+        }
+
+        [TestMethod]
+        public void List_box_captured_mouse_click_invokes_started_item()
+        {
+            using var game = new Game();
+            var engine = ScreenEngine.Initialize(game, new ScreenEngineOptions { AddComponentToGame = false });
+            engine.SetScreenSize(160, 80);
+            var screen = new TestScreen();
+            engine.NavigateToScreen(screen);
+            var listBox = new ListBox
+            {
+                Width = 160,
+                Height = 80
+            };
+            listBox.Items.Add("One");
+            listBox.Items.Add("Two");
+            ListBoxItemInvokedEventArgs? invoked = null;
+            listBox.ItemInvoked += (sender, args) => invoked = args;
+            screen.Content = listBox;
+            screen.InvalidateLayout(true);
+
+            listBox.ItemButtons[1].OnMouseDown(new MouseEventArgs(new PointF(10, 42), MouseButton.Left));
+            Assert.IsTrue(screen.RouteCapturedMouseUp(new PointF(10, 42), MouseButton.Left));
+
+            Assert.AreEqual(1, listBox.SelectedIndex);
+            Assert.IsNotNull(invoked);
+            Assert.AreEqual(1, invoked.Index);
+            Assert.AreEqual("Two", invoked.Item);
+            Assert.IsNull(screen.CapturedMouseControl);
         }
 
         [TestMethod]

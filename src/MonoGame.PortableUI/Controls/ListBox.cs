@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls.Events;
+using MonoGame.PortableUI.Controls.Input;
 using MonoGame.PortableUI.Media;
 
 namespace MonoGame.PortableUI.Controls
@@ -15,6 +16,8 @@ namespace MonoGame.PortableUI.Controls
         private Brush _itemBackgroundBrush = new SolidColorBrush(Color.White);
         private Color _itemTextColor;
         private float _itemHeight;
+        private bool _isMouseSelecting;
+        private int _mouseSelectionStartIndex = -1;
         private int _selectedIndex = -1;
         private Brush _selectedItemBackgroundBrush = new SolidColorBrush(new Color(20, 126, 133));
         private Color _selectedItemTextColor;
@@ -35,8 +38,10 @@ namespace MonoGame.PortableUI.Controls
             ItemHeight = 28;
             ItemTextColor = Color.Black;
             SelectedItemTextColor = Color.White;
-            ShowFocusVisual = true;
+            ShowFocusVisual = false;
             KeyPressed += ListBoxKeyPressed;
+            MouseMove += ListBoxMouseMove;
+            MouseUp += ListBoxMouseUp;
         }
 
         public List<object> Items { get; }
@@ -212,8 +217,13 @@ namespace MonoGame.PortableUI.Controls
                 Height = ItemHeight,
                 Tag = index,
                 TextAlignment = TextAlignment.Left,
-                Padding = new Thickness(8, 0)
+                Padding = new Thickness(8, 0),
+                ShowFocusVisual = false,
+                AnimatePressedState = false
             };
+            button.MouseDown += ItemButtonMouseDown;
+            button.MouseEnter += ItemButtonMouseEnter;
+            button.MouseUp += ItemButtonMouseUp;
             button.Click += ItemButtonClick;
             return button;
         }
@@ -223,9 +233,143 @@ namespace MonoGame.PortableUI.Controls
             if (sender is not Button { Tag: int index })
                 return;
 
+            SelectItem(index, true);
+            InvokeItem(index);
+        }
+
+        private void ItemButtonMouseDown(object? sender, MouseEventArgs args)
+        {
+            if (!args.Buttons.Contains(MouseButton.Left) || sender is not Button { Tag: int index })
+                return;
+
+            BeginMouseSelection(index);
+            args.Handled = true;
+        }
+
+        private void ItemButtonMouseEnter(object? sender, MouseEventArgs args)
+        {
+            if (!args.Buttons.Contains(MouseButton.Left))
+            {
+                if (_isMouseSelecting)
+                    EndMouseSelection(args.Position, false);
+                return;
+            }
+
+            if (!_isMouseSelecting || sender is not Button { Tag: int index })
+                return;
+
+            SelectItem(index, false);
+        }
+
+        private void ItemButtonMouseUp(object? sender, MouseEventArgs args)
+        {
+            if (!_isMouseSelecting || !args.Buttons.Contains(MouseButton.Left))
+                return;
+
+            EndMouseSelection(args.Position, false);
+        }
+
+        private void ListBoxMouseMove(object? sender, MouseEventArgs args)
+        {
+            if (!_isMouseSelecting)
+                return;
+
+            if (!args.Buttons.Contains(MouseButton.Left))
+            {
+                EndMouseSelection(args.Position, false);
+                args.Handled = true;
+                return;
+            }
+
+            SynchronizeItemHover(args.Position, args.Buttons);
+            if (TryGetItemIndexAt(args.Position, out var index))
+                SelectItem(index, false);
+            args.Handled = true;
+        }
+
+        private void ListBoxMouseUp(object? sender, MouseEventArgs args)
+        {
+            if (!_isMouseSelecting || !args.Buttons.Contains(MouseButton.Left))
+                return;
+
+            EndMouseSelection(args.Position, true);
+            args.Handled = true;
+        }
+
+        private void BeginMouseSelection(int index)
+        {
+            _isMouseSelecting = true;
+            _mouseSelectionStartIndex = index;
+            SelectItem(index, true);
+            Focus();
+            Screen?.CaptureMouse(this);
+        }
+
+        private void EndMouseSelection(PointF position, bool invokeStartedItem)
+        {
+            var startIndex = _mouseSelectionStartIndex;
+            var releaseIndex = TryGetItemIndexAt(position, out var index) ? index : -1;
+
+            _isMouseSelecting = false;
+            _mouseSelectionStartIndex = -1;
+            Screen?.ReleaseMouse(this);
+            ResetItemInputs(position);
+
+            if (invokeStartedItem && releaseIndex == startIndex && releaseIndex >= 0)
+                InvokeItem(releaseIndex);
+        }
+
+        private void SelectItem(int index, bool bringIntoView)
+        {
+            if (index < 0 || index >= Items.Count)
+                return;
+
             SelectedIndex = index;
-            _scrollViewer.BringIntoView((Button)sender);
-            ItemInvoked?.Invoke(this, new ListBoxItemInvokedEventArgs(index, SelectedItem));
+            if (bringIntoView && index < _itemButtons.Count)
+                _scrollViewer.BringIntoView(_itemButtons[index]);
+        }
+
+        private void InvokeItem(int index)
+        {
+            SelectItem(index, true);
+            if (SelectedIndex == index)
+                ItemInvoked?.Invoke(this, new ListBoxItemInvokedEventArgs(index, SelectedItem));
+        }
+
+        private bool TryGetItemIndexAt(PointF position, out int index)
+        {
+            EnsureItemButtons();
+            for (var i = 0; i < _itemButtons.Count; i++)
+            {
+                if (!_itemButtons[i].BoundingRect.Contains(position))
+                    continue;
+
+                index = i;
+                return true;
+            }
+
+            index = -1;
+            return false;
+        }
+
+        private void ResetItemInputs(PointF hoverPosition)
+        {
+            foreach (var button in _itemButtons)
+                button.ResetInputs();
+            SynchronizeItemHover(hoverPosition, new List<MouseButton>());
+        }
+
+        private void SynchronizeItemHover(PointF position, List<MouseButton> buttons)
+        {
+            var args = new MouseEventArgs(position, buttons);
+            foreach (var button in _itemButtons)
+            {
+                var containsPosition = button.BoundingRect.Contains(position);
+                if (containsPosition && !button.IsMouseHovering)
+                    button.OnMouseEnter(args);
+                else if (!containsPosition && button.IsMouseHovering)
+                    button.OnMouseLeave(args);
+            }
         }
 
         private void ListBoxKeyPressed(object? sender, KeyEventArgs args)
@@ -243,7 +387,7 @@ namespace MonoGame.PortableUI.Controls
                     break;
                 case KeyboardCommand.Enter:
                     if (SelectedIndex >= 0)
-                        ItemInvoked?.Invoke(this, new ListBoxItemInvokedEventArgs(SelectedIndex, SelectedItem));
+                        InvokeItem(SelectedIndex);
                     break;
             }
         }
