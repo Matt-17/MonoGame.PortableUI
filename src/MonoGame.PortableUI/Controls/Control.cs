@@ -39,6 +39,8 @@ namespace MonoGame.PortableUI.Controls
 
         protected Control()
         {
+            var theme = PortableTheme.ResolveCurrent();
+
             SnapToPixel = true;
             Opacity = 1;
             IsEnabled = true;
@@ -55,9 +57,9 @@ namespace MonoGame.PortableUI.Controls
             HorizontalAlignment = HorizontalAlignment.Stretch;
             VerticalAlignment = VerticalAlignment.Stretch;
             Position = new PointF(0, 0);
-            FocusBorderBrush = new Color(20, 126, 133);
-            FocusBorderWidth = 2;
-            DisabledOverlayBrush = new Color(210, 216, 222, 145);
+            FocusBorderBrush = theme.FocusBorderBrush;
+            FocusBorderWidth = theme.FocusBorderWidth;
+            DisabledOverlayBrush = theme.DisabledOverlayBrush;
 
             _longPressTimer = new Timer(300);
             _longPressTimer.Elapsed += OnLongPressTimerElapsed;
@@ -252,6 +254,10 @@ namespace MonoGame.PortableUI.Controls
                     if (ScreenEngine.FocusedControl == this)
                         ScreenEngine.FocusedControl = null;
                     ResetInputs();
+                }
+                else
+                {
+                    ChangeVisualState();
                 }
                 InvalidateLayout(false);
             }

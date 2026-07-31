@@ -38,16 +38,18 @@ namespace MonoGame.PortableUI.Controls
 
         public ScrollViewer()
         {
+            var theme = PortableTheme.ResolveCurrent();
+
             ShowScrollBars = true;
             EnableFling = true;
             EnableRubberBanding = true;
             FlingMultiplier = 6;
             RubberBandLimit = 48;
-            ScrollBarThickness = 8;
-            ScrollBarGutterBrush = new SolidColorBrush(new Color(245, 245, 245));
-            ScrollBarBrush = new SolidColorBrush(new Color(0, 0, 0, 120));
-            ScrollBarHoverBrush = new SolidColorBrush(new Color(0, 0, 0, 160));
-            ScrollBarPressedBrush = new SolidColorBrush(new Color(0, 0, 0, 190));
+            ScrollBarThickness = theme.ScrollBarThickness;
+            ScrollBarGutterBrush = theme.ScrollBarGutterBrush;
+            ScrollBarBrush = theme.ScrollBarBrush;
+            ScrollBarHoverBrush = theme.ScrollBarHoverBrush;
+            ScrollBarPressedBrush = theme.ScrollBarPressedBrush;
             TouchDown += ScrollViewerTouchDown;
             TouchMove += ScrollViewerTouchMove;
             TouchUp += ScrollViewerTouchUp;

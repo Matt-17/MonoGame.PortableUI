@@ -13,10 +13,12 @@ namespace MonoGame.PortableUI.Controls
 
         public TabControl()
         {
+            var theme = PortableTheme.ResolveCurrent();
+
             Items = new List<TabItem>();
-            HeaderHeight = 32;
-            HeaderBackground = new SolidColorBrush(Color.Silver);
-            SelectedHeaderBackground = new SolidColorBrush(Color.White);
+            HeaderHeight = theme.TabHeaderHeight;
+            HeaderBackground = theme.TabHeaderBackgroundBrush;
+            SelectedHeaderBackground = theme.TabSelectedHeaderBackgroundBrush;
         }
 
         public List<TabItem> Items { get; }
