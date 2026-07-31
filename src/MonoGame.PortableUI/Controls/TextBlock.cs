@@ -81,9 +81,12 @@ namespace MonoGame.PortableUI.Controls
 
         public TextBlock()
         {
+            var theme = PortableTheme.ResolveCurrent();
+
             Font = FontManager.DefaultFont;
             _textMeasurer = Font != null ? new SpriteFontTextMeasurer(Font) : ApproximateTextMeasurer.Default;
-            TextColor = Color.Black;
+            TextColor = theme.TextColor;
+            TextSize = theme.TextSize;
             TextAlignment = TextAlignment.Left;
         }
 

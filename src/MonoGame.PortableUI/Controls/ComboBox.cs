@@ -13,17 +13,19 @@ namespace MonoGame.PortableUI.Controls
 
         public ComboBox()
         {
+            var theme = PortableTheme.ResolveCurrent();
+
             Items = new List<object>();
-            Height = 32;
-            BackgroundBrush = Color.White;
+            Height = theme.ComboBoxHeight;
+            BackgroundBrush = theme.ButtonBackgroundBrush;
             TextAlignment = TextAlignment.Left;
-            DropDownMaxHeight = 160;
-            ItemHeight = 28;
-            DropDownBackgroundBrush = Color.White;
-            ItemBackgroundBrush = Color.White;
-            SelectedItemBackgroundBrush = new Color(20, 126, 133);
-            ItemTextColor = Color.Black;
-            SelectedItemTextColor = Color.White;
+            DropDownMaxHeight = theme.ComboBoxDropDownMaxHeight;
+            ItemHeight = theme.ListBoxItemHeight;
+            DropDownBackgroundBrush = theme.ComboBoxDropDownBackgroundBrush;
+            ItemBackgroundBrush = theme.ListBoxItemBackgroundBrush;
+            SelectedItemBackgroundBrush = theme.ListBoxSelectedItemBackgroundBrush;
+            ItemTextColor = theme.ListBoxItemTextColor;
+            SelectedItemTextColor = theme.ListBoxSelectedItemTextColor;
             Click += ComboBoxClick;
         }
 

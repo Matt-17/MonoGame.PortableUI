@@ -16,6 +16,7 @@ namespace MonoGame.PortableUI.Controls
         private Brush _itemBackgroundBrush = new SolidColorBrush(Color.White);
         private Color _itemTextColor;
         private float _itemHeight;
+        private Thickness _itemPadding;
         private bool _isMouseSelecting;
         private int _mouseSelectionStartIndex = -1;
         private int _selectedIndex = -1;
@@ -24,6 +25,8 @@ namespace MonoGame.PortableUI.Controls
 
         public ListBox()
         {
+            var theme = PortableTheme.ResolveCurrent();
+
             Items = new List<object>();
             _itemButtons = new List<Button>();
             _itemsPanel = new StackPanel { Orientation = Orientation.Vertical };
@@ -34,10 +37,13 @@ namespace MonoGame.PortableUI.Controls
                 ScrollOrientation = Orientation.Vertical
             };
 
-            BackgroundBrush = Color.White;
-            ItemHeight = 28;
-            ItemTextColor = Color.Black;
-            SelectedItemTextColor = Color.White;
+            BackgroundBrush = theme.ListBoxBackgroundBrush;
+            ItemHeight = theme.ListBoxItemHeight;
+            ItemPadding = theme.ListBoxItemPadding;
+            ItemBackgroundBrush = theme.ListBoxItemBackgroundBrush;
+            SelectedItemBackgroundBrush = theme.ListBoxSelectedItemBackgroundBrush;
+            ItemTextColor = theme.ListBoxItemTextColor;
+            SelectedItemTextColor = theme.ListBoxSelectedItemTextColor;
             ShowFocusVisual = false;
             KeyPressed += ListBoxKeyPressed;
             MouseMove += ListBoxMouseMove;
@@ -74,6 +80,18 @@ namespace MonoGame.PortableUI.Controls
                 _itemHeight = Math.Max(0, value);
                 foreach (var button in _itemButtons)
                     button.Height = _itemHeight;
+                InvalidateLayout(true);
+            }
+        }
+
+        public Thickness ItemPadding
+        {
+            get { return _itemPadding; }
+            set
+            {
+                _itemPadding = value;
+                foreach (var button in _itemButtons)
+                    button.Padding = _itemPadding;
                 InvalidateLayout(true);
             }
         }
@@ -217,7 +235,7 @@ namespace MonoGame.PortableUI.Controls
                 Height = ItemHeight,
                 Tag = index,
                 TextAlignment = TextAlignment.Left,
-                Padding = new Thickness(8, 0),
+                Padding = ItemPadding,
                 ShowFocusVisual = false,
                 AnimatePressedState = false
             };

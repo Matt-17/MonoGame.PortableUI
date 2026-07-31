@@ -7,14 +7,16 @@ namespace MonoGame.PortableUI.Controls
     {
         public ToolTipPopup(string text)
         {
-            BackgroundBrush = new Color(31, 35, 39, 238);
-            BorderColor = new Color(255, 255, 255, 90);
-            BorderWidth = 1;
-            Padding = new Thickness(8, 5, 8, 6);
+            var theme = PortableTheme.ResolveCurrent();
+
+            BackgroundBrush = theme.ToolTipBackgroundBrush;
+            BorderColor = theme.ToolTipBorderBrush;
+            BorderWidth = theme.ToolTipBorderWidth;
+            Padding = theme.ToolTipPadding;
             Content = new TextBlock
             {
                 Text = text,
-                TextColor = Color.White,
+                TextColor = theme.ToolTipTextColor,
                 Margin = 0
             };
         }

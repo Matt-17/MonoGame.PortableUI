@@ -15,13 +15,15 @@ namespace MonoGame.PortableUI.Controls
 
         public CheckBox()
         {
-            BoxSize = 20;
-            BoxSpacing = 8;
-            BoxBorderWidth = 2;
-            BoxBackgroundBrush = Color.White;
-            BoxBorderBrush = new Color(82, 101, 111);
-            CheckMarkBrush = new Color(20, 126, 133);
-            TextColor = Color.Black;
+            var theme = PortableTheme.ResolveCurrent();
+
+            BoxSize = theme.CheckBoxBoxSize;
+            BoxSpacing = theme.CheckBoxBoxSpacing;
+            BoxBorderWidth = theme.CheckBoxBoxBorderWidth;
+            BoxBackgroundBrush = theme.CheckBoxBoxBackgroundBrush;
+            BoxBorderBrush = theme.CheckBoxBoxBorderBrush;
+            CheckMarkBrush = theme.CheckBoxCheckMarkBrush;
+            TextColor = theme.CheckBoxTextColor;
             ShowFocusVisual = true;
             Click += CheckBoxClick;
         }

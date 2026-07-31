@@ -45,7 +45,7 @@ namespace MonoGame.PortableUI.Controls
         internal override void ChangeVisualState()
         {
             base.ChangeVisualState();
-            if (IsChecked)
+            if (IsChecked && IsEnabled)
             {
                 var textBlock = Content as TextBlock;
                 if (textBlock != null && ToggleTextColor.HasValue)
@@ -67,8 +67,10 @@ namespace MonoGame.PortableUI.Controls
 
         public ToggleButton()
         {
-            ToggleBrush = new Color(0.3f, 0.3f, 0.3f);
-            ToggleTextColor = Color.White;
+            var theme = PortableTheme.ResolveCurrent();
+
+            ToggleBrush = theme.ToggleBrush;
+            ToggleTextColor = theme.ToggleTextColor;
             Click += ToggleButton_Click;
         }
 

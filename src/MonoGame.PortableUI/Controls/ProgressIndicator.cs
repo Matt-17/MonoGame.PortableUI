@@ -10,12 +10,14 @@ namespace MonoGame.PortableUI.Controls
 {
     public class ProgressIndicator : Control
     {
-        public Color Foreground { get; }
+        public Color Foreground { get; set; }
 
         public ProgressIndicator()
         {
-            Foreground = Color.DarkBlue;
-            Height = 48;
+            var theme = PortableTheme.ResolveCurrent();
+
+            Foreground = theme.ProgressIndicatorForeground;
+            Height = theme.ProgressIndicatorHeight;
             MinSize = 6;
             MaxSize = 12;
         }

@@ -19,6 +19,7 @@ namespace MonoGame.PortableUI.Controls
         private Color _textColor;
         private Color? _pressedTextColor;
         private Color? _hoverTextColor;
+        private Color? _disabledTextColor;
         private TextAlignment _textAlignment;
         private bool _isPressedVisualState;
         private Vector2 _pressedScaleOrigin;
@@ -26,11 +27,16 @@ namespace MonoGame.PortableUI.Controls
 
         public Button()
         {
-            Padding = new Thickness(8);
-            BackgroundBrush = Color.White;
-            HoverColor = new Color(0, 0, 0, 0.2f);
-            PressedColor = new Color(0, 0, 0, 0.4f);
-            TextColor = Color.Black;
+            var theme = PortableTheme.ResolveCurrent();
+
+            Padding = theme.ButtonPadding;
+            BackgroundBrush = theme.ButtonBackgroundBrush;
+            HoverColor = theme.ButtonHoverBrush;
+            PressedColor = theme.ButtonPressedBrush;
+            TextColor = theme.ButtonTextColor;
+            HoverTextColor = theme.ButtonHoverTextColor;
+            PressedTextColor = theme.ButtonPressedTextColor;
+            DisabledTextColor = theme.DisabledTextColor;
             TextAlignment = TextAlignment.Center;
             ShowFocusVisual = true;
             //var grid = new Grid();
@@ -130,6 +136,17 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        public Color? DisabledTextColor
+        {
+            get { return _disabledTextColor; }
+            set
+            {
+                _disabledTextColor = value;
+                ChangeVisualState();
+                InvalidateLayout(false);
+            }
+        }
+
         public TextAlignment TextAlignment
         {
             get
@@ -158,9 +175,11 @@ namespace MonoGame.PortableUI.Controls
                 return;
 
             var color = TextColor;
-            if (HoverState == HoverStates.Hovering && HoverTextColor != null)
+            if (!IsEnabled && DisabledTextColor != null)
+                color = (Color)DisabledTextColor;
+            else if (HoverState == HoverStates.Hovering && HoverTextColor != null)
                 color = (Color)HoverTextColor;
-            if (isPressed && PressedTextColor != null)
+            if (IsEnabled && isPressed && PressedTextColor != null)
                 color = (Color)PressedTextColor;
             textBlock.TextColor = color;
         }

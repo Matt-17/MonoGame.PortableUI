@@ -120,9 +120,13 @@ namespace MonoGame.PortableUI.Controls
 
         public TextBox()
         {
-            BackgroundBrush = Color.White;
-            CursorColor = Color.Black;
-            SelectionBrush = new Color(51, 153, 255, 95);
+            var theme = PortableTheme.ResolveCurrent();
+
+            BackgroundBrush = theme.TextBoxBackgroundBrush;
+            TextColor = theme.TextBoxTextColor;
+            CursorColor = theme.TextBoxCursorBrush;
+            SelectionBrush = theme.TextBoxSelectionBrush;
+            HintTextColor = theme.TextBoxHintTextColor;
             KeyPressed += HandleKeyPressed;
             Click += OnClick;
             MouseDown += OnMouseDown;
@@ -131,8 +135,8 @@ namespace MonoGame.PortableUI.Controls
             TouchDown += OnTouchDown;
             TouchMove += OnTouchMove;
             TouchUp += OnTouchUp;
-            Height = 28;
-            Padding = 4;
+            Height = theme.TextBoxHeight;
+            Padding = theme.TextBoxPadding;
             ShowFocusVisual = true;
         }
 

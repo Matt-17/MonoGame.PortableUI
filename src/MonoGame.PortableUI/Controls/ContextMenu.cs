@@ -19,8 +19,10 @@ namespace MonoGame.PortableUI.Controls
 
         public ContextMenu()
         {
+            var theme = PortableTheme.ResolveCurrent();
+
             Items = new MenuItemList();
-            BackgroundBrush = Color.Silver;
+            BackgroundBrush = theme.ContextMenuBackgroundBrush;
         }
 
         public ContextMenuTypes ContextMenuType { get; set; }
