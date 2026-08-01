@@ -26,21 +26,22 @@ namespace MonoGame.PortableUI.Demo
         {
             _screenEngine = ScreenEngine.Initialize(this, new ScreenEngineOptions
             {
-                ClipboardService = OperatingSystem.IsWindows() ? new WindowsClipboardService() : NullClipboardService.Instance
+                ClipboardService = OperatingSystem.IsWindows() ? new WindowsClipboardService() : NullClipboardService.Instance,
+                Theme = C64Theme.Create()
             });
             base.Initialize();
         }
 
         protected override void LoadContent()
         {
-            FontManager.LoadFonts(this, "Segoe", "default", "arial");
+            FontManager.LoadFonts(this, "pressstart2p", "Segoe", "default", "arial");
             var deleteIcon = Content.Load<Texture2D>("Images/ic_delete");
             _screenEngine?.NavigateToScreen(new MainScreen(deleteIcon));
         }
 
         protected override void Draw(GameTime gameTime)
         {
-            GraphicsDevice.Clear(new Color(34, 36, 40));
+            GraphicsDevice.Clear(C64Theme.Blue);
             base.Draw(gameTime);
         }
     }
