@@ -279,6 +279,9 @@ namespace MonoGame.PortableUI.Demo
             var panel = PanelStack("Buttons and menus");
 
             var primary = CommandButton("Primary action", Palette.Primary, Palette.SelectionText);
+            primary.PressedHorizontalInset = 5;
+            primary.PressedVerticalInset = 3;
+            primary.PressedTranslation = new Vector2(0, 1);
             primary.ToolTip = "Run the primary demo action";
             primary.Click += (sender, args) => _status.Text = "Primary action clicked";
             panel.AddChild(primary);

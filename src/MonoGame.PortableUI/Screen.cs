@@ -49,6 +49,7 @@ namespace MonoGame.PortableUI
         private Control? _capturedMouseControl;
         private Keys[] _lastPressedKeys = Array.Empty<Keys>();
         private static readonly ScreenEngineOptions DefaultOptions = new ScreenEngineOptions();
+        private static readonly RasterizerState ScissorRasterizer = new RasterizerState { ScissorTestEnable = true, MultiSampleAntiAlias = true };
 
         protected Screen()
         {
@@ -266,7 +267,7 @@ namespace MonoGame.PortableUI
                 scissorRect = GetOverlayScissor(control);
 
             spriteBatch.GraphicsDevice.ScissorRectangle = ToScissorRectangle(scissorRect);
-            spriteBatch.Begin(SpriteSortMode.Immediate, rasterizerState: new RasterizerState { ScissorTestEnable = true, MultiSampleAntiAlias = true }, effect: ScreenEngine?.Options.Effect);
+            spriteBatch.Begin(SpriteSortMode.Immediate, rasterizerState: ScissorRasterizer, effect: ScreenEngine?.Options.Effect);
             DrawControl(spriteBatch, control, RenderContext.Root(scissorRect));
             spriteBatch.End();
         }

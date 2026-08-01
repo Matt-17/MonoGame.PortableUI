@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using MonoGame.PortableUI.Controls.Events;
 
 namespace MonoGame.PortableUI.Controls
@@ -9,14 +8,27 @@ namespace MonoGame.PortableUI.Controls
     {
         internal static IEnumerable<Control> GetVisualTreeAsList(Control content, bool addTreeWhichIsGone = true)
         {
-            if (content.IsGone && !addTreeWhichIsGone)
-                yield break;
-            var descendants = content.GetDescendants();
-            foreach (var child in descendants.SelectMany(control => GetVisualTreeAsList(control, addTreeWhichIsGone)))
+            var stack = new Stack<VisualTreeFrame>();
+            stack.Push(new VisualTreeFrame(content, false));
+
+            while (stack.Count > 0)
             {
-                yield return child;
+                var frame = stack.Pop();
+                var control = frame.Control;
+                if (control.IsGone && !addTreeWhichIsGone)
+                    continue;
+
+                if (frame.IsExpanded)
+                {
+                    yield return control;
+                    continue;
+                }
+
+                stack.Push(new VisualTreeFrame(control, true));
+                var descendants = new List<Control>(control.GetDescendants());
+                for (var i = descendants.Count - 1; i >= 0; i--)
+                    stack.Push(new VisualTreeFrame(descendants[i], false));
             }
-            yield return content;
         }
 
         internal static void IterateVisualTree<T>(Control control, T args, Func<Control, T, bool> actionFunc, Action<Control, T> action, Func<Control, T, bool>? treeFunc) where T : BaseEventArgs
@@ -41,6 +53,19 @@ namespace MonoGame.PortableUI.Controls
             }
             if (actionAppliesToControl)
                 action(control, args);
+        }
+
+        private readonly struct VisualTreeFrame
+        {
+            public VisualTreeFrame(Control control, bool isExpanded)
+            {
+                Control = control;
+                IsExpanded = isExpanded;
+            }
+
+            public Control Control { get; }
+
+            public bool IsExpanded { get; }
         }
     }
 }

@@ -6,6 +6,7 @@ using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls.Events;
 using MonoGame.PortableUI.Controls.Input;
 using MonoGame.PortableUI.Media;
+using MonoGame.PortableUI.Text;
 
 namespace MonoGame.PortableUI.Controls
 {
@@ -21,6 +22,7 @@ namespace MonoGame.PortableUI.Controls
         private char? _passwordChar;
         private float _horizontalScrollOffset;
         private float _verticalScrollOffset;
+        private LineMetricsCache? _lineMetricsCache;
 
         public int CursorPosition
         {
@@ -56,6 +58,7 @@ namespace MonoGame.PortableUI.Controls
                     return;
 
                 _passwordChar = value;
+                InvalidateLineMetrics();
                 EnsureCursorVisible();
                 InvalidateLayout(false);
             }
@@ -70,6 +73,7 @@ namespace MonoGame.PortableUI.Controls
                     return;
 
                 _isMultiline = value;
+                InvalidateLineMetrics();
                 Text = Text;
                 EnsureCursorVisible();
                 InvalidateLayout(true);
@@ -105,6 +109,7 @@ namespace MonoGame.PortableUI.Controls
 
                 var oldText = base.Text;
                 base.Text = normalized;
+                InvalidateLineMetrics();
                 ClampSelection();
                 ResetDesiredCursorX();
                 EnsureCursorVisible();
@@ -200,18 +205,14 @@ namespace MonoGame.PortableUI.Controls
             if (IsGone)
                 return Size.Empty;
 
-            var lines = GetTextLines(Text);
-            var displayText = GetDisplayText();
+            var cache = GetLineMetricsCache();
             var lineHeight = GetLineHeight();
             var measuredWidth = 0f;
 
-            foreach (var line in lines)
-            {
-                var lineText = displayText.Substring(line.Start, line.Length);
-                measuredWidth = Math.Max(measuredWidth, MeasureText(lineText).X);
-            }
+            foreach (var lineMetric in cache.LineMetrics)
+                measuredWidth = Math.Max(measuredWidth, lineMetric.Width);
 
-            var measuredHeight = Math.Max(lineHeight, lines.Count * lineHeight);
+            var measuredHeight = Math.Max(lineHeight, cache.Lines.Count * lineHeight);
             var width = Width.IsFixed() ? Width : measuredWidth + Padding.Horizontal;
             var height = Height.IsFixed() ? Height : measuredHeight + Padding.Vertical;
 
@@ -487,6 +488,7 @@ namespace MonoGame.PortableUI.Controls
             {
                 var oldText = base.Text;
                 base.Text = newText;
+                InvalidateLineMetrics();
                 OnTextChanged(new TextChangedEventArgs(newText, oldText));
             }
 
@@ -510,7 +512,7 @@ namespace MonoGame.PortableUI.Controls
             if (!IsMultiline)
                 return;
 
-            var lines = GetTextLines(Text);
+            var lines = GetLineMetricsCache().Lines;
             if (lines.Count <= 1)
                 return;
 
@@ -536,7 +538,7 @@ namespace MonoGame.PortableUI.Controls
         private int GetPositionFromPoint(PointF position)
         {
             var textRect = GetTextRect();
-            var lines = GetTextLines(Text);
+            var lines = GetLineMetricsCache().Lines;
             var lineHeight = GetLineHeight();
             var lineIndex = 0;
 
@@ -552,26 +554,25 @@ namespace MonoGame.PortableUI.Controls
 
         private TextLine GetCurrentLine()
         {
-            var lines = GetTextLines(Text);
+            var lines = GetLineMetricsCache().Lines;
             return lines[GetLineIndexFromPosition(CursorPosition, lines)];
         }
 
         private float GetCursorX(int position, TextLine line)
         {
-            var displayText = GetDisplayText();
             var offsetInLine = Math.Max(0, Math.Min(line.Length, position - line.Start));
-            return MeasureText(displayText.Substring(line.Start, offsetInLine)).X;
+            return GetLineMetric(line).GetWidth(offsetInLine);
         }
 
         private int GetPositionForX(TextLine line, float x)
         {
-            var displayText = GetDisplayText();
+            var lineMetric = GetLineMetric(line);
             var closestIndex = 0;
             var closestDistance = float.MaxValue;
 
             for (var i = 0; i <= line.Length; i++)
             {
-                var measured = MeasureText(displayText.Substring(line.Start, i)).X;
+                var measured = lineMetric.GetWidth(i);
                 var distance = Math.Abs(measured - x);
                 if (distance >= closestDistance)
                     continue;
@@ -601,8 +602,8 @@ namespace MonoGame.PortableUI.Controls
             if (!HasSelection)
                 return;
 
-            var lines = GetTextLines(Text);
-            var displayText = GetDisplayText();
+            var cache = GetLineMetricsCache();
+            var lines = cache.Lines;
             var lineHeight = GetLineHeight();
             var selectionStart = SelectionStart;
             var selectionEnd = selectionStart + SelectionLength;
@@ -622,10 +623,11 @@ namespace MonoGame.PortableUI.Controls
                 if (!IsLineVisible(textRect, top, lineHeight))
                     continue;
 
-                var beforeSelection = displayText.Substring(line.Start, rangeStart - line.Start);
-                var selected = displayText.Substring(rangeStart, rangeEnd - rangeStart);
-                var rawLeft = textRect.Left + (MeasureText(beforeSelection).X - _horizontalScrollOffset) * RenderScale.X;
-                var rawRight = rawLeft + Math.Max(1, MeasureText(selected).X * RenderScale.X);
+                var lineMetric = GetLineMetric(line);
+                var selectionLeft = lineMetric.GetWidth(rangeStart - line.Start);
+                var selectionRight = lineMetric.GetWidth(rangeEnd - line.Start);
+                var rawLeft = textRect.Left + (selectionLeft - _horizontalScrollOffset) * RenderScale.X;
+                var rawRight = rawLeft + Math.Max(1, (selectionRight - selectionLeft) * RenderScale.X);
                 var left = Math.Max(textRect.Left, rawLeft);
                 var right = Math.Min(textRect.Right, rawRight);
                 if (right <= left)
@@ -640,8 +642,9 @@ namespace MonoGame.PortableUI.Controls
             if (Font == null || Text.Length == 0)
                 return;
 
-            var lines = GetTextLines(Text);
-            var displayText = GetDisplayText();
+            var cache = GetLineMetricsCache();
+            var lines = cache.Lines;
+            var displayText = cache.DisplayText;
             var lineHeight = GetLineHeight();
 
             for (var i = 0; i < lines.Count; i++)
@@ -651,12 +654,11 @@ namespace MonoGame.PortableUI.Controls
                 if (!IsLineVisible(textRect, lineTop, lineHeight))
                     continue;
 
-                var visibleRange = GetVisibleTextRange(displayText, line, textRect.Width / Math.Max(0.001f, RenderScale.X));
+                var visibleRange = GetVisibleTextRange(line, textRect.Width / Math.Max(0.001f, RenderScale.X));
                 if (visibleRange.Length <= 0)
                     continue;
 
-                var beforeVisible = displayText.Substring(line.Start, visibleRange.Start);
-                var offset = new PointF(textRect.Left + (MeasureText(beforeVisible).X - _horizontalScrollOffset) * RenderScale.X, lineTop);
+                var offset = new PointF(textRect.Left + (GetLineMetric(line).GetWidth(visibleRange.Start) - _horizontalScrollOffset) * RenderScale.X, lineTop);
                 if (SnapToPixel)
                     offset = offset.ToInts();
                 spriteBatch.DrawString(Font, displayText.Substring(line.Start + visibleRange.Start, visibleRange.Length), offset, Brush.ApplyOpacity(TextColor, RenderOpacity), 0, Vector2.Zero, RenderScale, SpriteEffects.None, 0);
@@ -682,7 +684,7 @@ namespace MonoGame.PortableUI.Controls
 
         internal Rect GetCursorRect(Rect textRect)
         {
-            var lines = GetTextLines(Text);
+            var lines = GetLineMetricsCache().Lines;
             var lineIndex = GetLineIndexFromPosition(CursorPosition, lines);
             var line = lines[lineIndex];
             var lineHeight = GetLineHeight();
@@ -781,7 +783,7 @@ namespace MonoGame.PortableUI.Controls
                 return;
             }
 
-            var lines = GetTextLines(Text);
+            var lines = GetLineMetricsCache().Lines;
             var lineIndex = GetLineIndexFromPosition(CursorPosition, lines);
             var line = lines[lineIndex];
             var lineHeight = GetLineHeight();
@@ -810,12 +812,12 @@ namespace MonoGame.PortableUI.Controls
                 _verticalScrollOffset = firstVisibleLine * lineHeight;
             }
 
-            ClampScrollOffsets(textRect, lines, lineHeight);
+            ClampScrollOffsets(textRect, lineHeight);
         }
 
-        private void ClampScrollOffsets(Rect textRect, IReadOnlyList<TextLine> lines, float lineHeight)
+        private void ClampScrollOffsets(Rect textRect, float lineHeight)
         {
-            var maxHorizontalScrollOffset = Math.Max(0, GetMaxLineWidth(lines) - textRect.Width + 1);
+            var maxHorizontalScrollOffset = Math.Max(0, GetMaxLineWidth() - textRect.Width + 1);
             _horizontalScrollOffset = Math.Max(0, Math.Min(_horizontalScrollOffset, maxHorizontalScrollOffset));
 
             if (!IsMultiline)
@@ -825,7 +827,7 @@ namespace MonoGame.PortableUI.Controls
             }
 
             var visibleLineCount = GetVisibleLineCount(textRect.Height, lineHeight);
-            var maxFirstVisibleLine = Math.Max(0, lines.Count - visibleLineCount);
+            var maxFirstVisibleLine = Math.Max(0, GetLineMetricsCache().Lines.Count - visibleLineCount);
             _verticalScrollOffset = Math.Max(0, Math.Min(_verticalScrollOffset, maxFirstVisibleLine * lineHeight));
         }
 
@@ -845,22 +847,22 @@ namespace MonoGame.PortableUI.Controls
             return Math.Max(1, (int)Math.Floor(height / lineHeight));
         }
 
-        private float GetMaxLineWidth(IReadOnlyList<TextLine> lines)
+        private float GetMaxLineWidth()
         {
-            var displayText = GetDisplayText();
             var maxWidth = 0f;
 
-            foreach (var line in lines)
-                maxWidth = Math.Max(maxWidth, MeasureText(displayText.Substring(line.Start, line.Length)).X);
+            foreach (var lineMetric in GetLineMetricsCache().LineMetrics)
+                maxWidth = Math.Max(maxWidth, lineMetric.Width);
 
             return maxWidth;
         }
 
-        private TextRange GetVisibleTextRange(string displayText, TextLine line, float visibleWidth)
+        private TextRange GetVisibleTextRange(TextLine line, float visibleWidth)
         {
             if (line.Length == 0 || visibleWidth <= 0)
                 return new TextRange(0, 0);
 
+            var lineMetric = GetLineMetric(line);
             var leftEdge = _horizontalScrollOffset;
             var rightEdge = _horizontalScrollOffset + visibleWidth;
             var start = -1;
@@ -868,8 +870,8 @@ namespace MonoGame.PortableUI.Controls
 
             for (var i = 0; i < line.Length; i++)
             {
-                var charLeft = MeasureText(displayText.Substring(line.Start, i)).X;
-                var charRight = MeasureText(displayText.Substring(line.Start, i + 1)).X;
+                var charLeft = lineMetric.GetWidth(i);
+                var charRight = lineMetric.GetWidth(i + 1);
 
                 if (charRight <= leftEdge)
                     continue;
@@ -915,6 +917,56 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        private LineMetricsCache GetLineMetricsCache()
+        {
+            var displayText = GetDisplayText();
+            if (_lineMetricsCache != null
+                && _lineMetricsCache.Text == Text
+                && _lineMetricsCache.DisplayText == displayText
+                && ReferenceEquals(_lineMetricsCache.Font, Font)
+                && ReferenceEquals(_lineMetricsCache.TextMeasurer, TextMeasurer))
+            {
+                return _lineMetricsCache;
+            }
+
+            var lines = GetTextLines(Text);
+            var lineMetrics = new LineMetric[lines.Count];
+            for (var i = 0; i < lines.Count; i++)
+                lineMetrics[i] = CreateLineMetric(displayText, lines[i]);
+
+            _lineMetricsCache = new LineMetricsCache(Text, displayText, Font, TextMeasurer, lines, lineMetrics);
+            return _lineMetricsCache;
+        }
+
+        private LineMetric GetLineMetric(TextLine line)
+        {
+            var cache = GetLineMetricsCache();
+            foreach (var lineMetric in cache.LineMetrics)
+            {
+                if (lineMetric.Line.Start == line.Start && lineMetric.Line.Length == line.Length)
+                    return lineMetric;
+            }
+
+            return CreateLineMetric(cache.DisplayText, line);
+        }
+
+        private LineMetric CreateLineMetric(string displayText, TextLine line)
+        {
+            var prefixWidths = new float[line.Length + 1];
+            for (var i = 0; i < line.Length; i++)
+            {
+                var character = displayText.Substring(line.Start + i, 1);
+                prefixWidths[i + 1] = prefixWidths[i] + MeasureText(character).X;
+            }
+
+            return new LineMetric(line, prefixWidths);
+        }
+
+        private void InvalidateLineMetrics()
+        {
+            _lineMetricsCache = null;
+        }
+
         private static List<TextLine> GetTextLines(string text)
         {
             var lines = new List<TextLine>();
@@ -943,6 +995,58 @@ namespace MonoGame.PortableUI.Controls
 
             public int Start { get; }
             public int Length { get; }
+        }
+
+        private sealed class LineMetricsCache
+        {
+            public LineMetricsCache(
+                string text,
+                string displayText,
+                SpriteFont? font,
+                ITextMeasurer textMeasurer,
+                List<TextLine> lines,
+                LineMetric[] lineMetrics)
+            {
+                Text = text;
+                DisplayText = displayText;
+                Font = font;
+                TextMeasurer = textMeasurer;
+                Lines = lines;
+                LineMetrics = lineMetrics;
+            }
+
+            public string Text { get; }
+
+            public string DisplayText { get; }
+
+            public SpriteFont? Font { get; }
+
+            public ITextMeasurer TextMeasurer { get; }
+
+            public IReadOnlyList<TextLine> Lines { get; }
+
+            public IReadOnlyList<LineMetric> LineMetrics { get; }
+        }
+
+        private readonly struct LineMetric
+        {
+            public LineMetric(TextLine line, float[] prefixWidths)
+            {
+                Line = line;
+                _prefixWidths = prefixWidths;
+            }
+
+            private readonly float[] _prefixWidths;
+
+            public TextLine Line { get; }
+
+            public float Width => GetWidth(Line.Length);
+
+            public float GetWidth(int length)
+            {
+                var clamped = Math.Max(0, Math.Min(length, _prefixWidths.Length - 1));
+                return _prefixWidths[clamped];
+            }
         }
 
         private readonly struct TextRange

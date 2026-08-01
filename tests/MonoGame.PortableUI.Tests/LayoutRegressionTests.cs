@@ -72,7 +72,7 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
-        public void Grid_auto_definitions_ignore_spanning_children_when_measuring()
+        public void Grid_auto_definitions_do_not_force_non_auto_tracks_for_spanning_children()
         {
             var grid = new Grid
             {
@@ -102,12 +102,70 @@ namespace MonoGame.PortableUI.Tests
 
             grid.UpdateLayout(new Rect(0, 0, 1000, 300));
 
-            Assert.AreEqual(120, auto.BoundingRect.Width);
-            Assert.AreEqual(620, star.BoundingRect.Width);
+            Assert.AreEqual(640, auto.BoundingRect.Width);
+            Assert.AreEqual(100, star.BoundingRect.Width);
             Assert.AreEqual(260, fixedSize.BoundingRect.Width);
             Assert.AreEqual(42, auto.BoundingRect.Height);
             Assert.AreEqual(218, spanningPreview.BoundingRect.Height);
             Assert.AreEqual(40, spanningFooter.BoundingRect.Height);
+        }
+
+        [TestMethod]
+        public void Grid_auto_columns_share_spanning_child_width()
+        {
+            var grid = new Grid
+            {
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition { Width = GridLength.Auto },
+                    new ColumnDefinition { Width = GridLength.Auto },
+                    new ColumnDefinition { Width = new GridLength(100) }
+                }
+            };
+            var first = new FixedSizeControl(new Size(1, 10));
+            var second = new FixedSizeControl(new Size(1, 10));
+            var fixedColumn = new FixedSizeControl(new Size(100, 10));
+            var spanning = new FixedSizeControl(new Size(300, 10));
+            grid.AddChild(first);
+            grid.AddChild(second, column: 1);
+            grid.AddChild(fixedColumn, column: 2);
+            grid.AddChild(spanning, columnSpan: 2);
+
+            grid.UpdateLayout(new Rect(0, 0, 400, 40));
+
+            Assert.AreEqual(150, first.BoundingRect.Width);
+            Assert.AreEqual(150, second.BoundingRect.Width);
+            Assert.AreEqual(100, fixedColumn.BoundingRect.Width);
+            Assert.AreEqual(300, spanning.BoundingRect.Width);
+        }
+
+        [TestMethod]
+        public void Grid_auto_rows_share_spanning_child_height()
+        {
+            var grid = new Grid
+            {
+                RowDefinitions =
+                {
+                    new RowDefinition { Height = GridLength.Auto },
+                    new RowDefinition { Height = GridLength.Auto },
+                    new RowDefinition { Height = new GridLength(50) }
+                }
+            };
+            var first = new FixedSizeControl(new Size(10, 1));
+            var second = new FixedSizeControl(new Size(10, 1));
+            var fixedRow = new FixedSizeControl(new Size(10, 50));
+            var spanning = new FixedSizeControl(new Size(10, 120));
+            grid.AddChild(first);
+            grid.AddChild(second, row: 1);
+            grid.AddChild(fixedRow, row: 2);
+            grid.AddChild(spanning, rowSpan: 2);
+
+            grid.UpdateLayout(new Rect(0, 0, 100, 170));
+
+            Assert.AreEqual(60, first.BoundingRect.Height);
+            Assert.AreEqual(60, second.BoundingRect.Height);
+            Assert.AreEqual(50, fixedRow.BoundingRect.Height);
+            Assert.AreEqual(120, spanning.BoundingRect.Height);
         }
 
         [TestMethod]

@@ -162,6 +162,29 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void Textbox_reuses_prefix_measurements_for_cursor_rect()
+        {
+            var measurer = new CountingCharacterWidthMeasurer(10, 16);
+            var textBox = new TextBox
+            {
+                TextMeasurer = measurer,
+                Text = "abcdefgh",
+                Width = 200,
+                Height = 30
+            };
+            textBox.CursorPosition = textBox.Text.Length;
+            textBox.UpdateLayout(new Rect(0, 0, 200, 30));
+            var textRect = textBox.ClippingRect - textBox.Padding;
+            measurer.MeasurementCount = 0;
+
+            textBox.GetCursorRect(textRect);
+            textBox.GetCursorRect(textRect);
+
+            Assert.AreEqual(2, measurer.MeasurementCount);
+        }
+
+
+        [TestMethod]
         public void Textbox_accepts_key_pressed_events()
         {
             var textBox = new KeyboardBackedTextBox();
@@ -492,6 +515,26 @@ namespace MonoGame.PortableUI.Tests
 
             public Vector2 MeasureString(string text)
             {
+                return new Vector2((text ?? "").Length * _characterWidth, _height);
+            }
+        }
+
+        private sealed class CountingCharacterWidthMeasurer : ITextMeasurer
+        {
+            private readonly float _characterWidth;
+            private readonly float _height;
+
+            public CountingCharacterWidthMeasurer(float characterWidth, float height)
+            {
+                _characterWidth = characterWidth;
+                _height = height;
+            }
+
+            public int MeasurementCount { get; set; }
+
+            public Vector2 MeasureString(string text)
+            {
+                MeasurementCount++;
                 return new Vector2((text ?? "").Length * _characterWidth, _height);
             }
         }
