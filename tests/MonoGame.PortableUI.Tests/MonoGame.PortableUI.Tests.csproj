@@ -9,5 +9,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\MonoGame.PortableUI\MonoGame.PortableUI.csproj" />
+    <ProjectReference Include="..\..\samples\MonoGame.PortableUI.Demo\MonoGame.PortableUI.Demo.csproj" />
   </ItemGroup>
 </Project>

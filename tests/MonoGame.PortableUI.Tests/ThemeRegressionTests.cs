@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
 using MonoGame.PortableUI.Media;
+using System.Linq;
 
 namespace MonoGame.PortableUI.Tests
 {
@@ -44,6 +45,8 @@ namespace MonoGame.PortableUI.Tests
             Assert.AreEqual(32, tabControl.HeaderHeight);
             AssertSolidColor(tabControl.HeaderBackground, Color.Silver);
             AssertSolidColor(tabControl.SelectedHeaderBackground, Color.White);
+            Assert.AreEqual(Color.Black, tabControl.HeaderTextColor);
+            Assert.AreEqual(Color.Black, tabControl.SelectedHeaderTextColor);
 
             var contextMenu = new ContextMenu();
             AssertSolidColor(contextMenu.BackgroundBrush, Color.Silver);
@@ -80,6 +83,8 @@ namespace MonoGame.PortableUI.Tests
             theme.TabHeaderHeight = 46;
             theme.TabHeaderBackgroundBrush = new SolidColorBrush(new Color(40, 41, 42));
             theme.TabSelectedHeaderBackgroundBrush = new SolidColorBrush(new Color(43, 44, 45));
+            theme.TabHeaderTextColor = new Color(83, 84, 85);
+            theme.TabSelectedHeaderTextColor = new Color(86, 87, 88);
             theme.ContextMenuBackgroundBrush = new SolidColorBrush(new Color(46, 47, 48));
             theme.ComboBoxHeight = 52;
             theme.ComboBoxDropDownMaxHeight = 190;
@@ -141,6 +146,8 @@ namespace MonoGame.PortableUI.Tests
                 Assert.AreEqual(46, tabControl.HeaderHeight);
                 AssertSolidColor(tabControl.HeaderBackground, new Color(40, 41, 42));
                 AssertSolidColor(tabControl.SelectedHeaderBackground, new Color(43, 44, 45));
+                Assert.AreEqual(new Color(83, 84, 85), tabControl.HeaderTextColor);
+                Assert.AreEqual(new Color(86, 87, 88), tabControl.SelectedHeaderTextColor);
 
                 var contextMenu = new ContextMenu();
                 AssertSolidColor(contextMenu.BackgroundBrush, new Color(46, 47, 48));
@@ -244,6 +251,26 @@ namespace MonoGame.PortableUI.Tests
             button.IsEnabled = true;
 
             Assert.AreEqual(Color.Black, ((TextBlock)button.Content!).TextColor);
+        }
+
+        [TestMethod]
+        public void Tab_control_applies_selected_and_unselected_header_text_colors()
+        {
+            var tabControl = new TabControl
+            {
+                HeaderTextColor = new Color(10, 20, 30),
+                SelectedHeaderTextColor = new Color(40, 50, 60)
+            };
+            tabControl.Items.Add(new TabItem { Header = "One" });
+            tabControl.Items.Add(new TabItem { Header = "Two" });
+            tabControl.SelectedIndex = 1;
+
+            tabControl.UpdateLayout(new Rect(0, 0, 200, 100));
+
+            var headers = tabControl.GetDescendants().OfType<Button>().Take(2).ToArray();
+            Assert.AreEqual(new Color(10, 20, 30), headers[0].TextColor);
+            Assert.AreEqual(new Color(40, 50, 60), headers[1].TextColor);
+            Assert.AreEqual(new Color(40, 50, 60), ((TextBlock)headers[1].Content!).TextColor);
         }
 
         [TestMethod]

@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "MonoGame.PortableUI.Demo - C64": {
+      "commandName": "Project",
+      "commandLineArgs": "--theme c64"
+    },
+    "MonoGame.PortableUI.Demo - Game Boy DMG": {
+      "commandName": "Project",
+      "commandLineArgs": "--theme gameboy"
+    },
+    "MonoGame.PortableUI.Demo - DOS / Turbo Vision": {
+      "commandName": "Project",
+      "commandLineArgs": "--theme dos"
+    },
+    "MonoGame.PortableUI.Demo - Amiga Workbench": {
+      "commandName": "Project",
+      "commandLineArgs": "--theme amiga"
+    },
+    "MonoGame.PortableUI.Demo - Terminal Glass": {
+      "commandName": "Project",
+      "commandLineArgs": "--theme terminal"
+    },
+    "MonoGame.PortableUI.Demo - Soft Studio": {
+      "commandName": "Project",
+      "commandLineArgs": "--theme studio"
+    }
+  }
+}

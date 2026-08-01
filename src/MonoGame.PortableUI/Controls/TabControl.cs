@@ -19,6 +19,8 @@ namespace MonoGame.PortableUI.Controls
             HeaderHeight = theme.TabHeaderHeight;
             HeaderBackground = theme.TabHeaderBackgroundBrush;
             SelectedHeaderBackground = theme.TabSelectedHeaderBackgroundBrush;
+            HeaderTextColor = theme.TabHeaderTextColor;
+            SelectedHeaderTextColor = theme.TabSelectedHeaderTextColor;
         }
 
         public List<TabItem> Items { get; }
@@ -26,6 +28,8 @@ namespace MonoGame.PortableUI.Controls
         public float HeaderHeight { get; set; }
         public Brush HeaderBackground { get; set; }
         public Brush SelectedHeaderBackground { get; set; }
+        public Color HeaderTextColor { get; set; }
+        public Color SelectedHeaderTextColor { get; set; }
 
         public int SelectedIndex
         {
@@ -130,6 +134,14 @@ namespace MonoGame.PortableUI.Controls
                 var headerBrush = i == SelectedIndex ? SelectedHeaderBackground : HeaderBackground;
                 if (!ReferenceEquals(button.BackgroundBrush, headerBrush))
                     button.BackgroundBrush = headerBrush;
+
+                var headerTextColor = i == SelectedIndex ? SelectedHeaderTextColor : HeaderTextColor;
+                if (button.TextColor != headerTextColor)
+                    button.TextColor = headerTextColor;
+                if (button.HoverTextColor != headerTextColor)
+                    button.HoverTextColor = headerTextColor;
+                if (button.PressedTextColor != headerTextColor)
+                    button.PressedTextColor = headerTextColor;
             }
         }
 

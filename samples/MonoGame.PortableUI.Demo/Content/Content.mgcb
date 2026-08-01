@@ -19,6 +19,36 @@
 /processorParam:TextureFormat=Compressed
 /build:Fonts\pressstart2p-regular-14.spritefont
 
+#begin Fonts\silkscreen-regular-14.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:TextureFormat=Compressed
+/build:Fonts\silkscreen-regular-14.spritefont
+
+#begin Fonts\px437ibmvga8x16-regular-14.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:TextureFormat=Compressed
+/build:Fonts\px437ibmvga8x16-regular-14.spritefont
+
+#begin Fonts\jersey10-regular-14.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:TextureFormat=Compressed
+/build:Fonts\jersey10-regular-14.spritefont
+
+#begin Fonts\ibmplexmono-regular-14.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:TextureFormat=Compressed
+/build:Fonts\ibmplexmono-regular-14.spritefont
+
+#begin Fonts\atkinsonhyperlegible-regular-14.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:TextureFormat=Compressed
+/build:Fonts\atkinsonhyperlegible-regular-14.spritefont
+
 #begin Fonts\Segoe-regular-14.spritefont
 /importer:FontDescriptionImporter
 /processor:FontDescriptionProcessor
