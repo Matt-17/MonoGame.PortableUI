@@ -54,6 +54,8 @@ namespace MonoGame.PortableUI
         public float TabHeaderHeight { get; set; } = 32;
         public Brush TabHeaderBackgroundBrush { get; set; } = new SolidColorBrush(Color.Silver);
         public Brush TabSelectedHeaderBackgroundBrush { get; set; } = new SolidColorBrush(Color.White);
+        public Color TabHeaderTextColor { get; set; } = Color.Black;
+        public Color TabSelectedHeaderTextColor { get; set; } = Color.Black;
 
         public Brush ContextMenuBackgroundBrush { get; set; } = new SolidColorBrush(Color.Silver);
 

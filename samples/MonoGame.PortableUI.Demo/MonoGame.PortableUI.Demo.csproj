@@ -13,4 +13,9 @@
     <ProjectReference Include="..\..\src\MonoGame.PortableUI\MonoGame.PortableUI.csproj" />
     <MonoGameContentReference Include="Content\Content.mgcb" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Content\Fonts\*.ttf" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Content\Fonts\*.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

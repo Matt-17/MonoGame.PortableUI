@@ -54,6 +54,8 @@ namespace MonoGame.PortableUI.Demo
                 TabHeaderHeight = 36,
                 TabHeaderBackgroundBrush = new SolidColorBrush(Blue),
                 TabSelectedHeaderBackgroundBrush = new SolidColorBrush(LightBlue),
+                TabHeaderTextColor = White,
+                TabSelectedHeaderTextColor = Blue,
                 ContextMenuBackgroundBrush = new SolidColorBrush(Blue),
 
                 ComboBoxHeight = 32,
