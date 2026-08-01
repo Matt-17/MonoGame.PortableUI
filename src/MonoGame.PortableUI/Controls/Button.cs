@@ -15,7 +15,6 @@ namespace MonoGame.PortableUI.Controls
     /// </summary>
     public class Button : ContentControl
     {
-        protected internal Control? Template;
         private Color _textColor;
         private Color? _pressedTextColor;
         private Color? _hoverTextColor;
@@ -39,10 +38,6 @@ namespace MonoGame.PortableUI.Controls
             DisabledTextColor = theme.DisabledTextColor;
             TextAlignment = TextAlignment.Center;
             ShowFocusVisual = true;
-            //var grid = new Grid();
-            //grid.AddChild(new Rect { BackgroundBrush = Color.DarkMagenta });
-            //grid.AddChild(new ContentPresenter(this));
-            //Template = grid;
         }
 
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)

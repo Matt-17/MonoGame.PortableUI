@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
@@ -41,6 +42,45 @@ namespace MonoGame.PortableUI.Tests
 
             Assert.AreEqual(1, elapsed);
             Assert.IsFalse(timer.IsRunning);
+        }
+
+        [TestMethod]
+        public void Visual_tree_flattening_preserves_descendants_first_order()
+        {
+            var root = new StackPanel();
+            var inner = new StackPanel();
+            var leaf = new Button { Text = "Leaf" };
+            var sibling = new TextBlock { Text = "Sibling" };
+            inner.AddChild(leaf);
+            root.AddChild(inner);
+            root.AddChild(sibling);
+
+            var list = VisualTreeHelper.GetVisualTreeAsList(root, false).ToArray();
+
+            Assert.AreSame(leaf.Content, list[0]);
+            Assert.AreSame(leaf, list[1]);
+            Assert.AreSame(inner, list[2]);
+            Assert.AreSame(sibling, list[3]);
+            Assert.AreSame(root, list[4]);
+        }
+
+        [TestMethod]
+        public void Visual_tree_flattening_can_skip_gone_subtrees()
+        {
+            var root = new StackPanel();
+            var inner = new StackPanel();
+            var leaf = new Button { Text = "Leaf" };
+            var sibling = new TextBlock { Text = "Sibling" };
+            inner.AddChild(leaf);
+            root.AddChild(inner);
+            root.AddChild(sibling);
+            inner.IsGone = true;
+
+            var visibleList = VisualTreeHelper.GetVisualTreeAsList(root, false).ToArray();
+            var fullList = VisualTreeHelper.GetVisualTreeAsList(root, true).ToArray();
+
+            CollectionAssert.AreEqual(new Control[] { sibling, root }, visibleList);
+            CollectionAssert.AreEqual(new[] { leaf.Content, leaf, inner, sibling, root }, fullList);
         }
     }
 }
