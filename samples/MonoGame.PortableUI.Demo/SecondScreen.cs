@@ -15,6 +15,7 @@ namespace MonoGame.PortableUI.Demo
         private Brush ScreenBackgroundBrush => Palette.BackgroundBrush ?? _themePreset.BackgroundColor;
         private Brush SurfaceBrush => Palette.SurfaceBrush ?? Palette.Surface;
         private Brush SurfaceAltBrush => Palette.SurfaceAltBrush ?? Palette.SurfaceAlt;
+        private bool IsGlassTheme => string.Equals(_themePreset.Id, "glass", StringComparison.OrdinalIgnoreCase);
 
         public SecondScreen(DemoThemePreset themePreset, Action<DemoThemePreset> applyTheme)
         {
@@ -50,12 +51,7 @@ namespace MonoGame.PortableUI.Demo
 
             root.AddChild(CreateHeader());
 
-            var panel = new StackPanel
-            {
-                Orientation = Orientation.Vertical,
-                Margin = new Thickness(0, 18, 0, 0),
-                BackgroundBrush = SurfaceBrush
-            };
+            var panel = CreatePanel();
 
             panel.AddChild(new TextBlock
             {
@@ -87,6 +83,24 @@ namespace MonoGame.PortableUI.Demo
 
             root.AddChild(panel, row: 1);
             return root;
+        }
+
+        private StackPanel CreatePanel()
+        {
+            var panel = IsGlassTheme
+                ? new GlassStackPanel
+                {
+                    BorderBrush = new SolidColorBrush(new Color(255, 255, 255, 116)),
+                    HighlightBrush = new SolidColorBrush(new Color(255, 255, 255, 150)),
+                    ShadowBrush = new SolidColorBrush(new Color(0, 0, 0, 72))
+                }
+                : new StackPanel();
+
+            panel.Orientation = Orientation.Vertical;
+            panel.Margin = new Thickness(0, 18, 0, 0);
+            panel.VerticalAlignment = IsGlassTheme ? VerticalAlignment.Top : VerticalAlignment.Stretch;
+            panel.BackgroundBrush = SurfaceBrush;
+            return panel;
         }
 
         private Control CreateHeader()

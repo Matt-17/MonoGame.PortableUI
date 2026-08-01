@@ -12,6 +12,7 @@ namespace MonoGame.PortableUI.Demo
 
         private static readonly IReadOnlyList<DemoThemePreset> AllPresets = new[]
         {
+            CreateGlass(),
             CreateC64(),
             CreateGameBoy(),
             CreateDos(),
@@ -142,6 +143,68 @@ namespace MonoGame.PortableUI.Demo
                 FontName = "pressstart2p",
                 ClearColor = C64Theme.Blue,
                 BackgroundColor = C64Theme.Blue
+            };
+        }
+
+        private static DemoThemePreset CreateGlass()
+        {
+            var night = new Color(9, 14, 28);
+            var text = new Color(238, 250, 255);
+            var muted = new Color(179, 211, 222);
+            var cyan = new Color(97, 242, 226, 214);
+            var coral = new Color(255, 144, 116, 214);
+            var amber = new Color(255, 211, 124, 214);
+            var violet = new Color(136, 148, 255, 214);
+            var selectionText = new Color(7, 20, 29);
+            var pane = new FrostedGlassBrush(new Color(255, 255, 255, 42), new Color(255, 255, 255, 216), 18, 0.42f);
+            var paneAlt = new FrostedGlassBrush(new Color(205, 248, 255, 48), new Color(255, 255, 255, 202), 20, 0.44f);
+            var field = new FrostedGlassBrush(new Color(255, 255, 255, 54), new Color(255, 255, 255, 208), 16, 0.34f);
+            var selection = new GradientBrush(new Color(97, 242, 226, 210), new Color(255, 211, 124, 192), GradientDirection.Horizontal);
+
+            var palette = new DemoThemePalette
+            {
+                Background = night,
+                Surface = new Color(255, 255, 255, 42),
+                SurfaceAlt = new Color(205, 248, 255, 48),
+                Text = text,
+                HeadingText = Color.White,
+                MutedText = muted,
+                Primary = cyan,
+                Secondary = coral,
+                Warning = amber,
+                Danger = new Color(255, 86, 128, 218),
+                Info = violet,
+                Selection = cyan,
+                SelectionText = selectionText,
+                TabText = text,
+                SelectedTabText = selectionText,
+                FieldFrame = new Color(255, 255, 255, 54),
+                FieldBorder = new Color(255, 255, 255, 146),
+                DisabledSurface = new Color(20, 29, 41, 164),
+                DisabledText = new Color(142, 163, 174),
+                BackgroundBrush = new GlassBackdropBrush(),
+                SurfaceBrush = pane,
+                SurfaceAltBrush = paneAlt,
+                SelectionBrush = selection,
+                FieldFrameBrush = field
+            };
+
+            return new DemoThemePreset
+            {
+                Id = "glass",
+                DisplayName = "Frosted Glass",
+                CreateTheme = () => CreateTheme(
+                    palette,
+                    textBoxBackground: field,
+                    buttonBackground: paneAlt,
+                    buttonHover: new FrostedGlassBrush(new Color(97, 242, 226, 82), new Color(255, 255, 255, 216), 18, 0.38f),
+                    buttonPressed: new FrostedGlassBrush(new Color(255, 144, 116, 118), new Color(255, 255, 255, 190), 12, 0.26f),
+                    tooltipBackground: new FrostedGlassBrush(new Color(9, 14, 28, 228), new Color(255, 255, 255, 120), 10, 0.14f),
+                    tooltipText: Color.White),
+                Palette = palette,
+                FontName = "atkinsonhyperlegible",
+                ClearColor = night,
+                BackgroundColor = night
             };
         }
 
