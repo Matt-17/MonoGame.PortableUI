@@ -7,13 +7,13 @@ namespace MonoGame.PortableUI.Demo
 {
     public sealed class MainScreen : Screen
     {
-        private static readonly Color Ink = new Color(28, 31, 35);
-        private static readonly Color Paper = new Color(244, 246, 248);
-        private static readonly Color Panel = new Color(232, 237, 240);
-        private static readonly Color Line = new Color(82, 101, 111);
-        private static readonly Color Teal = new Color(20, 126, 133);
-        private static readonly Color Amber = new Color(213, 151, 54);
-        private static readonly Color Red = new Color(174, 68, 62);
+        private static readonly Color Ink = C64Theme.Blue;
+        private static readonly Color Paper = C64Theme.White;
+        private static readonly Color Panel = C64Theme.Blue;
+        private static readonly Color Line = C64Theme.LightBlue;
+        private static readonly Color Teal = C64Theme.Green;
+        private static readonly Color Amber = C64Theme.Yellow;
+        private static readonly Color Red = C64Theme.Red;
 
         private readonly Texture2D _deleteIcon;
         private readonly TextBlock _status;
@@ -22,7 +22,7 @@ namespace MonoGame.PortableUI.Demo
         {
             _deleteIcon = deleteIcon;
             BackgroundBrush = Ink;
-            _status = Label("Ready", new Color(207, 214, 219));
+            _status = Label("READY.", Line);
             Content = CreateLayout();
         }
 
@@ -62,10 +62,10 @@ namespace MonoGame.PortableUI.Demo
                 Orientation = Orientation.Vertical
             };
             titleStack.AddChild(Label("MonoGame.PortableUI", Paper, 22, new Thickness(0, 0, 0, 2)));
-            titleStack.AddChild(Label("Code-first controls for DesktopGL screens", new Color(172, 185, 192)));
+            titleStack.AddChild(Label("C64 THEME - CODE-FIRST CONTROLS", Line));
             header.AddChild(titleStack);
 
-            var next = CommandButton("Open second screen", Teal, Color.White);
+            var next = CommandButton("Open second screen", Teal, Paper);
             next.Height = 42;
             next.ToolTip = "Navigate to the secondary demo screen";
             next.Click += (sender, args) => ScreenEngine?.NavigateToScreen(new SecondScreen());
@@ -78,10 +78,10 @@ namespace MonoGame.PortableUI.Demo
         {
             var tabs = new TabControl
             {
-                BackgroundBrush = Paper,
+                BackgroundBrush = Panel,
                 HeaderHeight = 38,
-                HeaderBackground = new Color(202, 211, 216),
-                SelectedHeaderBackground = Paper
+                HeaderBackground = Panel,
+                SelectedHeaderBackground = Line
             };
 
             tabs.Items.Add(new TabItem { Header = "Controls", Content = CreateControlsTab() });
@@ -165,9 +165,9 @@ namespace MonoGame.PortableUI.Demo
                 Text = "Enable layout guides",
                 Margin = new Thickness(0, 0, 12, 10),
                 Height = 34,
-                TextColor = Ink,
+                TextColor = Paper,
                 BoxBorderBrush = Line,
-                CheckMarkBrush = Teal,
+                CheckMarkBrush = Paper,
                 ToolTip = "Toggle a checkbox state"
             };
             checkBox.Checked += (sender, args) => _status.Text = args.IsChecked ? "Layout guides on" : "Layout guides off";
@@ -178,9 +178,10 @@ namespace MonoGame.PortableUI.Demo
                 Text = "Toggle preview mode",
                 Margin = new Thickness(0, 0, 12, 10),
                 Height = 38,
-                BackgroundBrush = new Color(218, 225, 229),
-                TextColor = Ink,
-                ToggleBrush = Teal,
+                BackgroundBrush = Ink,
+                TextColor = Paper,
+                ToggleBrush = Line,
+                ToggleTextColor = Ink,
                 ToolTip = "Toggle the preview mode state"
             };
             toggle.Checked += (sender, args) => _status.Text = args.IsChecked ? "Preview mode on" : "Preview mode off";
@@ -206,10 +207,10 @@ namespace MonoGame.PortableUI.Demo
                 Height = 190,
                 Margin = new Thickness(0, 6, 12, 10),
                 ItemHeight = 30,
-                ItemBackgroundBrush = Color.White,
-                SelectedItemBackgroundBrush = Teal,
-                ItemTextColor = Ink,
-                SelectedItemTextColor = Color.White,
+                ItemBackgroundBrush = Panel,
+                SelectedItemBackgroundBrush = Paper,
+                ItemTextColor = Paper,
+                SelectedItemTextColor = Ink,
                 ToolTip = "Scroll and select a list item"
             };
 
@@ -228,7 +229,7 @@ namespace MonoGame.PortableUI.Demo
         {
             var panel = PanelStack("Buttons and menus");
 
-            var primary = CommandButton("Primary action", Teal, Color.White);
+            var primary = CommandButton("Primary action", Teal, Ink);
             primary.ToolTip = "Run the primary demo action";
             primary.Click += (sender, args) => _status.Text = "Primary action clicked";
             panel.AddChild(primary);
@@ -238,12 +239,12 @@ namespace MonoGame.PortableUI.Demo
             secondary.Click += (sender, args) => _status.Text = "Secondary action clicked";
             panel.AddChild(secondary);
 
-            var danger = CommandButton("Danger action", Red, Color.White);
+            var danger = CommandButton("Danger action", Red, Paper);
             danger.ToolTip = "Run the destructive demo action";
             danger.Click += (sender, args) => _status.Text = "Danger action clicked";
             panel.AddChild(danger);
 
-            var disabled = CommandButton("Disabled action", new Color(184, 193, 199), new Color(82, 101, 111));
+            var disabled = CommandButton("Disabled action", C64Theme.DarkBlue, Line);
             disabled.IsEnabled = false;
             panel.AddChild(disabled);
 
@@ -254,15 +255,16 @@ namespace MonoGame.PortableUI.Demo
                 Width = 46,
                 Height = 46,
                 Margin = new Thickness(0, 2, 0, 12),
-                BackgroundBrush = new Color(224, 229, 232),
+                BackgroundBrush = Ink,
+                TintColor = Paper,
                 ToolTip = "Delete the current demo item"
             };
             imageButton.Click += (sender, args) => _status.Text = "ImageButton clicked";
             panel.AddChild(imageButton);
 
-            var menuButton = CommandButton("Open context menu", new Color(62, 80, 91), Color.White);
+            var menuButton = CommandButton("Open context menu", C64Theme.DarkBlue, Paper);
             menuButton.ToolTip = "Right-click or long-press to open commands";
-            var menu = new ContextMenu { BackgroundBrush = new Color(232, 237, 240) };
+            var menu = new ContextMenu { BackgroundBrush = Panel };
             menu.Items.Add(new MenuItem("Inspect", () => _status.Text = "Inspect command"));
             menu.Items.Add(new MenuItem("Duplicate", () => _status.Text = "Duplicate command"));
             menu.Items.Add(new MenuItem("Archive", () => _status.Text = "Archive command"));
@@ -302,11 +304,11 @@ namespace MonoGame.PortableUI.Demo
             var preview = new Border
             {
                 Margin = new Thickness(0, 14, 0, 14),
-                BackgroundBrush = Color.White,
+                BackgroundBrush = Panel,
                 BorderColor = Line,
                 BorderWidth = 2,
                 Padding = 16,
-                Content = Label("Resize the window. The header, tiles and status strip keep their roles.", Ink, 16)
+                Content = Label("Resize the window. The header, tiles and status strip keep their roles.", Paper, 16)
             };
             grid.AddChild(preview, row: 1, columnSpan: 3);
 
@@ -326,7 +328,7 @@ namespace MonoGame.PortableUI.Demo
 
             for (var i = 1; i <= 40; i++)
             {
-                var row = CommandButton($"Scrollable row {i:00}", i % 3 == 0 ? Amber : new Color(224, 230, 233), Ink);
+                var row = CommandButton($"Scrollable row {i:00}", i % 3 == 0 ? Amber : Ink, i % 3 == 0 ? Ink : Paper);
                 row.Height = 30;
                 row.Margin = new Thickness(0, 0, 8, 5);
                 var rowNumber = i;
@@ -338,7 +340,7 @@ namespace MonoGame.PortableUI.Demo
             {
                 Content = stack,
                 Margin = 16,
-                BackgroundBrush = new Color(236, 240, 242),
+                BackgroundBrush = Panel,
                 ScrollOrientation = Orientation.Vertical
             };
         }
@@ -355,11 +357,11 @@ namespace MonoGame.PortableUI.Demo
                 }
             };
 
-            root.AddChild(Label("500 controls in a 20 x 25 grid", Ink, 16, new Thickness(0, 0, 0, 10)));
+            root.AddChild(Label("500 controls in a 20 x 25 grid", Paper, 16, new Thickness(0, 0, 0, 10)));
 
             var grid = new Grid
             {
-                BackgroundBrush = new Color(238, 242, 244)
+                BackgroundBrush = Panel
             };
 
             for (var row = 0; row < 25; row++)
@@ -376,8 +378,8 @@ namespace MonoGame.PortableUI.Demo
                     var cell = new Border
                     {
                         Margin = new Thickness(1),
-                        BackgroundBrush = index % 7 == 0 ? new Color(217, 228, 230) : Color.White,
-                        BorderColor = index % 5 == 0 ? Teal : new Color(202, 211, 216),
+                        BackgroundBrush = index % 7 == 0 ? C64Theme.DarkBlue : Panel,
+                        BorderColor = index % 5 == 0 ? Teal : Line,
                         BorderWidth = 1,
                         Padding = 2,
                         Content = Label(index.ToString("000"), Line, 10)
@@ -402,7 +404,7 @@ namespace MonoGame.PortableUI.Demo
                 }
             };
 
-            strip.AddChild(Label("Status", new Color(143, 160, 168)));
+            strip.AddChild(Label("STATUS", Line));
             _status.Margin = new Thickness(0);
             strip.AddChild(_status, column: 1);
             return strip;
@@ -416,7 +418,7 @@ namespace MonoGame.PortableUI.Demo
                 Margin = new Thickness(0, 0, 12, 0),
                 BackgroundBrush = Panel
             };
-            panel.AddChild(Label(title, Ink, 17, new Thickness(12, 10, 12, 8)));
+            panel.AddChild(Label(title, Paper, 17, new Thickness(12, 10, 12, 8)));
             return panel;
         }
 
@@ -438,7 +440,7 @@ namespace MonoGame.PortableUI.Demo
             return new Border
             {
                 Margin = margin,
-                BackgroundBrush = Color.White,
+                BackgroundBrush = Panel,
                 BorderColor = accent,
                 BorderWidth = 2,
                 Padding = new Thickness(12, 10, 14, 10),
@@ -454,8 +456,8 @@ namespace MonoGame.PortableUI.Demo
                 Margin = new Thickness(0, 0, 12, 8),
                 BackgroundBrush = background,
                 TextColor = foreground,
-                HoverTextColor = Color.White,
-                PressedTextColor = Color.White
+                HoverTextColor = Paper,
+                PressedTextColor = Ink
             };
         }
 

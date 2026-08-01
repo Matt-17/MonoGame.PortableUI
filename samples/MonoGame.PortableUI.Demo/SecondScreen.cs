@@ -8,19 +8,19 @@ namespace MonoGame.PortableUI.Demo
     {
         public SecondScreen()
         {
-            BackgroundBrush = new Color(24, 33, 43);
+            BackgroundBrush = C64Theme.Blue;
 
             var panel = new StackPanel
             {
                 Orientation = Orientation.Vertical,
                 Margin = 24,
-                BackgroundBrush = new Color(240, 243, 246)
+                BackgroundBrush = C64Theme.Blue
             };
 
             panel.AddChild(new TextBlock
             {
                 Text = "Second screen",
-                TextColor = new Color(35, 38, 43),
+                TextColor = C64Theme.White,
                 TextSize = 18,
                 Margin = new Thickness(12, 12, 12, 4)
             });
@@ -29,8 +29,10 @@ namespace MonoGame.PortableUI.Demo
             {
                 Height = 48,
                 Margin = new Thickness(12, 8, 12, 12),
-                BackgroundBrush = Color.White,
-                TextColor = new Color(35, 38, 43)
+                BackgroundBrush = C64Theme.DarkBlue,
+                TextColor = C64Theme.White,
+                HoverTextColor = C64Theme.White,
+                PressedTextColor = C64Theme.Blue
             };
             back.Click += (sender, args) => ScreenEngine?.NavigateBack();
             panel.AddChild(back);
