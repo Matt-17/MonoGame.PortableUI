@@ -17,7 +17,8 @@ namespace MonoGame.PortableUI.Demo
             CreateDos(),
             CreateAmiga(),
             CreateTerminal(),
-            CreateStudio()
+            CreateStudio(),
+            CreateAurora()
         };
 
         public static IReadOnlyList<DemoThemePreset> Presets => AllPresets;
@@ -403,13 +404,76 @@ namespace MonoGame.PortableUI.Demo
             };
         }
 
+        private static DemoThemePreset CreateAurora()
+        {
+            var graphite = new Color(15, 18, 24);
+            var deepTeal = new Color(17, 45, 40);
+            var panel = new Color(25, 31, 34);
+            var panelAlt = new Color(38, 48, 51);
+            var field = new Color(11, 15, 18);
+            var text = new Color(235, 247, 242);
+            var muted = new Color(150, 174, 169);
+            var mint = new Color(104, 228, 192);
+            var lime = new Color(231, 247, 109);
+            var amber = new Color(255, 178, 93);
+            var coral = new Color(255, 107, 122);
+            var blue = new Color(124, 199, 255);
+            var ink = new Color(12, 15, 18);
+
+            var palette = new DemoThemePalette
+            {
+                Background = graphite,
+                Surface = panel,
+                SurfaceAlt = panelAlt,
+                Text = text,
+                HeadingText = Color.White,
+                MutedText = muted,
+                Primary = mint,
+                Secondary = amber,
+                Warning = amber,
+                Danger = coral,
+                Info = blue,
+                Selection = lime,
+                SelectionText = ink,
+                TabText = text,
+                SelectedTabText = ink,
+                FieldFrame = field,
+                FieldBorder = mint,
+                DisabledSurface = new Color(45, 51, 53),
+                DisabledText = new Color(103, 121, 119),
+                BackgroundBrush = new GradientBrush(graphite, deepTeal, GradientDirection.DiagonalDown),
+                SurfaceBrush = new GradientBrush(panel, new Color(31, 43, 40), GradientDirection.Vertical),
+                SurfaceAltBrush = new GradientBrush(panelAlt, new Color(31, 39, 45), GradientDirection.Horizontal),
+                SelectionBrush = new GradientBrush(mint, lime, GradientDirection.Horizontal),
+                FieldFrameBrush = new GradientBrush(field, new Color(18, 25, 28), GradientDirection.Vertical)
+            };
+
+            return new DemoThemePreset
+            {
+                Id = "aurora",
+                DisplayName = "Aurora Modern",
+                CreateTheme = () => CreateTheme(
+                    palette,
+                    textBoxBackground: palette.FieldFrameBrush!,
+                    buttonBackground: new GradientBrush(panelAlt, new Color(42, 60, 55), GradientDirection.DiagonalDown),
+                    buttonHover: new GradientBrush(new Color(104, 228, 192, 85), new Color(231, 247, 109, 75), GradientDirection.Horizontal),
+                    buttonPressed: new GradientBrush(new Color(255, 178, 93, 135), new Color(104, 228, 192, 120), GradientDirection.Horizontal),
+                    tooltipBackground: new GradientBrush(new Color(8, 12, 14, 245), new Color(24, 38, 34, 245), GradientDirection.Vertical),
+                    tooltipText: text),
+                Palette = palette,
+                FontName = "atkinsonhyperlegible",
+                ClearColor = graphite,
+                BackgroundColor = graphite
+            };
+        }
+
         private static PortableTheme CreateTheme(
             DemoThemePalette palette,
-            Color textBoxBackground,
-            Color buttonBackground,
-            Color buttonHover,
-            Color buttonPressed,
-            Color tooltipBackground,
+            Brush textBoxBackground,
+            Brush buttonBackground,
+            Brush buttonHover,
+            Brush buttonPressed,
+            Brush tooltipBackground,
             Color tooltipText)
         {
             return new PortableTheme
@@ -422,17 +486,17 @@ namespace MonoGame.PortableUI.Demo
                 DisabledTextColor = palette.DisabledText,
 
                 ButtonPadding = new Thickness(8, 6),
-                ButtonBackgroundBrush = Brush(buttonBackground),
-                ButtonHoverBrush = Brush(buttonHover),
-                ButtonPressedBrush = Brush(buttonPressed),
+                ButtonBackgroundBrush = buttonBackground,
+                ButtonHoverBrush = buttonHover,
+                ButtonPressedBrush = buttonPressed,
                 ButtonTextColor = palette.Text,
                 ButtonHoverTextColor = palette.Text,
                 ButtonPressedTextColor = palette.SelectionText,
 
-                ToggleBrush = Brush(palette.Selection),
+                ToggleBrush = SelectionBrush(palette),
                 ToggleTextColor = palette.SelectionText,
 
-                TextBoxBackgroundBrush = Brush(textBoxBackground),
+                TextBoxBackgroundBrush = textBoxBackground,
                 TextBoxTextColor = palette.Text,
                 TextBoxCursorBrush = Brush(palette.Primary),
                 TextBoxSelectionBrush = Brush(new Color((int)palette.Primary.R, (int)palette.Primary.G, (int)palette.Primary.B, 120)),
@@ -441,39 +505,39 @@ namespace MonoGame.PortableUI.Demo
                 TextBoxHeight = 32,
 
                 ScrollBarThickness = 8,
-                ScrollBarGutterBrush = Brush(palette.Surface),
+                ScrollBarGutterBrush = SurfaceBrush(palette),
                 ScrollBarBrush = Brush(palette.Primary),
                 ScrollBarHoverBrush = Brush(palette.Secondary),
-                ScrollBarPressedBrush = Brush(palette.Selection),
+                ScrollBarPressedBrush = SelectionBrush(palette),
 
                 TabHeaderHeight = 36,
-                TabHeaderBackgroundBrush = Brush(palette.Surface),
-                TabSelectedHeaderBackgroundBrush = Brush(palette.Selection),
+                TabHeaderBackgroundBrush = SurfaceBrush(palette),
+                TabSelectedHeaderBackgroundBrush = SelectionBrush(palette),
                 TabHeaderTextColor = palette.TabText,
                 TabSelectedHeaderTextColor = palette.SelectedTabText,
-                ContextMenuBackgroundBrush = Brush(palette.Surface),
+                ContextMenuBackgroundBrush = SurfaceBrush(palette),
 
                 ComboBoxHeight = 32,
                 ComboBoxDropDownMaxHeight = 190,
-                ComboBoxDropDownBackgroundBrush = Brush(palette.Surface),
+                ComboBoxDropDownBackgroundBrush = SurfaceBrush(palette),
 
-                ListBoxBackgroundBrush = Brush(palette.Surface),
+                ListBoxBackgroundBrush = SurfaceBrush(palette),
                 ListBoxItemHeight = 28,
                 ListBoxItemPadding = new Thickness(6, 0),
-                ListBoxItemBackgroundBrush = Brush(palette.Surface),
-                ListBoxSelectedItemBackgroundBrush = Brush(palette.Selection),
+                ListBoxItemBackgroundBrush = SurfaceBrush(palette),
+                ListBoxSelectedItemBackgroundBrush = SelectionBrush(palette),
                 ListBoxItemTextColor = palette.Text,
                 ListBoxSelectedItemTextColor = palette.SelectionText,
 
                 CheckBoxBoxSize = 18,
                 CheckBoxBoxSpacing = 8,
                 CheckBoxBoxBorderWidth = 2,
-                CheckBoxBoxBackgroundBrush = Brush(palette.Surface),
+                CheckBoxBoxBackgroundBrush = SurfaceBrush(palette),
                 CheckBoxBoxBorderBrush = Brush(palette.Primary),
-                CheckBoxCheckMarkBrush = Brush(palette.Selection),
+                CheckBoxCheckMarkBrush = SelectionBrush(palette),
                 CheckBoxTextColor = palette.Text,
 
-                ToolTipBackgroundBrush = Brush(tooltipBackground),
+                ToolTipBackgroundBrush = tooltipBackground,
                 ToolTipBorderBrush = Brush(palette.Primary),
                 ToolTipBorderWidth = new Thickness(1),
                 ToolTipPadding = new Thickness(8, 5, 8, 6),
@@ -482,6 +546,16 @@ namespace MonoGame.PortableUI.Demo
                 ProgressIndicatorForeground = palette.Primary,
                 ProgressIndicatorHeight = 48
             };
+        }
+
+        private static Brush SurfaceBrush(DemoThemePalette palette)
+        {
+            return palette.SurfaceBrush ?? Brush(palette.Surface);
+        }
+
+        private static Brush SelectionBrush(DemoThemePalette palette)
+        {
+            return palette.SelectionBrush ?? Brush(palette.Selection);
         }
 
         private static SolidColorBrush Brush(Color color)

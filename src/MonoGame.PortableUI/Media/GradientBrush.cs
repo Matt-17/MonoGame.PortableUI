@@ -7,14 +7,20 @@ namespace MonoGame.PortableUI.Media
     public class GradientBrush : Brush
     {
         private Texture2D? _texture;
-        private Rect _rect;
         private Color _startColor;
         private Color _endColor;
+        private GradientDirection _direction;
 
         public GradientBrush(Color startColor, Color endColor)
+            : this(startColor, endColor, GradientDirection.Vertical)
+        {
+        }
+
+        public GradientBrush(Color startColor, Color endColor, GradientDirection direction)
         {
             _startColor = startColor;
             _endColor = endColor;
+            _direction = direction;
         }
 
         public Color StartColor
@@ -37,40 +43,60 @@ namespace MonoGame.PortableUI.Media
             }
         }
 
-        private void RecreateTexture(SpriteBatch spriteBatch, Size rect)
+        public GradientDirection Direction
         {
-            if (_rect == rect && _texture != null)
-                return;
-
-            _rect = rect;
-            var width = (int)rect.Width;
-            var height = (int)rect.Height;
-            _texture = new Texture2D(spriteBatch.GraphicsDevice, width, height);
-            Color[] colArr = new Color[width * height];
-            for (int y = 0; y < height; ++y)
+            get { return _direction; }
+            set
             {
-                float yRel = y / (float)height;
-                float u = MathHelper.Clamp(yRel, 0.0f, 1.0f);
-
-                for (int x = 0; x < width; x++)
-                {
-                    colArr[x + y * width] = Color.Lerp(StartColor, EndColor, u);
-                }
+                _direction = value;
+                _texture = null;
             }
-            _texture.SetData(colArr);
         }
 
+        private void RecreateTexture(SpriteBatch spriteBatch)
+        {
+            if (_texture != null)
+                return;
+
+            switch (Direction)
+            {
+                case GradientDirection.Horizontal:
+                    _texture = new Texture2D(spriteBatch.GraphicsDevice, 2, 1);
+                    _texture.SetData(new[] { StartColor, EndColor });
+                    break;
+                case GradientDirection.DiagonalDown:
+                    _texture = new Texture2D(spriteBatch.GraphicsDevice, 2, 2);
+                    _texture.SetData(new[] { StartColor, MidColor, MidColor, EndColor });
+                    break;
+                case GradientDirection.DiagonalUp:
+                    _texture = new Texture2D(spriteBatch.GraphicsDevice, 2, 2);
+                    _texture.SetData(new[] { MidColor, EndColor, StartColor, MidColor });
+                    break;
+                default:
+                    _texture = new Texture2D(spriteBatch.GraphicsDevice, 1, 2);
+                    _texture.SetData(new[] { StartColor, EndColor });
+                    break;
+            }
+        }
+
+        private Color MidColor => Color.Lerp(StartColor, EndColor, 0.5f);
 
         public override void Draw(SpriteBatch spriteBatch, Rect rect)
-        {              
-            RecreateTexture(spriteBatch, (Size)rect);
+        {
+            if (rect.Width <= 0 || rect.Height <= 0)
+                return;
+
+            RecreateTexture(spriteBatch);
             if (_texture != null)
                 spriteBatch.Draw(_texture, rect, Color.White);
         }
 
         public override void Draw(SpriteBatch spriteBatch, Rect rect, float opacity)
         {
-            RecreateTexture(spriteBatch, (Size)rect);
+            if (rect.Width <= 0 || rect.Height <= 0)
+                return;
+
+            RecreateTexture(spriteBatch);
             if (_texture != null)
                 spriteBatch.Draw(_texture, rect, ApplyOpacity(Color.White, opacity));
         }

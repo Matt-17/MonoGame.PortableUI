@@ -1,6 +1,10 @@
+using System;
+using System.IO;
 using System.Linq;
+using System.Text.Json;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using MonoGame.PortableUI.Demo;
+using MonoGame.PortableUI.Media;
 
 namespace MonoGame.PortableUI.Tests
 {
@@ -14,7 +18,8 @@ namespace MonoGame.PortableUI.Tests
             "dos",
             "amiga",
             "terminal",
-            "studio"
+            "studio",
+            "aurora"
         };
 
         [TestMethod]
@@ -77,6 +82,64 @@ namespace MonoGame.PortableUI.Tests
                 Assert.IsNotNull(preset.CreateTheme);
                 Assert.IsNotNull(preset.CreateTheme());
             }
+        }
+
+        [TestMethod]
+        public void Aurora_theme_uses_gradient_brushes()
+        {
+            var preset = DemoThemeRegistry.Resolve("aurora");
+            var theme = preset.CreateTheme();
+
+            AssertGradient(preset.Palette.BackgroundBrush, GradientDirection.DiagonalDown);
+            AssertGradient(preset.Palette.SurfaceBrush, GradientDirection.Vertical);
+            AssertGradient(preset.Palette.SelectionBrush, GradientDirection.Horizontal);
+            AssertGradient(theme.ButtonBackgroundBrush, GradientDirection.DiagonalDown);
+            AssertGradient(theme.TabSelectedHeaderBackgroundBrush, GradientDirection.Horizontal);
+            AssertGradient(theme.TextBoxBackgroundBrush, GradientDirection.Vertical);
+        }
+
+        [TestMethod]
+        public void Launch_settings_include_profile_for_each_demo_preset()
+        {
+            var path = Path.Combine(
+                FindRepositoryRoot(),
+                "samples",
+                "MonoGame.PortableUI.Demo",
+                "Properties",
+                "launchSettings.json");
+
+            using var document = JsonDocument.Parse(File.ReadAllText(path));
+            var profiles = document.RootElement.GetProperty("profiles");
+
+            foreach (var preset in DemoThemeRegistry.Presets)
+            {
+                var expectedArgs = "--theme " + preset.Id;
+                var hasProfile = profiles.EnumerateObject().Any(profile =>
+                    profile.Value.TryGetProperty("commandLineArgs", out var args) &&
+                    string.Equals(args.GetString(), expectedArgs, StringComparison.OrdinalIgnoreCase));
+
+                Assert.IsTrue(hasProfile, $"Missing launch profile for theme '{preset.Id}'.");
+            }
+        }
+
+        private static void AssertGradient(Brush? brush, GradientDirection direction)
+        {
+            Assert.IsInstanceOfType(brush, typeof(GradientBrush));
+            Assert.AreEqual(direction, ((GradientBrush)brush!).Direction);
+        }
+
+        private static string FindRepositoryRoot()
+        {
+            var directory = new DirectoryInfo(AppContext.BaseDirectory);
+            while (directory != null)
+            {
+                if (File.Exists(Path.Combine(directory.FullName, "MonoGame.PortableUI.slnx")))
+                    return directory.FullName;
+
+                directory = directory.Parent;
+            }
+
+            throw new DirectoryNotFoundException("Could not locate the MonoGame.PortableUI repository root.");
         }
     }
 }

@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
+using MonoGame.PortableUI.Media;
 
 namespace MonoGame.PortableUI.Demo
 {
@@ -14,6 +15,11 @@ namespace MonoGame.PortableUI.Demo
         private TextBlock _status = null!;
 
         private DemoThemePalette Palette => _themePreset.Palette;
+        private Brush ScreenBackgroundBrush => Palette.BackgroundBrush ?? _themePreset.BackgroundColor;
+        private Brush SurfaceBrush => Palette.SurfaceBrush ?? Palette.Surface;
+        private Brush SurfaceAltBrush => Palette.SurfaceAltBrush ?? Palette.SurfaceAlt;
+        private Brush SelectionBrush => Palette.SelectionBrush ?? Palette.Selection;
+        private Brush FieldFrameBrush => Palette.FieldFrameBrush ?? Palette.FieldFrame;
 
         public MainScreen(Texture2D deleteIcon, DemoThemePreset themePreset, Action<DemoThemePreset> applyTheme)
         {
@@ -32,7 +38,7 @@ namespace MonoGame.PortableUI.Demo
         private void RebuildContent()
         {
             ScreenEngine.FocusedControl = null;
-            BackgroundBrush = _themePreset.BackgroundColor;
+            BackgroundBrush = ScreenBackgroundBrush;
             _status = Label("READY.", Palette.MutedText);
             Content = CreateLayout();
         }
@@ -94,7 +100,7 @@ namespace MonoGame.PortableUI.Demo
             {
                 Margin = new Thickness(0, 0, 12, 0),
                 Height = 42,
-                BackgroundBrush = Palette.SurfaceAlt,
+                BackgroundBrush = SurfaceAltBrush,
                 TextColor = Palette.Text,
                 HoverTextColor = Palette.Text,
                 PressedTextColor = Palette.SelectionText,
@@ -123,10 +129,10 @@ namespace MonoGame.PortableUI.Demo
         {
             var tabs = new TabControl
             {
-                BackgroundBrush = Palette.Surface,
+                BackgroundBrush = SurfaceBrush,
                 HeaderHeight = 38,
-                HeaderBackground = Palette.Surface,
-                SelectedHeaderBackground = Palette.Selection,
+                HeaderBackground = SurfaceBrush,
+                SelectedHeaderBackground = SelectionBrush,
                 HeaderTextColor = Palette.TabText,
                 SelectedHeaderTextColor = Palette.SelectedTabText
             };
@@ -219,9 +225,9 @@ namespace MonoGame.PortableUI.Demo
                 Text = "Toggle preview mode",
                 Margin = new Thickness(0, 0, 12, 10),
                 Height = 38,
-                BackgroundBrush = Palette.SurfaceAlt,
+                BackgroundBrush = SurfaceAltBrush,
                 TextColor = Palette.Text,
-                ToggleBrush = Palette.Selection,
+                ToggleBrush = SelectionBrush,
                 ToggleTextColor = Palette.SelectionText,
                 ToolTip = "Toggle the preview mode state"
             };
@@ -248,8 +254,8 @@ namespace MonoGame.PortableUI.Demo
                 Height = 190,
                 Margin = new Thickness(0, 6, 12, 10),
                 ItemHeight = 30,
-                ItemBackgroundBrush = Palette.Surface,
-                SelectedItemBackgroundBrush = Palette.Selection,
+                ItemBackgroundBrush = SurfaceBrush,
+                SelectedItemBackgroundBrush = SelectionBrush,
                 ItemTextColor = Palette.Text,
                 SelectedItemTextColor = Palette.SelectionText,
                 ToolTip = "Scroll and select a list item"
@@ -296,16 +302,16 @@ namespace MonoGame.PortableUI.Demo
                 Width = 46,
                 Height = 46,
                 Margin = new Thickness(0, 2, 0, 12),
-                BackgroundBrush = Palette.SurfaceAlt,
+                BackgroundBrush = SurfaceAltBrush,
                 TintColor = Palette.Text,
                 ToolTip = "Delete the current demo item"
             };
             imageButton.Click += (sender, args) => _status.Text = "ImageButton clicked";
             panel.AddChild(imageButton);
 
-            var menuButton = CommandButton("Open context menu", Palette.SurfaceAlt, Palette.Text);
+            var menuButton = CommandButton("Open context menu", SurfaceAltBrush, Palette.Text);
             menuButton.ToolTip = "Right-click or long-press to open commands";
-            var menu = new ContextMenu { BackgroundBrush = Palette.Surface };
+            var menu = new ContextMenu { BackgroundBrush = SurfaceBrush };
             menu.Items.Add(new MenuItem("Inspect", () => _status.Text = "Inspect command"));
             menu.Items.Add(new MenuItem("Duplicate", () => _status.Text = "Duplicate command"));
             menu.Items.Add(new MenuItem("Archive", () => _status.Text = "Archive command"));
@@ -345,7 +351,7 @@ namespace MonoGame.PortableUI.Demo
             var preview = new Border
             {
                 Margin = new Thickness(0, 14, 0, 14),
-                BackgroundBrush = Palette.Surface,
+                BackgroundBrush = SurfaceBrush,
                 BorderColor = Palette.Primary,
                 BorderWidth = 2,
                 Padding = 16,
@@ -369,7 +375,7 @@ namespace MonoGame.PortableUI.Demo
 
             for (var i = 1; i <= 40; i++)
             {
-                var row = CommandButton($"Scrollable row {i:00}", i % 3 == 0 ? Palette.Secondary : Palette.SurfaceAlt, i % 3 == 0 ? Palette.SelectionText : Palette.Text);
+                var row = CommandButton($"Scrollable row {i:00}", i % 3 == 0 ? (Brush)Palette.Secondary : SurfaceAltBrush, i % 3 == 0 ? Palette.SelectionText : Palette.Text);
                 row.Height = 30;
                 row.Margin = new Thickness(0, 0, 8, 5);
                 var rowNumber = i;
@@ -381,7 +387,7 @@ namespace MonoGame.PortableUI.Demo
             {
                 Content = stack,
                 Margin = 16,
-                BackgroundBrush = Palette.Surface,
+                BackgroundBrush = SurfaceBrush,
                 ScrollOrientation = Orientation.Vertical
             };
         }
@@ -402,7 +408,7 @@ namespace MonoGame.PortableUI.Demo
 
             var grid = new Grid
             {
-                BackgroundBrush = Palette.Surface
+                BackgroundBrush = SurfaceBrush
             };
 
             for (var row = 0; row < 25; row++)
@@ -419,7 +425,7 @@ namespace MonoGame.PortableUI.Demo
                     var cell = new Border
                     {
                         Margin = new Thickness(1),
-                        BackgroundBrush = index % 7 == 0 ? Palette.SurfaceAlt : Palette.Surface,
+                        BackgroundBrush = index % 7 == 0 ? SurfaceAltBrush : SurfaceBrush,
                         BorderColor = index % 5 == 0 ? Palette.Primary : Palette.MutedText,
                         BorderWidth = 1,
                         Padding = 2,
@@ -457,7 +463,7 @@ namespace MonoGame.PortableUI.Demo
             {
                 Orientation = Orientation.Vertical,
                 Margin = new Thickness(0, 0, 12, 0),
-                BackgroundBrush = Palette.Surface
+                BackgroundBrush = SurfaceBrush
             };
             panel.AddChild(Label(title, Palette.HeadingText, 17, new Thickness(12, 10, 12, 8)));
             return panel;
@@ -472,7 +478,7 @@ namespace MonoGame.PortableUI.Demo
             {
                 Height = height,
                 Margin = margin,
-                BackgroundBrush = Palette.FieldFrame,
+                BackgroundBrush = FieldFrameBrush,
                 BorderColor = Palette.FieldBorder,
                 BorderWidth = new Thickness(1),
                 Padding = new Thickness(2),
@@ -498,7 +504,7 @@ namespace MonoGame.PortableUI.Demo
             return new Border
             {
                 Margin = margin,
-                BackgroundBrush = Palette.Surface,
+                BackgroundBrush = SurfaceBrush,
                 BorderColor = accent,
                 BorderWidth = 2,
                 Padding = new Thickness(12, 10, 14, 10),
@@ -506,7 +512,7 @@ namespace MonoGame.PortableUI.Demo
             };
         }
 
-        private TextButton CommandButton(string text, Color background, Color foreground)
+        private TextButton CommandButton(string text, Brush background, Color foreground)
         {
             return new TextButton(text)
             {

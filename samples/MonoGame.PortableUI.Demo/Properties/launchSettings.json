@@ -24,6 +24,10 @@
     "MonoGame.PortableUI.Demo - Soft Studio": {
       "commandName": "Project",
       "commandLineArgs": "--theme studio"
+    },
+    "MonoGame.PortableUI.Demo - Aurora Modern": {
+      "commandName": "Project",
+      "commandLineArgs": "--theme aurora"
     }
   }
 }
