@@ -1,4 +1,5 @@
 using Microsoft.Xna.Framework;
+using MonoGame.PortableUI.Media;
 
 namespace MonoGame.PortableUI.Demo
 {
@@ -25,5 +26,10 @@ namespace MonoGame.PortableUI.Demo
         public Color FieldBorder { get; init; }
         public Color DisabledSurface { get; init; }
         public Color DisabledText { get; init; }
+        public Brush? BackgroundBrush { get; init; }
+        public Brush? SurfaceBrush { get; init; }
+        public Brush? SurfaceAltBrush { get; init; }
+        public Brush? SelectionBrush { get; init; }
+        public Brush? FieldFrameBrush { get; init; }
     }
 }

@@ -2,6 +2,7 @@ using System;
 using Microsoft.Xna.Framework;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
+using MonoGame.PortableUI.Media;
 
 namespace MonoGame.PortableUI.Demo
 {
@@ -11,6 +12,9 @@ namespace MonoGame.PortableUI.Demo
         private DemoThemePreset _themePreset;
 
         private DemoThemePalette Palette => _themePreset.Palette;
+        private Brush ScreenBackgroundBrush => Palette.BackgroundBrush ?? _themePreset.BackgroundColor;
+        private Brush SurfaceBrush => Palette.SurfaceBrush ?? Palette.Surface;
+        private Brush SurfaceAltBrush => Palette.SurfaceAltBrush ?? Palette.SurfaceAlt;
 
         public SecondScreen(DemoThemePreset themePreset, Action<DemoThemePreset> applyTheme)
         {
@@ -28,7 +32,7 @@ namespace MonoGame.PortableUI.Demo
         private void RebuildContent()
         {
             ScreenEngine.FocusedControl = null;
-            BackgroundBrush = _themePreset.BackgroundColor;
+            BackgroundBrush = ScreenBackgroundBrush;
             Content = CreateLayout();
         }
 
@@ -50,7 +54,7 @@ namespace MonoGame.PortableUI.Demo
             {
                 Orientation = Orientation.Vertical,
                 Margin = new Thickness(0, 18, 0, 0),
-                BackgroundBrush = Palette.Surface
+                BackgroundBrush = SurfaceBrush
             };
 
             panel.AddChild(new TextBlock
@@ -69,7 +73,7 @@ namespace MonoGame.PortableUI.Demo
                 Margin = new Thickness(12, 0, 12, 10)
             });
 
-            var back = CommandButton("Navigate back", Palette.SurfaceAlt, Palette.Text);
+            var back = CommandButton("Navigate back", SurfaceAltBrush, Palette.Text);
             back.Height = 48;
             back.Margin = new Thickness(12, 8, 12, 12);
             back.Click += (sender, args) =>
@@ -113,7 +117,7 @@ namespace MonoGame.PortableUI.Demo
             var combo = new ComboBox
             {
                 Height = 42,
-                BackgroundBrush = Palette.SurfaceAlt,
+                BackgroundBrush = SurfaceAltBrush,
                 TextColor = Palette.Text,
                 HoverTextColor = Palette.Text,
                 PressedTextColor = Palette.SelectionText,
@@ -138,7 +142,7 @@ namespace MonoGame.PortableUI.Demo
             return combo;
         }
 
-        private TextButton CommandButton(string text, Color background, Color foreground)
+        private TextButton CommandButton(string text, Brush background, Color foreground)
         {
             return new TextButton(text)
             {
