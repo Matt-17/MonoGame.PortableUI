@@ -28,5 +28,31 @@ namespace MonoGame.PortableUI.Tests
 
             Assert.AreEqual(GradientDirection.Horizontal, brush.Direction);
         }
+
+        [TestMethod]
+        public void Frosted_glass_brush_defaults_to_translucent_tint()
+        {
+            var brush = new FrostedGlassBrush();
+
+            Assert.IsTrue(brush.TintColor.A < byte.MaxValue);
+            Assert.IsTrue(brush.SheenColor.A < byte.MaxValue);
+            Assert.IsTrue(brush.BlurRadius > 0);
+            Assert.IsTrue(brush.GrainOpacity > 0);
+        }
+
+        [TestMethod]
+        public void Frosted_glass_brush_clamps_blur_and_grain()
+        {
+            var brush = new FrostedGlassBrush(Color.White, Color.White, -4, 2);
+
+            Assert.AreEqual(0f, brush.BlurRadius, 0.001f);
+            Assert.AreEqual(1f, brush.GrainOpacity, 0.001f);
+
+            brush.BlurRadius = 40;
+            brush.GrainOpacity = -0.5f;
+
+            Assert.AreEqual(24f, brush.BlurRadius, 0.001f);
+            Assert.AreEqual(0f, brush.GrainOpacity, 0.001f);
+        }
     }
 }

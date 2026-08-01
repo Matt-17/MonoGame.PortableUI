@@ -20,6 +20,7 @@ namespace MonoGame.PortableUI.Demo
         private Brush SurfaceAltBrush => Palette.SurfaceAltBrush ?? Palette.SurfaceAlt;
         private Brush SelectionBrush => Palette.SelectionBrush ?? Palette.Selection;
         private Brush FieldFrameBrush => Palette.FieldFrameBrush ?? Palette.FieldFrame;
+        private bool IsGlassTheme => string.Equals(_themePreset.Id, "glass", StringComparison.OrdinalIgnoreCase);
 
         public MainScreen(Texture2D deleteIcon, DemoThemePreset themePreset, Action<DemoThemePreset> applyTheme)
         {
@@ -129,9 +130,9 @@ namespace MonoGame.PortableUI.Demo
         {
             var tabs = new TabControl
             {
-                BackgroundBrush = SurfaceBrush,
+                BackgroundBrush = IsGlassTheme ? null : SurfaceBrush,
                 HeaderHeight = 38,
-                HeaderBackground = SurfaceBrush,
+                HeaderBackground = IsGlassTheme ? new SolidColorBrush(new Color(255, 255, 255, 26)) : SurfaceBrush,
                 SelectedHeaderBackground = SelectionBrush,
                 HeaderTextColor = Palette.TabText,
                 SelectedHeaderTextColor = Palette.SelectedTabText
@@ -142,6 +143,7 @@ namespace MonoGame.PortableUI.Demo
             tabs.Items.Add(new TabItem { Header = "Scroll", Content = CreateScrollTab() });
             tabs.Items.Add(new TabItem { Header = "Stress", Content = CreateStressTab() });
             tabs.SelectedIndex = 0;
+
             return tabs;
         }
 
@@ -459,12 +461,19 @@ namespace MonoGame.PortableUI.Demo
 
         private StackPanel PanelStack(string title)
         {
-            var panel = new StackPanel
-            {
-                Orientation = Orientation.Vertical,
-                Margin = new Thickness(0, 0, 12, 0),
-                BackgroundBrush = SurfaceBrush
-            };
+            var panel = IsGlassTheme
+                ? new GlassStackPanel
+                {
+                    BorderBrush = new SolidColorBrush(new Color(255, 255, 255, 116)),
+                    HighlightBrush = new SolidColorBrush(new Color(255, 255, 255, 150)),
+                    ShadowBrush = new SolidColorBrush(new Color(0, 0, 0, 72))
+                }
+                : new StackPanel();
+
+            panel.Orientation = Orientation.Vertical;
+            panel.Margin = new Thickness(0, 0, 12, 0);
+            panel.VerticalAlignment = IsGlassTheme ? VerticalAlignment.Top : VerticalAlignment.Stretch;
+            panel.BackgroundBrush = SurfaceBrush;
             panel.AddChild(Label(title, Palette.HeadingText, 17, new Thickness(12, 10, 12, 8)));
             return panel;
         }
@@ -480,7 +489,7 @@ namespace MonoGame.PortableUI.Demo
                 Margin = margin,
                 BackgroundBrush = FieldFrameBrush,
                 BorderColor = Palette.FieldBorder,
-                BorderWidth = new Thickness(1),
+                BorderWidth = new Thickness(IsGlassTheme ? 2 : 1),
                 Padding = new Thickness(2),
                 Content = textBox
             };

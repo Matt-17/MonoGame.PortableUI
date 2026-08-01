@@ -13,6 +13,7 @@ namespace MonoGame.PortableUI.Tests
     {
         private static readonly string[] ExpectedThemeIds =
         {
+            "glass",
             "c64",
             "gameboy",
             "dos",
@@ -85,6 +86,23 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void Glass_theme_uses_translucent_frosted_brushes()
+        {
+            var preset = DemoThemeRegistry.Resolve("glass");
+            var theme = preset.CreateTheme();
+
+            Assert.IsInstanceOfType(preset.Palette.BackgroundBrush, typeof(GlassBackdropBrush));
+            AssertFrosted(preset.Palette.SurfaceBrush);
+            AssertFrosted(preset.Palette.SurfaceAltBrush);
+            AssertFrosted(preset.Palette.FieldFrameBrush);
+            AssertFrosted(theme.ButtonBackgroundBrush);
+            AssertFrosted(theme.ButtonHoverBrush);
+            AssertFrosted(theme.ButtonPressedBrush);
+            AssertFrosted(theme.TextBoxBackgroundBrush);
+            Assert.IsTrue(((FrostedGlassBrush)preset.Palette.SurfaceBrush!).TintColor.A < byte.MaxValue);
+        }
+
+        [TestMethod]
         public void Aurora_theme_uses_gradient_brushes()
         {
             var preset = DemoThemeRegistry.Resolve("aurora");
@@ -120,6 +138,12 @@ namespace MonoGame.PortableUI.Tests
 
                 Assert.IsTrue(hasProfile, $"Missing launch profile for theme '{preset.Id}'.");
             }
+        }
+
+        private static void AssertFrosted(Brush? brush)
+        {
+            Assert.IsInstanceOfType(brush, typeof(FrostedGlassBrush));
+            Assert.IsTrue(((FrostedGlassBrush)brush!).BlurRadius > 0);
         }
 
         private static void AssertGradient(Brush? brush, GradientDirection direction)

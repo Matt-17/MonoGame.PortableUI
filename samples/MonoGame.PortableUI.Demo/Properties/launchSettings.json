@@ -1,6 +1,10 @@
 {
   "$schema": "https://json.schemastore.org/launchsettings.json",
   "profiles": {
+    "MonoGame.PortableUI.Demo - Frosted Glass": {
+      "commandName": "Project",
+      "commandLineArgs": "--theme glass"
+    },
     "MonoGame.PortableUI.Demo - C64": {
       "commandName": "Project",
       "commandLineArgs": "--theme c64"
