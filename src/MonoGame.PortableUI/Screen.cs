@@ -147,10 +147,13 @@ namespace MonoGame.PortableUI
             PrepareBackdrop(spriteBatch, engine);
 
             var postEffects = theme?.PostEffects;
+            // Island post-FX switches render targets mid-frame; the backbuffer discards its
+            // contents on re-bind, so when FX islands exist the whole UI must render into a
+            // PreserveContents target even without screen-level effects.
             var usePostFx = engine != null
-                && postEffects is { Count: > 0 }
-                && engine.PostProcess.CountEnabled(postEffects) > 0
-                && ScreenRect.Width > 0 && ScreenRect.Height > 0;
+                && ScreenRect.Width > 0 && ScreenRect.Height > 0
+                && (postEffects is { Count: > 0 } && engine.PostProcess.CountEnabled(postEffects) > 0
+                    || TreeHasPostFxIslands());
             RenderTargetBinding[]? previousTargets = null;
             RenderTarget2D? uiTarget = null;
             if (usePostFx)
@@ -190,7 +193,7 @@ namespace MonoGame.PortableUI
                     device.SetRenderTarget(null);
                 else
                     device.SetRenderTargets(previousTargets);
-                engine!.PostProcess.Compose(spriteBatch, uiTarget!, postEffects!, ScreenRect, engine.Backdrop);
+                engine!.PostProcess.Compose(spriteBatch, uiTarget!, postEffects ?? Array.Empty<PostEffect>(), ScreenRect, engine.Backdrop);
                 engine.RecordBatchFlush();
             }
 
@@ -220,6 +223,32 @@ namespace MonoGame.PortableUI
                 device.SetRenderTargets(previousTargets);
             BackdropSource.Set(device, blurred, ScreenRect);
             engine.RecordBatchFlush();
+        }
+
+        private bool TreeHasPostFxIslands()
+        {
+            var engine = ScreenEngine;
+            if (engine == null)
+                return false;
+
+            _visualTreeScratch.Clear();
+            VisualTreeHelper.AppendVisualTree(_mainGrid, _visualTreeScratch, false);
+            if (_flyOut != null)
+                VisualTreeHelper.AppendVisualTree(_flyOut, _visualTreeScratch, false);
+
+            var found = false;
+            foreach (var control in _visualTreeScratch)
+            {
+                if (control is ThemeIsland { IsVisible: true, Theme.PostEffects: { Count: > 0 } effects }
+                    && engine.PostProcess.CountEnabled(effects) > 0)
+                {
+                    found = true;
+                    break;
+                }
+            }
+
+            _visualTreeScratch.Clear();
+            return found;
         }
 
         private bool TreeRequiresBackdrop()

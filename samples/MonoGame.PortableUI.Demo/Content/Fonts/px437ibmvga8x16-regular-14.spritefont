@@ -1,10 +1,10 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <XnaContent xmlns:Graphics="Microsoft.Xna.Framework.Content.Pipeline.Graphics">
   <Asset Type="Graphics:FontDescription">
     <FontName>Px437_IBM_VGA_8x16.ttf</FontName>
     <Size>14</Size>
     <Spacing>0</Spacing>
-    <UseKerning>false</UseKerning>
+    <UseKerning>true</UseKerning>
     <Style>Regular</Style>
     <DefaultCharacter>?</DefaultCharacter>
     <CharacterRegions>
@@ -15,3 +15,4 @@
     </CharacterRegions>
   </Asset>
 </XnaContent>
+
