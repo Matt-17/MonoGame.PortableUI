@@ -41,6 +41,9 @@ namespace MonoGame.PortableUI.Controls
                 {
                     Text = item.Text,
                     Height = optimizeForTouch ? 40 : 28,
+                    Shadow = null,
+                    Margin = new Thickness(0),
+                    UseThemeStyle = false
                 };
                 if (!optimizeForTouch)
                     button.TextAlignment = TextAlignment.Left;

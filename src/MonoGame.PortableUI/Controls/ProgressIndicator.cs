@@ -22,6 +22,16 @@ namespace MonoGame.PortableUI.Controls
             MaxSize = 12;
         }
 
+        protected override void OnThemeChanged(PortableTheme oldTheme, PortableTheme newTheme)
+        {
+            base.OnThemeChanged(oldTheme, newTheme);
+
+            if (Foreground.Equals(oldTheme.ProgressIndicatorForeground))
+                Foreground = newTheme.ProgressIndicatorForeground;
+            if (Height.Equals(oldTheme.ProgressIndicatorHeight))
+                Height = newTheme.ProgressIndicatorHeight;
+        }
+
         public int MinSize { get; set; }
         public int MaxSize { get; set; }
         public override Size MeasureLayout()

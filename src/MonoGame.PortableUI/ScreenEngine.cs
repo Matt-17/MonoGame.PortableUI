@@ -4,6 +4,7 @@ using Microsoft.Xna.Framework;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
 using MonoGame.PortableUI.Controls.Events;
+using MonoGame.PortableUI.Effects;
 
 namespace MonoGame.PortableUI
 {
@@ -24,6 +25,7 @@ namespace MonoGame.PortableUI
             Component = new ScreenComponent(this, game);
             _keyboards = new Dictionary<string, IKeyboard>();
             ScaleFactor = 1;
+            game.Window.TextInput += GameWindowTextInput;
             if (!game.Components.Contains(Component) && options.AddComponentToGame)
                 game.Components.Add(Component);
         }
@@ -48,6 +50,23 @@ namespace MonoGame.PortableUI
         public Rect ScreenRect { get; set; }
 
         internal ScreenComponent Component { get; }
+
+        private BackdropManager? _backdrop;
+        private PostProcessManager? _postProcess;
+
+        /// <summary>Backdrop-blur pipeline shared by all screens of this engine (created on first use).</summary>
+        public BackdropManager Backdrop => _backdrop ??= new BackdropManager(Game.GraphicsDevice);
+
+        /// <summary>Post-process chain runner shared by all screens of this engine (created on first use).</summary>
+        public PostProcessManager PostProcess => _postProcess ??= new PostProcessManager(Game.GraphicsDevice);
+
+        public bool DebugOverlayEnabled { get; private set; }
+
+        public double FramesPerSecond { get; private set; }
+
+        public int BatchFlushesThisFrame { get; private set; }
+
+        public int LayoutPassesThisFrame { get; private set; }
 
         public static DrawableGameComponent ScreenComponent
         {
@@ -75,6 +94,11 @@ namespace MonoGame.PortableUI
         {
             Instance = new ScreenEngine(game, options ?? new ScreenEngineOptions());
             return Instance;
+        }
+
+        public static ScreenEngine CreateSurfaceEngine(Game game, ScreenEngineOptions options)
+        {
+            return new ScreenEngine(game, options ?? new ScreenEngineOptions());
         }
 
         public void RegisterKeyboard(IKeyboard keyboard, string? inputScope = "default")
@@ -151,7 +175,30 @@ namespace MonoGame.PortableUI
         public void Update(GameTime gameTime)
         {
             ScreenSystem.TotalTime = gameTime.TotalGameTime;
+            BatchFlushesThisFrame = 0;
+            LayoutPassesThisFrame = 0;
+            FramesPerSecond = gameTime.ElapsedGameTime.TotalSeconds > 0 ? 1 / gameTime.ElapsedGameTime.TotalSeconds : 0;
             ActiveScreen?.Update();
+        }
+
+        public void ToggleDebugOverlay()
+        {
+            DebugOverlayEnabled = !DebugOverlayEnabled;
+        }
+
+        internal void RecordBatchFlush()
+        {
+            BatchFlushesThisFrame++;
+        }
+
+        internal void RecordLayoutPass()
+        {
+            LayoutPassesThisFrame++;
+        }
+
+        private void GameWindowTextInput(object? sender, TextInputEventArgs args)
+        {
+            ActiveScreen?.HandleTextInput(args.Character);
         }
     }
 }

@@ -6,7 +6,7 @@ namespace MonoGame.PortableUI.Controls
 {
     public abstract class FrameworkElement
     {
-        public Brush? BackgroundBrush { get; set; }
+        public virtual Brush? BackgroundBrush { get; set; }
         public abstract FrameworkElement? Parent { get; internal set; }
 
         public abstract void InvalidateLayout(bool boundsChanged);

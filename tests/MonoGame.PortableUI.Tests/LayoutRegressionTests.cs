@@ -102,12 +102,44 @@ namespace MonoGame.PortableUI.Tests
 
             grid.UpdateLayout(new Rect(0, 0, 1000, 300));
 
-            Assert.AreEqual(640, auto.BoundingRect.Width);
-            Assert.AreEqual(100, star.BoundingRect.Width);
+            // Spans that include a star track leave the auto tracks alone — the star column
+            // absorbs the leftover space, so the auto column stays at its own content width.
+            Assert.AreEqual(120, auto.BoundingRect.Width);
+            Assert.AreEqual(620, star.BoundingRect.Width);
             Assert.AreEqual(260, fixedSize.BoundingRect.Width);
             Assert.AreEqual(42, auto.BoundingRect.Height);
             Assert.AreEqual(218, spanningPreview.BoundingRect.Height);
             Assert.AreEqual(40, spanningFooter.BoundingRect.Height);
+        }
+
+        [TestMethod]
+        public void Grid_auto_track_keeps_content_width_when_wide_child_spans_star_track()
+        {
+            // Regression: the demo Layout tab (Auto | star | 260) inflated the Auto column to
+            // nearly twice its content width because a wide colSpan=3 preview dumped its
+            // measure deficit into the Auto track.
+            var grid = new Grid
+            {
+                RowDefinitions =
+                {
+                    new RowDefinition { Height = GridLength.Auto },
+                    new RowDefinition()
+                },
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition { Width = GridLength.Auto },
+                    new ColumnDefinition(),
+                    new ColumnDefinition { Width = new GridLength(260) }
+                }
+            };
+            var tile = new FixedSizeControl(new Size(148, 60));
+            var widePreview = new FixedSizeControl(new Size(700, 80));
+            grid.AddChild(tile);
+            grid.AddChild(widePreview, row: 1, columnSpan: 3);
+
+            grid.UpdateLayout(new Rect(0, 0, 900, 400));
+
+            Assert.AreEqual(148, tile.BoundingRect.Width);
         }
 
         [TestMethod]
@@ -166,6 +198,33 @@ namespace MonoGame.PortableUI.Tests
             Assert.AreEqual(60, second.BoundingRect.Height);
             Assert.AreEqual(50, fixedRow.BoundingRect.Height);
             Assert.AreEqual(120, spanning.BoundingRect.Height);
+        }
+
+        [TestMethod]
+        public void Grid_reuses_track_measurements_within_layout_pass()
+        {
+            var grid = new Grid
+            {
+                RowDefinitions =
+                {
+                    new RowDefinition { Height = GridLength.Auto },
+                    new RowDefinition { Height = GridLength.Auto }
+                },
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition { Width = GridLength.Auto },
+                    new ColumnDefinition { Width = GridLength.Auto }
+                }
+            };
+            var single = new CountingFixedSizeControl(new Size(50, 20));
+            var spanning = new CountingFixedSizeControl(new Size(120, 80));
+            grid.AddChild(single);
+            grid.AddChild(spanning, rowSpan: 2, columnSpan: 2);
+
+            grid.UpdateLayout(new Rect(0, 0, 200, 120));
+
+            Assert.AreEqual(2, single.MeasureCount);
+            Assert.AreEqual(2, spanning.MeasureCount);
         }
 
         [TestMethod]
@@ -260,6 +319,24 @@ namespace MonoGame.PortableUI.Tests
 
             public override Size MeasureLayout()
             {
+                return _size;
+            }
+        }
+
+        private sealed class CountingFixedSizeControl : Control
+        {
+            private readonly Size _size;
+
+            public CountingFixedSizeControl(Size size)
+            {
+                _size = size;
+            }
+
+            public int MeasureCount { get; private set; }
+
+            public override Size MeasureLayout()
+            {
+                MeasureCount++;
                 return _size;
             }
         }

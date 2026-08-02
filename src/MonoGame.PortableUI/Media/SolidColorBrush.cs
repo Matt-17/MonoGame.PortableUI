@@ -38,12 +38,17 @@ namespace MonoGame.PortableUI.Media
 
         public override void Draw(SpriteBatch spriteBatch, Rect rect)
         {
-            spriteBatch.Draw(Pixel, rect, Color);
+            spriteBatch.Draw(Pixel, rect, Premultiply(Color));
         }
 
         public override void Draw(SpriteBatch spriteBatch, Rect rect, float opacity)
         {
             spriteBatch.Draw(Pixel, rect, ApplyOpacity(Color, opacity));
+        }
+
+        public override void Draw(SpriteBatch spriteBatch, in BrushContext context)
+        {
+            RoundedRectRenderer.DrawSolid(spriteBatch, context.Rect, context.Radius, ApplyOpacity(Color, context.Opacity));
         }
     }
 }

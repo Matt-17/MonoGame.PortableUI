@@ -1,11 +1,11 @@
 using Microsoft.Xna.Framework;
 using MonoGame.PortableUI.Media;
 
-namespace MonoGame.PortableUI.Demo
+namespace MonoGame.PortableUI
 {
-    public sealed class DemoThemePalette
+    public sealed class ThemePalette
     {
-        public static DemoThemePalette Empty { get; } = new DemoThemePalette();
+        public static ThemePalette Empty { get; } = new ThemePalette();
 
         public Color Background { get; init; }
         public Color Surface { get; init; }

@@ -6,34 +6,28 @@ namespace MonoGame.PortableUI.Controls
 {
     public static class VisualTreeHelper
     {
-        internal static IEnumerable<Control> GetVisualTreeAsList(Control content, bool addTreeWhichIsGone = true)
+        internal static List<Control> GetVisualTreeAsList(Control content, bool addTreeWhichIsGone = true)
         {
-            var stack = new Stack<VisualTreeFrame>();
-            stack.Push(new VisualTreeFrame(content, false));
-
-            while (stack.Count > 0)
-            {
-                var frame = stack.Pop();
-                var control = frame.Control;
-                if (control.IsGone && !addTreeWhichIsGone)
-                    continue;
-
-                if (frame.IsExpanded)
-                {
-                    yield return control;
-                    continue;
-                }
-
-                stack.Push(new VisualTreeFrame(control, true));
-                var descendants = new List<Control>(control.GetDescendants());
-                for (var i = descendants.Count - 1; i >= 0; i--)
-                    stack.Push(new VisualTreeFrame(descendants[i], false));
-            }
+            var result = new List<Control>();
+            AppendVisualTree(content, result, addTreeWhichIsGone);
+            return result;
         }
 
+        internal static void AppendVisualTree(Control content, IList<Control> result, bool addTreeWhichIsGone = true)
+        {
+            if (content.IsGone && !addTreeWhichIsGone)
+                return;
+
+            foreach (var descendant in content.GetDescendants())
+                AppendVisualTree(descendant, result, addTreeWhichIsGone);
+
+            result.Add(content);
+        }
+
+        /// <summary>Input-routing walk: skips subtrees that are gone, invisible, disabled or hit-test invisible.</summary>
         internal static void IterateVisualTree<T>(Control control, T args, Func<Control, T, bool> actionFunc, Action<Control, T> action, Func<Control, T, bool>? treeFunc) where T : BaseEventArgs
         {
-            if (control.IsGone || !control.IsVisible || !control.IsEnabled)
+            if (control.IsGone || !control.IsVisible || !control.IsEnabled || !control.IsHitTestVisible)
                 return;
             var actionAppliesToControl = actionFunc(control, args);
             var goIntoTree = treeFunc?.Invoke(control, args) ?? actionAppliesToControl;
@@ -55,17 +49,5 @@ namespace MonoGame.PortableUI.Controls
                 action(control, args);
         }
 
-        private readonly struct VisualTreeFrame
-        {
-            public VisualTreeFrame(Control control, bool isExpanded)
-            {
-                Control = control;
-                IsExpanded = isExpanded;
-            }
-
-            public Control Control { get; }
-
-            public bool IsExpanded { get; }
-        }
     }
 }

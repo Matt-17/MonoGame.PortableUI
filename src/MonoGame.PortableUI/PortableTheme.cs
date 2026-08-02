@@ -1,5 +1,8 @@
+using System;
+using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using MonoGame.PortableUI.Common;
+using MonoGame.PortableUI.Controls;
 using MonoGame.PortableUI.Media;
 
 namespace MonoGame.PortableUI
@@ -20,13 +23,42 @@ namespace MonoGame.PortableUI
 
         public Color TextColor { get; set; } = Color.Black;
         public int TextSize { get; set; } = 14;
+        public bool PixelSnapping { get; set; } = true;
+        public ThemePalette Palette { get; set; } = ThemePalette.Empty;
+        public Typography Typography { get; set; } = new Typography();
+        public ThemeMetrics Metrics { get; set; } = new ThemeMetrics();
+        public ControlStyle Button { get; set; } = new ControlStyle();
+        public ControlStyle TextBox { get; set; } = new ControlStyle();
+        public ControlStyle CheckBox { get; set; } = new ControlStyle();
+        public ControlStyle RadioButton { get; set; } = new ControlStyle();
+        public ControlStyle ToggleButton { get; set; } = new ControlStyle();
+        public ControlStyle ComboBox { get; set; } = new ControlStyle();
+        public ControlStyle ListBox { get; set; } = new ControlStyle();
+        public ControlStyle ListBoxItem { get; set; } = new ControlStyle();
+        public ControlStyle Tab { get; set; } = new ControlStyle();
+        public ControlStyle ToolTip { get; set; } = new ControlStyle();
+        public ControlStyle ContextMenu { get; set; } = new ControlStyle();
+        public ControlStyle ScrollBar { get; set; } = new ControlStyle();
+        public ControlStyle Slider { get; set; } = new ControlStyle();
+        public ControlStyle ProgressBar { get; set; } = new ControlStyle();
+        public ControlStyle Panel { get; set; } = new ControlStyle();
+        public IReadOnlyList<PostEffect> PostEffects { get; set; } = Array.Empty<PostEffect>();
+
+        /// <summary>Drop shadow applied to buttons; null = no shadow.</summary>
+        public ShadowStyle? ButtonShadow { get; set; }
+
+        /// <summary>Drop shadow apps/screens should apply to elevated panels; null = no shadow.</summary>
+        public ShadowStyle? PanelShadow { get; set; }
 
         public Brush? FocusBorderBrush { get; set; } = new SolidColorBrush(new Color(20, 126, 133));
         public float FocusBorderWidth { get; set; } = 2;
+        public FocusVisualKind FocusVisualKind { get; set; } = FocusVisualKind.Rectangle;
         public Brush? DisabledOverlayBrush { get; set; } = new SolidColorBrush(new Color(210, 216, 222, 145));
         public Color? DisabledTextColor { get; set; } = Color.Gray;
 
         public Thickness ButtonPadding { get; set; } = new Thickness(8);
+        /// <summary>Optional default outer margin for buttons — gives drop shadows breathing room.</summary>
+        public Thickness? ButtonMargin { get; set; }
         public Brush? ButtonBackgroundBrush { get; set; } = new SolidColorBrush(Color.White);
         public Brush ButtonHoverBrush { get; set; } = new SolidColorBrush(new Color(0, 0, 0, 0.2f));
         public Brush ButtonPressedBrush { get; set; } = new SolidColorBrush(new Color(0, 0, 0, 0.4f));
@@ -62,6 +94,8 @@ namespace MonoGame.PortableUI
         public float ComboBoxHeight { get; set; } = 32;
         public float ComboBoxDropDownMaxHeight { get; set; } = 160;
         public Brush ComboBoxDropDownBackgroundBrush { get; set; } = new SolidColorBrush(Color.White);
+        /// <summary>Color of the dropdown triangle at the right edge of the ComboBox; null uses the button text color.</summary>
+        public Color? ComboBoxGlyphColor { get; set; }
 
         public Brush ListBoxBackgroundBrush { get; set; } = new SolidColorBrush(Color.White);
         public float ListBoxItemHeight { get; set; } = 28;
@@ -77,7 +111,11 @@ namespace MonoGame.PortableUI
         public Brush? CheckBoxBoxBackgroundBrush { get; set; } = new SolidColorBrush(Color.White);
         public Brush? CheckBoxBoxBorderBrush { get; set; } = new SolidColorBrush(new Color(82, 101, 111));
         public Brush? CheckBoxCheckMarkBrush { get; set; } = new SolidColorBrush(new Color(20, 126, 133));
+        public CheckBoxGlyphKind CheckBoxGlyphKind { get; set; } = CheckBoxGlyphKind.Cross;
         public Color CheckBoxTextColor { get; set; } = Color.Black;
+
+        public Brush? RadioButtonDotBrush { get; set; } = new SolidColorBrush(new Color(20, 126, 133));
+        public float RadioButtonDotSize { get; set; } = 8;
 
         public Brush? ToolTipBackgroundBrush { get; set; } = new SolidColorBrush(new Color(31, 35, 39, 238));
         public Brush? ToolTipBorderBrush { get; set; } = new SolidColorBrush(new Color(255, 255, 255, 90));
@@ -87,5 +125,19 @@ namespace MonoGame.PortableUI
 
         public Color ProgressIndicatorForeground { get; set; } = Color.DarkBlue;
         public float ProgressIndicatorHeight { get; set; } = 48;
+
+        public float SliderHeight { get; set; } = 32;
+        public float SliderWidth { get; set; } = 160;
+        public float SliderTrackHeight { get; set; } = 4;
+        public float SliderThumbSize { get; set; } = 18;
+        public Brush SliderTrackBrush { get; set; } = new SolidColorBrush(new Color(210, 216, 222));
+        public Brush SliderFillBrush { get; set; } = new SolidColorBrush(new Color(20, 126, 133));
+        public Brush SliderThumbBrush { get; set; } = new SolidColorBrush(Color.White);
+        public Brush SliderThumbBorderBrush { get; set; } = new SolidColorBrush(new Color(82, 101, 111));
+
+        public float ProgressBarHeight { get; set; } = 18;
+        public float ProgressBarWidth { get; set; } = 160;
+        public Brush ProgressBarBackgroundBrush { get; set; } = new SolidColorBrush(new Color(225, 230, 235));
+        public Brush ProgressBarFillBrush { get; set; } = new SolidColorBrush(new Color(20, 126, 133));
     }
 }

@@ -32,6 +32,62 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void Gradient_brush_texture_cache_key_tracks_parameters()
+        {
+            var brush = new GradientBrush(Color.Red, Color.Blue, GradientDirection.DiagonalUp);
+            var equivalent = new GradientBrush(Color.Red, Color.Blue, GradientDirection.DiagonalUp);
+            var different = new GradientBrush(Color.Red, Color.Green, GradientDirection.DiagonalUp);
+
+            Assert.AreEqual(brush.CreateTextureCacheKey(), equivalent.CreateTextureCacheKey());
+            Assert.AreNotEqual(brush.CreateTextureCacheKey(), different.CreateTextureCacheKey());
+        }
+
+        [TestMethod]
+        public void Linear_gradient_brush_v2_supports_multi_stop_angle_cache_keys()
+        {
+            var brush = new LinearGradientBrush(
+                new GradientStop(0, Color.Red),
+                new GradientStop(0.5f, Color.Green),
+                new GradientStop(1, Color.Blue))
+            {
+                AngleDegrees = 32
+            };
+            var equivalent = new LinearGradientBrush(
+                new GradientStop(1, Color.Blue),
+                new GradientStop(0, Color.Red),
+                new GradientStop(0.5f, Color.Green))
+            {
+                AngleDegrees = 32
+            };
+            var different = new LinearGradientBrush(new GradientStop(0, Color.Red), new GradientStop(1, Color.Blue))
+            {
+                AngleDegrees = 90
+            };
+
+            Assert.AreEqual(brush.CreateTextureCacheKey(120, 30), equivalent.CreateTextureCacheKey(120, 30));
+            Assert.AreNotEqual(brush.CreateTextureCacheKey(120, 30), different.CreateTextureCacheKey(120, 30));
+        }
+
+        [TestMethod]
+        public void Radial_gradient_brush_tracks_center_radius_and_stops()
+        {
+            var brush = new RadialGradientBrush(new GradientStop(0, Color.White), new GradientStop(1, Color.Black))
+            {
+                Center = new PointF(0.25f, 0.75f),
+                RadiusX = 0.4f,
+                RadiusY = 0.6f
+            };
+            var different = new RadialGradientBrush(new GradientStop(0, Color.White), new GradientStop(1, Color.Black))
+            {
+                Center = new PointF(0.5f, 0.75f),
+                RadiusX = 0.4f,
+                RadiusY = 0.6f
+            };
+
+            Assert.AreNotEqual(brush.CreateTextureCacheKey(), different.CreateTextureCacheKey());
+        }
+
+        [TestMethod]
         public void Frosted_glass_brush_defaults_to_translucent_tint()
         {
             var brush = new FrostedGlassBrush();
@@ -49,12 +105,39 @@ namespace MonoGame.PortableUI.Tests
 
             Assert.AreEqual(0f, brush.BlurRadius, 0.001f);
             Assert.AreEqual(1f, brush.GrainOpacity, 0.001f);
+            Assert.IsFalse(brush.RequiresBackdrop);
 
             brush.BlurRadius = 40;
             brush.GrainOpacity = -0.5f;
 
             Assert.AreEqual(24f, brush.BlurRadius, 0.001f);
             Assert.AreEqual(0f, brush.GrainOpacity, 0.001f);
+            Assert.IsTrue(brush.RequiresBackdrop);
+        }
+
+        [TestMethod]
+        public void Acrylic_and_liquid_glass_expose_backdrop_material_settings()
+        {
+            var acrylic = new AcrylicBrush();
+            var liquid = new LiquidGlassBrush();
+
+            Assert.IsTrue(acrylic.RequiresBackdrop);
+            Assert.IsTrue(liquid.RequiresBackdrop);
+            Assert.IsTrue(liquid.EdgeRefractionStrength > 0);
+            Assert.IsTrue(liquid.SpecularSweepStrength > 0);
+            Assert.AreEqual(CornerStyle.Squircle, liquid.CornerStyle);
+            Assert.IsTrue(liquid.SaturationBoost > acrylic.SaturationBoost);
+        }
+
+        [TestMethod]
+        public void Frosted_glass_texture_cache_key_tracks_generated_texture_parameters()
+        {
+            var brush = new FrostedGlassBrush(Color.Red, Color.White, 8, 0.2f);
+            var sameTexture = new FrostedGlassBrush(Color.Blue, Color.White, 8, 0.2f);
+            var differentTexture = new FrostedGlassBrush(Color.Red, Color.Yellow, 8, 0.2f);
+
+            Assert.AreEqual(brush.CreateTextureCacheKey(), sameTexture.CreateTextureCacheKey());
+            Assert.AreNotEqual(brush.CreateTextureCacheKey(), differentTexture.CreateTextureCacheKey());
         }
 
         [TestMethod]
@@ -139,11 +222,82 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
-        public void Brush_opacity_multiplies_alpha()
+        public void Image_brush_uses_stretch_math_for_background_images()
+        {
+            var brush = new ImageBrush { Stretch = Stretch.Uniform };
+
+            AssertRect(new Rect(50, 0, 100, 100), brush.GetStretchedRect(new Rect(0, 0, 200, 100), 100, 100));
+
+            brush.Stretch = Stretch.UniformToFill;
+
+            AssertRect(new Rect(0, -50, 200, 200), brush.GetStretchedRect(new Rect(0, 0, 200, 100), 100, 100));
+
+            brush.Stretch = Stretch.None;
+
+            AssertRect(new Rect(50, 25, 100, 50), brush.GetStretchedRect(new Rect(0, 0, 200, 100), 100, 50));
+        }
+
+        [TestMethod]
+        public void Brush_opacity_multiplies_alpha_and_premultiplies()
         {
             var color = Brush.ApplyOpacity(new Color(10, 20, 30, 200), 0.5f);
 
-            Assert.AreEqual(new Color(10, 20, 30, 100), color);
+            // SpriteBatch's default AlphaBlend expects premultiplied colors.
+            Assert.AreEqual(Color.FromNonPremultiplied(10, 20, 30, 100), color);
+            Assert.AreEqual(100, color.A);
+        }
+
+        [TestMethod]
+        public void Rounded_rect_fallback_creates_body_and_side_fill_rects()
+        {
+            var rects = RoundedRectRenderer.GetFillRects(new Rect(0, 0, 100, 40), new CornerRadius(8, 12, 6, 4)).ToArray();
+
+            Assert.AreEqual(3, rects.Length);
+            AssertRect(new Rect(8, 0, 80, 40), rects[0]);
+            AssertRect(new Rect(0, 12, 8, 22), rects[1]);
+            AssertRect(new Rect(88, 12, 12, 22), rects[2]);
+        }
+
+        [TestMethod]
+        public void Shadow_renderer_creates_single_hard_shadow_when_blur_is_zero()
+        {
+            var shadow = new ShadowStyle
+            {
+                Color = new Color(0, 0, 0, 120),
+                Offset = new Vector2(3, 4),
+                Blur = 0,
+                Spread = 2
+            };
+
+            var layers = ShadowRenderer.GetShadowLayers(new Rect(10, 20, 30, 40), shadow).ToArray();
+
+            Assert.AreEqual(1, layers.Length);
+            Assert.AreEqual(new Rect(11, 22, 34, 44), layers[0].Rect);
+            Assert.AreEqual(new Color(0, 0, 0, 120), layers[0].Color);
+        }
+
+        [TestMethod]
+        public void Shadow_renderer_layers_soft_shadow_and_supports_inset_geometry()
+        {
+            var shadow = new ShadowStyle
+            {
+                Color = new Color(0, 0, 0, 120),
+                Blur = 6,
+                Spread = 1
+            };
+
+            var layers = ShadowRenderer.GetShadowLayers(new Rect(0, 0, 20, 20), shadow).ToArray();
+
+            Assert.IsTrue(layers.Length > 1);
+            Assert.IsTrue(layers[0].Color.A > layers[^1].Color.A);
+
+            shadow.Inset = true;
+            shadow.Blur = 0;
+            shadow.Spread = 2;
+
+            var inset = ShadowRenderer.GetShadowLayers(new Rect(0, 0, 20, 20), shadow).Single();
+
+            Assert.AreEqual(new Rect(2, 2, 16, 16), inset.Rect);
         }
 
         private static void AssertRect(Rect expected, Rect actual)

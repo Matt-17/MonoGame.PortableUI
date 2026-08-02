@@ -16,16 +16,16 @@ namespace MonoGame.PortableUI.Controls
             if (Orientation == Orientation.Vertical)
             {
                 if (!Width.IsFixed())
-                    size.Width += Children.Count > 0 ? Children.Max(child => child.MeasureLayout().Width) : 0;
+                    size.Width += (Children.Count > 0 ? Children.Max(child => child.MeasureLayout().Width) : 0) + Padding.Horizontal;
                 if (!Height.IsFixed())
-                    size.Height += Children.Sum(child => child.MeasureLayout().Height);
+                    size.Height += Children.Sum(child => child.MeasureLayout().Height) + Padding.Vertical;
             }
             else
             {
                 if (!Width.IsFixed())
-                    size.Width += Children.Sum(child => child.MeasureLayout().Width);
+                    size.Width += Children.Sum(child => child.MeasureLayout().Width) + Padding.Horizontal;
                 if (!Height.IsFixed())
-                    size.Height += Children.Count > 0 ? Children.Max(child => child.MeasureLayout().Height) : 0;
+                    size.Height += (Children.Count > 0 ? Children.Max(child => child.MeasureLayout().Height) : 0) + Padding.Vertical;
             }
 
             return ApplyConstraints(size);
@@ -34,7 +34,7 @@ namespace MonoGame.PortableUI.Controls
         public override void UpdateLayout(Rect rect)
         {
             base.UpdateLayout(rect);
-            var contentRect = BoundingRect - Margin;
+            var contentRect = BoundingRect - Margin - Padding;
 
             if (Orientation == Orientation.Vertical)
                 contentRect.Height = Size.Infinity;

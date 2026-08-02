@@ -6,9 +6,13 @@ using MonoGame.PortableUI.Controls.Events;
 
 namespace MonoGame.PortableUI.Controls
 {
+    public delegate Control? ControlTemplate(ContentControl owner);
+
     public abstract class ContentControl : Control
     {
         private Control? _content;
+        private Control? _templateRoot;
+        private ControlTemplate? _template;
 
         public event ContentChangedEventHandler? ContentChanged;
 
@@ -25,17 +29,32 @@ namespace MonoGame.PortableUI.Controls
                 if (_content != null)
                     _content.Parent = null;
 
-                if (value != null)
+                if (value != null && Template == null)
                     value.Parent = this;
                 _content = value;
+                RebuildTemplateRoot();
                 OnContentChanged(value);
+            }
+        }
+
+        public ControlTemplate? Template
+        {
+            get { return _template; }
+            set
+            {
+                if (_template == value)
+                    return;
+
+                _template = value;
+                RebuildTemplateRoot();
+                InvalidateLayout(true);
             }
         }
 
         public override void UpdateLayout(Rect rect)
         {
             base.UpdateLayout(rect);
-            Content?.UpdateLayout(BoundingRect - Margin - Padding);
+            VisualChild?.UpdateLayout(BoundingRect - Margin - Padding);
         }
 
         public override Size MeasureLayout()
@@ -47,7 +66,7 @@ namespace MonoGame.PortableUI.Controls
 
             size -= Margin;
             size += Padding;
-            size += Content?.MeasureLayout() ?? Size.Empty;
+            size += VisualChild?.MeasureLayout() ?? Size.Empty;
 
             if (Height.IsFixed())
                 size.Height = Height;
@@ -60,8 +79,33 @@ namespace MonoGame.PortableUI.Controls
         public Thickness Padding { get; set; }
         public override IEnumerable<Control> GetDescendants()
         {
-            if (Content != null)
-                yield return Content;
+            if (VisualChild != null)
+                yield return VisualChild;
+        }
+
+        protected Control? VisualChild => _templateRoot ?? _content;
+
+        private void RebuildTemplateRoot()
+        {
+            if (_templateRoot != null)
+            {
+                _templateRoot.Parent = null;
+                _templateRoot = null;
+            }
+
+            if (_template == null)
+            {
+                if (_content != null)
+                    _content.Parent = this;
+                return;
+            }
+
+            if (_content != null)
+                _content.Parent = null;
+
+            _templateRoot = _template(this);
+            if (_templateRoot != null)
+                _templateRoot.Parent = this;
         }
     }
 }

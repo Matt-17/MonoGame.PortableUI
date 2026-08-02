@@ -15,11 +15,13 @@ namespace MonoGame.PortableUI.Tests
         {
             var button = new Button();
             AssertThickness(new Thickness(8), button.Padding);
+            Assert.IsTrue(button.SnapToPixel);
             AssertSolidColor(button.BackgroundBrush, Color.White);
             AssertSolidColor(button.HoverColor, new Color(0, 0, 0, 0.2f));
             AssertSolidColor(button.PressedColor, new Color(0, 0, 0, 0.4f));
             Assert.AreEqual(Color.Black, button.TextColor);
             Assert.AreEqual(Color.Gray, button.DisabledTextColor);
+            Assert.AreEqual(FocusVisualKind.Rectangle, button.FocusVisualKind);
 
             var text = new TextBlock();
             Assert.AreEqual(Color.Black, text.TextColor);
@@ -54,6 +56,30 @@ namespace MonoGame.PortableUI.Tests
             var progress = new ProgressIndicator();
             Assert.AreEqual(Color.DarkBlue, progress.Foreground);
             Assert.AreEqual(48, progress.Height);
+
+            var checkBox = new CheckBox();
+            AssertSolidColor(checkBox.CheckMarkBrush, new Color(20, 126, 133));
+            Assert.AreEqual(CheckBoxGlyphKind.Cross, checkBox.GlyphKind);
+
+            var radioButton = new RadioButton();
+            AssertSolidColor(radioButton.DotBrush, new Color(20, 126, 133));
+            Assert.AreEqual(8, radioButton.DotSize);
+
+            var slider = new Slider();
+            Assert.AreEqual(32, slider.Height);
+            Assert.AreEqual(160, slider.Width);
+            Assert.AreEqual(4, slider.TrackHeight);
+            Assert.AreEqual(18, slider.ThumbSize);
+            AssertSolidColor(slider.TrackBrush, new Color(210, 216, 222));
+            AssertSolidColor(slider.FillBrush, new Color(20, 126, 133));
+            AssertSolidColor(slider.ThumbBrush, Color.White);
+            AssertSolidColor(slider.ThumbBorderBrush, new Color(82, 101, 111));
+
+            var progressBar = new ProgressBar();
+            Assert.AreEqual(18, progressBar.Height);
+            Assert.AreEqual(160, progressBar.Width);
+            AssertSolidColor(progressBar.BackgroundBrush, new Color(225, 230, 235));
+            AssertSolidColor(progressBar.FillBrush, new Color(20, 126, 133));
         }
 
         [TestMethod]
@@ -61,7 +87,9 @@ namespace MonoGame.PortableUI.Tests
         {
             var theme = PortableTheme.CreateDefault();
             theme.FocusBorderBrush = new SolidColorBrush(new Color(1, 2, 3));
+            theme.PixelSnapping = false;
             theme.FocusBorderWidth = 5;
+            theme.FocusVisualKind = FocusVisualKind.Dotted;
             theme.DisabledOverlayBrush = new SolidColorBrush(new Color(4, 5, 6, 120));
             theme.DisabledTextColor = new Color(7, 8, 9);
             theme.ButtonPadding = new Thickness(1, 2, 3, 4);
@@ -100,7 +128,10 @@ namespace MonoGame.PortableUI.Tests
             theme.CheckBoxBoxBackgroundBrush = new SolidColorBrush(new Color(61, 62, 63));
             theme.CheckBoxBoxBorderBrush = new SolidColorBrush(new Color(64, 65, 66));
             theme.CheckBoxCheckMarkBrush = new SolidColorBrush(new Color(67, 68, 69));
+            theme.CheckBoxGlyphKind = CheckBoxGlyphKind.Check;
             theme.CheckBoxTextColor = new Color(70, 71, 72);
+            theme.RadioButtonDotBrush = new SolidColorBrush(new Color(71, 72, 73));
+            theme.RadioButtonDotSize = 11;
             theme.ToolTipBackgroundBrush = new SolidColorBrush(new Color(73, 74, 75));
             theme.ToolTipBorderBrush = new SolidColorBrush(new Color(76, 77, 78));
             theme.ToolTipBorderWidth = new Thickness(2);
@@ -108,6 +139,18 @@ namespace MonoGame.PortableUI.Tests
             theme.ToolTipTextColor = new Color(79, 80, 81);
             theme.ProgressIndicatorForeground = new Color(82, 83, 84);
             theme.ProgressIndicatorHeight = 64;
+            theme.SliderHeight = 28;
+            theme.SliderWidth = 220;
+            theme.SliderTrackHeight = 6;
+            theme.SliderThumbSize = 16;
+            theme.SliderTrackBrush = new SolidColorBrush(new Color(89, 90, 91));
+            theme.SliderFillBrush = new SolidColorBrush(new Color(92, 93, 94));
+            theme.SliderThumbBrush = new SolidColorBrush(new Color(95, 96, 97));
+            theme.SliderThumbBorderBrush = new SolidColorBrush(new Color(98, 99, 100));
+            theme.ProgressBarHeight = 24;
+            theme.ProgressBarWidth = 180;
+            theme.ProgressBarBackgroundBrush = new SolidColorBrush(new Color(101, 102, 103));
+            theme.ProgressBarFillBrush = new SolidColorBrush(new Color(104, 105, 106));
 
             using var game = new Game();
             ScreenEngine.Initialize(game, new ScreenEngineOptions { AddComponentToGame = false, Theme = theme });
@@ -115,8 +158,10 @@ namespace MonoGame.PortableUI.Tests
             try
             {
                 var button = new Button();
+                Assert.IsFalse(button.SnapToPixel);
                 AssertSolidColor(button.FocusBorderBrush, new Color(1, 2, 3));
                 Assert.AreEqual(5, button.FocusBorderWidth);
+                Assert.AreEqual(FocusVisualKind.Dotted, button.FocusVisualKind);
                 AssertSolidColor(button.DisabledOverlayBrush, new Color(4, 5, 6, 120));
                 Assert.AreEqual(new Color(7, 8, 9), button.DisabledTextColor);
                 AssertThickness(new Thickness(1, 2, 3, 4), button.Padding);
@@ -176,7 +221,12 @@ namespace MonoGame.PortableUI.Tests
                 AssertSolidColor(checkBox.BoxBackgroundBrush, new Color(61, 62, 63));
                 AssertSolidColor(checkBox.BoxBorderBrush, new Color(64, 65, 66));
                 AssertSolidColor(checkBox.CheckMarkBrush, new Color(67, 68, 69));
+                Assert.AreEqual(CheckBoxGlyphKind.Check, checkBox.GlyphKind);
                 Assert.AreEqual(new Color(70, 71, 72), checkBox.TextColor);
+
+                var radioButton = new RadioButton();
+                AssertSolidColor(radioButton.DotBrush, new Color(71, 72, 73));
+                Assert.AreEqual(11, radioButton.DotSize);
 
                 var toolTip = new ToolTipPopup("Tip");
                 AssertSolidColor(toolTip.BackgroundBrush, new Color(73, 74, 75));
@@ -188,6 +238,22 @@ namespace MonoGame.PortableUI.Tests
                 var progress = new ProgressIndicator();
                 Assert.AreEqual(new Color(82, 83, 84), progress.Foreground);
                 Assert.AreEqual(64, progress.Height);
+
+                var slider = new Slider();
+                Assert.AreEqual(28, slider.Height);
+                Assert.AreEqual(220, slider.Width);
+                Assert.AreEqual(6, slider.TrackHeight);
+                Assert.AreEqual(16, slider.ThumbSize);
+                AssertSolidColor(slider.TrackBrush, new Color(89, 90, 91));
+                AssertSolidColor(slider.FillBrush, new Color(92, 93, 94));
+                AssertSolidColor(slider.ThumbBrush, new Color(95, 96, 97));
+                AssertSolidColor(slider.ThumbBorderBrush, new Color(98, 99, 100));
+
+                var progressBar = new ProgressBar();
+                Assert.AreEqual(24, progressBar.Height);
+                Assert.AreEqual(180, progressBar.Width);
+                AssertSolidColor(progressBar.BackgroundBrush, new Color(101, 102, 103));
+                AssertSolidColor(progressBar.FillBrush, new Color(104, 105, 106));
             }
             finally
             {
@@ -281,6 +347,167 @@ namespace MonoGame.PortableUI.Tests
             Assert.IsNotNull(options.Theme);
         }
 
+        [TestMethod]
+        public void Border_legacy_properties_map_to_common_chrome_properties()
+        {
+            var border = new Border
+            {
+                BorderColor = new SolidColorBrush(Color.Red),
+                BorderWidth = new Thickness(1, 2, 3, 4)
+            };
+
+            AssertSolidColor(border.BorderBrush, Color.Red);
+            AssertThickness(new Thickness(1, 2, 3, 4), border.BorderThickness);
+            Assert.AreSame(border.BorderBrush, border.BorderColor);
+            AssertThickness(border.BorderThickness, border.BorderWidth);
+        }
+
+        [TestMethod]
+        public void Chrome_controls_expose_common_border_and_corner_radius_properties()
+        {
+            var button = new Button
+            {
+                BorderBrush = new SolidColorBrush(Color.Blue),
+                BorderThickness = 2,
+                CornerRadius = new CornerRadius(2, 4, 6, 8)
+            };
+
+            AssertSolidColor(button.BorderBrush, Color.Blue);
+            AssertThickness(new Thickness(2), button.BorderThickness);
+            Assert.AreEqual(new CornerRadius(2, 4, 6, 8), button.CornerRadius);
+        }
+
+        [TestMethod]
+        public void Theme_registry_exposes_unique_library_themes()
+        {
+            var ids = ThemeRegistry.Themes.Select(theme => theme.Id).ToArray();
+
+            Assert.AreEqual(ids.Length, ids.Distinct().Count());
+            CollectionAssert.Contains(ids, ThemeRegistry.DefaultThemeId);
+            Assert.AreSame(ThemeRegistry.Default, ThemeRegistry.Resolve(null));
+            Assert.AreSame(ThemeRegistry.Resolve("dos"), ThemeRegistry.Resolve("DOS"));
+        }
+
+        [TestMethod]
+        public void Theme_registry_themes_have_metadata_and_create_portable_themes()
+        {
+            foreach (var definition in ThemeRegistry.Themes)
+            {
+                Assert.IsFalse(string.IsNullOrWhiteSpace(definition.Id));
+                Assert.IsFalse(string.IsNullOrWhiteSpace(definition.DisplayName));
+                Assert.IsFalse(string.IsNullOrWhiteSpace(definition.FontName));
+                Assert.IsFalse(string.IsNullOrWhiteSpace(definition.Metadata.Description));
+                Assert.IsNotNull(definition.Palette);
+                Assert.IsNotNull(definition.CreateTheme());
+                Assert.IsTrue(definition.Metadata.PreviewSwatches.Count >= 3);
+            }
+        }
+
+        [TestMethod]
+        public void Theme_registry_contains_full_wave_catalog()
+        {
+            var ids = ThemeRegistry.Themes.Select(theme => theme.Id).ToArray();
+
+            Assert.IsTrue(ids.Length >= 35);
+            CollectionAssert.Contains(ids, "win95");
+            CollectionAssert.Contains(ids, "metro");
+            CollectionAssert.Contains(ids, "fluent");
+            CollectionAssert.Contains(ids, "material");
+            CollectionAssert.Contains(ids, "liquid");
+            CollectionAssert.Contains(ids, "solarized-light");
+            CollectionAssert.Contains(ids, "solarized-dark");
+            CollectionAssert.Contains(ids, "brutalist");
+        }
+
+        [TestMethod]
+        public void Palette_style_builder_maps_control_styles_with_state_fallbacks()
+        {
+            var palette = ThemeRegistry.Resolve("dos").Palette;
+            var styles = ControlStyleBuilder.FromPalette(palette);
+
+            Assert.IsTrue(styles.Count >= 10);
+            Assert.IsTrue(styles.ContainsKey("Button"));
+
+            var button = styles["Button"];
+            Assert.IsNotNull(button.Normal.Background);
+            Assert.IsNotNull(button.Normal.BorderBrush);
+            Assert.AreEqual(palette.Text, button.Normal.TextColor);
+            // Hover no longer replaces text/background — interactive controls composite their
+            // own hover overlays; unset state values fall back to Normal.
+            Assert.AreEqual(palette.Text, button.Hover.Resolve(button.Normal).TextColor);
+            Assert.AreSame(button.Normal.Background, button.Hover.Resolve(button.Normal).Background);
+            Assert.AreSame(button.Normal.BorderBrush, button.Focused.Resolve(button.Normal).BorderBrush);
+        }
+
+        [TestMethod]
+        public void Theme_post_effect_chain_accepts_terminal_effect_descriptors()
+        {
+            var theme = PortableTheme.CreateDefault();
+            theme.PostEffects = new PostEffect[]
+            {
+                new ScanlinePostEffect { Strength = 0.12f },
+                new CrtBarrelPostEffect { Distortion = 0.06f },
+                new BloomPostEffect { Strength = 0.2f }
+            };
+
+            Assert.AreEqual(3, theme.PostEffects.Count);
+            Assert.AreEqual("scanlines", theme.PostEffects[0].Name);
+            Assert.IsTrue(theme.PostEffects[1].Enabled);
+            Assert.AreEqual("bloom", theme.PostEffects[2].Name);
+        }
+
+        [TestMethod]
+        public void Theme_island_resolution_prefers_nearest_island_then_global_theme()
+        {
+            using var game = new Game();
+            var global = ThemeRegistry.Resolve("c64").CreateTheme();
+            var outerTheme = ThemeRegistry.Resolve("dos").CreateTheme();
+            var innerTheme = ThemeRegistry.Resolve("studio").CreateTheme();
+            var engine = ScreenEngine.Initialize(game, new ScreenEngineOptions { AddComponentToGame = false, Theme = global });
+            var screen = new EmptyScreen();
+            var outer = new ThemeIsland { Theme = outerTheme };
+            var inner = new ThemeIsland { Theme = innerTheme };
+            var outerProbe = new ThemeProbe();
+            var innerProbe = new ThemeProbe();
+
+            inner.Content = innerProbe;
+            outer.Content = new StackPanel
+            {
+                Children =
+                {
+                    outerProbe,
+                    inner
+                }
+            };
+            screen.Content = outer;
+            engine.NavigateToScreen(screen);
+
+            Assert.AreSame(outerTheme, outerProbe.CurrentTheme);
+            Assert.AreSame(innerTheme, innerProbe.CurrentTheme);
+
+            inner.Theme = null;
+
+            Assert.AreSame(outerTheme, innerProbe.CurrentTheme);
+
+            outer.Theme = null;
+
+            Assert.AreSame(global, innerProbe.CurrentTheme);
+        }
+
+        [TestMethod]
+        public void Theme_owner_resolution_lets_overlay_content_inherit_opener_theme()
+        {
+            var ownerTheme = ThemeRegistry.Resolve("terminal").CreateTheme();
+            var owner = new ThemeIsland { Theme = ownerTheme };
+            var opener = new ThemeProbe();
+            var overlay = new ThemeProbe();
+
+            owner.Content = opener;
+            overlay.ThemeOwner = opener;
+
+            Assert.AreSame(ownerTheme, overlay.CurrentTheme);
+        }
+
         private static void AssertSolidColor(Brush? brush, Color expected)
         {
             Assert.IsInstanceOfType(brush, typeof(SolidColorBrush));
@@ -293,6 +520,15 @@ namespace MonoGame.PortableUI.Tests
             Assert.AreEqual(expected.Top, actual.Top);
             Assert.AreEqual(expected.Right, actual.Right);
             Assert.AreEqual(expected.Bottom, actual.Bottom);
+        }
+
+        private sealed class EmptyScreen : Screen
+        {
+        }
+
+        private sealed class ThemeProbe : Control
+        {
+            public PortableTheme CurrentTheme => ResolveTheme();
         }
     }
 }

@@ -22,11 +22,11 @@ namespace MonoGame.PortableUI
     {
         private const int DefaultSize = 14;
 
-        private const int MaxFontSize = 64;
-
-        private const int MinFontSize = 2;
-
         private static Dictionary<string, SpriteFont>? Fonts { get; set; }
+        private static readonly HashSet<string> RegisteredFonts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        private static Game? FontGame { get; set; }
+        private static string? ContentRoot { get; set; }
+        private static bool CanProbeContentRoot { get; set; }
 
         public static SpriteFont? DefaultFont { get; set; }
 
@@ -37,37 +37,17 @@ namespace MonoGame.PortableUI
 
             if (Fonts == null)
                 Fonts = new Dictionary<string, SpriteFont>();
-            var fonts = Fonts;
-            var contentRoot = ResolveContentRoot(game.Content.RootDirectory, AppContext.BaseDirectory);
-            var canProbeContentRoot = Directory.Exists(contentRoot);
+            FontGame = game;
+            ContentRoot = ResolveContentRoot(game.Content.RootDirectory, AppContext.BaseDirectory);
+            CanProbeContentRoot = Directory.Exists(ContentRoot);
 
             foreach (var font in fontList)
             {
-                for (int size = MinFontSize; size < MaxFontSize; size += 2)
-                {
-                    foreach (var style in Enum.GetValues(typeof(FontStyle)))
-                    {
-                        var styleName = style.ToString()!.ToLowerInvariant();
-                        var formattableString = $@"{font}-{styleName}-{size}";
-                        var assetName = $"Fonts/{formattableString}";
-
-                        if (canProbeContentRoot && !ContentAssetExists(contentRoot, assetName))
-                            continue;
-
-                        try
-                        {
-                            var spriteFont = game.Content.Load<SpriteFont>(assetName);
-                            if (DefaultFont == null)
-                                DefaultFont = spriteFont;
-                            fonts[$"{formattableString}"] = spriteFont;
-                        }
-                        catch when (!canProbeContentRoot)
-                        {
-                            // Some platforms do not expose content as files, so keep the legacy probing fallback there.
-                        }
-                    }
-                }
+                if (!string.IsNullOrWhiteSpace(font))
+                    RegisteredFonts.Add(font);
             }
+
+            EnsureDefaultFont();
         }
 
         internal static string ResolveContentRoot(string rootDirectory, string baseDirectory)
@@ -94,21 +74,68 @@ namespace MonoGame.PortableUI
         {
             if (font == null)
             {
+                EnsureDefaultFont();
                 if (DefaultFont == null)
                     throw new DefaultFontMissingException();
                 return DefaultFont;
             }
 
+            if (TryLoadFont(font, style, size, out var spriteFont))
+                return spriteFont;
+
+            throw new FontMissingException(CreateFontKey(font, style, size));
+        }
+
+        internal static string CreateFontKey(string font, FontStyle style, int size)
+        {
+            return $"{font}-{style.ToString().ToLowerInvariant()}-{size}";
+        }
+
+        private static void EnsureDefaultFont()
+        {
+            if (DefaultFont != null)
+                return;
+
+            foreach (var font in RegisteredFonts)
+            {
+                if (TryLoadFont(font, FontStyle.Regular, DefaultSize, out var spriteFont))
+                {
+                    DefaultFont = spriteFont;
+                    return;
+                }
+            }
+        }
+
+        private static bool TryLoadFont(string font, FontStyle style, int size, out SpriteFont spriteFont)
+        {
+            if (Fonts == null)
+                Fonts = new Dictionary<string, SpriteFont>();
+
+            var fontKey = CreateFontKey(font, style, size);
+            if (Fonts.TryGetValue(fontKey, out var cachedFont))
+            {
+                spriteFont = cachedFont;
+                return true;
+            }
+
+            spriteFont = null!;
+            if (FontGame == null)
+                return false;
+
+            var assetName = $"Fonts/{fontKey}";
+            if (CanProbeContentRoot && ContentRoot != null && !ContentAssetExists(ContentRoot, assetName))
+                return false;
+
             try
             {
-                if (Fonts == null)
-                    throw new FontMissingException($"{font}-{style.ToString().ToLower()}-{size}");
-
-                return Fonts[$"{font}-{style.ToString().ToLower()}-{size}"];
+                spriteFont = FontGame.Content.Load<SpriteFont>(assetName);
+                Fonts[fontKey] = spriteFont;
+                return true;
             }
-            catch
+            catch when (!CanProbeContentRoot)
             {
-                throw new FontMissingException($"{font}-{style.ToString().ToLower()}-{size}");
+                // Some platforms do not expose content as files, so keep the legacy fallback there.
+                return false;
             }
         }
     }

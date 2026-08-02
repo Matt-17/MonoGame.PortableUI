@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Media;
 
@@ -8,24 +5,16 @@ namespace MonoGame.PortableUI.Controls
 {
     public class Border : ContentControl
     {
-        public Brush? BorderColor { get; set; }
-        public Thickness BorderWidth { get; set; }
-
-        private IEnumerable<Rect> GetBorderRects(Rect rect)
+        public Brush? BorderColor
         {
-            yield return new Rect(rect.Left, rect.Top, rect.Width, BorderWidth.Top);
-            yield return new Rect(rect.Left, rect.Top, BorderWidth.Left, rect.Height);
-            yield return new Rect(rect.Left + rect.Width - BorderWidth.Right, rect.Top, BorderWidth.Right, rect.Height);
-            yield return new Rect(rect.Left, rect.Top + rect.Height - BorderWidth.Bottom, rect.Width, BorderWidth.Bottom);
+            get { return BorderBrush; }
+            set { BorderBrush = value; }
         }
 
-        protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
+        public Thickness BorderWidth
         {
-            base.OnDraw(spriteBatch, rect);
-            foreach (var borderRect in GetBorderRects(rect))
-            {
-                BorderColor?.Draw(spriteBatch, borderRect, RenderOpacity);
-            }
+            get { return BorderThickness; }
+            set { BorderThickness = value; }
         }
     }
 }

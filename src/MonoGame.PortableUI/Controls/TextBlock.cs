@@ -68,15 +68,16 @@ namespace MonoGame.PortableUI.Controls
 
         public override Size MeasureLayout()
         {
-            var size = base.MeasureLayout();
+            if (IsGone)
+                return Size.Empty;
 
-            var vector2 = MeasureText(Text);
-            size.Width = Width.IsFixed() ? Width : vector2.X;
-            if (vector2.Y > size.Height)
-                size.Height = vector2.Y;
-            //size.Height = Height;
+            var measuredText = MeasureText(Text);
+            var width = Width.IsFixed() ? Width : measuredText.X;
+            var height = Height.IsFixed() ? Height : 0;
+            if (measuredText.Y > height)
+                height = measuredText.Y;
 
-            return ApplyConstraints(size);
+            return ApplyConstraints(new Size(width, height)) + Margin;
         }
 
         public TextBlock()
@@ -88,6 +89,41 @@ namespace MonoGame.PortableUI.Controls
             TextColor = theme.TextColor;
             TextSize = theme.TextSize;
             TextAlignment = TextAlignment.Left;
+        }
+
+        protected override void OnThemeChanged(PortableTheme oldTheme, PortableTheme newTheme)
+        {
+            base.OnThemeChanged(oldTheme, newTheme);
+
+            if (TextColor.Equals(oldTheme.TextColor))
+                TextColor = newTheme.TextColor;
+            if (TextSize == oldTheme.TextSize)
+                TextSize = newTheme.TextSize;
+
+            var font = TryResolveThemeFont(newTheme);
+            if (font != null && !ReferenceEquals(Font, font))
+            {
+                Font = font;
+                _textMeasurer = new SpriteFontTextMeasurer(Font);
+                MeasuredText = MeasureText(Text);
+                InvalidateLayout(true);
+            }
+        }
+
+        private static SpriteFont? TryResolveThemeFont(PortableTheme theme)
+        {
+            try
+            {
+                var name = theme.Typography?.FontName;
+                if (string.IsNullOrEmpty(name) || string.Equals(name, "default", StringComparison.OrdinalIgnoreCase))
+                    return FontManager.DefaultFont;
+                return FontManager.GetFont(name);
+            }
+            catch (Exception)
+            {
+                // Theme font not loaded by the host — stay on the current default.
+                return FontManager.DefaultFont;
+            }
         }
 
         public ITextMeasurer TextMeasurer

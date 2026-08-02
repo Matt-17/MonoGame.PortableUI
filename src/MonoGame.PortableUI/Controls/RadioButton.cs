@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI.Common;
+using MonoGame.PortableUI.Media;
 
 namespace MonoGame.PortableUI.Controls
 {
@@ -10,6 +12,28 @@ namespace MonoGame.PortableUI.Controls
     {
         private static readonly Dictionary<string, List<RadioButton>> RadioButtonDictionary = new Dictionary<string, List<RadioButton>>();
         private string _radioGroup = "";
+
+        public RadioButton()
+        {
+            var theme = PortableTheme.ResolveCurrent();
+
+            DotBrush = theme.RadioButtonDotBrush;
+            DotSize = theme.RadioButtonDotSize;
+        }
+
+        protected override void OnThemeChanged(PortableTheme oldTheme, PortableTheme newTheme)
+        {
+            base.OnThemeChanged(oldTheme, newTheme);
+
+            if (ReferenceEquals(DotBrush, oldTheme.RadioButtonDotBrush))
+                DotBrush = newTheme.RadioButtonDotBrush;
+            if (DotSize.Equals(oldTheme.RadioButtonDotSize))
+                DotSize = newTheme.RadioButtonDotSize;
+        }
+
+        public Brush? DotBrush { get; set; }
+
+        public float DotSize { get; set; }
 
         public string RadioGroup
         {
@@ -76,6 +100,20 @@ namespace MonoGame.PortableUI.Controls
             if (!_isSettingGroup)
                 RadioButton.SetGroupChecked(RadioGroup, this);
             base.OnChecked(e);
+        }
+
+        protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
+        {
+            base.OnDraw(spriteBatch, rect);
+            if (!IsChecked || DotBrush == null || DotSize <= 0)
+                return;
+
+            var dot = new Rect(
+                rect.Left + Math.Max(4, DotSize / 2),
+                rect.Top + (rect.Height - DotSize) / 2,
+                DotSize,
+                DotSize);
+            DotBrush.Draw(spriteBatch, dot, RenderOpacity);
         }
     }
 }

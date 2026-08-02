@@ -32,6 +32,56 @@ To edit demo content:
 dotnet mgcb-editor samples/MonoGame.PortableUI.Demo/Content/Content.mgcb
 ```
 
+## Theme Gallery
+
+Regenerate the gallery images from the demo:
+
+```powershell
+dotnet run --project samples/MonoGame.PortableUI.Demo -- --theme glass --screenshot docs/themes --screenshot-screen gallery
+```
+
+The `default` theme shows the library's built-in styling when no theme is applied:
+
+| Default (no theme) |
+|---|
+| ![Default](docs/themes/default.png) |
+
+| C64 | Game Boy | NES | Mac 1-bit |
+|---|---|---|---|
+| ![C64](docs/themes/c64.png) | ![Game Boy](docs/themes/gameboy.png) | ![NES](docs/themes/nes.png) | ![Mac 1-bit](docs/themes/mac1bit.png) |
+
+| DOS | Norton | Phosphor | Amber |
+|---|---|---|---|
+| ![DOS](docs/themes/dos.png) | ![Norton](docs/themes/norton.png) | ![Phosphor](docs/themes/phosphor.png) | ![Amber](docs/themes/amber.png) |
+
+| Amiga | Windows 95 | Mac OS 9 | NeXTSTEP |
+|---|---|---|---|
+| ![Amiga](docs/themes/amiga.png) | ![Windows 95](docs/themes/win95.png) | ![Mac OS 9](docs/themes/macos9.png) | ![NeXTSTEP](docs/themes/nextstep.png) |
+
+| BeOS | Luna | Aqua | Aero |
+|---|---|---|---|
+| ![BeOS](docs/themes/beos.png) | ![Luna](docs/themes/luna.png) | ![Aqua](docs/themes/aqua.png) | ![Aero](docs/themes/aero.png) |
+
+| Metro | Fluent | Material | Frosted Glass |
+|---|---|---|---|
+| ![Metro](docs/themes/metro.png) | ![Fluent](docs/themes/fluent.png) | ![Material](docs/themes/material.png) | ![Frosted Glass](docs/themes/glass.png) |
+
+| Liquid Glass | Aurora | Terminal | Studio |
+|---|---|---|---|
+| ![Liquid Glass](docs/themes/liquid.png) | ![Aurora](docs/themes/aurora.png) | ![Terminal](docs/themes/terminal.png) | ![Studio](docs/themes/studio.png) |
+
+| Cyberpunk | Vaporwave | Nord | Dracula |
+|---|---|---|---|
+| ![Cyberpunk](docs/themes/cyberpunk.png) | ![Vaporwave](docs/themes/vaporwave.png) | ![Nord](docs/themes/nord.png) | ![Dracula](docs/themes/dracula.png) |
+
+| Solarized Light | Solarized Dark | Gruvbox | Parchment |
+|---|---|---|---|
+| ![Solarized Light](docs/themes/solarized-light.png) | ![Solarized Dark](docs/themes/solarized-dark.png) | ![Gruvbox](docs/themes/gruvbox.png) | ![Parchment](docs/themes/parchment.png) |
+
+| LCARS | E-Ink | Neumorphism | Brutalist |
+|---|---|---|---|
+| ![LCARS](docs/themes/lcars.png) | ![E-Ink](docs/themes/eink.png) | ![Neumorphism](docs/themes/neumorphic.png) | ![Brutalist](docs/themes/brutalist.png) |
+
 ## Small API Examples
 
 Initialize the screen engine from your `Game`. By default, PortableUI tracks the MonoGame viewport and keeps the layout in sync with the window:

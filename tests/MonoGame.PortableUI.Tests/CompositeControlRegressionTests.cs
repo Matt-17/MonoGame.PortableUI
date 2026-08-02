@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.Xna.Framework;
 using MonoGame.PortableUI.Common;
@@ -344,6 +345,139 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void Slider_clamps_value_and_raises_value_changed()
+        {
+            var slider = new Slider
+            {
+                Minimum = 10,
+                Maximum = 20
+            };
+            ValueChangedEventArgs? lastChange = null;
+            slider.ValueChanged += (sender, args) => lastChange = args;
+
+            slider.Value = 50;
+
+            Assert.AreEqual(20, slider.Value);
+            Assert.IsNotNull(lastChange);
+            Assert.AreEqual(10, lastChange!.OldValue);
+            Assert.AreEqual(20, lastChange.NewValue);
+        }
+
+        [TestMethod]
+        public void Slider_geometry_tracks_value_percent()
+        {
+            var slider = new Slider
+            {
+                Minimum = 0,
+                Maximum = 100,
+                Value = 50,
+                ThumbSize = 20,
+                TrackHeight = 4
+            };
+            var rect = new Rect(0, 0, 120, 30);
+
+            var track = slider.GetTrackRect(rect);
+            var thumb = slider.GetThumbRect(rect);
+
+            Assert.AreEqual(new Rect(10, 13, 100, 4), track);
+            Assert.AreEqual(new Rect(50, 5, 20, 20), thumb);
+        }
+
+        [TestMethod]
+        public void Slider_keyboard_commands_change_value()
+        {
+            var slider = new Slider
+            {
+                Minimum = 0,
+                Maximum = 10,
+                Value = 5,
+                SmallChange = 2
+            };
+
+            slider.OnKeyPressed(KeyboardCommand.CursorRight);
+            Assert.AreEqual(7, slider.Value);
+
+            slider.OnKeyPressed(KeyboardCommand.CursorLeft);
+            Assert.AreEqual(5, slider.Value);
+
+            slider.OnKeyPressed(KeyboardCommand.End);
+            Assert.AreEqual(10, slider.Value);
+
+            slider.OnKeyPressed(KeyboardCommand.Home);
+            Assert.AreEqual(0, slider.Value);
+        }
+
+        [TestMethod]
+        public void Progress_bar_clamps_value_and_calculates_fill_rect()
+        {
+            var progressBar = new ProgressBar
+            {
+                Minimum = 0,
+                Maximum = 200,
+                Value = 50
+            };
+
+            Assert.AreEqual(new Rect(0, 0, 25, 10), progressBar.GetFillRect(new Rect(0, 0, 100, 10)));
+
+            progressBar.Value = 300;
+
+            Assert.AreEqual(200, progressBar.Value);
+            Assert.AreEqual(new Rect(0, 0, 100, 10), progressBar.GetFillRect(new Rect(0, 0, 100, 10)));
+        }
+
+        [TestMethod]
+        public void Check_box_glyph_kind_changes_marker_geometry()
+        {
+            var rect = new Rect(0, 0, 20, 20);
+            var cross = CheckBox.GetCheckMarkRects(rect, 2, CheckBoxGlyphKind.Cross).ToArray();
+            var check = CheckBox.GetCheckMarkRects(rect, 2, CheckBoxGlyphKind.Check).ToArray();
+
+            Assert.IsTrue(cross.Length > 0);
+            Assert.IsTrue(check.Length > 0);
+            Assert.AreNotEqual(cross[0], check[0]);
+        }
+
+        [TestMethod]
+        public void Content_presenter_measures_content_with_padding()
+        {
+            var presenter = new ContentPresenter
+            {
+                Padding = new Thickness(2, 3),
+                Content = new FixedSizeControl(new Size(20, 10))
+            };
+
+            var size = presenter.MeasureLayout();
+
+            Assert.AreEqual(24, size.Width);
+            Assert.AreEqual(16, size.Height);
+        }
+
+        [TestMethod]
+        public void Content_control_template_can_wrap_content_in_presenter()
+        {
+            var child = new FixedSizeControl(new Size(20, 10));
+            var host = new TemplateHostControl
+            {
+                Content = child,
+                Template = owner => new Border
+                {
+                    Padding = new Thickness(4),
+                    Content = new ContentPresenter
+                    {
+                        Content = owner.Content
+                    }
+                }
+            };
+
+            var root = (Border)host.GetDescendants().Single();
+            var presenter = (ContentPresenter)root.Content!;
+
+            Assert.AreSame(host, root.Parent);
+            Assert.AreSame(root, presenter.Parent);
+            Assert.AreSame(presenter, child.Parent);
+        }
+
+        [TestMethod]
         public void Context_menu_raises_item_invoked()
         {
             var menu = new ContextMenu();
@@ -359,6 +493,25 @@ namespace MonoGame.PortableUI.Tests
 
         private sealed class TestScreen : Screen
         {
+        }
+
+        private sealed class TemplateHostControl : ContentControl
+        {
+        }
+
+        private sealed class FixedSizeControl : Control
+        {
+            private readonly Size _size;
+
+            public FixedSizeControl(Size size)
+            {
+                _size = size;
+            }
+
+            public override Size MeasureLayout()
+            {
+                return _size;
+            }
         }
     }
 }

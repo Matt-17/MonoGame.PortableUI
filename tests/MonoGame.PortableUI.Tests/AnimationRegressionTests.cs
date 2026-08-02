@@ -7,6 +7,7 @@ using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
 using MonoGame.PortableUI.Controls.Events;
 using MonoGame.PortableUI.Controls.Input;
+using MonoGame.PortableUI.Media;
 
 namespace MonoGame.PortableUI.Tests
 {
@@ -244,6 +245,68 @@ namespace MonoGame.PortableUI.Tests
             button.UpdateTimers();
 
             Assert.AreEqual(1, button.Scale.X, 0.001f);
+        }
+
+        [TestMethod]
+        public void Expanded_easings_preserve_start_and_end_values()
+        {
+            Easing[] easings =
+            {
+                Easings.QuadIn,
+                Easings.QuadOut,
+                Easings.QuadInOut,
+                Easings.ExpoIn,
+                Easings.ExpoOut,
+                Easings.ExpoInOut,
+                Easings.BackIn,
+                Easings.BackOut,
+                Easings.BackInOut,
+                Easings.ElasticOut,
+                Easings.BounceOut
+            };
+
+            foreach (var easing in easings)
+            {
+                Assert.AreEqual(0, easing(-1), 0.001, easing.Method.Name);
+                Assert.AreEqual(1, easing(2), 0.001, easing.Method.Name);
+            }
+        }
+
+        [TestMethod]
+        public void Color_animation_interpolates_text_color()
+        {
+            var textBlock = new TextBlock
+            {
+                TextColor = Color.Black
+            };
+
+            textBlock.Animate()
+                .TextColorTo(Color.White)
+                .Duration(TimeSpan.FromMilliseconds(100))
+                .Ease(Easings.Linear)
+                .Start();
+
+            ScreenSystem.TotalTime = TimeSpan.FromMilliseconds(50);
+            textBlock.UpdateTimers();
+
+            Assert.AreEqual(new Color(127, 127, 127, 255), textBlock.TextColor);
+
+            ScreenSystem.TotalTime = TimeSpan.FromMilliseconds(100);
+            textBlock.UpdateTimers();
+
+            Assert.AreEqual(Color.White, textBlock.TextColor);
+        }
+
+        [TestMethod]
+        public void Crossfade_brush_clamps_progress()
+        {
+            var brush = new CrossFadeBrush(Color.Black, Color.White, -1);
+
+            Assert.AreEqual(0, brush.Progress);
+
+            brush.Progress = 2;
+
+            Assert.AreEqual(1, brush.Progress);
         }
 
         private sealed class TestControl : Control

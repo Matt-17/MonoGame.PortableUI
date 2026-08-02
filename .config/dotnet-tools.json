@@ -8,6 +8,12 @@
         "mgcb"
       ]
     },
+    "dotnet-mgfxc": {
+      "version": "3.8.4.1",
+      "commands": [
+        "mgfxc"
+      ]
+    },
     "dotnet-mgcb-editor": {
       "version": "3.8.4.1",
       "commands": [

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls.Events;
 using MonoGame.PortableUI.Media;
@@ -17,7 +18,6 @@ namespace MonoGame.PortableUI.Controls
 
             Items = new List<object>();
             Height = theme.ComboBoxHeight;
-            BackgroundBrush = theme.ButtonBackgroundBrush;
             TextAlignment = TextAlignment.Left;
             DropDownMaxHeight = theme.ComboBoxDropDownMaxHeight;
             ItemHeight = theme.ListBoxItemHeight;
@@ -26,6 +26,9 @@ namespace MonoGame.PortableUI.Controls
             SelectedItemBackgroundBrush = theme.ListBoxSelectedItemBackgroundBrush;
             ItemTextColor = theme.ListBoxItemTextColor;
             SelectedItemTextColor = theme.ListBoxSelectedItemTextColor;
+            GlyphColor = theme.ComboBoxGlyphColor;
+            // Reserve room on the right so text never overlaps the dropdown glyph.
+            Padding = new Thickness(Padding.Left, Padding.Top, Padding.Right + GlyphSize + 8, Padding.Bottom);
             Click += ComboBoxClick;
         }
 
@@ -37,6 +40,96 @@ namespace MonoGame.PortableUI.Controls
         public Brush SelectedItemBackgroundBrush { get; set; }
         public Color ItemTextColor { get; set; }
         public Color SelectedItemTextColor { get; set; }
+        /// <summary>Color of the dropdown triangle; null falls back to the current text color.</summary>
+        public Color? GlyphColor { get; set; }
+        public float GlyphSize { get; set; } = 10;
+
+        protected override ControlStyle? GetThemeStyle(PortableTheme theme)
+        {
+            return UseThemeStyle ? theme.ComboBox : null;
+        }
+
+        protected override void OnThemeChanged(PortableTheme oldTheme, PortableTheme newTheme)
+        {
+            base.OnThemeChanged(oldTheme, newTheme);
+
+            if (Height.Equals(oldTheme.ComboBoxHeight))
+                Height = newTheme.ComboBoxHeight;
+            if (DropDownMaxHeight.Equals(oldTheme.ComboBoxDropDownMaxHeight))
+                DropDownMaxHeight = newTheme.ComboBoxDropDownMaxHeight;
+            if (ItemHeight.Equals(oldTheme.ListBoxItemHeight))
+                ItemHeight = newTheme.ListBoxItemHeight;
+            if (ReferenceEquals(DropDownBackgroundBrush, oldTheme.ComboBoxDropDownBackgroundBrush))
+                DropDownBackgroundBrush = newTheme.ComboBoxDropDownBackgroundBrush;
+            if (ReferenceEquals(ItemBackgroundBrush, oldTheme.ListBoxItemBackgroundBrush))
+                ItemBackgroundBrush = newTheme.ListBoxItemBackgroundBrush;
+            if (ReferenceEquals(SelectedItemBackgroundBrush, oldTheme.ListBoxSelectedItemBackgroundBrush))
+                SelectedItemBackgroundBrush = newTheme.ListBoxSelectedItemBackgroundBrush;
+            if (ItemTextColor.Equals(oldTheme.ListBoxItemTextColor))
+                ItemTextColor = newTheme.ListBoxItemTextColor;
+            if (SelectedItemTextColor.Equals(oldTheme.ListBoxSelectedItemTextColor))
+                SelectedItemTextColor = newTheme.ListBoxSelectedItemTextColor;
+            if (Nullable.Equals(GlyphColor, oldTheme.ComboBoxGlyphColor))
+                GlyphColor = newTheme.ComboBoxGlyphColor;
+        }
+
+        protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
+        {
+            base.OnDraw(spriteBatch, rect);
+            DrawDropDownGlyph(spriteBatch, rect);
+        }
+
+        private void DrawDropDownGlyph(SpriteBatch spriteBatch, Rect rect)
+        {
+            var width = GlyphSize;
+            if (width <= 0 || rect.Width < width * 2)
+                return;
+
+            var height = width * 0.6f;
+            var glyphRect = new Rect(
+                rect.Right - width - 10,
+                rect.Top + (rect.Height - height) / 2,
+                width,
+                height);
+            var color = Brush.ApplyOpacity(GlyphColor ?? TextColor, RenderOpacity);
+            spriteBatch.Draw(GetGlyphTexture(spriteBatch.GraphicsDevice), glyphRect, color);
+        }
+
+        private static Texture2D GetGlyphTexture(GraphicsDevice graphicsDevice)
+        {
+            const int width = 30;
+            const int height = 18;
+            return BrushTextureCache.GetOrCreate(graphicsDevice, new BrushTextureCacheKey("combobox-glyph-v1", width, height), device =>
+            {
+                var data = new Color[width * height];
+                for (var y = 0; y < height; y++)
+                {
+                    // Downward triangle: row y spans inset..width-inset, antialiased via 4x supersampling.
+                    for (var x = 0; x < width; x++)
+                    {
+                        var covered = 0;
+                        for (var sy = 0; sy < 2; sy++)
+                        {
+                            for (var sx = 0; sx < 2; sx++)
+                            {
+                                var py = y + 0.25f + sy * 0.5f;
+                                var px = x + 0.25f + sx * 0.5f;
+                                var inset = py / height * (width / 2f);
+                                if (px >= inset && px <= width - inset)
+                                    covered++;
+                            }
+                        }
+
+                        var coverage = (byte)(covered * 255 / 4);
+                        data[y * width + x] = new Color(coverage, coverage, coverage, coverage);
+                    }
+                }
+
+                var texture = new Texture2D(device, width, height);
+                texture.SetData(data);
+                return texture;
+            });
+        }
 
         public int SelectedIndex
         {
@@ -69,7 +162,8 @@ namespace MonoGame.PortableUI.Controls
             listBox.Height = targetHeight;
 
             var bounds = BoundingRect - Margin;
-            Screen.ShowFlyOut(new PointF(bounds.Left, bounds.Bottom + targetHeight), listBox, false);
+            Screen.ShowFlyOut(new PointF(bounds.Left, bounds.Bottom + targetHeight), listBox, false, this);
+            listBox.ScrollSelectedIntoView();
         }
 
         internal ListBox CreateDropDownListBox()

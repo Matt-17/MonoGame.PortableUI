@@ -24,6 +24,7 @@ namespace MonoGame.PortableUI.Controls
 
         public RowDefinitionCollection RowDefinitions { get; }
         public ColumnDefinitionCollection ColumnDefinitions { get; }
+        private readonly Dictionary<Control, Size> _measureCache = new Dictionary<Control, Size>();
 
         private static readonly ConditionalWeakTable<Control, GridPosition> ControlGridPositionDictionary = new ConditionalWeakTable<Control, GridPosition>();
 
@@ -80,13 +81,10 @@ namespace MonoGame.PortableUI.Controls
             SetColumnSpan(child, columnSpan);
         }
 
-        private Rect GetRect(Rect rect, Control child)
+        private Rect GetRect(Rect rect, Control child, IReadOnlyList<float> rowHeights, IReadOnlyList<float> columnWidths)
         {
             var columnCount = ColumnDefinitions.Count > 0 ? ColumnDefinitions.Count : 1;
             var rowCount = RowDefinitions.Count > 0 ? RowDefinitions.Count : 1;
-
-            var rowHeights = GetRowHeights(rect);
-            var columnWidths = GetColumnWidths(rect);
 
             var row = Math.Min(Math.Max(GetRow(child), 0), rowCount - 1);
             var column = Math.Min(Math.Max(GetColumn(child), 0), columnCount - 1);
@@ -154,15 +152,68 @@ namespace MonoGame.PortableUI.Controls
         public override void UpdateLayout(Rect rect)
         {
             base.UpdateLayout(rect);
+            var layoutRect = BoundingRect - Margin - Padding;
+            var rowHeights = GetRowHeights(layoutRect);
+            var columnWidths = GetColumnWidths(layoutRect);
             foreach (var child in Children)
             {
-                child.UpdateLayout(GetRect(BoundingRect - Margin, child));
+                child.UpdateLayout(GetRect(layoutRect, child, rowHeights, columnWidths));
             }
+            _measureCache.Clear();
         }
 
         public override Size MeasureLayout()
         {
-            return base.MeasureLayout();
+            if (IsGone)
+                return Size.Empty;
+
+            // Refresh cached child measurements; UpdateLayout reuses them for the track passes.
+            _measureCache.Clear();
+            var width = Width.IsFixed() ? Width : MeasureContentWidth() + Padding.Horizontal;
+            var height = Height.IsFixed() ? Height : MeasureContentHeight() + Padding.Vertical;
+            return ApplyConstraints(new Size(width, height)) + Margin;
+        }
+
+        private float MeasureContentWidth()
+        {
+            if (ColumnDefinitions.Count == 0)
+            {
+                var max = 0f;
+                foreach (var child in Children)
+                    max = Math.Max(max, MeasureChild(child).Width);
+                return max;
+            }
+
+            var total = 0f;
+            for (var i = 0; i < ColumnDefinitions.Count; i++)
+            {
+                var definition = ColumnDefinitions[i];
+                total += definition.Width.Unit == GridLengthUnit.Absolute
+                    ? definition.Width.Value
+                    : GetAutoColumnWidth(i);
+            }
+            return total;
+        }
+
+        private float MeasureContentHeight()
+        {
+            if (RowDefinitions.Count == 0)
+            {
+                var max = 0f;
+                foreach (var child in Children)
+                    max = Math.Max(max, MeasureChild(child).Height);
+                return max;
+            }
+
+            var total = 0f;
+            for (var i = 0; i < RowDefinitions.Count; i++)
+            {
+                var definition = RowDefinitions[i];
+                total += definition.Height.Unit == GridLengthUnit.Absolute
+                    ? definition.Height.Value
+                    : GetAutoRowHeight(i);
+            }
+            return total;
         }
 
         private List<float> GetColumnWidths(Rect rect)
@@ -221,7 +272,7 @@ namespace MonoGame.PortableUI.Controls
                 if (GetRow(child) != index || GetRowSpan(child) != 1)
                     continue;
 
-                var size = child.MeasureLayout();
+                var size = MeasureChild(child);
                 if (size.Height > max)
                     max = size.Height;
             }
@@ -236,7 +287,7 @@ namespace MonoGame.PortableUI.Controls
                 if (GetColumn(child) != index || GetColumnSpan(child) != 1)
                     continue;
 
-                var size = child.MeasureLayout();
+                var size = MeasureChild(child);
                 if (size.Width > max)
                     max = size.Width;
             }
@@ -252,12 +303,17 @@ namespace MonoGame.PortableUI.Controls
                 if (rowSpan <= 1)
                     continue;
 
+                // Star tracks absorb the remaining space at arrange time; only spans made of
+                // auto/absolute tracks need their deficit pushed into the auto tracks.
+                if (SpanContainsStarTrack(RowDefinitions.Select(definition => definition.Height.Unit), row, rowSpan))
+                    continue;
+
                 var autoRows = GetAutoTrackIndices(RowDefinitions.Select(definition => definition.Height.Unit), row, rowSpan);
                 if (autoRows.Count == 0)
                     continue;
 
                 var occupiedHeight = result.Skip(row).Take(rowSpan).Sum();
-                var deficit = child.MeasureLayout().Height - occupiedHeight;
+                var deficit = MeasureChild(child).Height - occupiedHeight;
                 if (deficit <= 0)
                     continue;
 
@@ -276,12 +332,15 @@ namespace MonoGame.PortableUI.Controls
                 if (columnSpan <= 1)
                     continue;
 
+                if (SpanContainsStarTrack(ColumnDefinitions.Select(definition => definition.Width.Unit), column, columnSpan))
+                    continue;
+
                 var autoColumns = GetAutoTrackIndices(ColumnDefinitions.Select(definition => definition.Width.Unit), column, columnSpan);
                 if (autoColumns.Count == 0)
                     continue;
 
                 var occupiedWidth = result.Skip(column).Take(columnSpan).Sum();
-                var deficit = child.MeasureLayout().Width - occupiedWidth;
+                var deficit = MeasureChild(child).Width - occupiedWidth;
                 if (deficit <= 0)
                     continue;
 
@@ -291,6 +350,11 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        private static bool SpanContainsStarTrack(IEnumerable<GridLengthUnit> units, int start, int span)
+        {
+            return units.Skip(start).Take(span).Any(unit => unit == GridLengthUnit.Relative);
+        }
+
         private static List<int> GetAutoTrackIndices(IEnumerable<GridLengthUnit> units, int start, int span)
         {
             return units
@@ -298,6 +362,16 @@ namespace MonoGame.PortableUI.Controls
                 .Where(track => track.index >= start && track.index < start + span && track.unit == GridLengthUnit.Auto)
                 .Select(track => track.index)
                 .ToList();
+        }
+
+        private Size MeasureChild(Control child)
+        {
+            if (_measureCache.TryGetValue(child, out var size))
+                return size;
+
+            size = child.MeasureLayout();
+            _measureCache[child] = size;
+            return size;
         }
     }
 }

@@ -23,9 +23,32 @@ namespace MonoGame.PortableUI.Controls
             BoxBackgroundBrush = theme.CheckBoxBoxBackgroundBrush;
             BoxBorderBrush = theme.CheckBoxBoxBorderBrush;
             CheckMarkBrush = theme.CheckBoxCheckMarkBrush;
+            GlyphKind = theme.CheckBoxGlyphKind;
             TextColor = theme.CheckBoxTextColor;
             ShowFocusVisual = true;
             Click += CheckBoxClick;
+        }
+
+        protected override void OnThemeChanged(PortableTheme oldTheme, PortableTheme newTheme)
+        {
+            base.OnThemeChanged(oldTheme, newTheme);
+
+            if (BoxSize.Equals(oldTheme.CheckBoxBoxSize))
+                BoxSize = newTheme.CheckBoxBoxSize;
+            if (BoxSpacing.Equals(oldTheme.CheckBoxBoxSpacing))
+                BoxSpacing = newTheme.CheckBoxBoxSpacing;
+            if (BoxBorderWidth.Equals(oldTheme.CheckBoxBoxBorderWidth))
+                BoxBorderWidth = newTheme.CheckBoxBoxBorderWidth;
+            if (ReferenceEquals(BoxBackgroundBrush, oldTheme.CheckBoxBoxBackgroundBrush))
+                BoxBackgroundBrush = newTheme.CheckBoxBoxBackgroundBrush;
+            if (ReferenceEquals(BoxBorderBrush, oldTheme.CheckBoxBoxBorderBrush))
+                BoxBorderBrush = newTheme.CheckBoxBoxBorderBrush;
+            if (ReferenceEquals(CheckMarkBrush, oldTheme.CheckBoxCheckMarkBrush))
+                CheckMarkBrush = newTheme.CheckBoxCheckMarkBrush;
+            if (GlyphKind == oldTheme.CheckBoxGlyphKind)
+                GlyphKind = newTheme.CheckBoxGlyphKind;
+            if (TextColor.Equals(oldTheme.CheckBoxTextColor))
+                TextColor = newTheme.CheckBoxTextColor;
         }
 
         public bool IsChecked
@@ -84,6 +107,7 @@ namespace MonoGame.PortableUI.Controls
         public Brush? BoxBackgroundBrush { get; set; }
         public Brush? BoxBorderBrush { get; set; }
         public Brush? CheckMarkBrush { get; set; }
+        public CheckBoxGlyphKind GlyphKind { get; set; }
 
         public event EventHandler<CheckedEventArgs>? Checked;
 
@@ -134,7 +158,7 @@ namespace MonoGame.PortableUI.Controls
             BoxBackgroundBrush?.Draw(spriteBatch, box);
 
             if (IsChecked && CheckMarkBrush != null)
-                DrawCheckMark(spriteBatch, box, BoxBorderWidth, CheckMarkBrush);
+                DrawCheckMark(spriteBatch, box, BoxBorderWidth, CheckMarkBrush, GlyphKind);
 
             if (BoxBorderBrush != null && BoxBorderWidth > 0)
                 DrawBorder(spriteBatch, box, BoxBorderWidth, BoxBorderBrush);
@@ -174,13 +198,13 @@ namespace MonoGame.PortableUI.Controls
             brush.Draw(spriteBatch, new Rect(rect.Left, rect.Bottom - width, rect.Width, width));
         }
 
-        private static void DrawCheckMark(SpriteBatch spriteBatch, Rect rect, float borderWidth, Brush brush)
+        private static void DrawCheckMark(SpriteBatch spriteBatch, Rect rect, float borderWidth, Brush brush, CheckBoxGlyphKind glyphKind)
         {
-            foreach (var markRect in GetCheckMarkRects(rect, borderWidth))
+            foreach (var markRect in GetCheckMarkRects(rect, borderWidth, glyphKind))
                 brush.Draw(spriteBatch, markRect);
         }
 
-        internal static IEnumerable<Rect> GetCheckMarkRects(Rect rect, float borderWidth)
+        internal static IEnumerable<Rect> GetCheckMarkRects(Rect rect, float borderWidth, CheckBoxGlyphKind glyphKind = CheckBoxGlyphKind.Cross)
         {
             var mark = rect;
             if (mark.Width <= 0 || mark.Height <= 0)
@@ -190,6 +214,15 @@ namespace MonoGame.PortableUI.Controls
             stroke = Math.Min(stroke, Math.Min(mark.Width, mark.Height));
             var halfStroke = stroke / 2;
             var steps = Math.Max(2, (int)Math.Ceiling(Math.Max(mark.Width, mark.Height)) + 1);
+
+            if (glyphKind == CheckBoxGlyphKind.Check)
+            {
+                foreach (var rectOnLine in GetStrokeRectsOnLine(mark, stroke, new PointF(0.2f, 0.55f), new PointF(0.42f, 0.78f)))
+                    yield return rectOnLine;
+                foreach (var rectOnLine in GetStrokeRectsOnLine(mark, stroke, new PointF(0.42f, 0.78f), new PointF(0.82f, 0.25f)))
+                    yield return rectOnLine;
+                yield break;
+            }
 
             for (var i = 0; i < steps; i++)
             {
@@ -205,6 +238,21 @@ namespace MonoGame.PortableUI.Controls
                 var second = ClipToBounds(new Rect(centerX - halfStroke, inverseCenterY - halfStroke, stroke, stroke), mark);
                 if (second.Width > 0 && second.Height > 0)
                     yield return second;
+            }
+        }
+
+        private static IEnumerable<Rect> GetStrokeRectsOnLine(Rect bounds, float stroke, PointF start, PointF end)
+        {
+            var halfStroke = stroke / 2;
+            var steps = Math.Max(2, (int)Math.Ceiling(Math.Max(bounds.Width, bounds.Height)) + 1);
+            for (var i = 0; i < steps; i++)
+            {
+                var t = steps == 1 ? 0 : i / (float)(steps - 1);
+                var centerX = bounds.Left + bounds.Width * (start.X + (end.X - start.X) * t);
+                var centerY = bounds.Top + bounds.Height * (start.Y + (end.Y - start.Y) * t);
+                var rect = ClipToBounds(new Rect(centerX - halfStroke, centerY - halfStroke, stroke, stroke), bounds);
+                if (rect.Width > 0 && rect.Height > 0)
+                    yield return rect;
             }
         }
 

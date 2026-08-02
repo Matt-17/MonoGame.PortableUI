@@ -79,6 +79,40 @@ namespace MonoGame.PortableUI.Controls
             IsChecked = !IsChecked;
         }
 
+        protected override ControlStyle? GetThemeStyle(PortableTheme theme)
+        {
+            return UseThemeStyle ? theme.ToggleButton : null;
+        }
+
+        protected override ControlVisualState GetVisualState()
+        {
+            if (IsChecked && IsEnabled)
+                return ControlVisualState.Checked;
+            return base.GetVisualState();
+        }
+
+        protected override void OnThemeChanged(PortableTheme oldTheme, PortableTheme newTheme)
+        {
+            base.OnThemeChanged(oldTheme, newTheme);
+
+            if (ReferenceEquals(ToggleBrush, oldTheme.ToggleBrush))
+                _toggleBrush = newTheme.ToggleBrush;
+            if (Nullable.Equals(ToggleTextColor, oldTheme.ToggleTextColor))
+                _toggleTextColor = newTheme.ToggleTextColor;
+            // The unchecked background captured on toggle is a snapshot of the old theme; drop it
+            // so the button resolves the new theme again.
+            if (_backgroundColor != null && ReferenceEquals(_backgroundColor, oldTheme.ButtonBackgroundBrush))
+            {
+                _backgroundColor = null;
+                if (!IsChecked)
+                    ClearBackgroundBrushOverride();
+            }
+
+            if (IsChecked)
+                BackgroundBrush = _toggleBrush;
+            ChangeVisualState();
+        }
+
         protected virtual void OnChecked(bool e)
         {
             CheckedEventArgs args = new CheckedEventArgs { IsChecked = e };

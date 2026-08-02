@@ -55,6 +55,36 @@
 /processorParam:TextureFormat=Compressed
 /build:Fonts\Segoe-regular-14.spritefont
 
+#begin Fonts\default-regular-14.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:TextureFormat=Compressed
+/build:Fonts\default-regular-14.spritefont
+
+#begin Fonts\selawik-regular-14.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:TextureFormat=Compressed
+/build:Fonts\selawik-regular-14.spritefont
+
+#begin Fonts\roboto-regular-14.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:TextureFormat=Compressed
+/build:Fonts\roboto-regular-14.spritefont
+
+#begin Fonts\vt323-regular-14.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:TextureFormat=Compressed
+/build:Fonts\vt323-regular-14.spritefont
+
+#begin Fonts\orbitron-regular-14.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:TextureFormat=Compressed
+/build:Fonts\orbitron-regular-14.spritefont
+
 #begin Images/ic_delete.png
 /importer:TextureImporter
 /processor:TextureProcessor

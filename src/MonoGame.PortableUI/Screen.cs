@@ -11,6 +11,8 @@ using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
 using MonoGame.PortableUI.Controls.Events;
 using MonoGame.PortableUI.Controls.Input;
+using MonoGame.PortableUI.Effects;
+using MonoGame.PortableUI.Input;
 using MonoGame.PortableUI.Media;
 
 namespace MonoGame.PortableUI
@@ -40,6 +42,8 @@ namespace MonoGame.PortableUI
         private FlyOut? _dismissingFlyOut;
         private ToolTipPopup? _toolTip;
         private ToolTipPopup? _dismissingToolTip;
+        private readonly List<Control> _visualTreeScratch = new List<Control>();
+        private readonly List<MouseButton> _pressedMouseButtonsScratch = new List<MouseButton>(3);
         private Control? _toolTipOwner;
         private string? _toolTipText;
         private PointF _toolTipAnchorPosition;
@@ -48,8 +52,12 @@ namespace MonoGame.PortableUI
         private FlyOutAnimationStyle _activeFlyOutAnimationStyle = FlyOutAnimationStyle.Popup;
         private Control? _capturedMouseControl;
         private Keys[] _lastPressedKeys = Array.Empty<Keys>();
+        private bool _inIslandPostFx;
+        private long _appliedThemeVersion = -1;
+        // Rebuilt every Draw; Update reads the previous frame's entries for pointer inverse mapping.
+        private readonly List<(Rect Rect, float Distortion)> _distortedIslands = new List<(Rect, float)>();
         private static readonly ScreenEngineOptions DefaultOptions = new ScreenEngineOptions();
-        private static readonly RasterizerState ScissorRasterizer = new RasterizerState { ScissorTestEnable = true, MultiSampleAntiAlias = true };
+        private static readonly RasterizerState ScissorRasterizer = new RasterizerState { ScissorTestEnable = true };
 
         protected Screen()
         {
@@ -120,6 +128,7 @@ namespace MonoGame.PortableUI
 
         public override void InvalidateLayout(bool boundsChanged)
         {
+            ScreenEngine?.RecordLayoutPass();
             _mainGrid?.UpdateLayout(ScreenRect);
         }
 
@@ -130,6 +139,30 @@ namespace MonoGame.PortableUI
 
         internal void Draw(SpriteBatch spriteBatch)
         {
+            var device = spriteBatch.GraphicsDevice;
+            var engine = ScreenEngine;
+            var theme = engine?.Options.Theme;
+
+            _distortedIslands.Clear();
+            PrepareBackdrop(spriteBatch, engine);
+
+            var postEffects = theme?.PostEffects;
+            var usePostFx = engine != null
+                && postEffects is { Count: > 0 }
+                && engine.PostProcess.CountEnabled(postEffects) > 0
+                && ScreenRect.Width > 0 && ScreenRect.Height > 0;
+            RenderTargetBinding[]? previousTargets = null;
+            RenderTarget2D? uiTarget = null;
+            if (usePostFx)
+            {
+                previousTargets = device.GetRenderTargets();
+                uiTarget = engine!.PostProcess.EnsureUiTarget((int)Math.Ceiling(ScreenRect.Width), (int)Math.Ceiling(ScreenRect.Height));
+                device.SetRenderTarget(uiTarget);
+                device.Clear(Color.Transparent);
+            }
+
+            OnBeforeDraw(spriteBatch);
+
             if (BackgroundBrush != null)
             {
                 spriteBatch.Begin();
@@ -148,25 +181,94 @@ namespace MonoGame.PortableUI
                 DrawControlTree(spriteBatch, _toolTip, GetOverlayScissor(_toolTip));
             if (_dismissingToolTip != null)
                 DrawControlTree(spriteBatch, _dismissingToolTip, GetOverlayScissor(_dismissingToolTip));
+
+            DrawDebugOverlay(spriteBatch);
+
+            if (usePostFx)
+            {
+                if (previousTargets == null || previousTargets.Length == 0)
+                    device.SetRenderTarget(null);
+                else
+                    device.SetRenderTargets(previousTargets);
+                engine!.PostProcess.Compose(spriteBatch, uiTarget!, postEffects!, ScreenRect, engine.Backdrop);
+                engine.RecordBatchFlush();
+            }
+
+            BackdropSource.Clear(device);
         }
+
+        private void PrepareBackdrop(SpriteBatch spriteBatch, ScreenEngine? engine)
+        {
+            var device = spriteBatch.GraphicsDevice;
+            BackdropSource.Clear(device);
+            if (engine == null || BackgroundBrush == null || ScreenRect.Width <= 0 || ScreenRect.Height <= 0 || !TreeRequiresBackdrop())
+                return;
+
+            var backdrop = engine.Backdrop;
+            backdrop.BeginFrame();
+            var previousTargets = device.GetRenderTargets();
+            var scene = backdrop.EnsureSceneTarget((int)Math.Ceiling(ScreenRect.Width), (int)Math.Ceiling(ScreenRect.Height));
+            device.SetRenderTarget(scene);
+            device.Clear(Color.Transparent);
+            spriteBatch.Begin();
+            BackgroundBrush.Draw(spriteBatch, ScreenRect);
+            spriteBatch.End();
+            var blurred = backdrop.Blur(spriteBatch, scene);
+            if (previousTargets.Length == 0)
+                device.SetRenderTarget(null);
+            else
+                device.SetRenderTargets(previousTargets);
+            BackdropSource.Set(device, blurred, ScreenRect);
+            engine.RecordBatchFlush();
+        }
+
+        private bool TreeRequiresBackdrop()
+        {
+            _visualTreeScratch.Clear();
+            VisualTreeHelper.AppendVisualTree(_mainGrid, _visualTreeScratch, false);
+            if (_flyOut != null)
+                VisualTreeHelper.AppendVisualTree(_flyOut, _visualTreeScratch, false);
+
+            var requiresBackdrop = false;
+            foreach (var control in _visualTreeScratch)
+            {
+                if (control.IsVisible && control.BackgroundBrush is { RequiresBackdrop: true })
+                {
+                    requiresBackdrop = true;
+                    break;
+                }
+            }
+
+            _visualTreeScratch.Clear();
+            return requiresBackdrop;
+        }
+
+        protected internal virtual void OnBeforeDraw(SpriteBatch spriteBatch)
+        {
+        }
+
+        public IInputSource InputSource { get; set; } = DeviceInputSource.Instance;
 
         internal void OnNavigationFrom(object? sender)
         {
-            var list = VisualTreeHelper.GetVisualTreeAsList(_mainGrid);
-            foreach (var control in list)
+            _visualTreeScratch.Clear();
+            VisualTreeHelper.AppendVisualTree(_mainGrid, _visualTreeScratch);
+            foreach (var control in _visualTreeScratch)
             {
                 control.ResetInputs();
             }
+            _visualTreeScratch.Clear();
             _capturedMouseControl = null;
         }
         
-        internal void CreateContextMenu(PointF position, ContextMenu content, bool optimizeForTouch)
+        internal void CreateContextMenu(PointF position, ContextMenu content, bool optimizeForTouch, Control? owner = null)
         {
             ClearToolTip();
             content.OnOpening();
             FlyOut = new FlyOut(position, content.ContextMenuType == ContextMenuTypes.OpenAndHold)
             {
-                Content = content.CreateControl(this, optimizeForTouch)
+                Content = content.CreateControl(this, optimizeForTouch),
+                ThemeOwner = owner
             };
             _activeFlyOutAnimationStyle = FlyOutAnimationStyle.Popup;
             _activeContextMenu = content;
@@ -175,12 +277,13 @@ namespace MonoGame.PortableUI
             content.OnOpened();
         }
 
-        internal void ShowFlyOut(PointF position, Control content, bool removeOnRelease)
+        internal void ShowFlyOut(PointF position, Control content, bool removeOnRelease, Control? owner = null)
         {
             ClearToolTip();
             FlyOut = new FlyOut(position, removeOnRelease)
             {
-                Content = content
+                Content = content,
+                ThemeOwner = owner
             };
             _activeFlyOutAnimationStyle = FlyOutAnimationStyle.DropDown;
             FlyOut.UpdateLayout(ScreenRect);
@@ -200,6 +303,7 @@ namespace MonoGame.PortableUI
             {
                 _dismissingToolTip = null;
                 _toolTip = new ToolTipPopup(text);
+                _toolTip.ThemeOwner = owner;
                 _toolTip.Parent = this;
                 _toolTipOwner = owner;
                 _toolTipText = text;
@@ -267,9 +371,24 @@ namespace MonoGame.PortableUI
                 scissorRect = GetOverlayScissor(control);
 
             spriteBatch.GraphicsDevice.ScissorRectangle = ToScissorRectangle(scissorRect);
-            spriteBatch.Begin(SpriteSortMode.Immediate, rasterizerState: ScissorRasterizer, effect: ScreenEngine?.Options.Effect);
-            DrawControl(spriteBatch, control, RenderContext.Root(scissorRect));
+            DrawControlBatched(spriteBatch, control, RenderContext.Root(scissorRect));
+        }
+
+        private void DrawDebugOverlay(SpriteBatch spriteBatch)
+        {
+            var engine = ScreenEngine;
+            if (engine == null || !engine.DebugOverlayEnabled || FontManager.DefaultFont == null)
+                return;
+
+            var text = $"FPS {engine.FramesPerSecond:0}  Batches {engine.BatchFlushesThisFrame}  Layout {engine.LayoutPassesThisFrame}";
+            var size = FontManager.DefaultFont.MeasureString(text);
+            var x = Math.Max(0, ScreenRect.Right - size.X - 8);
+            var y = Math.Max(0, ScreenRect.Top + 8);
+
+            spriteBatch.Begin();
+            spriteBatch.DrawString(FontManager.DefaultFont, text, new Vector2(x, y), Color.White);
             spriteBatch.End();
+            engine.RecordBatchFlush();
         }
 
         private Rect GetOverlayScissor(Control control)
@@ -283,7 +402,7 @@ namespace MonoGame.PortableUI
             return control.BoundingRect;
         }
 
-        private static void DrawControl(SpriteBatch spriteBatch, Control control, RenderContext parentContext)
+        private void DrawControlBatched(SpriteBatch spriteBatch, Control control, RenderContext parentContext)
         {
             if (!control.IsVisible || control.IsGone)
                 return;
@@ -292,16 +411,92 @@ namespace MonoGame.PortableUI
             if (context.ScissorRect.Width <= 0 || context.ScissorRect.Height <= 0)
                 return;
 
+            if (control is ThemeIsland island && TryComposeIslandPostFx(spriteBatch, island, parentContext, context))
+                return;
+
             var oldRect = new Rect(spriteBatch.GraphicsDevice.ScissorRectangle);
             control.SetRenderState(context.Opacity, context.Scale);
-            control.OnDraw(spriteBatch, context.RenderRect);
             spriteBatch.GraphicsDevice.ScissorRectangle = ToScissorRectangle(context.ScissorRect);
+            spriteBatch.Begin(SpriteSortMode.Deferred, rasterizerState: ScissorRasterizer, effect: ScreenEngine?.Options.Effect);
+            control.OnDraw(spriteBatch, context.RenderRect);
+            spriteBatch.End();
+            ScreenEngine?.RecordBatchFlush();
+
             foreach (var c in control.GetDescendants())
             {
-                DrawControl(spriteBatch, c, context);
+                DrawControlBatched(spriteBatch, c, context);
             }
+
+            spriteBatch.GraphicsDevice.ScissorRectangle = ToScissorRectangle(context.ScissorRect);
+            spriteBatch.Begin(SpriteSortMode.Deferred, rasterizerState: ScissorRasterizer, effect: ScreenEngine?.Options.Effect);
             control.OnDrawOverlay(spriteBatch, context.RenderRect);
+            spriteBatch.End();
+            ScreenEngine?.RecordBatchFlush();
             spriteBatch.GraphicsDevice.ScissorRectangle = oldRect;
+        }
+
+        /// <summary>
+        ///     A ThemeIsland whose theme carries enabled post effects renders its subtree into an
+        ///     offscreen target and composes the chain (barrel, scanlines, bloom, ...) into the
+        ///     island's own rect — e.g. a themed CRT monitor inside another screen. The outermost
+        ///     island wins; nested effect islands render flat inside it.
+        /// </summary>
+        private bool TryComposeIslandPostFx(SpriteBatch spriteBatch, ThemeIsland island, RenderContext parentContext, RenderContext context)
+        {
+            if (_inIslandPostFx)
+                return false;
+
+            var engine = ScreenEngine;
+            var effects = island.Theme?.PostEffects;
+            if (engine == null || effects is not { Count: > 0 } || engine.PostProcess.CountEnabled(effects) == 0)
+                return false;
+
+            var islandRect = context.RenderRect;
+            if (islandRect.Width <= 0 || islandRect.Height <= 0)
+                return false;
+
+            var device = spriteBatch.GraphicsDevice;
+            var previousTargets = device.GetRenderTargets();
+            // Full-frame target so the subtree can keep drawing at absolute screen coordinates.
+            var targetWidth = (int)Math.Ceiling(Math.Max(ScreenRect.Right, islandRect.Right));
+            var targetHeight = (int)Math.Ceiling(Math.Max(ScreenRect.Bottom, islandRect.Bottom));
+            var target = engine.PostProcess.EnsureIslandTarget(targetWidth, targetHeight);
+            device.SetRenderTarget(target);
+            device.Clear(Color.Transparent);
+
+            _inIslandPostFx = true;
+            try
+            {
+                DrawControlBatched(spriteBatch, island, parentContext);
+            }
+            finally
+            {
+                _inIslandPostFx = false;
+            }
+
+            if (previousTargets.Length == 0)
+                device.SetRenderTarget(null);
+            else
+                device.SetRenderTargets(previousTargets);
+
+            engine.PostProcess.Compose(spriteBatch, target, effects, islandRect, engine.Backdrop, islandRect);
+            engine.RecordBatchFlush();
+
+            var barrel = FindEnabledBarrel(effects);
+            if (barrel != null)
+                _distortedIslands.Add((islandRect, MathHelper.Clamp(barrel.Distortion, 0, 0.5f)));
+            return true;
+        }
+
+        private static CrtBarrelPostEffect? FindEnabledBarrel(IReadOnlyList<PostEffect> effects)
+        {
+            foreach (var effect in effects)
+            {
+                if (effect is CrtBarrelPostEffect { Enabled: true } barrel)
+                    return barrel;
+            }
+
+            return null;
         }
 
         private static Rectangle ToScissorRectangle(Rect rect)
@@ -317,33 +512,42 @@ namespace MonoGame.PortableUI
         {
             private readonly Matrix _transform;
 
-            private RenderContext(Matrix transform, Vector2 scale, float opacity, Rect scissorRect, Rect renderRect)
+            private RenderContext(Matrix transform, Vector2 scale, float opacity, Rect scissorRect, Rect childClipRect, Rect renderRect)
             {
                 _transform = transform;
                 Scale = scale;
                 Opacity = opacity;
                 ScissorRect = scissorRect;
+                ChildClipRect = childClipRect;
                 RenderRect = renderRect;
             }
 
             public Vector2 Scale { get; }
             public float Opacity { get; }
             public Rect ScissorRect { get; }
+            public Rect ChildClipRect { get; }
             public Rect RenderRect { get; }
 
             public static RenderContext Root(Rect scissorRect)
             {
-                return new RenderContext(Matrix.Identity, Vector2.One, 1, scissorRect, scissorRect);
+                return new RenderContext(Matrix.Identity, Vector2.One, 1, scissorRect, scissorRect, scissorRect);
             }
 
             public RenderContext ForControl(Control control)
             {
                 var transform = CreateControlTransform(control) * _transform;
                 var renderRect = TransformRect(control.ClippingRect, transform);
-                var scissorRect = ScissorRect ^ renderRect;
+                // Drop shadows render outside the control's bounds; widen the scissor so they survive.
+                var scissorSource = control.Shadow is { Inset: false } shadow
+                    ? renderRect + new Thickness(shadow.Blur + shadow.Spread + Math.Max(Math.Abs(shadow.Offset.X), Math.Abs(shadow.Offset.Y)))
+                    : renderRect;
+                var scissorRect = ChildClipRect ^ scissorSource;
+                // Only controls that clip their content (e.g. ScrollViewer) shrink the clip for
+                // descendants; everything else inherits it so overflowing shadows survive.
+                var childClipRect = control.ClipsDescendants ? ChildClipRect ^ renderRect : ChildClipRect;
                 var scale = new Vector2(Scale.X * control.Scale.X, Scale.Y * control.Scale.Y);
                 var opacity = Opacity * MathHelper.Clamp((float)control.Opacity, 0, 1);
-                return new RenderContext(transform, scale, opacity, scissorRect, renderRect);
+                return new RenderContext(transform, scale, opacity, scissorRect, childClipRect, renderRect);
             }
 
             private static Matrix CreateControlTransform(Control control)
@@ -381,16 +585,18 @@ namespace MonoGame.PortableUI
                 Initialized = true;
             }
 
-            var mouseState = Mouse.GetState();
+            var inputSource = InputSource ?? DeviceInputSource.Instance;
+            // All downstream consumers work in UI space: undo the CRT barrel displacement here.
+            var mousePosition = TransformPointerPosition(inputSource.MousePosition);
+            var pressedMouseButtons = SnapshotPressedMouseButtons(inputSource.PressedMouseButtons);
             TouchLocation touchState = default(TouchLocation);
-            var touchCollection = TouchPanel.GetState();
+            var touchCollection = inputSource.Touches;
             var hasTouch = touchCollection.Count > 0;
             if (hasTouch)
             {
                 touchState = touchCollection[0];
             }
-            var touchPosition = hasTouch ? (PointF)touchState.Position.ToPoint() : LastTouchPosition;
-            var mousePosition = (PointF)mouseState.Position;
+            var touchPosition = hasTouch ? TransformPointerPosition((PointF)touchState.Position.ToPoint()) : LastTouchPosition;
 
             Control content;
 
@@ -399,32 +605,33 @@ namespace MonoGame.PortableUI
             else
                 content = _mainGrid;
 
-            foreach (var control in VisualTreeHelper.GetVisualTreeAsList(content, false))
-                control.UpdateTimers();
+            var themeVersion = ThemeVersion.Current;
+            if (_appliedThemeVersion != themeVersion)
+            {
+                _appliedThemeVersion = themeVersion;
+                RefreshThemeForTree(_mainGrid);
+                if (_flyOut != null)
+                    RefreshThemeForTree(_flyOut);
+                if (_toolTip != null)
+                    RefreshThemeForTree(_toolTip);
+                InvalidateLayout(true);
+            }
+
+            UpdateTimersForTree(content);
             if (_toolTip != null)
-            {
-                foreach (var control in VisualTreeHelper.GetVisualTreeAsList(_toolTip, false))
-                    control.UpdateTimers();
-            }
+                UpdateTimersForTree(_toolTip);
             if (_dismissingFlyOut != null)
-            {
-                foreach (var control in VisualTreeHelper.GetVisualTreeAsList(_dismissingFlyOut, false))
-                    control.UpdateTimers();
-            }
+                UpdateTimersForTree(_dismissingFlyOut);
             if (_dismissingToolTip != null)
-            {
-                foreach (var control in VisualTreeHelper.GetVisualTreeAsList(_dismissingToolTip, false))
-                    control.UpdateTimers();
-            }
+                UpdateTimersForTree(_dismissingToolTip);
 
             HandleKeyboardInput();
 
             if (mousePosition != LastMousePosition)
             {
-                var buttons = GetPressedMouseButtons(mouseState);
-                if (!RouteCapturedMouseMove(mousePosition, buttons))
+                if (!RouteCapturedMouseMove(mousePosition, pressedMouseButtons))
                 {
-                    var args = new MouseEventArgs(mousePosition, buttons);
+                    var args = new MouseEventArgs(mousePosition, pressedMouseButtons);
                     VisualTreeHelper.IterateVisualTree(content, args,
                         (c, a) => c.BoundingRect.Contains(a.Position) && !c.BoundingRect.Contains(LastMousePosition), (c, a) => { c.OnMouseEnter(a); }, (c, a) => c.BoundingRect.Contains(a.Position));
                     VisualTreeHelper.IterateVisualTree(content, args, (c, a) => c.BoundingRect.Contains(a.Position) && c.BoundingRect.Contains(LastMousePosition), (c, a) => { c.OnMouseMove(a); }, null);
@@ -433,19 +640,19 @@ namespace MonoGame.PortableUI
                 LastMousePosition = mousePosition;
             }
 
-            HandleMouseButton(mouseState.LeftButton, ButtonState.Pressed, MouseButton.Left, mousePosition, content, (c, a) => c.OnMouseDown(a));
-            HandleMouseButton(mouseState.LeftButton, ButtonState.Released, MouseButton.Left, mousePosition, content, (c, a) => c.OnMouseUp(a));
-            HandleMouseButton(mouseState.RightButton, ButtonState.Pressed, MouseButton.Right, mousePosition, content, (c, a) => c.OnMouseDown(a));
-            HandleMouseButton(mouseState.RightButton, ButtonState.Released, MouseButton.Right, mousePosition, content, (c, a) => c.OnMouseUp(a));
-            HandleMouseButton(mouseState.MiddleButton, ButtonState.Pressed, MouseButton.Middle, mousePosition, content, (c, a) => c.OnMouseDown(a));
-            HandleMouseButton(mouseState.MiddleButton, ButtonState.Released, MouseButton.Middle, mousePosition, content, (c, a) => c.OnMouseUp(a));
-            if (mouseState.ScrollWheelValue != LastScrollWheelValue)
+            HandleMouseButton(GetButtonState(pressedMouseButtons, MouseButton.Left), ButtonState.Pressed, MouseButton.Left, mousePosition, content, (c, a) => c.OnMouseDown(a));
+            HandleMouseButton(GetButtonState(pressedMouseButtons, MouseButton.Left), ButtonState.Released, MouseButton.Left, mousePosition, content, (c, a) => c.OnMouseUp(a));
+            HandleMouseButton(GetButtonState(pressedMouseButtons, MouseButton.Right), ButtonState.Pressed, MouseButton.Right, mousePosition, content, (c, a) => c.OnMouseDown(a));
+            HandleMouseButton(GetButtonState(pressedMouseButtons, MouseButton.Right), ButtonState.Released, MouseButton.Right, mousePosition, content, (c, a) => c.OnMouseUp(a));
+            HandleMouseButton(GetButtonState(pressedMouseButtons, MouseButton.Middle), ButtonState.Pressed, MouseButton.Middle, mousePosition, content, (c, a) => c.OnMouseDown(a));
+            HandleMouseButton(GetButtonState(pressedMouseButtons, MouseButton.Middle), ButtonState.Released, MouseButton.Middle, mousePosition, content, (c, a) => c.OnMouseUp(a));
+            if (inputSource.ScrollWheelValue != LastScrollWheelValue)
             {
-                var args = new ScrollWheelChangedEventArgs(mousePosition, mouseState.ScrollWheelValue - LastScrollWheelValue);
+                var args = new ScrollWheelChangedEventArgs(mousePosition, inputSource.ScrollWheelValue - LastScrollWheelValue);
 
                 VisualTreeHelper.IterateVisualTree(content, args, (c, a) => c.BoundingRect.Contains(a.Position), (c, a) => { c.OnScrollWheelChanged(a); }, null);
 
-                LastScrollWheelValue = mouseState.ScrollWheelValue;
+                LastScrollWheelValue = inputSource.ScrollWheelValue;
             }
 
 
@@ -486,6 +693,86 @@ namespace MonoGame.PortableUI
             }
         }
 
+        /// <summary>
+        ///     Maps a raw pointer position to UI space: first through the screen-level barrel (if
+        ///     the active theme distorts the whole screen), then through the innermost distorted
+        ///     ThemeIsland containing the point.
+        /// </summary>
+        private PointF TransformPointerPosition(PointF position)
+        {
+            var screenDistortion = GetActiveBarrelDistortion();
+            if (screenDistortion > 0 && ScreenRect.Width > 0 && ScreenRect.Height > 0)
+                position = PostProcessManager.InverseBarrel(position, ScreenRect, screenDistortion);
+
+            if (_distortedIslands.Count > 0)
+            {
+                var bestArea = float.MaxValue;
+                var bestIndex = -1;
+                for (var i = 0; i < _distortedIslands.Count; i++)
+                {
+                    var (rect, distortion) = _distortedIslands[i];
+                    if (distortion <= 0 || !rect.Contains(position))
+                        continue;
+
+                    var area = rect.Width * rect.Height;
+                    if (area < bestArea)
+                    {
+                        bestArea = area;
+                        bestIndex = i;
+                    }
+                }
+
+                if (bestIndex >= 0)
+                {
+                    var (rect, distortion) = _distortedIslands[bestIndex];
+                    position = PostProcessManager.InverseBarrel(position, rect, distortion);
+                }
+            }
+
+            return position;
+        }
+
+        private float GetActiveBarrelDistortion()
+        {
+            var effects = ScreenEngine?.Options.Theme?.PostEffects;
+            if (effects == null)
+                return 0;
+
+            var barrel = FindEnabledBarrel(effects);
+            return barrel == null ? 0 : MathHelper.Clamp(barrel.Distortion, 0, 0.5f);
+        }
+
+        private void UpdateTimersForTree(Control control)
+        {
+            _visualTreeScratch.Clear();
+            VisualTreeHelper.AppendVisualTree(control, _visualTreeScratch, false);
+            foreach (var visual in _visualTreeScratch)
+                visual.UpdateTimers();
+            _visualTreeScratch.Clear();
+        }
+
+        private void RefreshThemeForTree(Control control)
+        {
+            _visualTreeScratch.Clear();
+            VisualTreeHelper.AppendVisualTree(control, _visualTreeScratch);
+            foreach (var visual in _visualTreeScratch)
+                visual.RefreshThemeResources();
+            _visualTreeScratch.Clear();
+        }
+
+        private List<MouseButton> SnapshotPressedMouseButtons(IReadOnlyCollection<MouseButton> pressedMouseButtons)
+        {
+            _pressedMouseButtonsScratch.Clear();
+            foreach (var button in pressedMouseButtons)
+                _pressedMouseButtonsScratch.Add(button);
+            return _pressedMouseButtonsScratch;
+        }
+
+        private static ButtonState GetButtonState(IReadOnlyCollection<MouseButton> pressedMouseButtons, MouseButton button)
+        {
+            return pressedMouseButtons.Contains(button) ? ButtonState.Pressed : ButtonState.Released;
+        }
+
         private void HandleKeyboardInput()
         {
             var keyboardState = Keyboard.GetState();
@@ -500,6 +787,12 @@ namespace MonoGame.PortableUI
                     if (_lastPressedKeys.Contains(key))
                         continue;
 
+                    if (key == Keys.F3)
+                    {
+                        ScreenEngine?.ToggleDebugOverlay();
+                        continue;
+                    }
+
                     var command = TryGetKeyboardCommand(key, modifiers);
                     if (command.HasValue)
                     {
@@ -509,14 +802,18 @@ namespace MonoGame.PortableUI
 
                     if ((modifiers & (KeyboardModifiers.Control | KeyboardModifiers.Alt)) != KeyboardModifiers.None)
                         continue;
-
-                    var character = TryGetCharacter(key, keyboardState);
-                    if (character.HasValue)
-                        focusedControl.OnKeyPressed(character.Value, modifiers);
                 }
             }
 
             _lastPressedKeys = pressedKeys;
+        }
+
+        internal void HandleTextInput(char character)
+        {
+            if (char.IsControl(character))
+                return;
+
+            ScreenEngine.FocusedControl?.OnKeyPressed(character, KeyboardModifiers.None);
         }
 
         private static KeyboardModifiers GetKeyboardModifiers(KeyboardState keyboardState)
@@ -568,69 +865,6 @@ namespace MonoGame.PortableUI
                     return KeyboardCommand.Home;
                 case Keys.End:
                     return KeyboardCommand.End;
-                default:
-                    return null;
-            }
-        }
-
-        private static char? TryGetCharacter(Keys key, KeyboardState keyboardState)
-        {
-            var shifted = keyboardState.IsKeyDown(Keys.LeftShift) || keyboardState.IsKeyDown(Keys.RightShift);
-            var keyValue = (int)key;
-
-            if (keyValue >= (int)Keys.A && keyValue <= (int)Keys.Z)
-            {
-                var letter = (char)('a' + keyValue - (int)Keys.A);
-                return shifted ? char.ToUpperInvariant(letter) : letter;
-            }
-
-            if (keyValue >= (int)Keys.D0 && keyValue <= (int)Keys.D9)
-            {
-                const string normal = "0123456789";
-                const string shiftedDigits = ")!@#$%^&*(";
-                var index = keyValue - (int)Keys.D0;
-                return shifted ? shiftedDigits[index] : normal[index];
-            }
-
-            if (keyValue >= (int)Keys.NumPad0 && keyValue <= (int)Keys.NumPad9)
-                return (char)('0' + keyValue - (int)Keys.NumPad0);
-
-            switch (key)
-            {
-                case Keys.Space:
-                    return ' ';
-                case Keys.Decimal:
-                    return '.';
-                case Keys.Add:
-                    return '+';
-                case Keys.Subtract:
-                    return '-';
-                case Keys.Multiply:
-                    return '*';
-                case Keys.Divide:
-                    return '/';
-                case Keys.OemComma:
-                    return shifted ? '<' : ',';
-                case Keys.OemPeriod:
-                    return shifted ? '>' : '.';
-                case Keys.OemMinus:
-                    return shifted ? '_' : '-';
-                case Keys.OemPlus:
-                    return shifted ? '+' : '=';
-                case Keys.OemQuestion:
-                    return shifted ? '?' : '/';
-                case Keys.OemSemicolon:
-                    return shifted ? ':' : ';';
-                case Keys.OemQuotes:
-                    return shifted ? '"' : '\'';
-                case Keys.OemOpenBrackets:
-                    return shifted ? '{' : '[';
-                case Keys.OemCloseBrackets:
-                    return shifted ? '}' : ']';
-                case Keys.OemPipe:
-                    return shifted ? '|' : '\\';
-                case Keys.OemTilde:
-                    return shifted ? '~' : '`';
                 default:
                     return null;
             }
@@ -694,18 +928,6 @@ namespace MonoGame.PortableUI
 
             action(captured, args);
             return true;
-        }
-
-        private static List<MouseButton> GetPressedMouseButtons(MouseState mouseState)
-        {
-            var buttons = new List<MouseButton>();
-            if (mouseState.LeftButton == ButtonState.Pressed)
-                buttons.Add(MouseButton.Left);
-            if (mouseState.RightButton == ButtonState.Pressed)
-                buttons.Add(MouseButton.Right);
-            if (mouseState.MiddleButton == ButtonState.Pressed)
-                buttons.Add(MouseButton.Middle);
-            return buttons;
         }
 
         public void ClearFlyOut()

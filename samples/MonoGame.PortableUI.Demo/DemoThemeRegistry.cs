@@ -8,10 +8,11 @@ namespace MonoGame.PortableUI.Demo
 {
     public static class DemoThemeRegistry
     {
-        public const string DefaultThemeId = "c64";
+        public const string DefaultThemeId = "default";
 
         private static readonly IReadOnlyList<DemoThemePreset> AllPresets = new[]
         {
+            CreateFromLibrary("default"),
             CreateGlass(),
             CreateC64(),
             CreateGameBoy(),
@@ -19,7 +20,35 @@ namespace MonoGame.PortableUI.Demo
             CreateAmiga(),
             CreateTerminal(),
             CreateStudio(),
-            CreateAurora()
+            CreateAurora(),
+            CreateFromLibrary("nes"),
+            CreateFromLibrary("mac1bit"),
+            CreateFromLibrary("norton"),
+            CreateFromLibrary("phosphor"),
+            CreateFromLibrary("amber"),
+            CreateFromLibrary("win95"),
+            CreateFromLibrary("macos9"),
+            CreateFromLibrary("nextstep"),
+            CreateFromLibrary("beos"),
+            CreateFromLibrary("luna"),
+            CreateFromLibrary("aqua"),
+            CreateFromLibrary("aero"),
+            CreateFromLibrary("metro"),
+            CreateFromLibrary("fluent"),
+            CreateFromLibrary("material"),
+            CreateFromLibrary("liquid"),
+            CreateFromLibrary("cyberpunk"),
+            CreateFromLibrary("vaporwave"),
+            CreateFromLibrary("nord"),
+            CreateFromLibrary("dracula"),
+            CreateFromLibrary("solarized-light"),
+            CreateFromLibrary("solarized-dark"),
+            CreateFromLibrary("gruvbox"),
+            CreateFromLibrary("parchment"),
+            CreateFromLibrary("lcars"),
+            CreateFromLibrary("eink"),
+            CreateFromLibrary("neumorphic"),
+            CreateFromLibrary("brutalist")
         };
 
         public static IReadOnlyList<DemoThemePreset> Presets => AllPresets;
@@ -33,7 +62,11 @@ namespace MonoGame.PortableUI.Demo
             "px437ibmvga8x16",
             "jersey10",
             "ibmplexmono",
-            "atkinsonhyperlegible"
+            "atkinsonhyperlegible",
+            "selawik",
+            "roboto",
+            "vt323",
+            "orbitron"
         };
 
         public static DemoThemePreset Resolve(string? id)
@@ -109,9 +142,24 @@ namespace MonoGame.PortableUI.Demo
             return 0;
         }
 
+        private static DemoThemePreset CreateFromLibrary(string id)
+        {
+            var definition = ThemeRegistry.Resolve(id);
+            return new DemoThemePreset
+            {
+                Id = definition.Id,
+                DisplayName = definition.DisplayName,
+                CreateTheme = definition.CreateTheme,
+                Palette = definition.Palette,
+                FontName = definition.FontName,
+                ClearColor = definition.ClearColor,
+                BackgroundColor = definition.BackgroundColor
+            };
+        }
+
         private static DemoThemePreset CreateC64()
         {
-            var palette = new DemoThemePalette
+            var palette = new ThemePalette
             {
                 Background = C64Theme.Blue,
                 Surface = C64Theme.Blue,
@@ -136,7 +184,7 @@ namespace MonoGame.PortableUI.Demo
 
             return new DemoThemePreset
             {
-                Id = DefaultThemeId,
+                Id = "c64",
                 DisplayName = "C64",
                 CreateTheme = C64Theme.Create,
                 Palette = palette,
@@ -161,7 +209,7 @@ namespace MonoGame.PortableUI.Demo
             var field = new FrostedGlassBrush(new Color(255, 255, 255, 54), new Color(255, 255, 255, 208), 16, 0.34f);
             var selection = new GradientBrush(new Color(97, 242, 226, 210), new Color(255, 211, 124, 192), GradientDirection.Horizontal);
 
-            var palette = new DemoThemePalette
+            var palette = new ThemePalette
             {
                 Background = night,
                 Surface = new Color(255, 255, 255, 42),
@@ -200,7 +248,9 @@ namespace MonoGame.PortableUI.Demo
                     buttonHover: new FrostedGlassBrush(new Color(97, 242, 226, 82), new Color(255, 255, 255, 216), 18, 0.38f),
                     buttonPressed: new FrostedGlassBrush(new Color(255, 144, 116, 118), new Color(255, 255, 255, 190), 12, 0.26f),
                     tooltipBackground: new FrostedGlassBrush(new Color(9, 14, 28, 228), new Color(255, 255, 255, 120), 10, 0.14f),
-                    tooltipText: Color.White),
+                    tooltipText: Color.White,
+                    panelShadow: new ShadowStyle { Color = new Color(0, 0, 0, 110), Offset = new Vector2(0, 10), Blur = 18 },
+                    styleId: "glass"),
                 Palette = palette,
                 FontName = "atkinsonhyperlegible",
                 ClearColor = night,
@@ -217,7 +267,7 @@ namespace MonoGame.PortableUI.Demo
             var ink = new Color(15, 56, 15);
             var red = new Color(112, 45, 40);
 
-            var palette = new DemoThemePalette
+            var palette = new ThemePalette
             {
                 Background = light,
                 Surface = mid,
@@ -251,7 +301,8 @@ namespace MonoGame.PortableUI.Demo
                     buttonHover: new Color(15, 56, 15, 85),
                     buttonPressed: new Color(15, 56, 15, 150),
                     tooltipBackground: ink,
-                    tooltipText: glass),
+                    tooltipText: glass,
+                    styleId: "gameboy"),
                 Palette = palette,
                 FontName = "silkscreen",
                 ClearColor = light,
@@ -272,7 +323,7 @@ namespace MonoGame.PortableUI.Demo
             var red = new Color(170, 0, 0);
             var black = new Color(0, 0, 0);
 
-            var palette = new DemoThemePalette
+            var palette = new ThemePalette
             {
                 Background = navy,
                 Surface = blue,
@@ -306,7 +357,8 @@ namespace MonoGame.PortableUI.Demo
                     buttonHover: new Color(0, 170, 170, 110),
                     buttonPressed: new Color(170, 170, 170, 180),
                     tooltipBackground: navy,
-                    tooltipText: dialogLight),
+                    tooltipText: dialogLight,
+                    styleId: "dos"),
                 Palette = palette,
                 FontName = "px437ibmvga8x16",
                 ClearColor = navy,
@@ -323,7 +375,7 @@ namespace MonoGame.PortableUI.Demo
             var orange = new Color(255, 136, 0);
             var ink = new Color(23, 23, 28);
 
-            var palette = new DemoThemePalette
+            var palette = new ThemePalette
             {
                 Background = gray,
                 Surface = panel,
@@ -357,7 +409,8 @@ namespace MonoGame.PortableUI.Demo
                     buttonHover: new Color(0, 86, 170, 90),
                     buttonPressed: new Color(255, 136, 0, 135),
                     tooltipBackground: darkBlue,
-                    tooltipText: Color.White),
+                    tooltipText: Color.White,
+                    styleId: "amiga"),
                 Palette = palette,
                 FontName = "jersey10",
                 ClearColor = gray,
@@ -374,7 +427,7 @@ namespace MonoGame.PortableUI.Demo
             var cyan = new Color(83, 232, 255);
             var text = new Color(217, 255, 244);
 
-            var palette = new DemoThemePalette
+            var palette = new ThemePalette
             {
                 Background = graphite,
                 Surface = panel,
@@ -408,7 +461,8 @@ namespace MonoGame.PortableUI.Demo
                     buttonHover: new Color(42, 246, 183, 80),
                     buttonPressed: new Color(83, 232, 255, 120),
                     tooltipBackground: graphite,
-                    tooltipText: text),
+                    tooltipText: text,
+                    styleId: "terminal"),
                 Palette = palette,
                 FontName = "ibmplexmono",
                 ClearColor = graphite,
@@ -425,7 +479,7 @@ namespace MonoGame.PortableUI.Demo
             var coral = new Color(255, 107, 94);
             var muted = new Color(109, 106, 101);
 
-            var palette = new DemoThemePalette
+            var palette = new ThemePalette
             {
                 Background = offWhite,
                 Surface = paper,
@@ -459,7 +513,10 @@ namespace MonoGame.PortableUI.Demo
                     buttonHover: new Color(59, 130, 246, 60),
                     buttonPressed: new Color(255, 107, 94, 95),
                     tooltipBackground: charcoal,
-                    tooltipText: offWhite),
+                    tooltipText: offWhite,
+                    panelShadow: new ShadowStyle { Color = new Color(217, 212, 203, 190), Offset = new Vector2(6, 8), Blur = 14 },
+                    buttonShadow: new ShadowStyle { Color = new Color(217, 212, 203, 170), Offset = new Vector2(4, 5), Blur = 10 },
+                    styleId: "studio"),
                 Palette = palette,
                 FontName = "atkinsonhyperlegible",
                 ClearColor = offWhite,
@@ -483,7 +540,7 @@ namespace MonoGame.PortableUI.Demo
             var blue = new Color(124, 199, 255);
             var ink = new Color(12, 15, 18);
 
-            var palette = new DemoThemePalette
+            var palette = new ThemePalette
             {
                 Background = graphite,
                 Surface = panel,
@@ -522,7 +579,10 @@ namespace MonoGame.PortableUI.Demo
                     buttonHover: new GradientBrush(new Color(104, 228, 192, 85), new Color(231, 247, 109, 75), GradientDirection.Horizontal),
                     buttonPressed: new GradientBrush(new Color(255, 178, 93, 135), new Color(104, 228, 192, 120), GradientDirection.Horizontal),
                     tooltipBackground: new GradientBrush(new Color(8, 12, 14, 245), new Color(24, 38, 34, 245), GradientDirection.Vertical),
-                    tooltipText: text),
+                    tooltipText: text,
+                    panelShadow: new ShadowStyle { Color = new Color(0, 0, 0, 130), Offset = new Vector2(0, 8), Blur = 16 },
+                    buttonShadow: new ShadowStyle { Color = new Color(104, 228, 192, 70), Offset = new Vector2(0, 4), Blur = 12 },
+                    styleId: "aurora"),
                 Palette = palette,
                 FontName = "atkinsonhyperlegible",
                 ClearColor = graphite,
@@ -531,7 +591,32 @@ namespace MonoGame.PortableUI.Demo
         }
 
         private static PortableTheme CreateTheme(
-            DemoThemePalette palette,
+            ThemePalette palette,
+            Brush textBoxBackground,
+            Brush buttonBackground,
+            Brush buttonHover,
+            Brush buttonPressed,
+            Brush tooltipBackground,
+            Color tooltipText,
+            ShadowStyle? panelShadow = null,
+            ShadowStyle? buttonShadow = null,
+            string? styleId = null)
+        {
+            var theme = BuildTheme(palette, textBoxBackground, buttonBackground, buttonHover, buttonPressed, tooltipBackground, tooltipText);
+            theme.Palette = palette;
+            // Reuse the library's style/chrome pipeline so hand-built presets get the same
+            // per-state borders, radii and era chrome as the catalog themes.
+            if (styleId != null)
+                ThemeRegistry.ApplyStyling(theme, styleId);
+            if (panelShadow != null)
+                theme.PanelShadow = panelShadow;
+            if (buttonShadow != null)
+                theme.ButtonShadow = buttonShadow;
+            return theme;
+        }
+
+        private static PortableTheme BuildTheme(
+            ThemePalette palette,
             Brush textBoxBackground,
             Brush buttonBackground,
             Brush buttonHover,
@@ -611,12 +696,12 @@ namespace MonoGame.PortableUI.Demo
             };
         }
 
-        private static Brush SurfaceBrush(DemoThemePalette palette)
+        private static Brush SurfaceBrush(ThemePalette palette)
         {
             return palette.SurfaceBrush ?? Brush(palette.Surface);
         }
 
-        private static Brush SelectionBrush(DemoThemePalette palette)
+        private static Brush SelectionBrush(ThemePalette palette)
         {
             return palette.SelectionBrush ?? Brush(palette.Selection);
         }

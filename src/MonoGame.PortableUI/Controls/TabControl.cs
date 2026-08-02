@@ -23,6 +23,23 @@ namespace MonoGame.PortableUI.Controls
             SelectedHeaderTextColor = theme.TabSelectedHeaderTextColor;
         }
 
+        protected override void OnThemeChanged(PortableTheme oldTheme, PortableTheme newTheme)
+        {
+            base.OnThemeChanged(oldTheme, newTheme);
+
+            if (HeaderHeight.Equals(oldTheme.TabHeaderHeight))
+                HeaderHeight = newTheme.TabHeaderHeight;
+            if (ReferenceEquals(HeaderBackground, oldTheme.TabHeaderBackgroundBrush))
+                HeaderBackground = newTheme.TabHeaderBackgroundBrush;
+            if (ReferenceEquals(SelectedHeaderBackground, oldTheme.TabSelectedHeaderBackgroundBrush))
+                SelectedHeaderBackground = newTheme.TabSelectedHeaderBackgroundBrush;
+            if (HeaderTextColor.Equals(oldTheme.TabHeaderTextColor))
+                HeaderTextColor = newTheme.TabHeaderTextColor;
+            if (SelectedHeaderTextColor.Equals(oldTheme.TabSelectedHeaderTextColor))
+                SelectedHeaderTextColor = newTheme.TabSelectedHeaderTextColor;
+            InvalidateLayout(true);
+        }
+
         public List<TabItem> Items { get; }
 
         public float HeaderHeight { get; set; }
@@ -111,7 +128,10 @@ namespace MonoGame.PortableUI.Controls
                 {
                     Height = HeaderHeight,
                     Parent = this,
-                    TextAlignment = TextAlignment.Center
+                    TextAlignment = TextAlignment.Center,
+                    Shadow = null,
+                    Margin = new Thickness(0),
+                    UseThemeStyle = false
                 };
                 button.Click += (sender, args) =>
                 {

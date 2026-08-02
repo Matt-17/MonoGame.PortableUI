@@ -1,0 +1,102 @@
+using System;
+using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+using Microsoft.Xna.Framework.Graphics;
+
+namespace MonoGame.PortableUI.Media
+{
+    internal static class BrushTextureCache
+    {
+        private static readonly object SyncRoot = new object();
+        private static readonly ConditionalWeakTable<GraphicsDevice, DeviceCache> Caches = new ConditionalWeakTable<GraphicsDevice, DeviceCache>();
+
+        public static Texture2D GetOrCreate(GraphicsDevice graphicsDevice, BrushTextureCacheKey key, Func<GraphicsDevice, Texture2D> factory)
+        {
+            if (graphicsDevice == null)
+                throw new ArgumentNullException(nameof(graphicsDevice));
+            if (factory == null)
+                throw new ArgumentNullException(nameof(factory));
+
+            lock (SyncRoot)
+            {
+                var cache = Caches.GetValue(graphicsDevice, CreateCache);
+                if (cache.Textures.TryGetValue(key, out var texture))
+                    return texture;
+
+                texture = factory(graphicsDevice);
+                cache.Textures[key] = texture;
+                return texture;
+            }
+        }
+
+        internal static void Clear(GraphicsDevice graphicsDevice)
+        {
+            lock (SyncRoot)
+            {
+                if (Caches.TryGetValue(graphicsDevice, out var cache))
+                    Clear(cache);
+            }
+        }
+
+        private static DeviceCache CreateCache(GraphicsDevice graphicsDevice)
+        {
+            var cache = new DeviceCache();
+            graphicsDevice.DeviceReset += (_, _) => Clear(cache);
+            graphicsDevice.Disposing += (_, _) => Clear(cache);
+            return cache;
+        }
+
+        private static void Clear(DeviceCache cache)
+        {
+            foreach (var texture in cache.Textures.Values)
+                texture.Dispose();
+            cache.Textures.Clear();
+        }
+
+        private sealed class DeviceCache
+        {
+            public Dictionary<BrushTextureCacheKey, Texture2D> Textures { get; } = new Dictionary<BrushTextureCacheKey, Texture2D>();
+        }
+    }
+
+    internal readonly struct BrushTextureCacheKey : IEquatable<BrushTextureCacheKey>
+    {
+        public BrushTextureCacheKey(string kind, int first, int second = 0, int third = 0, int fourth = 0)
+        {
+            Kind = kind ?? "";
+            First = first;
+            Second = second;
+            Third = third;
+            Fourth = fourth;
+        }
+
+        public string Kind { get; }
+
+        public int First { get; }
+
+        public int Second { get; }
+
+        public int Third { get; }
+
+        public int Fourth { get; }
+
+        public bool Equals(BrushTextureCacheKey other)
+        {
+            return Kind == other.Kind
+                && First == other.First
+                && Second == other.Second
+                && Third == other.Third
+                && Fourth == other.Fourth;
+        }
+
+        public override bool Equals(object? obj)
+        {
+            return obj is BrushTextureCacheKey other && Equals(other);
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(Kind, First, Second, Third, Fourth);
+        }
+    }
+}
