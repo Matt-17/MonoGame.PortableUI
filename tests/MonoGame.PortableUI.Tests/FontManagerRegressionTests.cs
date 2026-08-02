@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using MonoGame.PortableUI.Common;
 
 namespace MonoGame.PortableUI.Tests
 {
@@ -33,6 +34,14 @@ namespace MonoGame.PortableUI.Tests
             var contentRoot = FontManager.ResolveContentRoot("Content", baseDirectory);
 
             Assert.AreEqual(Path.GetFullPath(Path.Combine(baseDirectory, "Content")), contentRoot);
+        }
+
+        [TestMethod]
+        public void Font_asset_keys_keep_registered_family_name_and_lowercase_style()
+        {
+            var key = FontManager.CreateFontKey("Segoe", FontStyle.BoldItalic, 16);
+
+            Assert.AreEqual("Segoe-bolditalic-16", key);
         }
     }
 }

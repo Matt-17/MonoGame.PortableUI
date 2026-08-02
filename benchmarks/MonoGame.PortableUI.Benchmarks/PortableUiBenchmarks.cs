@@ -1,10 +1,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using BenchmarkDotNet.Attributes;
+using Microsoft.Xna.Framework;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
 using MonoGame.PortableUI.Controls.Events;
 using MonoGame.PortableUI.Controls.Input;
+using MonoGame.PortableUI.Media;
 
 namespace MonoGame.PortableUI.Benchmarks
 {
@@ -77,6 +79,41 @@ namespace MonoGame.PortableUI.Benchmarks
             return handled;
         }
 
+        [Benchmark]
+        public int RoundedRectFallbackGeometry()
+        {
+            return RoundedRectRenderer.GetFillRects(new Rect(0, 0, 180, 64), new CornerRadius(12, 16, 8, 4)).Count();
+        }
+
+        [Benchmark]
+        public int ThemeRegistryCreateAll()
+        {
+            var count = 0;
+            foreach (var definition in ThemeRegistry.Themes)
+            {
+                if (definition.CreateTheme() != null)
+                    count++;
+            }
+
+            return count;
+        }
+
+        [Benchmark]
+        public int PostEffectDescriptorCount()
+        {
+            var theme = ThemeRegistry.Resolve("phosphor").CreateTheme();
+            return theme.PostEffects.Count;
+        }
+
+        [Benchmark]
+        public float UISurfaceVirtualResize()
+        {
+            using var game = new Game();
+            using var surface = new UISurface(game, new BenchmarkScreen(), 640, 400);
+            surface.Resize(800, 450);
+            return surface.Engine.ScreenRect.Width + surface.Engine.ScreenRect.Height;
+        }
+
         private static Grid CreateStressGrid(int rows, int columns)
         {
             var grid = new Grid();
@@ -122,6 +159,10 @@ namespace MonoGame.PortableUI.Benchmarks
             {
                 return _size;
             }
+        }
+
+        private sealed class BenchmarkScreen : Screen
+        {
         }
     }
 }

@@ -9,6 +9,10 @@ namespace MonoGame.PortableUI.Controls
         /// <summary>
         /// With this the context menu hides as soon as touch or mouse is not hold anymore
         /// </summary>
-        OpenAndHold
+        OpenAndHold,
+        /// <summary>
+        /// Opens the menu on a normal left click (menu-button style) in addition to long press
+        /// </summary>
+        OpenOnLeftClick
     }
 }

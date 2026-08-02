@@ -18,8 +18,11 @@ namespace MonoGame.PortableUI.Controls
         private bool _hasHorizontalScrollBar;
         private bool _hasVerticalScrollBar;
         private float _scrollBarDragPointerOffset;
+        private readonly List<Control> _visualTreeScratch = new List<Control>();
 
         public Orientation ScrollOrientation { get; set; }
+
+        protected internal override bool ClipsDescendants => true;
 
         public Size Viewport { get; private set; }
         public Size Extent { get; private set; }
@@ -59,6 +62,22 @@ namespace MonoGame.PortableUI.Controls
             MouseDown += ScrollViewerMouseDown;
             MouseMove += ScrollViewerMouseMove;
             MouseUp += ScrollViewerMouseUp;
+        }
+
+        protected override void OnThemeChanged(PortableTheme oldTheme, PortableTheme newTheme)
+        {
+            base.OnThemeChanged(oldTheme, newTheme);
+
+            if (ScrollBarThickness.Equals(oldTheme.ScrollBarThickness))
+                ScrollBarThickness = newTheme.ScrollBarThickness;
+            if (ReferenceEquals(ScrollBarGutterBrush, oldTheme.ScrollBarGutterBrush))
+                ScrollBarGutterBrush = newTheme.ScrollBarGutterBrush;
+            if (ReferenceEquals(ScrollBarBrush, oldTheme.ScrollBarBrush))
+                ScrollBarBrush = newTheme.ScrollBarBrush;
+            if (ReferenceEquals(ScrollBarHoverBrush, oldTheme.ScrollBarHoverBrush))
+                ScrollBarHoverBrush = newTheme.ScrollBarHoverBrush;
+            if (ReferenceEquals(ScrollBarPressedBrush, oldTheme.ScrollBarPressedBrush))
+                ScrollBarPressedBrush = newTheme.ScrollBarPressedBrush;
         }
 
         private void ScrollViewerScrollWheelChanged(object? sender, ScrollWheelChangedEventArgs args)
@@ -308,7 +327,9 @@ namespace MonoGame.PortableUI.Controls
                 return;
 
             var args = new MouseEventArgs(position, new List<MouseButton>());
-            foreach (var control in VisualTreeHelper.GetVisualTreeAsList(Content, false))
+            _visualTreeScratch.Clear();
+            VisualTreeHelper.AppendVisualTree(Content, _visualTreeScratch, false);
+            foreach (var control in _visualTreeScratch)
             {
                 var containsPosition = control.BoundingRect.Contains(position);
                 if (containsPosition && !control.IsMouseHovering)
@@ -316,6 +337,7 @@ namespace MonoGame.PortableUI.Controls
                 else if (!containsPosition && control.IsMouseHovering)
                     control.OnMouseLeave(args);
             }
+            _visualTreeScratch.Clear();
         }
 
         private void DrawScrollBars(SpriteBatch spriteBatch, Rect viewportRect)

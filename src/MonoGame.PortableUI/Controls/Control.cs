@@ -7,6 +7,7 @@ using Microsoft.Xna.Framework.Input;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls.Events;
 using MonoGame.PortableUI.Controls.Input;
+using MonoGame.PortableUI.Effects;
 using MonoGame.PortableUI.Exceptions;
 using MonoGame.PortableUI.Media;
 using ControlAnimation = MonoGame.PortableUI.Animation.Animation;
@@ -34,6 +35,9 @@ namespace MonoGame.PortableUI.Controls
         private PointF _lastToolTipAnchorPosition;
         private bool _suppressUpdate;
         private string? _toolTip;
+        private long _resolvedThemeVersion = -1;
+        private PortableTheme? _resolvedTheme;
+        private PortableTheme? _appliedTheme;
         private static readonly ScreenEngineOptions DefaultOptions = new ScreenEngineOptions();
         public bool HandleTouchDownEnter { get; set; }
 
@@ -41,7 +45,7 @@ namespace MonoGame.PortableUI.Controls
         {
             var theme = PortableTheme.ResolveCurrent();
 
-            SnapToPixel = true;
+            SnapToPixel = theme.PixelSnapping;
             Opacity = 1;
             IsEnabled = true;
             IsVisible = true;
@@ -59,7 +63,10 @@ namespace MonoGame.PortableUI.Controls
             Position = new PointF(0, 0);
             FocusBorderBrush = theme.FocusBorderBrush;
             FocusBorderWidth = theme.FocusBorderWidth;
+            FocusVisualKind = theme.FocusVisualKind;
             DisabledOverlayBrush = theme.DisabledOverlayBrush;
+            // BorderThickness/CornerRadius intentionally stay unset so theme styles can supply them.
+            _appliedTheme = theme;
 
             _longPressTimer = new Timer(300);
             _longPressTimer.Elapsed += OnLongPressTimerElapsed;
@@ -111,12 +118,14 @@ namespace MonoGame.PortableUI.Controls
                 LongTouch -= ShowContextMenuTouch;
                 MouseDown -= ShowContextMenuDown;
                 RightClick -= ShowContextMenuClick;
+                Click -= ShowContextMenuLeftClick;
                 _contextMenu = value;
                 if (_contextMenu == null)
                     return;
                 LongTouch += ShowContextMenuTouch;
                 MouseDown += ShowContextMenuDown;
                 RightClick += ShowContextMenuClick;
+                Click += ShowContextMenuLeftClick;
             }
         }
 
@@ -213,6 +222,12 @@ namespace MonoGame.PortableUI.Controls
         public Rect ClientRect { get; protected set; }
         public Rect ClippingRect { get; protected set; }
 
+        /// <summary>
+        ///     When true, descendants are scissor-clipped to this control's bounds (e.g. ScrollViewer).
+        ///     Default is false so effects like drop shadows can render outside ancestor bounds.
+        /// </summary>
+        protected internal virtual bool ClipsDescendants => false;
+
         public Thickness Margin { get; set; }
 
         //public Border Rect { get; set; }
@@ -233,11 +248,189 @@ namespace MonoGame.PortableUI.Controls
 
         public float FocusBorderWidth { get; set; }
 
+        public FocusVisualKind FocusVisualKind { get; set; }
+
         public Brush? DisabledOverlayBrush { get; set; }
+
+        private Brush? _backgroundBrushOverride;
+        private bool _backgroundBrushSet;
+        private Brush? _borderBrushOverride;
+        private bool _borderBrushSet;
+        private Thickness? _borderThicknessOverride;
+        private CornerRadius? _cornerRadiusOverride;
+        private ShadowStyle? _shadowOverride;
+        private bool _shadowSet;
+
+        // Visual properties resolve theme StateStyle values live unless explicitly set —
+        // explicit assignments (user code or control constructors) always win (T2).
+        public override Brush? BackgroundBrush
+        {
+            get => _backgroundBrushSet ? _backgroundBrushOverride : ResolveStateStyle()?.Background ?? GetThemeBackgroundBrush(ResolveTheme());
+            set
+            {
+                _backgroundBrushOverride = value;
+                _backgroundBrushSet = true;
+            }
+        }
+
+        public Brush? BorderBrush
+        {
+            get => _borderBrushSet ? _borderBrushOverride : ResolveStateStyle()?.BorderBrush;
+            set
+            {
+                _borderBrushOverride = value;
+                _borderBrushSet = true;
+            }
+        }
+
+        public Thickness BorderThickness
+        {
+            get => _borderThicknessOverride ?? ResolveStateStyle()?.BorderThickness ?? default;
+            set => _borderThicknessOverride = value;
+        }
+
+        public CornerRadius CornerRadius
+        {
+            get => _cornerRadiusOverride ?? ResolveStateStyle()?.CornerRadius ?? default;
+            set => _cornerRadiusOverride = value;
+        }
+
+        public ShadowStyle? Shadow
+        {
+            get
+            {
+                if (_shadowSet)
+                    return _shadowOverride;
+                var shadows = ResolveStateStyle()?.Shadows;
+                return shadows is { Length: > 0 } ? shadows[0] : GetThemeShadow(ResolveTheme());
+            }
+            set
+            {
+                _shadowOverride = value;
+                _shadowSet = true;
+            }
+        }
+
+        /// <summary>Per-control style override; when null the control uses its theme style slot.</summary>
+        public ControlStyle? Style { get; set; }
+
+        /// <summary>The theme style slot this control consumes (e.g. Button → theme.Button); null = unstyled.</summary>
+        protected virtual ControlStyle? GetThemeStyle(PortableTheme theme) => null;
+
+        /// <summary>Flat-theme fallback used when neither an override nor a style background exists.</summary>
+        protected virtual Brush? GetThemeBackgroundBrush(PortableTheme theme) => null;
+
+        /// <summary>Flat-theme fallback shadow (e.g. theme.ButtonShadow).</summary>
+        protected virtual ShadowStyle? GetThemeShadow(PortableTheme theme) => null;
+
+        /// <summary>The state used to pick the StateStyle; interactive controls override this.</summary>
+        protected virtual ControlVisualState GetVisualState()
+        {
+            if (!IsEnabled)
+                return ControlVisualState.Disabled;
+            if (IsFocused)
+                return ControlVisualState.Focused;
+            return ControlVisualState.Normal;
+        }
+
+        internal ControlStyle? ResolveStyle()
+        {
+            return Style ?? GetThemeStyle(ResolveTheme());
+        }
+
+        protected StateStyle? ResolveStateStyle()
+        {
+            return ResolveStyle()?.GetResolved(GetVisualState());
+        }
+
+        internal Control? ThemeOwner { get; set; }
+
+        public BackdropMode BackdropMode { get; set; } = BackdropMode.Layered;
 
         public void SuppressUpdate(bool suppress)
         {
             _suppressUpdate = suppress;
+        }
+
+        protected internal PortableTheme ResolveTheme()
+        {
+            if (ThemeOwner != null && !ReferenceEquals(ThemeOwner, this))
+                return ThemeOwner.ResolveTheme();
+
+            var version = ThemeVersion.Current;
+            if (_resolvedTheme != null && _resolvedThemeVersion == version)
+                return _resolvedTheme;
+
+            var parent = (FrameworkElement?)this;
+            while (parent != null)
+            {
+                if (parent is ThemeIsland { Theme: { } islandTheme })
+                    return CacheResolvedTheme(islandTheme, version);
+
+                parent = parent.Parent;
+            }
+
+            var theme = Screen?.ScreenEngine?.Options.Theme
+                ?? ScreenEngine.Instance?.Options.Theme
+                ?? PortableTheme.ResolveCurrent();
+            return CacheResolvedTheme(theme, version);
+        }
+
+        private PortableTheme CacheResolvedTheme(PortableTheme theme, long version)
+        {
+            _resolvedTheme = theme;
+            _resolvedThemeVersion = version;
+            return theme;
+        }
+
+        /// <summary>
+        ///     T3 live switching: re-seeds theme-derived snapshots when the resolved theme changed
+        ///     (Options.Theme setter, ThemeIsland reassignment, or the control moving into an island).
+        ///     Values the user overrode — no longer equal to the previous theme's value — are kept.
+        /// </summary>
+        internal void RefreshThemeResources()
+        {
+            var current = ResolveTheme();
+            if (ReferenceEquals(_appliedTheme, current))
+                return;
+
+            var previous = _appliedTheme;
+            _appliedTheme = current;
+            if (previous != null)
+                OnThemeChanged(previous, current);
+        }
+
+        /// <summary>
+        ///     Re-apply constructor theme snapshots: for each themed property, assign the new
+        ///     theme's value only when the current value still equals the old theme's value
+        ///     (reference equality for brushes — theme brushes are shared instances).
+        /// </summary>
+        protected virtual void OnThemeChanged(PortableTheme oldTheme, PortableTheme newTheme)
+        {
+            if (ReferenceEquals(FocusBorderBrush, oldTheme.FocusBorderBrush))
+                FocusBorderBrush = newTheme.FocusBorderBrush;
+            if (FocusBorderWidth.Equals(oldTheme.FocusBorderWidth))
+                FocusBorderWidth = newTheme.FocusBorderWidth;
+            if (FocusVisualKind == oldTheme.FocusVisualKind)
+                FocusVisualKind = newTheme.FocusVisualKind;
+            if (ReferenceEquals(DisabledOverlayBrush, oldTheme.DisabledOverlayBrush))
+                DisabledOverlayBrush = newTheme.DisabledOverlayBrush;
+            if (SnapToPixel == oldTheme.PixelSnapping)
+                SnapToPixel = newTheme.PixelSnapping;
+        }
+
+        /// <summary>Helper for OnThemeChanged implementations: re-seed a brush-typed property.</summary>
+        protected static void SwapThemeBrush<T>(ref T? field, T? oldValue, T? newValue) where T : Brush
+        {
+            if (ReferenceEquals(field, oldValue))
+                field = newValue;
+        }
+
+        /// <summary>Reverts an explicit BackgroundBrush assignment back to theme/style resolution.</summary>
+        internal void ClearBackgroundBrushOverride()
+        {
+            _backgroundBrushSet = false;
+            _backgroundBrushOverride = null;
         }
 
         public bool IsEnabled
@@ -263,6 +456,13 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        /// <summary>
+        ///     When false, this control and its whole subtree are ignored by input routing
+        ///     (hover, clicks, scroll, touch, focus-by-click, tooltips) while still rendering
+        ///     and animating normally. Like WPF's IsHitTestVisible.
+        /// </summary>
+        public bool IsHitTestVisible { get; set; } = true;
+
         public HorizontalAlignment HorizontalAlignment { get; set; }
 
         public VerticalAlignment VerticalAlignment { get; set; }
@@ -274,13 +474,20 @@ namespace MonoGame.PortableUI.Controls
         private void ShowContextMenuTouch(object? sender, EventArgs e) { ShowContextMenu(true); }
         private void ShowContextMenuClick(object? sender, EventArgs args) { if (ContextMenu?.ContextMenuType == ContextMenuTypes.OpenAndClick) ShowContextMenu(false); }
         private void ShowContextMenuDown(object? sender, MouseEventArgs args) { if (args.Buttons.Any(x => x == MouseButton.Right) && ContextMenu?.ContextMenuType == ContextMenuTypes.OpenAndHold) ShowContextMenu(false); }
+        private void ShowContextMenuLeftClick(object? sender, EventArgs args) { if (ContextMenu?.ContextMenuType == ContextMenuTypes.OpenOnLeftClick) ShowContextMenu(false); }
+
+        /// <summary>Opens the assigned <see cref="ContextMenu"/> programmatically (e.g. from a menu button).</summary>
+        public void OpenContextMenu(bool optimizeForTouch = false)
+        {
+            ShowContextMenu(optimizeForTouch);
+        }
 
         private void ShowContextMenu(bool optimizeForTouch)
         {
             var boundingRect = BoundingRect - Margin;
             var pointF = boundingRect;
             if (Screen != null && ContextMenu != null)
-                Screen.CreateContextMenu(pointF.Offset, ContextMenu, optimizeForTouch);
+                Screen.CreateContextMenu(pointF.Offset, ContextMenu, optimizeForTouch, this);
         }
 
         public override void InvalidateLayout(bool boundsChanged)
@@ -343,13 +550,31 @@ namespace MonoGame.PortableUI.Controls
 
         protected internal virtual void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
-            BackgroundBrush?.Draw(spriteBatch, rect, RenderOpacity);
+            if (Shadow != null && !Shadow.Inset)
+                ShadowRenderer.Draw(spriteBatch, rect, CornerRadius, Shadow, RenderOpacity);
+
+            if (BackgroundBrush != null)
+            {
+                var context = new BrushContext(rect, CornerRadius, RenderOpacity, spriteBatch.GraphicsDevice, (float)ScreenSystem.TotalTime.TotalSeconds);
+                BackgroundBrush.Draw(spriteBatch, in context);
+            }
+
+            if (Shadow != null && Shadow.Inset)
+                ShadowRenderer.Draw(spriteBatch, rect, CornerRadius, Shadow, RenderOpacity);
+
+            if (BorderBrush != null && HasBorder(BorderThickness))
+            {
+                if (!CornerRadius.IsEmpty && BorderBrush is SolidColorBrush solidBorder)
+                    RoundedRectRenderer.DrawBorder(spriteBatch, rect, CornerRadius, BorderThickness, Brush.ApplyOpacity(solidBorder.Color, RenderOpacity));
+                else
+                    DrawBorder(spriteBatch, rect, BorderThickness, BorderBrush, RenderOpacity);
+            }
         }
 
         protected internal virtual void OnDrawOverlay(SpriteBatch spriteBatch, Rect rect)
         {
             if (ShowFocusVisual && IsFocused && FocusBorderWidth > 0 && FocusBorderBrush != null)
-                DrawBorder(spriteBatch, rect, FocusBorderWidth, FocusBorderBrush, RenderOpacity);
+                DrawFocusVisual(spriteBatch, rect, FocusBorderWidth, FocusBorderBrush, FocusVisualKind, RenderOpacity);
 
             if (!IsEnabled)
                 DisabledOverlayBrush?.Draw(spriteBatch, rect, RenderOpacity);
@@ -747,10 +972,66 @@ namespace MonoGame.PortableUI.Controls
 
         private static void DrawBorder(SpriteBatch spriteBatch, Rect rect, float width, Brush brush, float opacity)
         {
-            brush.Draw(spriteBatch, new Rect(rect.Left, rect.Top, rect.Width, width), opacity);
-            brush.Draw(spriteBatch, new Rect(rect.Left, rect.Top, width, rect.Height), opacity);
-            brush.Draw(spriteBatch, new Rect(rect.Right - width, rect.Top, width, rect.Height), opacity);
-            brush.Draw(spriteBatch, new Rect(rect.Left, rect.Bottom - width, rect.Width, width), opacity);
+            DrawBorder(spriteBatch, rect, new Thickness(width), brush, opacity);
+        }
+
+        private static void DrawFocusVisual(SpriteBatch spriteBatch, Rect rect, float width, Brush brush, FocusVisualKind kind, float opacity)
+        {
+            switch (kind)
+            {
+                case FocusVisualKind.Dotted:
+                    DrawDottedBorder(spriteBatch, rect, width, brush, opacity);
+                    break;
+                case FocusVisualKind.Glow:
+                    DrawBorder(spriteBatch, rect + new Thickness(width), width * 3, brush, opacity * 0.28f);
+                    DrawBorder(spriteBatch, rect, width, brush, opacity);
+                    break;
+                case FocusVisualKind.Thick:
+                    DrawBorder(spriteBatch, rect, width * 2, brush, opacity);
+                    break;
+                default:
+                    DrawBorder(spriteBatch, rect, width, brush, opacity);
+                    break;
+            }
+        }
+
+        private static void DrawBorder(SpriteBatch spriteBatch, Rect rect, Thickness width, Brush brush, float opacity)
+        {
+            if (width.Top > 0)
+                brush.Draw(spriteBatch, new Rect(rect.Left, rect.Top, rect.Width, width.Top), opacity);
+            if (width.Left > 0)
+                brush.Draw(spriteBatch, new Rect(rect.Left, rect.Top, width.Left, rect.Height), opacity);
+            if (width.Right > 0)
+                brush.Draw(spriteBatch, new Rect(rect.Right - width.Right, rect.Top, width.Right, rect.Height), opacity);
+            if (width.Bottom > 0)
+                brush.Draw(spriteBatch, new Rect(rect.Left, rect.Bottom - width.Bottom, rect.Width, width.Bottom), opacity);
+        }
+
+        private static bool HasBorder(Thickness thickness)
+        {
+            return thickness.Left > 0 || thickness.Top > 0 || thickness.Right > 0 || thickness.Bottom > 0;
+        }
+
+        private static void DrawDottedBorder(SpriteBatch spriteBatch, Rect rect, float width, Brush brush, float opacity)
+        {
+            var dash = Math.Max(1, width * 2);
+            DrawDottedLine(spriteBatch, new Rect(rect.Left, rect.Top, rect.Width, width), dash, true, brush, opacity);
+            DrawDottedLine(spriteBatch, new Rect(rect.Left, rect.Bottom - width, rect.Width, width), dash, true, brush, opacity);
+            DrawDottedLine(spriteBatch, new Rect(rect.Left, rect.Top, width, rect.Height), dash, false, brush, opacity);
+            DrawDottedLine(spriteBatch, new Rect(rect.Right - width, rect.Top, width, rect.Height), dash, false, brush, opacity);
+        }
+
+        private static void DrawDottedLine(SpriteBatch spriteBatch, Rect line, float dash, bool horizontal, Brush brush, float opacity)
+        {
+            var length = horizontal ? line.Width : line.Height;
+            for (var offset = 0f; offset < length; offset += dash * 2)
+            {
+                var segmentLength = Math.Min(dash, length - offset);
+                var segment = horizontal
+                    ? new Rect(line.Left + offset, line.Top, segmentLength, line.Height)
+                    : new Rect(line.Left, line.Top + offset, line.Width, segmentLength);
+                brush.Draw(spriteBatch, segment, opacity);
+            }
         }
 
         private void UpdateAnimations()

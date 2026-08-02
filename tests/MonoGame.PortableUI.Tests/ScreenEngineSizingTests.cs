@@ -78,6 +78,23 @@ namespace MonoGame.PortableUI.Tests
             Assert.AreEqual(0, screen.LayoutInvalidations);
         }
 
+        [TestMethod]
+        public void Debug_overlay_toggle_flips_overlay_state()
+        {
+            using var game = new Game();
+            var engine = ScreenEngine.Initialize(game, new ScreenEngineOptions { AddComponentToGame = false });
+
+            Assert.IsFalse(engine.DebugOverlayEnabled);
+
+            engine.ToggleDebugOverlay();
+
+            Assert.IsTrue(engine.DebugOverlayEnabled);
+
+            engine.ToggleDebugOverlay();
+
+            Assert.IsFalse(engine.DebugOverlayEnabled);
+        }
+
         private sealed class CountingScreen : Screen
         {
             public int LayoutInvalidations { get; private set; }

@@ -37,7 +37,6 @@ namespace MonoGame.PortableUI.Controls
                 ScrollOrientation = Orientation.Vertical
             };
 
-            BackgroundBrush = theme.ListBoxBackgroundBrush;
             ItemHeight = theme.ListBoxItemHeight;
             ItemPadding = theme.ListBoxItemPadding;
             ItemBackgroundBrush = theme.ListBoxItemBackgroundBrush;
@@ -48,6 +47,35 @@ namespace MonoGame.PortableUI.Controls
             KeyPressed += ListBoxKeyPressed;
             MouseMove += ListBoxMouseMove;
             MouseUp += ListBoxMouseUp;
+        }
+
+        protected override ControlStyle? GetThemeStyle(PortableTheme theme)
+        {
+            return theme.ListBox;
+        }
+
+        protected override Brush? GetThemeBackgroundBrush(PortableTheme theme)
+        {
+            return theme.ListBoxBackgroundBrush;
+        }
+
+        protected override void OnThemeChanged(PortableTheme oldTheme, PortableTheme newTheme)
+        {
+            base.OnThemeChanged(oldTheme, newTheme);
+
+            if (ItemHeight.Equals(oldTheme.ListBoxItemHeight))
+                ItemHeight = newTheme.ListBoxItemHeight;
+            if (ItemPadding.Equals(oldTheme.ListBoxItemPadding))
+                ItemPadding = newTheme.ListBoxItemPadding;
+            if (ReferenceEquals(ItemBackgroundBrush, oldTheme.ListBoxItemBackgroundBrush))
+                ItemBackgroundBrush = newTheme.ListBoxItemBackgroundBrush;
+            if (ReferenceEquals(SelectedItemBackgroundBrush, oldTheme.ListBoxSelectedItemBackgroundBrush))
+                SelectedItemBackgroundBrush = newTheme.ListBoxSelectedItemBackgroundBrush;
+            if (ItemTextColor.Equals(oldTheme.ListBoxItemTextColor))
+                ItemTextColor = newTheme.ListBoxItemTextColor;
+            if (SelectedItemTextColor.Equals(oldTheme.ListBoxSelectedItemTextColor))
+                SelectedItemTextColor = newTheme.ListBoxSelectedItemTextColor;
+            UpdateItemButtonVisuals();
         }
 
         public List<object> Items { get; }
@@ -145,6 +173,14 @@ namespace MonoGame.PortableUI.Controls
         public event EventHandler? SelectionChanged;
         public event EventHandler<ListBoxItemInvokedEventArgs>? ItemInvoked;
 
+        /// <summary>Scrolls the selected item into view (call after the list has been laid out).</summary>
+        public void ScrollSelectedIntoView()
+        {
+            EnsureItemButtons();
+            if (SelectedIndex >= 0 && SelectedIndex < _itemButtons.Count)
+                _scrollViewer.BringIntoView(_itemButtons[SelectedIndex]);
+        }
+
         public override Size MeasureLayout()
         {
             if (IsGone)
@@ -237,7 +273,10 @@ namespace MonoGame.PortableUI.Controls
                 TextAlignment = TextAlignment.Left,
                 Padding = ItemPadding,
                 ShowFocusVisual = false,
-                AnimatePressedState = false
+                AnimatePressedState = false,
+                Shadow = null,
+                Margin = new Thickness(0),
+                UseThemeStyle = false
             };
             button.MouseDown += ItemButtonMouseDown;
             button.MouseEnter += ItemButtonMouseEnter;

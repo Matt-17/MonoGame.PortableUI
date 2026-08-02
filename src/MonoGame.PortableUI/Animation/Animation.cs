@@ -57,6 +57,28 @@ namespace MonoGame.PortableUI.Animation
             return this;
         }
 
+        public Animation ColorTo(Func<Control, Color> getValue, Action<Control, Color> setValue, Color colorTo)
+        {
+            ReplaceTween(new ColorAnimationTween(
+                AnimationProperty.Color,
+                getValue,
+                setValue,
+                colorTo));
+            return this;
+        }
+
+        public Animation TextColorTo(Color colorTo)
+        {
+            return ColorTo(
+                control => control is TextBlock textBlock ? textBlock.TextColor : Color.Transparent,
+                (control, value) =>
+                {
+                    if (control is TextBlock textBlock)
+                        textBlock.TextColor = value;
+                },
+                colorTo);
+        }
+
         public Animation Duration(TimeSpan duration)
         {
             _duration = duration < TimeSpan.Zero ? TimeSpan.Zero : duration;
@@ -268,6 +290,43 @@ namespace MonoGame.PortableUI.Animation
             public void Apply(Control control, double progress)
             {
                 _setValue(control, _start + (_target - _start) * progress);
+            }
+
+            public void ApplyEnd(Control control)
+            {
+                _setValue(control, _target);
+            }
+        }
+
+        private sealed class ColorAnimationTween : IAnimationTween
+        {
+            private readonly Func<Control, Color> _getValue;
+            private readonly Action<Control, Color> _setValue;
+            private readonly Color _target;
+            private Color _start;
+
+            public ColorAnimationTween(
+                AnimationProperty property,
+                Func<Control, Color> getValue,
+                Action<Control, Color> setValue,
+                Color target)
+            {
+                Property = property;
+                _getValue = getValue;
+                _setValue = setValue;
+                _target = target;
+            }
+
+            public AnimationProperty Property { get; }
+
+            public void CaptureStart(Control control)
+            {
+                _start = _getValue(control);
+            }
+
+            public void Apply(Control control, double progress)
+            {
+                _setValue(control, Color.Lerp(_start, _target, (float)progress));
             }
 
             public void ApplyEnd(Control control)

@@ -21,7 +21,16 @@ namespace MonoGame.PortableUI
         public PortableTheme Theme
         {
             get { return _theme; }
-            set { _theme = value ?? PortableTheme.CreateDefault(); }
+            set
+            {
+                var nextTheme = value ?? PortableTheme.CreateDefault();
+                if (ReferenceEquals(_theme, nextTheme))
+                    return;
+
+                _theme = nextTheme;
+                ThemeVersion.Next();
+                ScreenEngine.Instance?.ActiveScreen?.InvalidateLayout(true);
+            }
         }
     }
 }

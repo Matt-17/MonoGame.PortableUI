@@ -7,7 +7,7 @@ namespace MonoGame.PortableUI.Demo
         [STAThread]
         private static void Main(string[] args)
         {
-            using var game = new DemoGame(DemoThemeRegistry.ResolveStartupTheme(args));
+            using var game = new DemoGame(DemoRunOptions.Parse(args));
             game.Run();
         }
     }

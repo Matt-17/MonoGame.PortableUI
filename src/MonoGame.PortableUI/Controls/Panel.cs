@@ -16,6 +16,9 @@ namespace MonoGame.PortableUI.Controls
             get { return _children; }
         }
 
+        /// <summary>Inner spacing between the panel bounds and its children.</summary>
+        public Thickness Padding { get; set; }
+
 
         public void AddChild(Control control)
         {

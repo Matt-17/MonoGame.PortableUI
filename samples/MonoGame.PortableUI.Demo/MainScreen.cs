@@ -1,6 +1,7 @@
 using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using MonoGame.PortableUI.Animation;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
 using MonoGame.PortableUI.Media;
@@ -13,8 +14,13 @@ namespace MonoGame.PortableUI.Demo
         private readonly Texture2D _deleteIcon;
         private DemoThemePreset _themePreset;
         private TextBlock _status = null!;
+        private TextBlock _themeTitle = null!;
+        private TabControl? _tabs;
+        private Color _inspectorColor;
+        private Border? _inspectorColorPreview;
+        private TextBlock? _inspectorCode;
 
-        private DemoThemePalette Palette => _themePreset.Palette;
+        private ThemePalette Palette => _themePreset.Palette;
         private Brush ScreenBackgroundBrush => Palette.BackgroundBrush ?? _themePreset.BackgroundColor;
         private Brush SurfaceBrush => Palette.SurfaceBrush ?? Palette.Surface;
         private Brush SurfaceAltBrush => Palette.SurfaceAltBrush ?? Palette.SurfaceAlt;
@@ -33,7 +39,31 @@ namespace MonoGame.PortableUI.Demo
         public void ApplyThemePreset(DemoThemePreset themePreset)
         {
             _themePreset = themePreset ?? DemoThemeRegistry.Default;
+
+            // The demo styles every control from the preset palette at construction time, so a theme
+            // change has to rebuild the tree. The selected tab survives the rebuild.
+            var selectedTab = _tabs?.SelectedIndex ?? 0;
             RebuildContent();
+            if (_tabs != null && selectedTab >= 0 && selectedTab < _tabs.Items.Count)
+                _tabs.SelectedIndex = selectedTab;
+            _status.Text = $"Theme applied: {_themePreset.DisplayName}";
+        }
+
+        internal bool TrySelectTab(string? header)
+        {
+            if (_tabs == null || string.IsNullOrWhiteSpace(header))
+                return false;
+
+            for (var i = 0; i < _tabs.Items.Count; i++)
+            {
+                if (string.Equals(_tabs.Items[i].Header, header.Trim(), StringComparison.OrdinalIgnoreCase))
+                {
+                    _tabs.SelectedIndex = i;
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private void RebuildContent()
@@ -72,7 +102,7 @@ namespace MonoGame.PortableUI.Demo
                 {
                     new ColumnDefinition(),
                     new ColumnDefinition { Width = new GridLength(230) },
-                    new ColumnDefinition { Width = new GridLength(220) }
+                    new ColumnDefinition { Width = new GridLength(230) }
                 }
             };
 
@@ -81,16 +111,33 @@ namespace MonoGame.PortableUI.Demo
                 Orientation = Orientation.Vertical
             };
             titleStack.AddChild(Label("MonoGame.PortableUI", Palette.HeadingText, 22, new Thickness(0, 0, 0, 2)));
-            titleStack.AddChild(Label($"{_themePreset.DisplayName.ToUpperInvariant()} THEME - CODE-FIRST CONTROLS", Palette.MutedText));
+            _themeTitle = Label($"{_themePreset.DisplayName.ToUpperInvariant()} THEME - CODE-FIRST CONTROLS", Palette.MutedText);
+            titleStack.AddChild(_themeTitle);
             header.AddChild(titleStack);
 
             header.AddChild(CreateThemeSelector(), column: 1);
 
-            var next = CommandButton("Open second screen", Palette.Primary, Palette.SelectionText);
-            next.Height = 42;
+            var navigation = new StackPanel
+            {
+                Orientation = Orientation.Vertical
+            };
+
+            var next = CommandButton("Second screen", Palette.Primary, Palette.SelectionText);
+            next.Height = 30;
             next.ToolTip = "Navigate to the secondary demo screen";
             next.Click += (sender, args) => ScreenEngine?.NavigateToScreen(new SecondScreen(_themePreset, _applyTheme));
-            header.AddChild(next, column: 2);
+            navigation.AddChild(next);
+
+            var adventure = CommandButton("Adventure room", Palette.Secondary, Palette.SelectionText);
+            adventure.Height = 30;
+            adventure.ToolTip = "Open the world-space UISurface demo";
+            adventure.Click += (sender, args) =>
+            {
+                if (ScreenEngine != null)
+                    ScreenEngine.NavigateToScreen(new AdventureRoomScreen(ScreenEngine.Game));
+            };
+            navigation.AddChild(adventure);
+            header.AddChild(navigation, column: 2);
 
             return header;
         }
@@ -101,6 +148,7 @@ namespace MonoGame.PortableUI.Demo
             {
                 Margin = new Thickness(0, 0, 12, 0),
                 Height = 42,
+                DropDownMaxHeight = 440,
                 BackgroundBrush = SurfaceAltBrush,
                 TextColor = Palette.Text,
                 HoverTextColor = Palette.Text,
@@ -138,13 +186,200 @@ namespace MonoGame.PortableUI.Demo
                 SelectedHeaderTextColor = Palette.SelectedTabText
             };
 
+            tabs.Items.Add(new TabItem { Header = "Gallery", Content = CreateGalleryTab() });
+            tabs.Items.Add(new TabItem { Header = "Inspector", Content = CreateInspectorTab() });
             tabs.Items.Add(new TabItem { Header = "Controls", Content = CreateControlsTab() });
+            tabs.Items.Add(new TabItem { Header = "Visual FX", Content = CreateVisualFxTab() });
+            tabs.Items.Add(new TabItem { Header = "Motion", Content = CreateMotionTab() });
             tabs.Items.Add(new TabItem { Header = "Layout", Content = CreateLayoutTab() });
             tabs.Items.Add(new TabItem { Header = "Scroll", Content = CreateScrollTab() });
             tabs.Items.Add(new TabItem { Header = "Stress", Content = CreateStressTab() });
             tabs.SelectedIndex = 0;
 
+            _tabs = tabs;
             return tabs;
+        }
+
+        private Control CreateGalleryTab()
+        {
+            var scroller = new ScrollViewer
+            {
+                Margin = 16,
+                BackgroundBrush = SurfaceBrush,
+                ScrollOrientation = Orientation.Vertical
+            };
+
+            var grid = new Grid
+            {
+                Margin = 8
+            };
+
+            for (var column = 0; column < 3; column++)
+                grid.ColumnDefinitions.Add(new ColumnDefinition());
+
+            for (var i = 0; i < DemoThemeRegistry.Presets.Count; i++)
+            {
+                if (i % 3 == 0)
+                    grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+                var preset = DemoThemeRegistry.Presets[i];
+                grid.AddChild(CreateThemeCard(preset), i / 3, i % 3);
+            }
+
+            scroller.Content = grid;
+            return scroller;
+        }
+
+        private Control CreateThemeCard(DemoThemePreset preset)
+        {
+            var palette = preset.Palette;
+            var theme = preset.CreateTheme();
+            var card = new Button
+            {
+                Margin = new Thickness(0, 0, 12, 12),
+                Padding = 10,
+                BackgroundBrush = palette.SurfaceBrush ?? palette.Surface,
+                BorderBrush = palette.Primary,
+                BorderThickness = string.Equals(preset.Id, _themePreset.Id, StringComparison.OrdinalIgnoreCase) ? 3 : 1,
+                CornerRadius = 6,
+                HoverColor = new SolidColorBrush(new Color((int)palette.Primary.R, (int)palette.Primary.G, (int)palette.Primary.B, 42)),
+                PressedColor = palette.SelectionBrush ?? palette.Selection,
+                ToolTip = $"Apply {preset.DisplayName}"
+            };
+
+            var stack = new StackPanel
+            {
+                Orientation = Orientation.Vertical
+            };
+            stack.AddChild(Label(preset.DisplayName, palette.HeadingText, 17, new Thickness(0, 0, 0, 2)));
+            stack.AddChild(Label($"{preset.FontName} - {preset.Id}", palette.MutedText, 12, new Thickness(0, 0, 0, 8)));
+
+            var preview = new ThemeIsland
+            {
+                Theme = theme,
+                Content = CreateMiniPreview(palette, theme),
+                // The mini controls are decoration; clicks must hit the card button only.
+                IsHitTestVisible = false
+            };
+            stack.AddChild(preview);
+            card.Content = stack;
+            card.Click += (sender, args) =>
+            {
+                _applyTheme(preset);
+                ApplyThemePreset(preset);
+            };
+            return card;
+        }
+
+        private Control CreateMiniPreview(ThemePalette palette, PortableTheme theme)
+        {
+            var preview = new Grid
+            {
+                Height = 118,
+                BackgroundBrush = palette.BackgroundBrush ?? palette.Background,
+                RowDefinitions =
+                {
+                    new RowDefinition { Height = GridLength.Auto },
+                    new RowDefinition(),
+                    new RowDefinition { Height = GridLength.Auto }
+                }
+            };
+
+            preview.AddChild(new TextBlock
+            {
+                Text = "Button  TextBox  Progress",
+                TextColor = palette.Text,
+                TextSize = 12,
+                Margin = new Thickness(8, 6, 8, 4)
+            });
+
+            var row = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Margin = new Thickness(8, 2, 8, 6)
+            };
+            row.AddChild(new TextButton("OK")
+            {
+                Width = 64,
+                Height = 30,
+                Margin = new Thickness(0, 0, 8, 0),
+                BackgroundBrush = palette.SelectionBrush ?? palette.Selection,
+                TextColor = palette.SelectionText,
+                // Controls snapshot the global theme in their constructor; show the card's theme instead.
+                Shadow = theme.ButtonShadow
+            });
+            row.AddChild(new TextBox
+            {
+                Width = 100,
+                Height = 30,
+                Text = "Aa",
+                BackgroundBrush = palette.FieldFrameBrush ?? palette.FieldFrame,
+                TextColor = palette.Text
+            });
+            preview.AddChild(row, row: 1);
+
+            preview.AddChild(new ProgressBar
+            {
+                Value = 64,
+                Margin = new Thickness(8, 0, 8, 8),
+                BackgroundBrush = palette.FieldFrameBrush ?? palette.FieldFrame,
+                FillBrush = palette.SelectionBrush ?? palette.Selection
+            }, row: 2);
+            return preview;
+        }
+
+        private Control CreateInspectorTab()
+        {
+            _inspectorColor = Palette.Primary;
+            var grid = new Grid
+            {
+                Margin = 16,
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition { Width = new GridLength(260) },
+                    new ColumnDefinition()
+                }
+            };
+
+            var swatches = PanelStack("Palette");
+            AddInspectorSwatch(swatches, "Background", Palette.Background);
+            AddInspectorSwatch(swatches, "Surface", Palette.Surface);
+            AddInspectorSwatch(swatches, "Text", Palette.Text);
+            AddInspectorSwatch(swatches, "Primary", Palette.Primary);
+            AddInspectorSwatch(swatches, "Secondary", Palette.Secondary);
+            AddInspectorSwatch(swatches, "Selection", Palette.Selection);
+            grid.AddChild(swatches);
+
+            var editor = PanelStack("RGB edit and export");
+            _inspectorColorPreview = new Border
+            {
+                Height = 76,
+                Margin = new Thickness(0, 0, 0, 12),
+                BackgroundBrush = _inspectorColor,
+                BorderBrush = Palette.FieldBorder,
+                BorderThickness = 1,
+                Content = Label("SELECTED COLOR", Palette.SelectionText, 16)
+            };
+            editor.AddChild(_inspectorColorPreview);
+
+            editor.AddChild(LabeledSlider("Red", 0, 255, _inspectorColor.R, "0", value => UpdateInspectorColor(r: (byte)value)));
+            editor.AddChild(LabeledSlider("Green", 0, 255, _inspectorColor.G, "0", value => UpdateInspectorColor(g: (byte)value)));
+            editor.AddChild(LabeledSlider("Blue", 0, 255, _inspectorColor.B, "0", value => UpdateInspectorColor(b: (byte)value)));
+
+            _inspectorCode = Label("", Palette.Text, 13, new Thickness(0, 8, 0, 8));
+            editor.AddChild(_inspectorCode);
+
+            var export = CommandButton("Copy C# theme color", Palette.Primary, Palette.SelectionText);
+            export.Click += (sender, args) =>
+            {
+                var code = CreateInspectorColorCode();
+                ScreenEngine?.Options.ClipboardService.SetText(code);
+                _status.Text = "Inspector color copied";
+            };
+            editor.AddChild(export);
+            UpdateInspectorCode();
+            grid.AddChild(editor, column: 1);
+            return grid;
         }
 
         private Control CreateControlsTab()
@@ -166,6 +401,124 @@ namespace MonoGame.PortableUI.Demo
             return grid;
         }
 
+        private Control CreateVisualFxTab()
+        {
+            var grid = new Grid
+            {
+                Margin = 16,
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition { Width = new GridLength(300) },
+                    new ColumnDefinition()
+                }
+            };
+
+            var controls = PanelStack("Visual FX");
+            var gradient = new LinearGradientBrush(
+                new GradientStop(0, Palette.Primary),
+                new GradientStop(0.55f, Palette.Secondary),
+                new GradientStop(1, Palette.Info))
+            {
+                AngleDegrees = 35
+            };
+            var sample = new Border
+            {
+                Margin = new Thickness(18, 0, 0, 0),
+                Padding = new Thickness(24),
+                BackgroundBrush = gradient,
+                BorderBrush = Palette.Primary,
+                BorderThickness = 2,
+                CornerRadius = 8,
+                Shadow = ShadowStyle.Level2(),
+                Content = Label("FX SAMPLE", Palette.SelectionText, 22)
+            };
+
+            controls.AddChild(LabeledSlider("Corner radius", 0, 24, 8, "0", value =>
+            {
+                sample.CornerRadius = value;
+                _status.Text = $"Corner radius: {value:0}";
+            }));
+
+            controls.AddChild(LabeledSlider("Shadow blur", 0, 24, sample.Shadow!.Blur, "0", value =>
+            {
+                sample.Shadow!.Blur = value;
+                _status.Text = $"Shadow blur: {value:0}";
+            }));
+
+            controls.AddChild(LabeledSlider("Shadow offset X", -18, 18, sample.Shadow!.Offset.X, "0", value =>
+            {
+                sample.Shadow!.Offset = new Vector2(value, sample.Shadow!.Offset.Y);
+                _status.Text = $"Shadow offset X: {value:0}";
+            }));
+
+            controls.AddChild(LabeledSlider("Shadow offset Y", -18, 18, sample.Shadow!.Offset.Y, "0", value =>
+            {
+                sample.Shadow!.Offset = new Vector2(sample.Shadow!.Offset.X, value);
+                _status.Text = $"Shadow offset Y: {value:0}";
+            }));
+
+            controls.AddChild(LabeledSlider("Shadow opacity", 0, 100, sample.Shadow!.Opacity * 100, "0'%'", value =>
+            {
+                sample.Shadow!.Opacity = value / 100f;
+                _status.Text = $"Shadow opacity: {value:0}%";
+            }));
+
+            controls.AddChild(LabeledSlider("Gradient angle", 0, 180, gradient.AngleDegrees, "0' deg'", value =>
+            {
+                gradient.AngleDegrees = value;
+                _status.Text = $"Gradient angle: {value:0}";
+            }));
+
+            grid.AddChild(controls);
+            grid.AddChild(sample, column: 1);
+            return grid;
+        }
+
+        private Control CreateMotionTab()
+        {
+            var grid = new Grid
+            {
+                Margin = 16,
+                RowDefinitions =
+                {
+                    new RowDefinition { Height = new GridLength(130) },
+                    new RowDefinition()
+                }
+            };
+
+            var stage = new Border
+            {
+                BackgroundBrush = SurfaceBrush,
+                BorderBrush = Palette.Primary,
+                BorderThickness = 1,
+                Padding = 12
+            };
+            var box = new Border
+            {
+                Width = 96,
+                Height = 58,
+                BackgroundBrush = SelectionBrush,
+                BorderBrush = Palette.Secondary,
+                BorderThickness = 2,
+                Content = Label("MOVE", Palette.SelectionText, 14)
+            };
+            stage.Content = box;
+            grid.AddChild(stage);
+
+            var buttons = new StackPanel
+            {
+                Orientation = Orientation.Vertical,
+                Margin = new Thickness(0, 14, 0, 0)
+            };
+            buttons.AddChild(MotionButton("Linear", box, Easings.Linear));
+            buttons.AddChild(MotionButton("Quad", box, Easings.QuadOut));
+            buttons.AddChild(MotionButton("Back", box, Easings.BackOut));
+            buttons.AddChild(MotionButton("Elastic", box, Easings.ElasticOut));
+            buttons.AddChild(MotionButton("Bounce", box, Easings.BounceOut));
+            grid.AddChild(buttons, row: 1);
+            return grid;
+        }
+
         private Control CreateInputPanel()
         {
             var panel = PanelStack("Input and selection");
@@ -177,7 +530,7 @@ namespace MonoGame.PortableUI.Demo
                 ToolTip = "Click or tap to focus text input"
             };
             textBox.TextChanged += (sender, args) => _status.Text = $"Text: {args.NewText}";
-            panel.AddChild(FieldFrame(textBox, 38, new Thickness(0, 6, 12, 10)));
+            panel.AddChild(FieldFrame(textBox, 38, new Thickness(0, 6, 0, 10)));
 
             panel.AddChild(Label("Password TextBox", Palette.MutedText));
             var passwordBox = new TextBox
@@ -187,7 +540,7 @@ namespace MonoGame.PortableUI.Demo
                 ToolTip = "Password input masks display and disables copy"
             };
             passwordBox.TextChanged += (sender, args) => _status.Text = $"Password length: {args.NewText.Length}";
-            panel.AddChild(FieldFrame(passwordBox, 38, new Thickness(0, 6, 12, 10)));
+            panel.AddChild(FieldFrame(passwordBox, 38, new Thickness(0, 6, 0, 10)));
 
             panel.AddChild(Label("Multiline TextBox", Palette.MutedText));
             var multilineBox = new TextBox
@@ -198,50 +551,16 @@ namespace MonoGame.PortableUI.Demo
             };
             multilineBox.EnterPressed += (sender, args) => _status.Text = "Multiline submitted";
             multilineBox.TextChanged += (sender, args) => _status.Text = $"Lines: {args.NewText.Split('\n').Length}";
-            panel.AddChild(FieldFrame(multilineBox, 86, new Thickness(0, 6, 12, 14)));
+            panel.AddChild(FieldFrame(multilineBox, 86, new Thickness(0, 6, 0, 14)));
 
             panel.AddChild(Label("ComboBox", Palette.MutedText));
-            var combo = new ComboBox { Margin = new Thickness(0, 6, 12, 14), Height = 38, ToolTip = "Choose a density preset" };
+            var combo = new ComboBox { Margin = new Thickness(0, 6, 0, 14), Height = 38, ToolTip = "Choose a density preset" };
             combo.Items.Add("Compact density");
             combo.Items.Add("Comfortable density");
             combo.Items.Add("Touch density");
             combo.SelectedIndex = 1;
             combo.SelectionChanged += (sender, args) => _status.Text = $"Density: {combo.SelectedItem}";
             panel.AddChild(combo);
-
-            var checkBox = new CheckBox
-            {
-                Text = "Enable layout guides",
-                Margin = new Thickness(0, 0, 12, 10),
-                Height = 34,
-                TextColor = Palette.Text,
-                BoxBorderBrush = Palette.Primary,
-                CheckMarkBrush = Palette.Selection,
-                ToolTip = "Toggle a checkbox state"
-            };
-            checkBox.Checked += (sender, args) => _status.Text = args.IsChecked ? "Layout guides on" : "Layout guides off";
-            panel.AddChild(checkBox);
-
-            var toggle = new ToggleButton
-            {
-                Text = "Toggle preview mode",
-                Margin = new Thickness(0, 0, 12, 10),
-                Height = 38,
-                BackgroundBrush = SurfaceAltBrush,
-                TextColor = Palette.Text,
-                ToggleBrush = SelectionBrush,
-                ToggleTextColor = Palette.SelectionText,
-                ToolTip = "Toggle the preview mode state"
-            };
-            toggle.Checked += (sender, args) => _status.Text = args.IsChecked ? "Preview mode on" : "Preview mode off";
-            panel.AddChild(toggle);
-
-            var radioA = new RadioButton { Text = "Mouse first", RadioGroup = "input", Margin = new Thickness(0, 0, 12, 4), Height = 32 };
-            var radioB = new RadioButton { Text = "Touch first", RadioGroup = "input", Margin = new Thickness(0, 0, 12, 0), Height = 32 };
-            radioA.Checked += (sender, args) => _status.Text = "Input profile: mouse";
-            radioB.Checked += (sender, args) => _status.Text = "Input profile: touch";
-            panel.AddChild(radioA);
-            panel.AddChild(radioB);
 
             return panel;
         }
@@ -254,7 +573,7 @@ namespace MonoGame.PortableUI.Demo
             var listBox = new ListBox
             {
                 Height = 190,
-                Margin = new Thickness(0, 6, 12, 10),
+                Margin = new Thickness(0, 6, 0, 10),
                 ItemHeight = 30,
                 ItemBackgroundBrush = SurfaceBrush,
                 SelectedItemBackgroundBrush = SelectionBrush,
@@ -270,6 +589,54 @@ namespace MonoGame.PortableUI.Demo
             listBox.SelectionChanged += (sender, args) => _status.Text = $"ListBox: {listBox.SelectedItem}";
             listBox.ItemInvoked += (sender, args) => _status.Text = $"ListBox invoked: {args.Item}";
             panel.AddChild(listBox);
+
+            panel.AddChild(Label("Slider + ProgressBar", Palette.MutedText));
+            var progressBar = new ProgressBar
+            {
+                Value = 42,
+                Margin = new Thickness(0, 6, 0, 8),
+                BackgroundBrush = FieldFrameBrush,
+                FillBrush = SelectionBrush,
+                ToolTip = "Determinate progress value"
+            };
+            var slider = new Slider
+            {
+                Value = 42,
+                Margin = new Thickness(0, 0, 0, 10),
+                TrackBrush = FieldFrameBrush,
+                FillBrush = SelectionBrush,
+                ThumbBrush = SurfaceAltBrush,
+                ThumbBorderBrush = Palette.Primary,
+                ToolTip = "Drag or use arrow keys to update progress"
+            };
+            slider.ValueChanged += (sender, args) =>
+            {
+                progressBar.Value = args.NewValue;
+                _status.Text = $"Slider: {args.NewValue:0}%";
+            };
+            panel.AddChild(progressBar);
+            panel.AddChild(slider);
+
+            panel.AddChild(Label("ProgressIndicator", Palette.MutedText));
+            panel.AddChild(new ProgressIndicator
+            {
+                Margin = new Thickness(0, 4, 0, 10),
+                HorizontalAlignment = HorizontalAlignment.Left,
+                Foreground = Palette.Primary,
+                ToolTip = "Indeterminate busy indicator"
+            });
+
+            panel.AddChild(Label("Image", Palette.MutedText));
+            panel.AddChild(new Image
+            {
+                Source = _deleteIcon,
+                Width = 40,
+                Height = 40,
+                Margin = new Thickness(0, 4, 0, 0),
+                HorizontalAlignment = HorizontalAlignment.Left,
+                TintColor = Palette.Text,
+                ToolTip = "Image control with tint color"
+            });
 
             return panel;
         }
@@ -300,21 +667,30 @@ namespace MonoGame.PortableUI.Demo
             disabled.IsEnabled = false;
             panel.AddChild(disabled);
 
-            panel.AddChild(Label("ImageButton", Palette.MutedText, 14, new Thickness(0, 8, 0, 2)));
+            panel.AddChild(Label("ImageButton + ContextMenu", Palette.MutedText, 14, new Thickness(0, 8, 0, 2)));
+            var buttonRow = new Grid
+            {
+                Margin = new Thickness(0, 2, 0, 4),
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition { Width = GridLength.Auto },
+                    new ColumnDefinition()
+                }
+            };
             var imageButton = new ImageButton
             {
                 Source = _deleteIcon,
                 Width = 46,
-                Height = 46,
-                Margin = new Thickness(0, 2, 0, 12),
+                Height = 38,
+                Margin = new Thickness(0, 0, 8, 8),
                 BackgroundBrush = SurfaceAltBrush,
                 TintColor = Palette.Text,
                 ToolTip = "Delete the current demo item"
             };
             imageButton.Click += (sender, args) => _status.Text = "ImageButton clicked";
-            panel.AddChild(imageButton);
+            buttonRow.AddChild(imageButton);
 
-            var menuButton = CommandButton("Open context menu", SurfaceAltBrush, Palette.Text);
+            var menuButton = CommandButton("Open context menu", SurfaceAltBrush, SurfaceAltTextColor);
             menuButton.ToolTip = "Right-click or long-press to open commands";
             var menu = new ContextMenu { BackgroundBrush = SurfaceBrush };
             menu.Items.Add(new MenuItem("Inspect", () => _status.Text = "Inspect command"));
@@ -322,7 +698,43 @@ namespace MonoGame.PortableUI.Demo
             menu.Items.Add(new MenuItem("Archive", () => _status.Text = "Archive command"));
             menu.ItemInvoked += (sender, args) => _status.Text = $"Menu: {args.Item.Text}";
             menuButton.ContextMenu = menu;
-            panel.AddChild(menuButton);
+            buttonRow.AddChild(menuButton, column: 1);
+            panel.AddChild(buttonRow);
+
+            panel.AddChild(Label("Selection states", Palette.MutedText, 14, new Thickness(0, 4, 0, 2)));
+            var checkBox = new CheckBox
+            {
+                Text = "Enable layout guides",
+                Margin = new Thickness(0, 0, 0, 8),
+                Height = 34,
+                TextColor = Palette.Text,
+                BoxBorderBrush = Palette.Primary,
+                CheckMarkBrush = Palette.Selection,
+                ToolTip = "Toggle a checkbox state"
+            };
+            checkBox.Checked += (sender, args) => _status.Text = args.IsChecked ? "Layout guides on" : "Layout guides off";
+            panel.AddChild(checkBox);
+
+            var toggle = new ToggleButton
+            {
+                Text = "Toggle preview mode",
+                Margin = new Thickness(0, 0, 0, 10),
+                Height = 38,
+                BackgroundBrush = SurfaceAltBrush,
+                TextColor = SurfaceAltTextColor,
+                ToggleBrush = SelectionBrush,
+                ToggleTextColor = Palette.SelectionText,
+                ToolTip = "Toggle the preview mode state"
+            };
+            toggle.Checked += (sender, args) => _status.Text = args.IsChecked ? "Preview mode on" : "Preview mode off";
+            panel.AddChild(toggle);
+
+            var radioA = new RadioButton { Text = "Mouse first", RadioGroup = "input", Margin = new Thickness(0, 0, 0, 4), Height = 32 };
+            var radioB = new RadioButton { Text = "Touch first", RadioGroup = "input", Margin = new Thickness(0, 0, 0, 0), Height = 32 };
+            radioA.Checked += (sender, args) => _status.Text = "Input profile: mouse";
+            radioB.Checked += (sender, args) => _status.Text = "Input profile: touch";
+            panel.AddChild(radioA);
+            panel.AddChild(radioB);
 
             return panel;
         }
@@ -462,23 +874,101 @@ namespace MonoGame.PortableUI.Demo
             return strip;
         }
 
+        private void AddInspectorSwatch(StackPanel swatches, string name, Color color)
+        {
+            var button = CommandButton(name, color, GetReadableTextColor(color));
+            button.Click += (sender, args) =>
+            {
+                _inspectorColor = color;
+                UpdateInspectorCode();
+                if (_inspectorColorPreview != null)
+                    _inspectorColorPreview.BackgroundBrush = _inspectorColor;
+                _status.Text = $"Inspector swatch: {name}";
+            };
+            swatches.AddChild(button);
+        }
+
+        private void UpdateInspectorColor(byte? r = null, byte? g = null, byte? b = null)
+        {
+            _inspectorColor = new Color(r ?? _inspectorColor.R, g ?? _inspectorColor.G, b ?? _inspectorColor.B, _inspectorColor.A);
+            if (_inspectorColorPreview != null)
+                _inspectorColorPreview.BackgroundBrush = _inspectorColor;
+            UpdateInspectorCode();
+            _status.Text = $"Inspector color: #{_inspectorColor.R:X2}{_inspectorColor.G:X2}{_inspectorColor.B:X2}";
+        }
+
+        private void UpdateInspectorCode()
+        {
+            if (_inspectorCode != null)
+                _inspectorCode.Text = CreateInspectorColorCode();
+        }
+
+        private string CreateInspectorColorCode()
+        {
+            return $"new Color({_inspectorColor.R}, {_inspectorColor.G}, {_inspectorColor.B}, {_inspectorColor.A})";
+        }
+
+        private static Color GetReadableTextColor(Color background)
+        {
+            var luma = background.R * 0.2126 + background.G * 0.7152 + background.B * 0.0722;
+            return luma > 150 ? Color.Black : Color.White;
+        }
+
         private StackPanel PanelStack(string title)
         {
             var panel = IsGlassTheme
                 ? new GlassStackPanel
                 {
                     BorderBrush = new SolidColorBrush(new Color(255, 255, 255, 116)),
-                    HighlightBrush = new SolidColorBrush(new Color(255, 255, 255, 150)),
-                    ShadowBrush = new SolidColorBrush(new Color(0, 0, 0, 72))
+                    HighlightBrush = new SolidColorBrush(new Color(255, 255, 255, 150))
                 }
                 : new StackPanel();
 
             panel.Orientation = Orientation.Vertical;
             panel.Margin = new Thickness(0, 0, 12, 0);
+            panel.Padding = new Thickness(14, 10, 14, 14);
             panel.VerticalAlignment = IsGlassTheme ? VerticalAlignment.Top : VerticalAlignment.Stretch;
             panel.BackgroundBrush = SurfaceBrush;
-            panel.AddChild(Label(title, Palette.HeadingText, 17, new Thickness(12, 10, 12, 8)));
+            panel.Shadow = CurrentTheme?.PanelShadow;
+            panel.AddChild(Label(title, Palette.HeadingText, 17, new Thickness(0, 0, 0, 8)));
             return panel;
+        }
+
+        private PortableTheme? CurrentTheme => ScreenEngine?.Options.Theme ?? PortableUI.ScreenEngine.Instance?.Options.Theme;
+
+        /// <summary>
+        ///     Text color for content on SurfaceAlt: the palette text when it reads well there,
+        ///     otherwise plain ink/paper picked by the surface's luminance (fixes e.g. DOS's
+        ///     light-gray text on gray dialog buttons).
+        /// </summary>
+        private Color SurfaceAltTextColor
+        {
+            get
+            {
+                var surface = Palette.SurfaceAlt;
+                if (ContrastRatio(Palette.Text, surface) >= 3)
+                    return Palette.Text;
+                var luminance = (0.2126 * surface.R + 0.7152 * surface.G + 0.0722 * surface.B) / 255.0;
+                return luminance > 0.5 ? new Color(20, 20, 20) : Color.White;
+            }
+        }
+
+        private static double ContrastRatio(Color a, Color b)
+        {
+            static double Luminance(Color color)
+            {
+                static double Channel(byte value)
+                {
+                    var c = value / 255.0;
+                    return c <= 0.03928 ? c / 12.92 : Math.Pow((c + 0.055) / 1.055, 2.4);
+                }
+
+                return 0.2126 * Channel(color.R) + 0.7152 * Channel(color.G) + 0.0722 * Channel(color.B);
+            }
+
+            var la = Luminance(a);
+            var lb = Luminance(b);
+            return (Math.Max(la, lb) + 0.05) / (Math.Min(la, lb) + 0.05);
         }
 
         private Border FieldFrame(TextBox textBox, float height, Thickness margin)
@@ -529,12 +1019,71 @@ namespace MonoGame.PortableUI.Demo
             return new TextButton(text)
             {
                 Height = 38,
-                Margin = new Thickness(0, 0, 12, 8),
+                Margin = new Thickness(0, 0, 0, 8),
                 BackgroundBrush = background,
                 TextColor = foreground,
                 HoverTextColor = Palette.Text,
                 PressedTextColor = Palette.Background
             };
+        }
+
+        private Control LabeledSlider(string label, float minimum, float maximum, float value, string format, Action<float> changed)
+        {
+            var panel = new StackPanel { Orientation = Orientation.Vertical };
+            var header = new Grid
+            {
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition(),
+                    new ColumnDefinition { Width = GridLength.Auto }
+                }
+            };
+            var valueLabel = Label(value.ToString(format), Palette.Text);
+            header.AddChild(Label(label, Palette.MutedText));
+            header.AddChild(valueLabel, column: 1);
+            panel.AddChild(header);
+            panel.AddChild(ValueSlider(minimum, maximum, value, newValue =>
+            {
+                valueLabel.Text = newValue.ToString(format);
+                changed(newValue);
+            }));
+            return panel;
+        }
+
+        private Slider ValueSlider(float minimum, float maximum, float value, Action<float> changed)
+        {
+            var slider = new Slider
+            {
+                Minimum = minimum,
+                Maximum = maximum,
+                Value = value,
+                Margin = new Thickness(0, 4, 0, 10),
+                TrackBrush = FieldFrameBrush,
+                FillBrush = SelectionBrush,
+                ThumbBrush = SurfaceAltBrush,
+                ThumbBorderBrush = Palette.Primary
+            };
+            slider.ValueChanged += (sender, args) => changed(args.NewValue);
+            return slider;
+        }
+
+        private TextButton MotionButton(string label, Control target, Easing easing)
+        {
+            var button = CommandButton(label, SurfaceAltBrush, SurfaceAltTextColor);
+            button.Click += (sender, args) =>
+            {
+                target.Translation = Vector2.Zero;
+                target.Scale = Vector2.One;
+                target.Opacity = 1;
+                target.Animate()
+                    .TranslateTo(new Vector2(160, 0))
+                    .Scale(new Vector2(1.08f, 1.08f))
+                    .Duration(TimeSpan.FromMilliseconds(650))
+                    .Ease(easing)
+                    .Start();
+                _status.Text = $"Motion: {label}";
+            };
+            return button;
         }
 
         private TextBlock Label(string text, Color color)

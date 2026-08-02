@@ -11,7 +11,7 @@ namespace MonoGame.PortableUI.Demo
         private readonly Action<DemoThemePreset> _applyTheme;
         private DemoThemePreset _themePreset;
 
-        private DemoThemePalette Palette => _themePreset.Palette;
+        private ThemePalette Palette => _themePreset.Palette;
         private Brush ScreenBackgroundBrush => Palette.BackgroundBrush ?? _themePreset.BackgroundColor;
         private Brush SurfaceBrush => Palette.SurfaceBrush ?? Palette.Surface;
         private Brush SurfaceAltBrush => Palette.SurfaceAltBrush ?? Palette.SurfaceAlt;
@@ -131,6 +131,7 @@ namespace MonoGame.PortableUI.Demo
             var combo = new ComboBox
             {
                 Height = 42,
+                DropDownMaxHeight = 440,
                 BackgroundBrush = SurfaceAltBrush,
                 TextColor = Palette.Text,
                 HoverTextColor = Palette.Text,

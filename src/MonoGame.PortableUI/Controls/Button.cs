@@ -29,7 +29,10 @@ namespace MonoGame.PortableUI.Controls
             var theme = PortableTheme.ResolveCurrent();
 
             Padding = theme.ButtonPadding;
-            BackgroundBrush = theme.ButtonBackgroundBrush;
+            if (theme.ButtonMargin != null)
+                Margin = theme.ButtonMargin.Value;
+            // Background/border/corner radius/shadow resolve live from theme.Button (T2);
+            // only overlay/text snapshots are seeded here and re-seeded in OnThemeChanged (T3).
             HoverColor = theme.ButtonHoverBrush;
             PressedColor = theme.ButtonPressedBrush;
             TextColor = theme.ButtonTextColor;
@@ -40,14 +43,69 @@ namespace MonoGame.PortableUI.Controls
             ShowFocusVisual = true;
         }
 
+        /// <summary>Internal chrome buttons (list items, tab headers, menu entries) opt out.</summary>
+        internal bool UseThemeStyle { get; set; } = true;
+
+        protected override ControlStyle? GetThemeStyle(PortableTheme theme)
+        {
+            return UseThemeStyle ? theme.Button : null;
+        }
+
+        protected override Media.Brush? GetThemeBackgroundBrush(PortableTheme theme)
+        {
+            return theme.ButtonBackgroundBrush;
+        }
+
+        protected override ShadowStyle? GetThemeShadow(PortableTheme theme)
+        {
+            return UseThemeStyle ? theme.ButtonShadow : null;
+        }
+
+        protected override ControlVisualState GetVisualState()
+        {
+            if (!IsEnabled)
+                return ControlVisualState.Disabled;
+            if (IsPressedVisualState())
+                return ControlVisualState.Pressed;
+            if (HoverState == HoverStates.Hovering)
+                return ControlVisualState.Hover;
+            if (IsFocused)
+                return ControlVisualState.Focused;
+            return ControlVisualState.Normal;
+        }
+
+        protected override void OnThemeChanged(PortableTheme oldTheme, PortableTheme newTheme)
+        {
+            base.OnThemeChanged(oldTheme, newTheme);
+
+            if (Padding.Equals(oldTheme.ButtonPadding))
+                Padding = newTheme.ButtonPadding;
+            if (oldTheme.ButtonMargin is { } oldMargin && Margin.Equals(oldMargin))
+                Margin = newTheme.ButtonMargin ?? new Thickness(0);
+            else if (oldTheme.ButtonMargin == null && newTheme.ButtonMargin is { } newMargin && Margin.Equals(new Thickness(0)))
+                Margin = newMargin;
+            if (ReferenceEquals(HoverColor, oldTheme.ButtonHoverBrush))
+                HoverColor = newTheme.ButtonHoverBrush;
+            if (ReferenceEquals(PressedColor, oldTheme.ButtonPressedBrush))
+                PressedColor = newTheme.ButtonPressedBrush;
+            if (TextColor.Equals(oldTheme.ButtonTextColor))
+                TextColor = newTheme.ButtonTextColor;
+            if (Nullable.Equals(HoverTextColor, oldTheme.ButtonHoverTextColor))
+                HoverTextColor = newTheme.ButtonHoverTextColor;
+            if (Nullable.Equals(PressedTextColor, oldTheme.ButtonPressedTextColor))
+                PressedTextColor = newTheme.ButtonPressedTextColor;
+            if (Nullable.Equals(DisabledTextColor, oldTheme.DisabledTextColor))
+                DisabledTextColor = newTheme.DisabledTextColor;
+        }
+
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
             base.OnDraw(spriteBatch, rect);
-            var clientRect = rect;
+            var context = new BrushContext(rect, CornerRadius, RenderOpacity, spriteBatch.GraphicsDevice, (float)ScreenSystem.TotalTime.TotalSeconds);
             if (IsPressedVisualState())
-                PressedColor.Draw(spriteBatch, clientRect, RenderOpacity);
+                PressedColor.Draw(spriteBatch, in context);
             else if (HoverState == HoverStates.Hovering)
-                HoverColor.Draw(spriteBatch, clientRect, RenderOpacity);
+                HoverColor.Draw(spriteBatch, in context);
         }
 
         #region Properties

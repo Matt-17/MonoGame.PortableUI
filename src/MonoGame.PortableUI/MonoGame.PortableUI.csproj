@@ -24,6 +24,12 @@
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="Effects\compiled\*.mgfxo" />
+    <None Include="Effects\src\*.fx" Pack="true" PackagePath="effects\src\" />
+    <None Include="..\..\eng\build-effects.ps1" Pack="true" PackagePath="eng\" />
+    <None Include="..\..\eng\README.md" Pack="true" PackagePath="eng\" />
+  </ItemGroup>
+  <ItemGroup>
     <InternalsVisibleTo Include="MonoGame.PortableUI.Benchmarks" />
     <InternalsVisibleTo Include="MonoGame.PortableUI.Tests" />
   </ItemGroup>

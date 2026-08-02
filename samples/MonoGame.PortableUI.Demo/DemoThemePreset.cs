@@ -8,7 +8,7 @@ namespace MonoGame.PortableUI.Demo
         public string Id { get; init; } = "";
         public string DisplayName { get; init; } = "";
         public Func<PortableTheme> CreateTheme { get; init; } = PortableTheme.CreateDefault;
-        public DemoThemePalette Palette { get; init; } = DemoThemePalette.Empty;
+        public ThemePalette Palette { get; init; } = ThemePalette.Empty;
         public string FontName { get; init; } = "";
         public Color ClearColor { get; init; }
         public Color BackgroundColor { get; init; }

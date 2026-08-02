@@ -1,37 +1,16 @@
 {
   "$schema": "https://json.schemastore.org/launchsettings.json",
   "profiles": {
-    "MonoGame.PortableUI.Demo - Frosted Glass": {
+    "MonoGame.PortableUI.Demo": {
+      "commandName": "Project"
+    },
+    "MonoGame.PortableUI.Demo with Theme": {
       "commandName": "Project",
       "commandLineArgs": "--theme glass"
     },
-    "MonoGame.PortableUI.Demo - C64": {
+    "MonoGame.PortableUI.Demo - Screenshots": {
       "commandName": "Project",
-      "commandLineArgs": "--theme c64"
-    },
-    "MonoGame.PortableUI.Demo - Game Boy DMG": {
-      "commandName": "Project",
-      "commandLineArgs": "--theme gameboy"
-    },
-    "MonoGame.PortableUI.Demo - DOS / Turbo Vision": {
-      "commandName": "Project",
-      "commandLineArgs": "--theme dos"
-    },
-    "MonoGame.PortableUI.Demo - Amiga Workbench": {
-      "commandName": "Project",
-      "commandLineArgs": "--theme amiga"
-    },
-    "MonoGame.PortableUI.Demo - Terminal Glass": {
-      "commandName": "Project",
-      "commandLineArgs": "--theme terminal"
-    },
-    "MonoGame.PortableUI.Demo - Soft Studio": {
-      "commandName": "Project",
-      "commandLineArgs": "--theme studio"
-    },
-    "MonoGame.PortableUI.Demo - Aurora Modern": {
-      "commandName": "Project",
-      "commandLineArgs": "--theme aurora"
+      "commandLineArgs": "--theme glass --screenshot docs/themes --screenshot-screen gallery"
     }
   }
 }

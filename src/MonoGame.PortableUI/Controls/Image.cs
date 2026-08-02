@@ -12,7 +12,8 @@ namespace MonoGame.PortableUI.Controls
 
         public Color TintColor { get; set; }
 
-        public Stretch Stretch { get; set; }
+        // Uniform matches the WPF default; None would draw oversized sources clipped to a corner.
+        public Stretch Stretch { get; set; } = Stretch.Uniform;
         
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
@@ -25,11 +26,27 @@ namespace MonoGame.PortableUI.Controls
             var y = rect.Top;
 
             var imageSize = GetImageSize((Size)rect);
-            if (HorizontalAlignment == HorizontalAlignment.Stretch)
-                x += (rect.Width - imageSize.Width) / 2;
-            
-            if (VerticalAlignment == VerticalAlignment.Center)
-                y += (rect.Height - imageSize.Height) / 2;
+            switch (HorizontalAlignment)
+            {
+                case HorizontalAlignment.Stretch:
+                case HorizontalAlignment.Center:
+                    x += (rect.Width - imageSize.Width) / 2;
+                    break;
+                case HorizontalAlignment.Right:
+                    x += rect.Width - imageSize.Width;
+                    break;
+            }
+
+            switch (VerticalAlignment)
+            {
+                case VerticalAlignment.Stretch:
+                case VerticalAlignment.Center:
+                    y += (rect.Height - imageSize.Height) / 2;
+                    break;
+                case VerticalAlignment.Bottom:
+                    y += rect.Height - imageSize.Height;
+                    break;
+            }
 
             var destinationRectangle = new Rect(new PointF(x,y), imageSize);
             var tintColor = TintColor == Color.Transparent ? Color.White : TintColor;

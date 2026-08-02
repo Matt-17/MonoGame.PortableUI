@@ -1,8 +1,10 @@
 using System;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.Xna.Framework;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
+using MonoGame.PortableUI.Input;
 
 namespace MonoGame.PortableUI.Tests
 {
@@ -81,6 +83,54 @@ namespace MonoGame.PortableUI.Tests
 
             CollectionAssert.AreEqual(new Control[] { sibling, root }, visibleList);
             CollectionAssert.AreEqual(new[] { leaf.Content, leaf, inner, sibling, root }, fullList);
+        }
+
+        [TestMethod]
+        public void Screen_text_input_routes_localized_characters_to_focused_control()
+        {
+            var screen = new TestScreen();
+            var textBox = new TextBox();
+            ScreenEngine.FocusedControl = textBox;
+
+            screen.HandleTextInput('ä');
+            screen.HandleTextInput('\b');
+
+            Assert.AreEqual("ä", textBox.Text);
+        }
+
+        [TestMethod]
+        public void Screen_update_consumes_virtual_input_source_for_pointer_clicks()
+        {
+            using var game = new Game();
+            var engine = ScreenEngine.Initialize(game, new ScreenEngineOptions { AddComponentToGame = false });
+            engine.SetScreenSize(120, 80);
+            var screen = new TestScreen();
+            var source = new VirtualInputSource();
+            var button = new Button
+            {
+                Width = 80,
+                Height = 40,
+                Text = "Run"
+            };
+            var clicks = 0;
+            button.Click += (sender, args) => clicks++;
+            screen.InputSource = source;
+            screen.Content = button;
+            engine.NavigateToScreen(screen);
+            screen.InvalidateLayout(true);
+
+            source.SetPointer(new PointF(10, 10));
+            screen.Update();
+            source.SetPointer(new PointF(10, 10), leftDown: true);
+            screen.Update();
+            source.SetPointer(new PointF(10, 10));
+            screen.Update();
+
+            Assert.AreEqual(1, clicks);
+        }
+
+        private sealed class TestScreen : Screen
+        {
         }
     }
 }

@@ -127,7 +127,6 @@ namespace MonoGame.PortableUI.Controls
         {
             var theme = PortableTheme.ResolveCurrent();
 
-            BackgroundBrush = theme.TextBoxBackgroundBrush;
             TextColor = theme.TextBoxTextColor;
             CursorColor = theme.TextBoxCursorBrush;
             SelectionBrush = theme.TextBoxSelectionBrush;
@@ -143,6 +142,34 @@ namespace MonoGame.PortableUI.Controls
             Height = theme.TextBoxHeight;
             Padding = theme.TextBoxPadding;
             ShowFocusVisual = true;
+        }
+
+        protected override ControlStyle? GetThemeStyle(PortableTheme theme)
+        {
+            return theme.TextBox;
+        }
+
+        protected override Brush? GetThemeBackgroundBrush(PortableTheme theme)
+        {
+            return theme.TextBoxBackgroundBrush;
+        }
+
+        protected override void OnThemeChanged(PortableTheme oldTheme, PortableTheme newTheme)
+        {
+            base.OnThemeChanged(oldTheme, newTheme);
+
+            if (TextColor.Equals(oldTheme.TextBoxTextColor))
+                TextColor = newTheme.TextBoxTextColor;
+            if (ReferenceEquals(CursorColor, oldTheme.TextBoxCursorBrush))
+                CursorColor = newTheme.TextBoxCursorBrush;
+            if (ReferenceEquals(SelectionBrush, oldTheme.TextBoxSelectionBrush))
+                SelectionBrush = newTheme.TextBoxSelectionBrush;
+            if (HintTextColor.Equals(oldTheme.TextBoxHintTextColor))
+                HintTextColor = newTheme.TextBoxHintTextColor;
+            if (Height.Equals(oldTheme.TextBoxHeight))
+                Height = newTheme.TextBoxHeight;
+            if (Padding.Equals(oldTheme.TextBoxPadding))
+                Padding = newTheme.TextBoxPadding;
         }
 
         public void Select(int start, int length)

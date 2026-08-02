@@ -2,13 +2,13 @@ using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI.Common;
+using MonoGame.PortableUI.Effects;
 
 namespace MonoGame.PortableUI.Media
 {
     public class FrostedGlassBrush : Brush
     {
         private const int TextureSize = 32;
-        private Texture2D? _texture;
         private Color _tintColor;
         private Color _sheenColor;
         private float _blurRadius;
@@ -32,6 +32,8 @@ namespace MonoGame.PortableUI.Media
             GrainOpacity = grainOpacity;
         }
 
+        public override bool RequiresBackdrop => BlurRadius > 0;
+
         public Color TintColor
         {
             get { return _tintColor; }
@@ -47,7 +49,6 @@ namespace MonoGame.PortableUI.Media
                     return;
 
                 _sheenColor = value;
-                _texture = null;
             }
         }
 
@@ -61,7 +62,6 @@ namespace MonoGame.PortableUI.Media
                     return;
 
                 _blurRadius = clamped;
-                _texture = null;
             }
         }
 
@@ -75,7 +75,6 @@ namespace MonoGame.PortableUI.Media
                     return;
 
                 _grainOpacity = clamped;
-                _texture = null;
             }
         }
 
@@ -90,20 +89,54 @@ namespace MonoGame.PortableUI.Media
                 return;
 
             opacity = MathHelper.Clamp(opacity, 0, 1);
+            if (BlurRadius > 0 && TryDrawBackdrop(spriteBatch, rect, opacity))
+            {
+                spriteBatch.Draw(SolidColorBrush.Pixel, rect, ApplyOpacity(TintColor, opacity));
+                spriteBatch.Draw(GetTexture(spriteBatch), rect, ApplyOpacity(Color.White, opacity * 0.55f));
+                DrawHighlights(spriteBatch, rect, opacity);
+                return;
+            }
+
             spriteBatch.Draw(SolidColorBrush.Pixel, rect, ApplyOpacity(TintColor, opacity));
 
-            RecreateTexture(spriteBatch);
-            if (_texture != null)
-                spriteBatch.Draw(_texture, rect, ApplyOpacity(Color.White, opacity));
+            spriteBatch.Draw(GetTexture(spriteBatch), rect, ApplyOpacity(Color.White, opacity));
 
             DrawHighlights(spriteBatch, rect, opacity);
         }
 
-        private void RecreateTexture(SpriteBatch spriteBatch)
+        private static bool TryDrawBackdrop(SpriteBatch spriteBatch, Rect rect, float opacity)
         {
-            if (_texture != null)
-                return;
+            if (!BackdropSource.TryGet(spriteBatch.GraphicsDevice, out var backdrop, out var screenRect) || backdrop == null)
+                return false;
 
+            var scaleX = backdrop.Width / Math.Max(1f, screenRect.Width);
+            var scaleY = backdrop.Height / Math.Max(1f, screenRect.Height);
+            var source = new Rectangle(
+                (int)((rect.Left - screenRect.Left) * scaleX),
+                (int)((rect.Top - screenRect.Top) * scaleY),
+                Math.Max(1, (int)Math.Ceiling(rect.Width * scaleX)),
+                Math.Max(1, (int)Math.Ceiling(rect.Height * scaleY)));
+            source = Rectangle.Intersect(source, backdrop.Bounds);
+            if (source.Width <= 0 || source.Height <= 0)
+                return false;
+
+            spriteBatch.Draw(backdrop, rect, source, Color.White * opacity);
+            return true;
+        }
+
+        internal BrushTextureCacheKey CreateTextureCacheKey()
+        {
+            return new BrushTextureCacheKey(
+                "frosted-glass-v1",
+                unchecked((int)SheenColor.PackedValue),
+                BitConverter.SingleToInt32Bits(BlurRadius),
+                BitConverter.SingleToInt32Bits(GrainOpacity));
+        }
+
+        private Texture2D GetTexture(SpriteBatch spriteBatch)
+        {
+            return BrushTextureCache.GetOrCreate(spriteBatch.GraphicsDevice, CreateTextureCacheKey(), graphicsDevice =>
+            {
             var noise = new float[TextureSize * TextureSize];
             for (var y = 0; y < TextureSize; y++)
             {
@@ -127,12 +160,14 @@ namespace MonoGame.PortableUI.Media
                     var radial = RadialFalloff(x, y);
                     var alpha = (frost * GrainOpacity * 34) + (diagonal * 12) + (radial * 8);
                     alpha = Math.Min(alpha, Math.Min((int)SheenColor.A, 42));
-                    data[y * TextureSize + x] = new Color(SheenColor.R, SheenColor.G, SheenColor.B, (byte)alpha);
+                    data[y * TextureSize + x] = Color.FromNonPremultiplied(SheenColor.R, SheenColor.G, SheenColor.B, (int)alpha);
                 }
             }
 
-            _texture = new Texture2D(spriteBatch.GraphicsDevice, TextureSize, TextureSize);
-            _texture.SetData(data);
+                var texture = new Texture2D(graphicsDevice, TextureSize, TextureSize);
+                texture.SetData(data);
+                return texture;
+            });
         }
 
         private void DrawHighlights(SpriteBatch spriteBatch, Rect rect, float opacity)
