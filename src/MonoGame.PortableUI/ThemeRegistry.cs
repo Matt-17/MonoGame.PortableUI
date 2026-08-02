@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using MonoGame.PortableUI.Common;
@@ -434,7 +434,7 @@ namespace MonoGame.PortableUI
         }
 
         /// <summary>
-        ///     Applies palette styles, shadows and era chrome to a flat theme — usable by apps that
+        ///     Applies palette styles, shadows and era chrome to a flat theme â€” usable by apps that
         ///     hand-build themes (like the demo registry) so they get the same look as the catalog.
         /// </summary>
         public static void ApplyStyling(PortableTheme theme, string id)
@@ -962,3 +962,6 @@ namespace MonoGame.PortableUI
         }
     }
 }
+
+
+
