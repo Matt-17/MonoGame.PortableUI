@@ -43,5 +43,15 @@ namespace MonoGame.PortableUI.Tests
 
             Assert.AreEqual("Segoe-bolditalic-16", key);
         }
+
+        [TestMethod]
+        public void Missing_fonts_degrade_to_the_default_font_instead_of_throwing()
+        {
+            Assert.IsFalse(FontManager.TryGetFont("definitely-not-a-font", out var missing));
+            Assert.IsNull(missing);
+
+            // No exception; themes with unbuilt fonts keep rendering with the default font.
+            Assert.AreSame(FontManager.DefaultFont, FontManager.GetFontOrDefault("definitely-not-a-font"));
+        }
     }
 }

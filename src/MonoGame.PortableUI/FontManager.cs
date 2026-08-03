@@ -24,6 +24,7 @@ namespace MonoGame.PortableUI
 
         private static Dictionary<string, SpriteFont>? Fonts { get; set; }
         private static readonly HashSet<string> RegisteredFonts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        private static readonly HashSet<string> WarnedMissingFonts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private static Game? FontGame { get; set; }
         private static string? ContentRoot { get; set; }
         private static bool CanProbeContentRoot { get; set; }
@@ -84,6 +85,44 @@ namespace MonoGame.PortableUI
                 return spriteFont;
 
             throw new FontMissingException(CreateFontKey(font, style, size));
+        }
+
+        /// <summary>Loads a font without throwing; returns false when the asset is not built/registered.</summary>
+        public static bool TryGetFont(string? font, out SpriteFont? spriteFont, FontStyle style = FontStyle.Regular, int size = DefaultSize)
+        {
+            if (font == null)
+            {
+                EnsureDefaultFont();
+                spriteFont = DefaultFont;
+                return spriteFont != null;
+            }
+
+            if (TryLoadFont(font, style, size, out var loaded))
+            {
+                spriteFont = loaded;
+                return true;
+            }
+
+            spriteFont = null;
+            return false;
+        }
+
+        /// <summary>
+        ///     Loads a font, falling back to <see cref="DefaultFont"/> when it is not built —
+        ///     themes render with correct colors/shapes and the default font instead of failing.
+        ///     Logs one warning per missing font asset.
+        /// </summary>
+        public static SpriteFont? GetFontOrDefault(string? font = null, FontStyle style = FontStyle.Regular, int size = DefaultSize)
+        {
+            if (TryGetFont(font, out var spriteFont, style, size))
+                return spriteFont;
+
+            var fontKey = CreateFontKey(font!, style, size);
+            if (WarnedMissingFonts.Add(fontKey))
+                System.Diagnostics.Trace.TraceWarning($"MonoGame.PortableUI: font asset 'Fonts/{fontKey}' is not built; falling back to the default font. See the MonoGame.PortableUI.Themes ThemeContent/README.md for font setup.");
+
+            EnsureDefaultFont();
+            return DefaultFont;
         }
 
         internal static string CreateFontKey(string font, FontStyle style, int size)

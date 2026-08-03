@@ -4,9 +4,9 @@
     "MonoGame.PortableUI.Demo": {
       "commandName": "Project"
     },
-    "MonoGame.PortableUI.Demo with Theme": {
+    "MonoGame.PortableUI.Demo - Demo Theme": {
       "commandName": "Project",
-      "commandLineArgs": "--theme glass"
+      "commandLineArgs": "--theme demo"
     },
     "MonoGame.PortableUI.Demo - Screenshots": {
       "commandName": "Project",

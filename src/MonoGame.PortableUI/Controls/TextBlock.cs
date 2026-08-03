@@ -112,18 +112,12 @@ namespace MonoGame.PortableUI.Controls
 
         private static SpriteFont? TryResolveThemeFont(PortableTheme theme)
         {
-            try
-            {
-                var name = theme.Typography?.FontName;
-                if (string.IsNullOrEmpty(name) || string.Equals(name, "default", StringComparison.OrdinalIgnoreCase))
-                    return FontManager.DefaultFont;
-                return FontManager.GetFont(name);
-            }
-            catch (Exception)
-            {
-                // Theme font not loaded by the host — stay on the current default.
+            var name = theme.Typography?.FontName;
+            if (string.IsNullOrEmpty(name) || string.Equals(name, "default", StringComparison.OrdinalIgnoreCase))
                 return FontManager.DefaultFont;
-            }
+
+            // Theme font not built by the host — FontManager warns once and we stay on the default.
+            return FontManager.GetFontOrDefault(name);
         }
 
         public ITextMeasurer TextMeasurer
