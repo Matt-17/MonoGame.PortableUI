@@ -95,19 +95,22 @@ namespace MonoGame.PortableUI.Demo
             Directory.CreateDirectory(directory);
             var gameTime = new GameTime(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1f / 60));
 
+            var worldSpace = string.Equals(screenName, "worldspace", StringComparison.OrdinalIgnoreCase);
             foreach (var preset in DemoThemeRegistry.Presets)
             {
                 // Apply the preset to the primary engine too so controls constructed by MainScreen
                 // pick up the right theme defaults.
                 ApplyTheme(preset);
 
-                var screen = new MainScreen(deleteIcon, preset, _ => { });
+                Screen screen = worldSpace
+                    ? new WorldSpaceScreen(this, preset)
+                    : new MainScreen(deleteIcon, preset, _ => { });
                 using var surface = new UISurface(this, screen, 1180, 760, preset.CreateTheme())
                 {
                     ShowSoftwareCursor = false,
                     InputSource = PortableUI.Input.NullInputSource.Instance
                 };
-                screen.TrySelectTab(screenName);
+                (screen as MainScreen)?.TrySelectTab(screenName);
                 surface.Update(gameTime);
                 var target = surface.Draw(gameTime);
                 GraphicsDevice.SetRenderTarget(null);

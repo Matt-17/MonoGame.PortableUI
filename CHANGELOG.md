@@ -33,6 +33,9 @@
 - Rounded buttons keep their corners on hover/pressed: backdrop brushes (frosted glass/acrylic) expose a solid stand-in used for rounded state overlays.
 - DOS/Norton input fields are blue with light text (no more gray-on-gray); the world-space prompt/status use the contrast-audited Text-on-Background pair so they are readable in every theme.
 - Fixed doubled characters in the world-space demo (the surface engine already routes `Window.TextInput`; the demo's extra hook was removed).
+- TextBox: lines that only partially fit the padded text rect are drawn (scissor-clipped) instead of skipped — text no longer disappears when a TextBox is slightly shorter than the font's line height.
+- DOS/Norton ComboBoxes are blue with yellow text and glyph (classic pick-list look); ComboBox honors a style-slot text color distinct from ButtonTextColor.
+- `--screenshot-screen worldspace` renders the world-space demo per theme for visual verification.
 
 ## 0.2.0-alpha.2
 

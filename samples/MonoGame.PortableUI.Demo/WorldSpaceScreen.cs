@@ -253,15 +253,12 @@ namespace MonoGame.PortableUI.Demo
                 buttons.AddChild(reboot);
                 root.AddChild(buttons, row: 2);
 
-                // Text-on-Background is the contrast-audited pair of every palette, so the prompt
-                // stays readable in all themes (a bare themed TextBox can sit on glass/gray).
+                // Theme-driven field (glass themes stay glassy, DOS stays blue); the frame keeps
+                // the prompt visible in styleless themes like the default one.
                 var prompt = new TextBox
                 {
                     Text = "C:\\PORTABLEUI>",
-                    Height = 28,
-                    BackgroundBrush = new SolidColorBrush(palette.Background),
-                    TextColor = palette.Text,
-                    CursorColor = new SolidColorBrush(palette.Primary)
+                    Height = 30
                 };
                 var promptFrame = new Border
                 {
@@ -269,7 +266,6 @@ namespace MonoGame.PortableUI.Demo
                     BorderColor = palette.FieldBorder,
                     BorderWidth = 1,
                     Padding = new Thickness(2),
-                    BackgroundBrush = new SolidColorBrush(palette.Background),
                     Content = prompt
                 };
                 root.AddChild(promptFrame, row: 3);

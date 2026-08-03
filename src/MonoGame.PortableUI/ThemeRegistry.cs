@@ -1,6 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+
 using Microsoft.Xna.Framework;
+
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
 using MonoGame.PortableUI.Media;
@@ -472,30 +474,30 @@ namespace MonoGame.PortableUI
             switch (id)
             {
                 case "luna":
-                {
-                    // Windows XP: glossy face, dark blue frame, radius 3, orange hover ring.
-                    var face = new LinearGradientBrush(new GradientStop(0, Hex("#FFFFFF")), new GradientStop(1, Hex("#ECE9D8")));
-                    var pressed = new LinearGradientBrush(new GradientStop(0, Hex("#D8D4C8")), new GradientStop(1, Hex("#E8E4D8")));
-                    Chrome(theme.Button, face, Solid(Hex("#003C74")), 1, 3);
-                    theme.Button.Normal.TextColor = Color.Black;
-                    theme.Button.Hover.BorderBrush = Solid(Hex("#F9B233"));
-                    theme.Button.Hover.BorderThickness = new Thickness(2);
-                    theme.Button.Pressed.Background = pressed;
-                    theme.ButtonTextColor = Color.Black;
-                    theme.ButtonHoverBrush = Solid(new Color(249, 178, 51, 34));
-                    theme.ButtonPressedBrush = Solid(new Color(0, 60, 116, 40));
-                    Chrome(theme.TextBox, Solid(Color.White), Solid(Hex("#7F9DB9")), 1, 0);
-                    Chrome(theme.ListBox, Solid(Color.White), Solid(Hex("#7F9DB9")), 1, 0);
-                    Chrome(theme.ComboBox, Solid(Color.White), Solid(Hex("#7F9DB9")), 1, 0);
-                    theme.TextBoxBackgroundBrush = Solid(Color.White);
-                    theme.TextBoxTextColor = Color.Black;
-                    theme.ListBoxBackgroundBrush = Solid(Color.White);
-                    theme.ListBoxItemTextColor = Color.Black;
-                    theme.ListBoxItemBackgroundBrush = Solid(Color.White);
-                    theme.ComboBoxGlyphColor = Hex("#003C74");
-                    theme.Button.InvalidateResolvedCache();
-                    break;
-                }
+                    {
+                        // Windows XP: glossy face, dark blue frame, radius 3, orange hover ring.
+                        var face = new LinearGradientBrush(new GradientStop(0, Hex("#FFFFFF")), new GradientStop(1, Hex("#ECE9D8")));
+                        var pressed = new LinearGradientBrush(new GradientStop(0, Hex("#D8D4C8")), new GradientStop(1, Hex("#E8E4D8")));
+                        Chrome(theme.Button, face, Solid(Hex("#003C74")), 1, 3);
+                        theme.Button.Normal.TextColor = Color.Black;
+                        theme.Button.Hover.BorderBrush = Solid(Hex("#F9B233"));
+                        theme.Button.Hover.BorderThickness = new Thickness(2);
+                        theme.Button.Pressed.Background = pressed;
+                        theme.ButtonTextColor = Color.Black;
+                        theme.ButtonHoverBrush = Solid(new Color(249, 178, 51, 34));
+                        theme.ButtonPressedBrush = Solid(new Color(0, 60, 116, 40));
+                        Chrome(theme.TextBox, Solid(Color.White), Solid(Hex("#7F9DB9")), 1, 0);
+                        Chrome(theme.ListBox, Solid(Color.White), Solid(Hex("#7F9DB9")), 1, 0);
+                        Chrome(theme.ComboBox, Solid(Color.White), Solid(Hex("#7F9DB9")), 1, 0);
+                        theme.TextBoxBackgroundBrush = Solid(Color.White);
+                        theme.TextBoxTextColor = Color.Black;
+                        theme.ListBoxBackgroundBrush = Solid(Color.White);
+                        theme.ListBoxItemTextColor = Color.Black;
+                        theme.ListBoxItemBackgroundBrush = Solid(Color.White);
+                        theme.ComboBoxGlyphColor = Hex("#003C74");
+                        theme.Button.InvalidateResolvedCache();
+                        break;
+                    }
                 case "win95":
                     Bevel(palette.Surface, Color.White, Hex("#DFDFDF"), Hex("#808080"), Color.Black);
                     break;
@@ -506,13 +508,13 @@ namespace MonoGame.PortableUI
                     Bevel(palette.Surface, Color.White, palette.Surface, palette.Surface, Color.Black);
                     break;
                 case "beos":
-                {
-                    var raised = new BevelBrush(palette.Surface, Color.White, Hex("#9A9A9A"));
-                    Chrome(theme.Button, raised, null, 0, 0);
-                    theme.Button.Pressed.Background = raised.AsSunken();
-                    theme.ButtonBackgroundBrush = raised;
-                    break;
-                }
+                    {
+                        var raised = new BevelBrush(palette.Surface, Color.White, Hex("#9A9A9A"));
+                        Chrome(theme.Button, raised, null, 0, 0);
+                        theme.Button.Pressed.Background = raised.AsSunken();
+                        theme.ButtonBackgroundBrush = raised;
+                        break;
+                    }
                 case "mac1bit":
                     Chrome(theme.Button, Solid(Color.White), Solid(Color.Black), 1, 5);
                     theme.Button.Pressed.Background = Solid(Color.Black);
@@ -520,29 +522,29 @@ namespace MonoGame.PortableUI
                     theme.DisabledOverlayBrush = PatternBrush.Dither(new Color(255, 255, 255, 180), new Color(255, 255, 255, 0));
                     break;
                 case "macos9":
-                {
-                    var face = new LinearGradientBrush(new GradientStop(0, Hex("#F8F8F8")), new GradientStop(1, Hex("#D0D0D0")));
-                    Chrome(theme.Button, face, Solid(Hex("#888888")), 1, 6);
-                    break;
-                }
+                    {
+                        var face = new LinearGradientBrush(new GradientStop(0, Hex("#F8F8F8")), new GradientStop(1, Hex("#D0D0D0")));
+                        Chrome(theme.Button, face, Solid(Hex("#888888")), 1, 6);
+                        break;
+                    }
                 case "aqua":
-                {
-                    var gel = new LinearGradientBrush(
-                        new GradientStop(0, Hex("#FDFFFF")),
-                        new GradientStop(0.45f, Hex("#CBE3F5")),
-                        new GradientStop(0.5f, Hex("#9CC5EB")),
-                        new GradientStop(1, Hex("#C7E0F5")));
-                    Chrome(theme.Button, gel, Solid(Hex("#7A96B8")), 1, 12);
-                    theme.Button.Normal.TextColor = Color.Black;
-                    theme.ButtonTextColor = Color.Black;
-                    // Signature Aqua pinstripes on chrome surfaces.
-                    var pinstripes = PatternBrush.Pinstripes(Hex("#F4F4F4"), Hex("#E8E8E8"), 4);
-                    theme.TabHeaderBackgroundBrush = pinstripes;
-                    theme.Panel.Normal.Background = pinstripes;
-                    Chrome(theme.TextBox, Solid(Color.White), Solid(Hex("#9AB0C8")), 1, 4);
-                    Chrome(theme.ListBox, Solid(Color.White), Solid(Hex("#9AB0C8")), 1, 4);
-                    break;
-                }
+                    {
+                        var gel = new LinearGradientBrush(
+                            new GradientStop(0, Hex("#FDFFFF")),
+                            new GradientStop(0.45f, Hex("#CBE3F5")),
+                            new GradientStop(0.5f, Hex("#9CC5EB")),
+                            new GradientStop(1, Hex("#C7E0F5")));
+                        Chrome(theme.Button, gel, Solid(Hex("#7A96B8")), 1, 12);
+                        theme.Button.Normal.TextColor = Color.Black;
+                        theme.ButtonTextColor = Color.Black;
+                        // Signature Aqua pinstripes on chrome surfaces.
+                        var pinstripes = PatternBrush.Pinstripes(Hex("#F4F4F4"), Hex("#E8E8E8"), 4);
+                        theme.TabHeaderBackgroundBrush = pinstripes;
+                        theme.Panel.Normal.Background = pinstripes;
+                        Chrome(theme.TextBox, Solid(Color.White), Solid(Hex("#9AB0C8")), 1, 4);
+                        Chrome(theme.ListBox, Solid(Color.White), Solid(Hex("#9AB0C8")), 1, 4);
+                        break;
+                    }
                 case "lcars":
                     Chrome(theme.Button, null, null, 0, 19);
                     break;
@@ -596,23 +598,30 @@ namespace MonoGame.PortableUI
                     break;
                 case "dos":
                 case "norton":
-                {
-                    // Turbo Vision / Norton Commander: light dialog buttons with black text and hard shadows.
-                    var buttonFace = id == "norton" ? Hex("#00A8A8") : palette.SurfaceAlt;
-                    Chrome(theme.Button, Solid(buttonFace), Solid(Color.Black), 1, 0);
-                    theme.Button.Normal.TextColor = Color.Black;
-                    theme.ButtonBackgroundBrush = Solid(buttonFace);
-                    theme.ButtonTextColor = Color.Black;
-                    theme.ButtonHoverBrush = Solid(new Color(0, 170, 170, 90));
-                    theme.ButtonPressedBrush = Solid(new Color(0, 0, 0, 60));
-                    theme.ButtonShadow = new ShadowStyle { Color = new Color(0, 0, 0, 190), Offset = new Vector2(2, 2), Blur = 0 };
-                    Chrome(theme.ListBox, null, Solid(palette.FieldBorder), 1, 0);
-                    // Turbo Vision input fields: blue face with light text (not gray-on-gray).
-                    Chrome(theme.TextBox, Solid(palette.Surface), Solid(palette.FieldBorder), 1, 0);
-                    theme.TextBoxBackgroundBrush = Solid(palette.Surface);
-                    theme.TextBoxTextColor = palette.Text;
-                    break;
-                }
+                    {
+                        // Turbo Vision / Norton Commander: light dialog buttons with black text and hard shadows.
+                        var buttonFace = id == "norton" ? Hex("#00A8A8") : palette.SurfaceAlt;
+                        Chrome(theme.Button, Solid(buttonFace), Solid(Color.Black), 1, 0);
+                        theme.Button.Normal.TextColor = Color.Black;
+                        theme.ButtonBackgroundBrush = Solid(buttonFace);
+                        theme.ButtonTextColor = Color.Black;
+                        theme.ButtonHoverBrush = Solid(new Color(0, 170, 170, 90));
+                        theme.ButtonPressedBrush = Solid(new Color(0, 0, 0, 60));
+                        theme.ButtonShadow = new ShadowStyle { Color = new Color(0, 0, 0, 190), Offset = new Vector2(2, 2), Blur = 0 };
+                        Chrome(theme.ListBox, null, Solid(palette.FieldBorder), 1, 0);
+                        // Turbo Vision input fields: blue face with light text (not gray-on-gray).
+                        Chrome(theme.TextBox, Solid(palette.Surface), Solid(palette.FieldBorder), 1, 0);
+                        theme.TextBoxBackgroundBrush = Solid(palette.Surface);
+                        theme.TextBoxTextColor = palette.HeadingText;
+                        theme.TextBoxHintTextColor = palette.Text;
+                        // ComboBox: blue face with yellow text like classic TV pick lists.
+                        Chrome(theme.ComboBox, Solid(palette.Surface), Solid(palette.FieldBorder), 1, 0);
+                        theme.ComboBox.Normal.TextColor = palette.Text;
+                        theme.ComboBox.Pressed.TextColor = palette.Text;
+                        theme.ComboBox.InvalidateResolvedCache();
+                        theme.ComboBoxGlyphColor = palette.Text;
+                        break;
+                    }
                 case "metro":
                     Chrome(theme.Button, null, null, 0, 0);
                     break;

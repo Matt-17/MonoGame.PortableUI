@@ -742,7 +742,10 @@ namespace MonoGame.PortableUI.Controls
 
         private bool IsLineVisible(Rect textRect, float top, float lineHeight)
         {
-            return top >= textRect.Top && top + lineHeight <= textRect.Bottom;
+            // Overlap test: a line that only partially fits must still draw (the control scissor
+            // clips it) — otherwise a TextBox slightly shorter than the font's line height
+            // renders no text at all.
+            return top + lineHeight >= textRect.Top && top <= textRect.Bottom;
         }
 
         private float GetLineHeight()
