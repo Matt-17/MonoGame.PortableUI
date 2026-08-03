@@ -7,6 +7,7 @@
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/MonoGame.PortableUI/MonoGame.PortableUI.csproj" />
+    <Project Path="src/MonoGame.PortableUI.Themes/MonoGame.PortableUI.Themes.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/MonoGame.PortableUI.Tests/MonoGame.PortableUI.Tests.csproj" />

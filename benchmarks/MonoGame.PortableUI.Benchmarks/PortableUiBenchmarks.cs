@@ -7,6 +7,7 @@ using MonoGame.PortableUI.Controls;
 using MonoGame.PortableUI.Controls.Events;
 using MonoGame.PortableUI.Controls.Input;
 using MonoGame.PortableUI.Media;
+using MonoGame.PortableUI.Themes;
 
 namespace MonoGame.PortableUI.Benchmarks
 {
@@ -89,7 +90,7 @@ namespace MonoGame.PortableUI.Benchmarks
         public int ThemeRegistryCreateAll()
         {
             var count = 0;
-            foreach (var definition in ThemeRegistry.Themes)
+            foreach (var definition in PortableThemes.All)
             {
                 if (definition.CreateTheme() != null)
                     count++;
@@ -101,7 +102,7 @@ namespace MonoGame.PortableUI.Benchmarks
         [Benchmark]
         public int PostEffectDescriptorCount()
         {
-            var theme = ThemeRegistry.Resolve("phosphor").CreateTheme();
+            var theme = PortableThemes.Resolve("phosphor").CreateTheme();
             return theme.PostEffects.Count;
         }
 

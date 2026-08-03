@@ -1,0 +1,63 @@
+Paste the blocks below into your game's Content.mgcb (after copying the
+ThemeContent/Fonts files into your Content/Fonts folder). The names follow the
+MonoGame.PortableUI FontManager convention: Fonts/{name}-{style}-{size}.
+
+#begin Fonts\pressstart2p-regular-14.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:TextureFormat=Compressed
+/build:Fonts\pressstart2p-regular-14.spritefont
+
+#begin Fonts\silkscreen-regular-14.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:TextureFormat=Compressed
+/build:Fonts\silkscreen-regular-14.spritefont
+
+#begin Fonts\px437ibmvga8x16-regular-14.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:TextureFormat=Compressed
+/build:Fonts\px437ibmvga8x16-regular-14.spritefont
+
+#begin Fonts\jersey10-regular-14.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:TextureFormat=Compressed
+/build:Fonts\jersey10-regular-14.spritefont
+
+#begin Fonts\ibmplexmono-regular-14.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:TextureFormat=Compressed
+/build:Fonts\ibmplexmono-regular-14.spritefont
+
+#begin Fonts\atkinsonhyperlegible-regular-14.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:TextureFormat=Compressed
+/build:Fonts\atkinsonhyperlegible-regular-14.spritefont
+
+#begin Fonts\selawik-regular-14.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:TextureFormat=Compressed
+/build:Fonts\selawik-regular-14.spritefont
+
+#begin Fonts\roboto-regular-14.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:TextureFormat=Compressed
+/build:Fonts\roboto-regular-14.spritefont
+
+#begin Fonts\vt323-regular-14.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:TextureFormat=Compressed
+/build:Fonts\vt323-regular-14.spritefont
+
+#begin Fonts\orbitron-regular-14.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:TextureFormat=Compressed
+/build:Fonts\orbitron-regular-14.spritefont

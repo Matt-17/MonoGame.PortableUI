@@ -5,21 +5,34 @@ using System.Text.Json;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using MonoGame.PortableUI.Demo;
 using MonoGame.PortableUI.Media;
+using MonoGame.PortableUI.Themes;
 
 namespace MonoGame.PortableUI.Tests
 {
     [TestClass]
     public class DemoThemeRegistryTests
     {
-        private static readonly string[] ExpectedThemeIds = ThemeRegistry.Themes.Select(theme => theme.Id).ToArray();
+        private static readonly string[] ExpectedThemeIds =
+            PortableThemes.All.Select(theme => theme.Id).Append(DemoTheme.Id).ToArray();
 
         [TestMethod]
-        public void Registry_contains_all_demo_presets()
+        public void Registry_contains_the_library_catalog_plus_the_demo_theme()
         {
             var actualIds = DemoThemeRegistry.Presets.Select(preset => preset.Id).ToArray();
 
             CollectionAssert.AreEquivalent(ExpectedThemeIds, actualIds);
             Assert.AreEqual(ExpectedThemeIds.Length, DemoThemeRegistry.Presets.Count);
+        }
+
+        [TestMethod]
+        public void Demo_theme_sits_right_after_the_default_theme()
+        {
+            Assert.AreEqual(DemoThemeRegistry.DefaultThemeId, DemoThemeRegistry.Presets[0].Id);
+            Assert.AreEqual(DemoTheme.Id, DemoThemeRegistry.Presets[1].Id);
+
+            var preset = DemoThemeRegistry.Resolve(DemoTheme.Id);
+            Assert.AreEqual("Demo Theme", preset.DisplayName);
+            Assert.IsNotNull(preset.CreateTheme());
         }
 
         [TestMethod]

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.Xna.Framework;
 using MonoGame.PortableUI;
+using MonoGame.PortableUI.Themes;
 
 namespace MonoGame.PortableUI.Tests
 {
@@ -19,7 +20,7 @@ namespace MonoGame.PortableUI.Tests
         public void Every_theme_palette_has_readable_core_combinations()
         {
             var failures = new List<string>();
-            foreach (var definition in ThemeRegistry.Themes)
+            foreach (var definition in PortableThemes.All)
             {
                 var palette = definition.Palette;
                 var theme = definition.CreateTheme();

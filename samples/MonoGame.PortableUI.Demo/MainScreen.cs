@@ -127,7 +127,10 @@ namespace MonoGame.PortableUI.Demo
                 Orientation = Orientation.Vertical
             };
             titleStack.AddChild(Label("MonoGame.PortableUI", Palette.HeadingText, 22, new Thickness(0, 0, 0, 2)));
-            _themeTitle = Label($"{_themePreset.DisplayName.ToUpperInvariant()} THEME - CODE-FIRST CONTROLS", Palette.MutedText);
+            var themeTitle = _themePreset.DisplayName.ToUpperInvariant();
+            if (!themeTitle.EndsWith(" THEME", StringComparison.Ordinal))
+                themeTitle += " THEME";
+            _themeTitle = Label($"{themeTitle} - CODE-FIRST CONTROLS", Palette.MutedText);
             titleStack.AddChild(_themeTitle);
             header.AddChild(titleStack);
 

@@ -50,7 +50,9 @@ jobs:
 
       - name: Pack
         shell: pwsh
-        run: dotnet pack src/MonoGame.PortableUI/MonoGame.PortableUI.csproj --configuration Release --no-build --output artifacts/packages -p:Version=$env:PACKAGE_VERSION -p:PackageVersion=$env:PACKAGE_VERSION
+        run: |
+          dotnet pack src/MonoGame.PortableUI/MonoGame.PortableUI.csproj --configuration Release --no-build --output artifacts/packages -p:Version=$env:PACKAGE_VERSION -p:PackageVersion=$env:PACKAGE_VERSION
+          dotnet pack src/MonoGame.PortableUI.Themes/MonoGame.PortableUI.Themes.csproj --configuration Release --no-build --output artifacts/packages -p:Version=$env:PACKAGE_VERSION -p:PackageVersion=$env:PACKAGE_VERSION
 
       - name: Validate package
         shell: pwsh

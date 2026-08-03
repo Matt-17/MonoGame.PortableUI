@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
 using MonoGame.PortableUI.Media;
+using MonoGame.PortableUI.Themes;
 using System.Linq;
 
 namespace MonoGame.PortableUI.Tests
@@ -380,18 +381,18 @@ namespace MonoGame.PortableUI.Tests
         [TestMethod]
         public void Theme_registry_exposes_unique_library_themes()
         {
-            var ids = ThemeRegistry.Themes.Select(theme => theme.Id).ToArray();
+            var ids = PortableThemes.All.Select(theme => theme.Id).ToArray();
 
             Assert.AreEqual(ids.Length, ids.Distinct().Count());
-            CollectionAssert.Contains(ids, ThemeRegistry.DefaultThemeId);
-            Assert.AreSame(ThemeRegistry.Default, ThemeRegistry.Resolve(null));
-            Assert.AreSame(ThemeRegistry.Resolve("dos"), ThemeRegistry.Resolve("DOS"));
+            CollectionAssert.Contains(ids, PortableThemes.DefaultThemeId);
+            Assert.AreSame(PortableThemes.Default, PortableThemes.Resolve(null));
+            Assert.AreSame(PortableThemes.Resolve("dos"), PortableThemes.Resolve("DOS"));
         }
 
         [TestMethod]
         public void Theme_registry_themes_have_metadata_and_create_portable_themes()
         {
-            foreach (var definition in ThemeRegistry.Themes)
+            foreach (var definition in PortableThemes.All)
             {
                 Assert.IsFalse(string.IsNullOrWhiteSpace(definition.Id));
                 Assert.IsFalse(string.IsNullOrWhiteSpace(definition.DisplayName));
@@ -406,7 +407,7 @@ namespace MonoGame.PortableUI.Tests
         [TestMethod]
         public void Theme_registry_contains_full_wave_catalog()
         {
-            var ids = ThemeRegistry.Themes.Select(theme => theme.Id).ToArray();
+            var ids = PortableThemes.All.Select(theme => theme.Id).ToArray();
 
             Assert.IsTrue(ids.Length >= 35);
             CollectionAssert.Contains(ids, "win95");
@@ -422,7 +423,7 @@ namespace MonoGame.PortableUI.Tests
         [TestMethod]
         public void Palette_style_builder_maps_control_styles_with_state_fallbacks()
         {
-            var palette = ThemeRegistry.Resolve("dos").Palette;
+            var palette = PortableThemes.Resolve("dos").Palette;
             var styles = ControlStyleBuilder.FromPalette(palette);
 
             Assert.IsTrue(styles.Count >= 10);
@@ -460,9 +461,9 @@ namespace MonoGame.PortableUI.Tests
         public void Theme_island_resolution_prefers_nearest_island_then_global_theme()
         {
             using var game = new Game();
-            var global = ThemeRegistry.Resolve("c64").CreateTheme();
-            var outerTheme = ThemeRegistry.Resolve("dos").CreateTheme();
-            var innerTheme = ThemeRegistry.Resolve("studio").CreateTheme();
+            var global = PortableThemes.Resolve("c64").CreateTheme();
+            var outerTheme = PortableThemes.Resolve("dos").CreateTheme();
+            var innerTheme = PortableThemes.Resolve("studio").CreateTheme();
             var engine = ScreenEngine.Initialize(game, new ScreenEngineOptions { AddComponentToGame = false, Theme = global });
             var screen = new EmptyScreen();
             var outer = new ThemeIsland { Theme = outerTheme };
@@ -497,7 +498,7 @@ namespace MonoGame.PortableUI.Tests
         [TestMethod]
         public void Theme_owner_resolution_lets_overlay_content_inherit_opener_theme()
         {
-            var ownerTheme = ThemeRegistry.Resolve("terminal").CreateTheme();
+            var ownerTheme = PortableThemes.Resolve("terminal").CreateTheme();
             var owner = new ThemeIsland { Theme = ownerTheme };
             var opener = new ThemeProbe();
             var overlay = new ThemeProbe();

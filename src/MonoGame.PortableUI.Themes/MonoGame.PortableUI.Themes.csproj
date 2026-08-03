@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <PackageId>MonoGame.PortableUI.Themes</PackageId>
+    <Title>MonoGame.PortableUI.Themes</Title>
+    <Description>Theme catalog add-on for MonoGame.PortableUI. MonoGame.PortableUI works completely without this package; each theme lives in its own file so it can be copied into a project and customized.</Description>
+    <Authors>Matthias Voigt;Marcus Katscher</Authors>
+    <Company>code-ix</Company>
+    <Product>MonoGame.PortableUI</Product>
+    <Version>0.0.0-local</Version>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/Matt-17/MonoGame.PortableUI</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" />
+    <PackageReference Include="MonoGame.Framework.DesktopGL" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\MonoGame.PortableUI\MonoGame.PortableUI.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <!-- Fonts + mgcb snippet for consumers (fonts cannot ship pre-built from NuGet; see ThemeContent/README.md). -->
+    <None Include="ThemeContent\**" Pack="true" PackagePath="contentFiles\any\any\ThemeContent\" />
+  </ItemGroup>
+</Project>

@@ -34,17 +34,27 @@ dotnet mgcb-editor samples/MonoGame.PortableUI.Demo/Content/Content.mgcb
 
 ## Theme Gallery
 
+All themes below ship in the **MonoGame.PortableUI.Themes** add-on package (`PortableThemes.All`); the core library works completely without it. Each theme lives in its own file under `src/MonoGame.PortableUI.Themes/Themes/`, so you can copy a single file into your project and customize it.
+
+Fonts cannot ship pre-built from NuGet, so the package carries them as content files. Three steps in your game:
+
+1. Copy the files from the package's `ThemeContent/Fonts/` into your `Content/Fonts/` folder (`.ttf` + `.spritefont` + licenses).
+2. Paste the blocks from `ThemeContent/themes-fonts.mgcb-snippet.txt` into your `Content.mgcb`.
+3. Call `FontManager.LoadFonts(this, PortableThemes.FontNames.ToArray())` at startup.
+
+Themes whose fonts are not built still render correctly with your default font (`FontManager` logs one warning per missing family). Details in the package's `ThemeContent/README.md`.
+
 Regenerate the gallery images from the demo:
 
 ```powershell
 dotnet run --project samples/MonoGame.PortableUI.Demo -- --theme glass --screenshot docs/themes --screenshot-screen gallery
 ```
 
-The `default` theme shows the library's built-in styling when no theme is applied:
+The `default` theme shows the library's built-in styling when no theme is applied; the `demo` theme is the demo's own [`DemoTheme.cs`](samples/MonoGame.PortableUI.Demo/DemoTheme.cs), a commented template for writing your own theme with just the core package:
 
-| Default (no theme) |
-|---|
-| ![Default](docs/themes/default.png) |
+| Default (no theme) | Demo Theme (template) |
+|---|---|
+| ![Default](docs/themes/default.png) | ![Demo Theme](docs/themes/demo.png) |
 
 | C64 | Game Boy | NES | Mac 1-bit |
 |---|---|---|---|

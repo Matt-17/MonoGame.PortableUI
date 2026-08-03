@@ -1,5 +1,6 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.Xna.Framework;
+using MonoGame.PortableUI.Themes;
 
 namespace MonoGame.PortableUI.Tests
 {
@@ -11,13 +12,13 @@ namespace MonoGame.PortableUI.Tests
         {
             using var game = new Game();
             var primary = ScreenEngine.Initialize(game, new ScreenEngineOptions { AddComponentToGame = false });
-            using var surface = new UISurface(game, new EmptyScreen(), 640, 400, ThemeRegistry.Resolve("dos").CreateTheme());
+            using var surface = new UISurface(game, new EmptyScreen(), 640, 400, PortableThemes.Resolve("dos").CreateTheme());
 
             Assert.AreSame(primary, ScreenEngine.Instance);
             Assert.AreNotSame(primary, surface.Engine);
             Assert.AreEqual(640, surface.Engine.ScreenRect.Width);
             Assert.AreEqual(400, surface.Engine.ScreenRect.Height);
-            Assert.AreEqual("dos", ThemeRegistry.Resolve("dos").Id);
+            Assert.AreEqual("dos", PortableThemes.Resolve("dos").Id);
         }
 
         [TestMethod]

@@ -16,6 +16,140 @@ namespace MonoGame.PortableUI
             return new PortableTheme();
         }
 
+        /// <summary>
+        ///     Builds a complete theme from the 19 semantic palette slots: flat properties and
+        ///     per-state control styles get sensible defaults, so a custom theme is
+        ///     "palette + a few overrides" instead of ~60 properties. This is the core building
+        ///     block used by the MonoGame.PortableUI.Themes catalog and by hand-written themes.
+        /// </summary>
+        public static PortableTheme FromPalette(ThemePalette palette)
+        {
+            var theme = new PortableTheme
+            {
+                Palette = palette,
+                TextColor = palette.Text,
+                TextSize = 14,
+                PixelSnapping = true,
+                FocusBorderBrush = Solid(palette.Primary),
+                FocusBorderWidth = 2,
+                FocusVisualKind = FocusVisualKind.Rectangle,
+                DisabledOverlayBrush = Solid(new Color(0, 0, 0, 70)),
+                DisabledTextColor = palette.DisabledText,
+                ButtonPadding = new Thickness(8, 6),
+                ButtonBackgroundBrush = SurfaceBrush(palette),
+                ButtonHoverBrush = Solid(new Color((int)palette.Primary.R, (int)palette.Primary.G, (int)palette.Primary.B, 72)),
+                ButtonPressedBrush = SelectionBrush(palette),
+                ButtonTextColor = palette.Text,
+                ButtonHoverTextColor = palette.Text,
+                ButtonPressedTextColor = palette.SelectionText,
+                ToggleBrush = SelectionBrush(palette),
+                ToggleTextColor = palette.SelectionText,
+                TextBoxBackgroundBrush = FieldFrameBrush(palette),
+                TextBoxTextColor = palette.Text,
+                TextBoxCursorBrush = Solid(palette.Primary),
+                TextBoxSelectionBrush = Solid(new Color((int)palette.Primary.R, (int)palette.Primary.G, (int)palette.Primary.B, 120)),
+                TextBoxHintTextColor = palette.MutedText,
+                TextBoxPadding = new Thickness(6, 4),
+                TextBoxHeight = 32,
+                ScrollBarThickness = 8,
+                ScrollBarGutterBrush = SurfaceBrush(palette),
+                ScrollBarBrush = Solid(palette.Primary),
+                ScrollBarHoverBrush = Solid(palette.Secondary),
+                ScrollBarPressedBrush = SelectionBrush(palette),
+                TabHeaderHeight = 36,
+                TabHeaderBackgroundBrush = SurfaceBrush(palette),
+                TabSelectedHeaderBackgroundBrush = SelectionBrush(palette),
+                TabHeaderTextColor = palette.TabText,
+                TabSelectedHeaderTextColor = palette.SelectedTabText,
+                ContextMenuBackgroundBrush = SurfaceBrush(palette),
+                ComboBoxHeight = 32,
+                ComboBoxDropDownMaxHeight = 190,
+                ComboBoxDropDownBackgroundBrush = SurfaceBrush(palette),
+                ListBoxBackgroundBrush = SurfaceBrush(palette),
+                ListBoxItemHeight = 28,
+                ListBoxItemPadding = new Thickness(6, 0),
+                ListBoxItemBackgroundBrush = SurfaceBrush(palette),
+                ListBoxSelectedItemBackgroundBrush = SelectionBrush(palette),
+                ListBoxItemTextColor = palette.Text,
+                ListBoxSelectedItemTextColor = palette.SelectionText,
+                CheckBoxBoxSize = 18,
+                CheckBoxBoxSpacing = 8,
+                CheckBoxBoxBorderWidth = 2,
+                CheckBoxBoxBackgroundBrush = SurfaceBrush(palette),
+                CheckBoxBoxBorderBrush = Solid(palette.Primary),
+                CheckBoxCheckMarkBrush = SelectionBrush(palette),
+                CheckBoxGlyphKind = CheckBoxGlyphKind.Check,
+                CheckBoxTextColor = palette.Text,
+                RadioButtonDotBrush = SelectionBrush(palette),
+                RadioButtonDotSize = 8,
+                ToolTipBackgroundBrush = Solid(new Color((int)palette.Background.R, (int)palette.Background.G, (int)palette.Background.B, 238)),
+                ToolTipBorderBrush = Solid(palette.Primary),
+                ToolTipBorderWidth = new Thickness(1),
+                ToolTipPadding = new Thickness(8, 5, 8, 6),
+                ToolTipTextColor = palette.Text,
+                ProgressIndicatorForeground = palette.Primary,
+                ProgressIndicatorHeight = 48,
+                SliderTrackBrush = FieldFrameBrush(palette),
+                SliderFillBrush = SelectionBrush(palette),
+                SliderThumbBrush = SurfaceBrush(palette),
+                SliderThumbBorderBrush = Solid(palette.Primary),
+                ProgressBarBackgroundBrush = FieldFrameBrush(palette),
+                ProgressBarFillBrush = SelectionBrush(palette)
+            };
+
+            ApplyPaletteStyles(theme, palette);
+            return theme;
+        }
+
+        /// <summary>Regenerates the per-state control styles of <paramref name="theme"/> from a palette.</summary>
+        public static void ApplyPaletteStyles(PortableTheme theme, ThemePalette palette)
+        {
+            var styles = ControlStyleBuilder.FromPalette(palette);
+            theme.Typography = new Typography { TextSize = theme.TextSize };
+            theme.Metrics = new ThemeMetrics
+            {
+                ControlPadding = theme.ButtonPadding,
+                ControlHeight = theme.ComboBoxHeight,
+                BorderWidth = 1,
+                Spacing = 8
+            };
+            theme.Button = styles["Button"];
+            theme.TextBox = styles["TextBox"];
+            theme.CheckBox = styles["CheckBox"];
+            theme.RadioButton = styles["RadioButton"];
+            theme.ToggleButton = styles["ToggleButton"];
+            theme.ComboBox = styles["ComboBox"];
+            theme.ListBox = styles["ListBox"];
+            theme.ListBoxItem = styles["ListBoxItem"];
+            theme.Tab = styles["Tab"];
+            theme.ToolTip = styles["ToolTip"];
+            theme.ContextMenu = styles["ContextMenu"];
+            theme.ScrollBar = styles["ScrollBar"];
+            theme.Slider = styles["Slider"];
+            theme.ProgressBar = styles["ProgressBar"];
+            theme.Panel = styles["Panel"];
+        }
+
+        private static Brush SurfaceBrush(ThemePalette palette)
+        {
+            return palette.SurfaceBrush ?? Solid(palette.Surface);
+        }
+
+        private static Brush SelectionBrush(ThemePalette palette)
+        {
+            return palette.SelectionBrush ?? Solid(palette.Selection);
+        }
+
+        private static Brush FieldFrameBrush(ThemePalette palette)
+        {
+            return palette.FieldFrameBrush ?? Solid(palette.FieldFrame);
+        }
+
+        private static SolidColorBrush Solid(Color color)
+        {
+            return new SolidColorBrush(color);
+        }
+
         internal static PortableTheme ResolveCurrent()
         {
             return ScreenEngine.Instance?.Options.Theme ?? Fallback;
