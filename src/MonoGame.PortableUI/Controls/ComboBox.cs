@@ -27,6 +27,10 @@ namespace MonoGame.PortableUI.Controls
             ItemTextColor = theme.ListBoxItemTextColor;
             SelectedItemTextColor = theme.ListBoxSelectedItemTextColor;
             GlyphColor = theme.ComboBoxGlyphColor;
+            // ComboBoxes may need their own text color (e.g. Turbo Vision: yellow on blue while
+            // dialog buttons are black on gray) — the ComboBox style slot wins over ButtonTextColor.
+            if (theme.ComboBox.Normal.TextColor is { } styleTextColor)
+                TextColor = styleTextColor;
             // Reserve room on the right so text never overlaps the dropdown glyph.
             Padding = new Thickness(Padding.Left, Padding.Top, Padding.Right + GlyphSize + 8, Padding.Bottom);
             Click += ComboBoxClick;
@@ -71,6 +75,8 @@ namespace MonoGame.PortableUI.Controls
                 SelectedItemTextColor = newTheme.ListBoxSelectedItemTextColor;
             if (Nullable.Equals(GlyphColor, oldTheme.ComboBoxGlyphColor))
                 GlyphColor = newTheme.ComboBoxGlyphColor;
+            if (newTheme.ComboBox.Normal.TextColor is { } styleTextColor && TextColor.Equals(oldTheme.ComboBox.Normal.TextColor ?? oldTheme.ButtonTextColor))
+                TextColor = styleTextColor;
         }
 
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
