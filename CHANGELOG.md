@@ -20,6 +20,19 @@
 - Era chrome wave: XP Luna glossy buttons with orange hover ring, Win95/Amiga/BeOS/NeXT bevels (`BevelBrush`), Turbo-Vision DOS/Norton dialogs, Aqua gel + pinstripes (`PatternBrush`), LCARS pills, per-theme corner radii and 1px frames across the catalog.
 - Contrast audit test (WCAG relative luminance) over all 37 theme palettes; muted text auto-adjusts toward readability; DOS/C64/solarized/neumorphic palette fixes.
 - `IsHitTestVisible` on controls (gallery previews are no longer clickable); Grid star-span measurement fix; `ProgressBar.IsIndeterminate` marquee; `ContextMenuTypes.OpenOnLeftClick` + `Control.OpenContextMenu()`; `PortableTheme.ButtonMargin`.
+- Drag & drop (WPF-style): `Control.AllowDrop` + `DragEnter`/`DragOver`/`DragLeave`/`Drop`, `DragDrop.DoDragDrop`/`Control.BeginDrag` returning a `DragOperation` (payload, allowed effects, `DragMoved`/`Completed`/`Canceled`), optional ghost visual following the pointer, Esc/right-click cancel, mouse + touch; demo gets a Kanban "Drag & drop" tab.
+- World space demo (replaces "Adventure room"): the DOS `UISurface` renders on a swaying perspective 3D quad; the mouse is raycast onto the quad (`WorldSurfaceMapper`) into the surface's `VirtualInputSource`, so the inner screen is fully clickable, with keyboard text routed via `SurfaceFocusManager`. `UISurface.Draw` now restores previously bound render targets.
+- Fonts: all demo fonts are now bundled open-licensed TTFs (Selawik, Roboto, Orbitron, VT323 added — no more silent Segoe UI/Consolas aliases); per-font attribution in `docs/FONTS.md`, referenced from README and LICENSE. Fixed collapsed/double-wide space glyphs in retro fonts (`UseKerning` was off in their spritefonts).
+- Fixed the screen going black while scrolling the gallery: island post-FX now renders the whole UI into a preserved target before switching render targets mid-frame.
+- Demo Controls page: read-only TextBox, left-click context-menu button, live animated determinate progress (with % readout) and an indeterminate marquee bar.
+- Keyboard fixes: command keys (Backspace/Delete/arrows/…) now auto-repeat with a typematic profile (500 ms initial delay, then 45 ms repeats); a screen only processes keys/text for focused controls it owns, fixing doubled characters and double-deletes when a UISurface screen updates alongside its host.
+- World space demo shows the currently selected theme on the monitor (theme-default styling + theme name in the title) instead of a hard-coded DOS look.
+- Focus visuals follow rounded corners (rounded focus ring instead of a rectangle on rounded buttons).
+- FlyOuts (dropdowns, context menus) clip their content again; tab headers distribute the strip proportionally to their measured label widths so long headers aren't cut; Press Start 2P now builds at 11 px so the wide pixel themes stay legible with real space glyphs; theme presets cache their created theme, removing the hitch when switching themes.
+- ListBox: items are inset by the frame thickness so the themed border stays visible, and hovering the selected item keeps its selected look instead of washing it out.
+- Rounded buttons keep their corners on hover/pressed: backdrop brushes (frosted glass/acrylic) expose a solid stand-in used for rounded state overlays.
+- DOS/Norton input fields are blue with light text (no more gray-on-gray); the world-space prompt/status use the contrast-audited Text-on-Background pair so they are readable in every theme.
+- Fixed doubled characters in the world-space demo (the surface engine already routes `Window.TextInput`; the demo's extra hook was removed).
 
 ## 0.2.0-alpha.2
 

@@ -185,6 +185,9 @@ namespace MonoGame.PortableUI
             if (_dismissingToolTip != null)
                 DrawControlTree(spriteBatch, _dismissingToolTip, GetOverlayScissor(_dismissingToolTip));
 
+            if (_activeDrag?.DragVisual is { } dragGhost)
+                DrawControlTree(spriteBatch, dragGhost, GetOverlayScissor(dragGhost));
+
             DrawDebugOverlay(spriteBatch);
 
             if (usePostFx)
@@ -280,6 +283,7 @@ namespace MonoGame.PortableUI
 
         internal void OnNavigationFrom(object? sender)
         {
+            CancelDrag();
             _visualTreeScratch.Clear();
             VisualTreeHelper.AppendVisualTree(_mainGrid, _visualTreeScratch);
             foreach (var control in _visualTreeScratch)
@@ -656,6 +660,32 @@ namespace MonoGame.PortableUI
 
             HandleKeyboardInput();
 
+            if (_activeDrag is { } drag)
+            {
+                var dragPosition = drag.IsTouchDrag ? touchPosition : mousePosition;
+                var pointerReleased = drag.IsTouchDrag
+                    ? !hasTouch || touchState.State == TouchLocationState.Released
+                    : GetButtonState(pressedMouseButtons, MouseButton.Left) == ButtonState.Released;
+
+                if (Keyboard.GetState().IsKeyDown(Keys.Escape)
+                    || (!drag.IsTouchDrag && GetButtonState(pressedMouseButtons, MouseButton.Right) == ButtonState.Pressed))
+                    CancelDrag();
+                else if (pointerReleased)
+                    CompleteDrag(drag, dragPosition);
+                else
+                    UpdateDrag(drag, dragPosition, content);
+
+                // Keep bookkeeping in sync while normal routing is suspended.
+                MouseButtonStates[MouseButton.Left] = GetButtonState(pressedMouseButtons, MouseButton.Left);
+                MouseButtonStates[MouseButton.Right] = GetButtonState(pressedMouseButtons, MouseButton.Right);
+                MouseButtonStates[MouseButton.Middle] = GetButtonState(pressedMouseButtons, MouseButton.Middle);
+                LastMousePosition = mousePosition;
+                if (hasTouch)
+                    LastTouchPosition = touchPosition;
+                LastScrollWheelValue = inputSource.ScrollWheelValue;
+                return;
+            }
+
             if (mousePosition != LastMousePosition)
             {
                 if (!RouteCapturedMouseMove(mousePosition, pressedMouseButtons))
@@ -802,6 +832,11 @@ namespace MonoGame.PortableUI
             return pressedMouseButtons.Contains(button) ? ButtonState.Pressed : ButtonState.Released;
         }
 
+        private Keys _repeatKey = Keys.None;
+        private TimeSpan _nextKeyRepeatTime;
+        private static readonly TimeSpan KeyRepeatInitialDelay = TimeSpan.FromMilliseconds(500);
+        private static readonly TimeSpan KeyRepeatInterval = TimeSpan.FromMilliseconds(45);
+
         private void HandleKeyboardInput()
         {
             var keyboardState = Keyboard.GetState();
@@ -809,28 +844,53 @@ namespace MonoGame.PortableUI
             var focusedControl = ScreenEngine.FocusedControl;
             var modifiers = GetKeyboardModifiers(keyboardState);
 
-            if (focusedControl != null)
+            // Focus is global while several screens can update per frame (UISurfaces): only the
+            // screen that owns the focused control may process keys, or every screen would apply
+            // the same backspace/arrow once each. Unattached controls keep the legacy routing.
+            if (focusedControl == null || (focusedControl.Screen != null && focusedControl.Screen != this))
             {
-                foreach (var key in pressedKeys)
+                _lastPressedKeys = pressedKeys;
+                _repeatKey = Keys.None;
+                return;
+            }
+
+            foreach (var key in pressedKeys)
+            {
+                if (_lastPressedKeys.Contains(key))
+                    continue;
+
+                if (key == Keys.F3)
                 {
-                    if (_lastPressedKeys.Contains(key))
-                        continue;
+                    ScreenEngine?.ToggleDebugOverlay();
+                    continue;
+                }
 
-                    if (key == Keys.F3)
-                    {
-                        ScreenEngine?.ToggleDebugOverlay();
-                        continue;
-                    }
+                var command = TryGetKeyboardCommand(key, modifiers);
+                if (command.HasValue)
+                {
+                    focusedControl.OnKeyPressed(command.Value, modifiers);
+                    // Typematic: one long pause after the first hit, then fast repeats while held.
+                    _repeatKey = key;
+                    _nextKeyRepeatTime = ScreenSystem.TotalTime + KeyRepeatInitialDelay;
+                    continue;
+                }
 
-                    var command = TryGetKeyboardCommand(key, modifiers);
+                if ((modifiers & (KeyboardModifiers.Control | KeyboardModifiers.Alt)) != KeyboardModifiers.None)
+                    continue;
+            }
+
+            if (_repeatKey != Keys.None)
+            {
+                if (!keyboardState.IsKeyDown(_repeatKey))
+                {
+                    _repeatKey = Keys.None;
+                }
+                else if (ScreenSystem.TotalTime >= _nextKeyRepeatTime)
+                {
+                    var command = TryGetKeyboardCommand(_repeatKey, modifiers);
                     if (command.HasValue)
-                    {
                         focusedControl.OnKeyPressed(command.Value, modifiers);
-                        continue;
-                    }
-
-                    if ((modifiers & (KeyboardModifiers.Control | KeyboardModifiers.Alt)) != KeyboardModifiers.None)
-                        continue;
+                    _nextKeyRepeatTime = ScreenSystem.TotalTime + KeyRepeatInterval;
                 }
             }
 
@@ -842,7 +902,13 @@ namespace MonoGame.PortableUI
             if (char.IsControl(character))
                 return;
 
-            ScreenEngine.FocusedControl?.OnKeyPressed(character, KeyboardModifiers.None);
+            var focusedControl = ScreenEngine.FocusedControl;
+            // Same ownership rule as HandleKeyboardInput: prevents double characters when both a
+            // host screen and a surface screen receive the same TextInput event.
+            if (focusedControl == null || (focusedControl.Screen != null && focusedControl.Screen != this))
+                return;
+
+            focusedControl.OnKeyPressed(character, KeyboardModifiers.None);
         }
 
         private static KeyboardModifiers GetKeyboardModifiers(KeyboardState keyboardState)
@@ -913,6 +979,121 @@ namespace MonoGame.PortableUI
                 action,
                 null
             );
+        }
+
+        private DragOperation? _activeDrag;
+
+        /// <summary>The running drag &amp; drop operation, if any.</summary>
+        public DragOperation? ActiveDrag => _activeDrag;
+
+        internal DragOperation? BeginDrag(Control source, object? payload, DragDropEffects allowedEffects, Control? dragVisual)
+        {
+            if (_activeDrag != null)
+                CancelDrag();
+
+            var operation = new DragOperation(source, payload, allowedEffects, dragVisual)
+            {
+                IsTouchDrag = MouseButtonStates[MouseButton.Left] != ButtonState.Pressed,
+                IsActive = true
+            };
+            _capturedMouseControl = null;
+            if (dragVisual != null)
+            {
+                dragVisual.Parent = this;
+                dragVisual.Opacity = Math.Min(dragVisual.Opacity, 0.75);
+            }
+
+            _activeDrag = operation;
+            return operation;
+        }
+
+        /// <summary>Cancels the running drag operation (also triggered by Esc / right-click / navigation).</summary>
+        public void CancelDrag()
+        {
+            var drag = _activeDrag;
+            if (drag == null)
+                return;
+
+            if (drag.CurrentTarget is { } target)
+                target.OnDragLeave(new DragEventArgs(drag) { Position = LastMousePosition });
+            FinishDrag(drag, canceled: true, target: null, LastMousePosition, DragDropEffects.None);
+        }
+
+        internal void UpdateDrag(DragOperation drag, PointF position, Control content)
+        {
+            Control? target = null;
+            var probe = new DragEventArgs(drag) { Position = position };
+            VisualTreeHelper.IterateVisualTree(content, probe,
+                (c, a) => c.AllowDrop && c.BoundingRect.Contains(position),
+                (c, a) =>
+                {
+                    // Descendants are visited before their parents, so the deepest AllowDrop wins.
+                    target = c;
+                    a.Handled = true;
+                },
+                (c, a) => c.BoundingRect.Contains(position));
+
+            if (!ReferenceEquals(target, drag.CurrentTarget))
+            {
+                drag.CurrentTarget?.OnDragLeave(new DragEventArgs(drag) { Position = position });
+                drag.CurrentTarget = target;
+                drag.LastEffect = DragDropEffects.None;
+                if (target != null)
+                {
+                    var enter = new DragEventArgs(drag) { Position = position };
+                    target.OnDragEnter(enter);
+                    drag.LastEffect = enter.Effect & drag.AllowedEffects;
+                }
+            }
+
+            if (drag.CurrentTarget is { } current)
+            {
+                var over = new DragEventArgs(drag) { Position = position, Effect = drag.LastEffect };
+                current.OnDragOver(over);
+                drag.LastEffect = over.Effect & drag.AllowedEffects;
+            }
+            else
+            {
+                drag.LastEffect = DragDropEffects.None;
+            }
+
+            drag.RaiseMoved(new DragEventArgs(drag) { Position = position, Effect = drag.LastEffect });
+
+            if (drag.DragVisual is { } ghost)
+            {
+                var size = ghost.MeasureLayout();
+                ghost.UpdateLayout(new Rect(new PointF(position.X - drag.GrabOffset.X, position.Y - drag.GrabOffset.Y), size));
+            }
+        }
+
+        internal void CompleteDrag(DragOperation drag, PointF position)
+        {
+            var target = drag.CurrentTarget;
+            if (target != null && drag.LastEffect != DragDropEffects.None)
+            {
+                var args = new DragEventArgs(drag) { Position = position, Effect = drag.LastEffect };
+                target.OnDrop(args);
+                FinishDrag(drag, canceled: false, target, position, args.Effect & drag.AllowedEffects);
+            }
+            else
+            {
+                target?.OnDragLeave(new DragEventArgs(drag) { Position = position });
+                FinishDrag(drag, canceled: true, target: null, position, DragDropEffects.None);
+            }
+        }
+
+        private void FinishDrag(DragOperation drag, bool canceled, Control? target, PointF position, DragDropEffects effect)
+        {
+            if (drag.DragVisual is { } ghost && ReferenceEquals(ghost.Parent, this))
+                ghost.Parent = null;
+            drag.IsActive = false;
+            drag.CurrentTarget = null;
+            _activeDrag = null;
+            drag.Source.ResetInputs();
+            if (canceled)
+                drag.RaiseCanceled();
+            else
+                drag.RaiseCompleted(target, effect, position);
         }
 
         internal Control? CapturedMouseControl => _capturedMouseControl;

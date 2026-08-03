@@ -463,6 +463,40 @@ namespace MonoGame.PortableUI.Controls
         /// </summary>
         public bool IsHitTestVisible { get; set; } = true;
 
+        /// <summary>When true this control can be a drop target: it receives DragEnter/DragOver/DragLeave/Drop.</summary>
+        public bool AllowDrop { get; set; }
+
+        public event DragEventHandler? DragEnter;
+        public event DragEventHandler? DragOver;
+        public event DragEventHandler? DragLeave;
+        public event DragEventHandler? Drop;
+
+        /// <summary>Starts a drag &amp; drop operation with this control as the source (see <see cref="DragDrop.DoDragDrop"/>).</summary>
+        public DragOperation? BeginDrag(object? payload, DragDropEffects allowedEffects, Control? dragVisual = null)
+        {
+            return Screen?.BeginDrag(this, payload, allowedEffects, dragVisual);
+        }
+
+        protected internal virtual void OnDragEnter(DragEventArgs args)
+        {
+            DragEnter?.Invoke(this, args);
+        }
+
+        protected internal virtual void OnDragOver(DragEventArgs args)
+        {
+            DragOver?.Invoke(this, args);
+        }
+
+        protected internal virtual void OnDragLeave(DragEventArgs args)
+        {
+            DragLeave?.Invoke(this, args);
+        }
+
+        protected internal virtual void OnDrop(DragEventArgs args)
+        {
+            Drop?.Invoke(this, args);
+        }
+
         public HorizontalAlignment HorizontalAlignment { get; set; }
 
         public VerticalAlignment VerticalAlignment { get; set; }
@@ -975,8 +1009,33 @@ namespace MonoGame.PortableUI.Controls
             DrawBorder(spriteBatch, rect, new Thickness(width), brush, opacity);
         }
 
-        private static void DrawFocusVisual(SpriteBatch spriteBatch, Rect rect, float width, Brush brush, FocusVisualKind kind, float opacity)
+        private void DrawFocusVisual(SpriteBatch spriteBatch, Rect rect, float width, Brush brush, FocusVisualKind kind, float opacity)
         {
+            // Rounded controls get a focus ring that follows their corner radius.
+            var radius = CornerRadius;
+            if (!radius.IsEmpty && brush is SolidColorBrush solidBrush && kind != FocusVisualKind.Dotted)
+            {
+                var color = Media.Brush.ApplyOpacity(solidBrush.Color, opacity);
+                switch (kind)
+                {
+                    case FocusVisualKind.Glow:
+                        var glowRadius = new CornerRadius(
+                            radius.TopLeft + width, radius.TopRight + width,
+                            radius.BottomRight + width, radius.BottomLeft + width);
+                        RoundedRectRenderer.DrawBorder(spriteBatch, rect + new Thickness(width), glowRadius, new Thickness(width * 3), Media.Brush.ApplyOpacity(solidBrush.Color, opacity * 0.28f));
+                        RoundedRectRenderer.DrawBorder(spriteBatch, rect, radius, new Thickness(width), color);
+                        break;
+                    case FocusVisualKind.Thick:
+                        RoundedRectRenderer.DrawBorder(spriteBatch, rect, radius, new Thickness(width * 2), color);
+                        break;
+                    default:
+                        RoundedRectRenderer.DrawBorder(spriteBatch, rect, radius, new Thickness(width), color);
+                        break;
+                }
+
+                return;
+            }
+
             switch (kind)
             {
                 case FocusVisualKind.Dotted:

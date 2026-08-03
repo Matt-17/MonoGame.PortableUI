@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI.Animation;
@@ -19,6 +20,8 @@ namespace MonoGame.PortableUI.Demo
         private Color _inspectorColor;
         private Border? _inspectorColorPreview;
         private TextBlock? _inspectorCode;
+        private ProgressBar? _liveProgress;
+        private TextBlock? _liveProgressLabel;
 
         private ThemePalette Palette => _themePreset.Palette;
         private Brush ScreenBackgroundBrush => Palette.BackgroundBrush ?? _themePreset.BackgroundColor;
@@ -34,6 +37,19 @@ namespace MonoGame.PortableUI.Demo
             _themePreset = themePreset ?? DemoThemeRegistry.Default;
             _applyTheme = applyTheme ?? throw new ArgumentNullException(nameof(applyTheme));
             RebuildContent();
+        }
+
+        protected override void OnBeforeDraw(SpriteBatch spriteBatch)
+        {
+            base.OnBeforeDraw(spriteBatch);
+            if (_liveProgress == null)
+                return;
+
+            // Simulated task: 0 → 100 % over six seconds, restarting — a real, moving value.
+            var percent = (float)(ScreenSystem.TotalTime.TotalSeconds % 6 / 6 * 100);
+            _liveProgress.Value = percent;
+            if (_liveProgressLabel != null)
+                _liveProgressLabel.Text = $"{percent:0}%";
         }
 
         public void ApplyThemePreset(DemoThemePreset themePreset)
@@ -128,15 +144,15 @@ namespace MonoGame.PortableUI.Demo
             next.Click += (sender, args) => ScreenEngine?.NavigateToScreen(new SecondScreen(_themePreset, _applyTheme));
             navigation.AddChild(next);
 
-            var adventure = CommandButton("Adventure room", Palette.Secondary, Palette.SelectionText);
-            adventure.Height = 30;
-            adventure.ToolTip = "Open the world-space UISurface demo";
-            adventure.Click += (sender, args) =>
+            var worldSpace = CommandButton("World space demo", Palette.Secondary, Palette.SelectionText);
+            worldSpace.Height = 30;
+            worldSpace.ToolTip = "Interactive UISurface on a 3D quad (raycast input)";
+            worldSpace.Click += (sender, args) =>
             {
                 if (ScreenEngine != null)
-                    ScreenEngine.NavigateToScreen(new AdventureRoomScreen(ScreenEngine.Game));
+                    ScreenEngine.NavigateToScreen(new WorldSpaceScreen(ScreenEngine.Game, _themePreset));
             };
-            navigation.AddChild(adventure);
+            navigation.AddChild(worldSpace);
             header.AddChild(navigation, column: 2);
 
             return header;
@@ -192,6 +208,7 @@ namespace MonoGame.PortableUI.Demo
             tabs.Items.Add(new TabItem { Header = "Visual FX", Content = CreateVisualFxTab() });
             tabs.Items.Add(new TabItem { Header = "Motion", Content = CreateMotionTab() });
             tabs.Items.Add(new TabItem { Header = "Layout", Content = CreateLayoutTab() });
+            tabs.Items.Add(new TabItem { Header = "Drag & drop", Content = CreateDragDropTab() });
             tabs.Items.Add(new TabItem { Header = "Scroll", Content = CreateScrollTab() });
             tabs.Items.Add(new TabItem { Header = "Stress", Content = CreateStressTab() });
             tabs.SelectedIndex = 0;
@@ -233,7 +250,7 @@ namespace MonoGame.PortableUI.Demo
         private Control CreateThemeCard(DemoThemePreset preset)
         {
             var palette = preset.Palette;
-            var theme = preset.CreateTheme();
+            var theme = preset.SharedTheme;
             var card = new Button
             {
                 Margin = new Thickness(0, 0, 12, 12),
@@ -553,6 +570,15 @@ namespace MonoGame.PortableUI.Demo
             multilineBox.TextChanged += (sender, args) => _status.Text = $"Lines: {args.NewText.Split('\n').Length}";
             panel.AddChild(FieldFrame(multilineBox, 86, new Thickness(0, 6, 0, 14)));
 
+            panel.AddChild(Label("Read-only TextBox", Palette.MutedText));
+            var readOnlyBox = new TextBox
+            {
+                Text = "Read-only: try to edit me",
+                IsReadOnly = true,
+                ToolTip = "IsReadOnly blocks typing/cut/paste but allows selection"
+            };
+            panel.AddChild(FieldFrame(readOnlyBox, 38, new Thickness(0, 6, 0, 10)));
+
             panel.AddChild(Label("ComboBox", Palette.MutedText));
             var combo = new ComboBox { Margin = new Thickness(0, 6, 0, 14), Height = 38, ToolTip = "Choose a density preset" };
             combo.Items.Add("Compact density");
@@ -572,7 +598,7 @@ namespace MonoGame.PortableUI.Demo
             panel.AddChild(Label("Scrollable items", Palette.MutedText));
             var listBox = new ListBox
             {
-                Height = 190,
+                Height = 132,
                 Margin = new Thickness(0, 6, 0, 10),
                 ItemHeight = 30,
                 ItemBackgroundBrush = SurfaceBrush,
@@ -617,26 +643,69 @@ namespace MonoGame.PortableUI.Demo
             panel.AddChild(progressBar);
             panel.AddChild(slider);
 
-            panel.AddChild(Label("ProgressIndicator", Palette.MutedText));
-            panel.AddChild(new ProgressIndicator
+            var liveHeader = new Grid
             {
-                Margin = new Thickness(0, 4, 0, 10),
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition(),
+                    new ColumnDefinition { Width = GridLength.Auto }
+                }
+            };
+            _liveProgressLabel = Label("0%", Palette.Text);
+            liveHeader.AddChild(Label("Live + indeterminate", Palette.MutedText));
+            liveHeader.AddChild(_liveProgressLabel, column: 1);
+            panel.AddChild(liveHeader);
+            _liveProgress = new ProgressBar
+            {
+                Margin = new Thickness(0, 4, 0, 6),
+                BackgroundBrush = FieldFrameBrush,
+                FillBrush = SelectionBrush,
+                ToolTip = "Real value animated by the demo loop"
+            };
+            panel.AddChild(_liveProgress);
+            panel.AddChild(new ProgressBar
+            {
+                IsIndeterminate = true,
+                Margin = new Thickness(0, 0, 0, 8),
+                BackgroundBrush = FieldFrameBrush,
+                FillBrush = SelectionBrush,
+                ToolTip = "Indeterminate marquee"
+            });
+
+            var mediaRow = new Grid
+            {
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition(),
+                    new ColumnDefinition()
+                }
+            };
+            var indicatorCell = new StackPanel { Orientation = Orientation.Vertical };
+            indicatorCell.AddChild(Label("ProgressIndicator", Palette.MutedText));
+            indicatorCell.AddChild(new ProgressIndicator
+            {
+                Height = 34,
+                Margin = new Thickness(0, 2, 0, 0),
                 HorizontalAlignment = HorizontalAlignment.Left,
                 Foreground = Palette.Primary,
                 ToolTip = "Indeterminate busy indicator"
             });
+            mediaRow.AddChild(indicatorCell);
 
-            panel.AddChild(Label("Image", Palette.MutedText));
-            panel.AddChild(new Image
+            var imageCell = new StackPanel { Orientation = Orientation.Vertical };
+            imageCell.AddChild(Label("Image", Palette.MutedText));
+            imageCell.AddChild(new Image
             {
                 Source = _deleteIcon,
-                Width = 40,
-                Height = 40,
-                Margin = new Thickness(0, 4, 0, 0),
+                Width = 32,
+                Height = 32,
+                Margin = new Thickness(0, 2, 0, 0),
                 HorizontalAlignment = HorizontalAlignment.Left,
                 TintColor = Palette.Text,
                 ToolTip = "Image control with tint color"
             });
+            mediaRow.AddChild(imageCell, column: 1);
+            panel.AddChild(mediaRow);
 
             return panel;
         }
@@ -690,9 +759,9 @@ namespace MonoGame.PortableUI.Demo
             imageButton.Click += (sender, args) => _status.Text = "ImageButton clicked";
             buttonRow.AddChild(imageButton);
 
-            var menuButton = CommandButton("Open context menu", SurfaceAltBrush, SurfaceAltTextColor);
-            menuButton.ToolTip = "Right-click or long-press to open commands";
-            var menu = new ContextMenu { BackgroundBrush = SurfaceBrush };
+            var menuButton = CommandButton("Menu (left click)", SurfaceAltBrush, SurfaceAltTextColor);
+            menuButton.ToolTip = "Opens on left click (also right-click/long-press)";
+            var menu = new ContextMenu { BackgroundBrush = SurfaceBrush, ContextMenuType = ContextMenuTypes.OpenOnLeftClick };
             menu.Items.Add(new MenuItem("Inspect", () => _status.Text = "Inspect command"));
             menu.Items.Add(new MenuItem("Duplicate", () => _status.Text = "Duplicate command"));
             menu.Items.Add(new MenuItem("Archive", () => _status.Text = "Archive command"));
@@ -780,6 +849,144 @@ namespace MonoGame.PortableUI.Demo
             bottom.VerticalAlignment = VerticalAlignment.Center;
             grid.AddChild(bottom, row: 2, columnSpan: 3);
             return grid;
+        }
+
+        private readonly List<(string Title, int Column)> _dragCards = new List<(string, int)>
+        {
+            ("Fix save-game crash", 0),
+            ("Design inventory UI", 0),
+            ("Wire dialogue trees", 0),
+            ("Playtest chapter 2", 1),
+            ("Ship demo build", 2)
+        };
+        private readonly StackPanel?[] _dragColumns = new StackPanel?[3];
+
+        private Control CreateDragDropTab()
+        {
+            var grid = new Grid
+            {
+                Margin = 16,
+                RowDefinitions =
+                {
+                    new RowDefinition { Height = GridLength.Auto },
+                    new RowDefinition()
+                },
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition(),
+                    new ColumnDefinition(),
+                    new ColumnDefinition()
+                }
+            };
+
+            grid.AddChild(Label("Drag the issue cards between columns (Esc or right-click cancels).", Palette.MutedText, 14, new Thickness(0, 0, 0, 8)), columnSpan: 3);
+
+            var headers = new[] { "Backlog", "Doing", "Done" };
+            for (var column = 0; column < 3; column++)
+            {
+                var columnIndex = column;
+                var stack = new StackPanel
+                {
+                    Orientation = Orientation.Vertical,
+                    Padding = new Thickness(10)
+                };
+                _dragColumns[column] = stack;
+                var frame = new Border
+                {
+                    Margin = new Thickness(0, 0, column < 2 ? 12 : 0, 0),
+                    BackgroundBrush = SurfaceBrush,
+                    BorderColor = Palette.FieldBorder,
+                    BorderWidth = 1,
+                    AllowDrop = true,
+                    Content = stack
+                };
+                frame.DragEnter += (sender, args) =>
+                {
+                    args.Effect = DragDropEffects.Move;
+                    frame.BorderColor = Palette.Primary;
+                    frame.BorderWidth = 2;
+                    _status.Text = $"Drag over {headers[columnIndex]}";
+                };
+                frame.DragOver += (sender, args) => args.Effect = DragDropEffects.Move;
+                frame.DragLeave += (sender, args) =>
+                {
+                    frame.BorderColor = Palette.FieldBorder;
+                    frame.BorderWidth = 1;
+                };
+                frame.Drop += (sender, args) =>
+                {
+                    frame.BorderColor = Palette.FieldBorder;
+                    frame.BorderWidth = 1;
+                    if (args.Payload is string title)
+                    {
+                        var index = _dragCards.FindIndex(card => card.Title == title);
+                        if (index >= 0)
+                            _dragCards[index] = (title, columnIndex);
+                        RebuildDragColumns();
+                        _status.Text = $"Dropped '{title}' into {headers[columnIndex]}";
+                    }
+                };
+
+                var panel = new StackPanel { Orientation = Orientation.Vertical };
+                panel.AddChild(Label(headers[column], Palette.HeadingText, 16, new Thickness(2, 0, 0, 6)));
+                panel.AddChild(frame);
+                grid.AddChild(panel, row: 1, column: column);
+            }
+
+            RebuildDragColumns();
+            return grid;
+        }
+
+        private void RebuildDragColumns()
+        {
+            for (var column = 0; column < 3; column++)
+            {
+                var stack = _dragColumns[column];
+                if (stack == null)
+                    continue;
+
+                stack.Children.Clear();
+                foreach (var card in _dragCards)
+                {
+                    if (card.Column == column)
+                        stack.AddChild(CreateDragCard(card.Title));
+                }
+            }
+        }
+
+        private Control CreateDragCard(string title)
+        {
+            var card = new Border
+            {
+                Margin = new Thickness(0, 0, 0, 8),
+                Padding = new Thickness(10, 8, 10, 8),
+                BackgroundBrush = SurfaceAltBrush,
+                BorderColor = Palette.Primary,
+                BorderWidth = 1,
+                CornerRadius = 4,
+                Content = Label(title, SurfaceAltTextColor, 14, new Thickness(0))
+            };
+            card.MouseDown += (sender, args) =>
+            {
+                var ghost = new Border
+                {
+                    Width = 200,
+                    Padding = new Thickness(10, 8, 10, 8),
+                    BackgroundBrush = Palette.Primary,
+                    CornerRadius = 4,
+                    Content = Label(title, Palette.SelectionText, 14, new Thickness(0))
+                };
+                var operation = card.BeginDrag(title, DragDropEffects.Move, ghost);
+                if (operation != null)
+                {
+                    operation.GrabOffset = new PointF(100, 16);
+                    operation.Canceled += (s, e) => _status.Text = $"Drag of '{title}' canceled";
+                }
+
+                _status.Text = $"Dragging '{title}'";
+                args.Handled = true;
+            };
+            return card;
         }
 
         private Control CreateScrollTab()

@@ -49,7 +49,7 @@ namespace MonoGame.PortableUI.Controls
                     button.TextAlignment = TextAlignment.Left;
                 button.MouseUp += (sender, args) => { screen?.ClearFlyOut(); args.Handled = true; };
                 button.TouchUp += (sender, args) => { screen?.ClearFlyOut(); args.Handled = true; };
-                if (ContextMenuType == ContextMenuTypes.OpenAndClick)
+                if (ContextMenuType != ContextMenuTypes.OpenAndHold)
                     button.Click += (s, e) => InvokeMenuItem(item);
                 else
                 {

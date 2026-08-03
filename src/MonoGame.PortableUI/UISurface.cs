@@ -84,12 +84,17 @@ namespace MonoGame.PortableUI
             PostProcessManager ??= new PostProcessManager(_game.GraphicsDevice);
             PostProcessManager.BeginFrame();
 
+            // Restore whatever was bound (e.g. the host screen's post-FX target), not just null.
+            var previousTargets = _game.GraphicsDevice.GetRenderTargets();
             _game.GraphicsDevice.SetRenderTarget(target);
             _game.GraphicsDevice.Clear(Color.Transparent);
             Screen.Draw(_spriteBatch);
             if (ShowSoftwareCursor)
                 DrawSoftwareCursor(_spriteBatch);
-            _game.GraphicsDevice.SetRenderTarget(null);
+            if (previousTargets.Length == 0)
+                _game.GraphicsDevice.SetRenderTarget(null);
+            else
+                _game.GraphicsDevice.SetRenderTargets(previousTargets);
             return target;
         }
 
