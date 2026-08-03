@@ -189,6 +189,12 @@ combo.SelectedIndex = 0;
 - `tests/MonoGame.PortableUI.Tests` contains windowless regression tests for layout, state, input and composite controls.
 - `docs/issues.md` maps the historical GitHub issue backlog to fixes, tests or obsolete platform notes.
 
+## Fonts
+
+The demo bundles only free, open-licensed fonts (SIL OFL 1.1, CC BY-SA 4.0 — all usable in
+commercial projects; no proprietary system fonts are redistributed). The full per-font list with
+authors, licenses and sources lives in [docs/FONTS.md](docs/FONTS.md).
+
 ## Packaging
 
 The package ID remains `MonoGame.PortableUI`. Packaging is SDK-based and uses modern NuGet metadata:

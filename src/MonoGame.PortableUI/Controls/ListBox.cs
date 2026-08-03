@@ -204,7 +204,8 @@ namespace MonoGame.PortableUI.Controls
             EnsureItemButtons();
             SelectedIndex = ClampIndex(SelectedIndex);
             base.UpdateLayout(rect);
-            _scrollViewer.UpdateLayout(BoundingRect - Margin);
+            // Keep the frame visible: items sit inside the themed border instead of covering it.
+            _scrollViewer.UpdateLayout(BoundingRect - Margin - BorderThickness);
         }
 
         public override IEnumerable<Control> GetDescendants()
@@ -449,8 +450,11 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        private static readonly Brush TransparentHoverBrush = new SolidColorBrush(Color.Transparent);
+
         private void UpdateItemButtonVisuals()
         {
+            var theme = ResolveTheme();
             for (var i = 0; i < _itemButtons.Count; i++)
             {
                 var selected = i == SelectedIndex;
@@ -461,6 +465,14 @@ namespace MonoGame.PortableUI.Controls
                     button.BackgroundBrush = backgroundBrush;
                 if (button.TextColor != textColor)
                     button.TextColor = textColor;
+                // Hovering the selected item must not wash out its selected look — the hover
+                // overlay would make it read as unselected.
+                var hoverBrush = selected ? TransparentHoverBrush : theme.ButtonHoverBrush;
+                if (!ReferenceEquals(button.HoverColor, hoverBrush))
+                    button.HoverColor = hoverBrush;
+                var hoverText = selected ? SelectedItemTextColor : (Color?)null;
+                if (!Nullable.Equals(button.HoverTextColor, hoverText))
+                    button.HoverTextColor = hoverText;
             }
         }
 

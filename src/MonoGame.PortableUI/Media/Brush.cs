@@ -21,6 +21,13 @@ namespace MonoGame.PortableUI.Media
         }
 
         /// <summary>
+        ///     For brushes that cannot render rounded corners (backdrop samplers like frosted
+        ///     glass): a straight-alpha solid approximation used by small rounded chrome such as
+        ///     hover/pressed overlays. Null means the brush renders corner radii itself.
+        /// </summary>
+        internal virtual Color? RoundedFallbackColor => null;
+
+        /// <summary>
         ///     Applies opacity and converts to premultiplied alpha. SpriteBatch's default AlphaBlend
         ///     state expects premultiplied colors; passing straight-alpha colors over-brightens every
         ///     translucent draw (they blend additively instead of compositing).

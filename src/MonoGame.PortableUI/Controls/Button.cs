@@ -103,9 +103,22 @@ namespace MonoGame.PortableUI.Controls
             base.OnDraw(spriteBatch, rect);
             var context = new BrushContext(rect, CornerRadius, RenderOpacity, spriteBatch.GraphicsDevice, (float)ScreenSystem.TotalTime.TotalSeconds);
             if (IsPressedVisualState())
-                PressedColor.Draw(spriteBatch, in context);
+                DrawStateOverlay(spriteBatch, PressedColor, in context);
             else if (HoverState == HoverStates.Hovering)
-                HoverColor.Draw(spriteBatch, in context);
+                DrawStateOverlay(spriteBatch, HoverColor, in context);
+        }
+
+        private void DrawStateOverlay(SpriteBatch spriteBatch, Brush brush, in BrushContext context)
+        {
+            // Backdrop brushes (frosted glass/acrylic) draw square; on rounded buttons that reads
+            // as the button losing its corners — use their solid stand-in with the proper radius.
+            if (!context.Radius.IsEmpty && brush.RoundedFallbackColor is { } fallback)
+            {
+                RoundedRectRenderer.DrawSolid(spriteBatch, context.Rect, context.Radius, Media.Brush.ApplyOpacity(fallback, RenderOpacity));
+                return;
+            }
+
+            brush.Draw(spriteBatch, in context);
         }
 
         #region Properties

@@ -607,7 +607,10 @@ namespace MonoGame.PortableUI
                     theme.ButtonPressedBrush = Solid(new Color(0, 0, 0, 60));
                     theme.ButtonShadow = new ShadowStyle { Color = new Color(0, 0, 0, 190), Offset = new Vector2(2, 2), Blur = 0 };
                     Chrome(theme.ListBox, null, Solid(palette.FieldBorder), 1, 0);
-                    Chrome(theme.TextBox, null, Solid(palette.FieldBorder), 1, 0);
+                    // Turbo Vision input fields: blue face with light text (not gray-on-gray).
+                    Chrome(theme.TextBox, Solid(palette.Surface), Solid(palette.FieldBorder), 1, 0);
+                    theme.TextBoxBackgroundBrush = Solid(palette.Surface);
+                    theme.TextBoxTextColor = palette.Text;
                     break;
                 }
                 case "metro":

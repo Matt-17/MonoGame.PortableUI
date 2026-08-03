@@ -9,6 +9,9 @@ namespace MonoGame.PortableUI.Controls
         private readonly PointF _position;
         private bool _isOpen;
 
+        // Popup content (dropdown lists, menus) must never draw outside the flyout bounds.
+        protected internal override bool ClipsDescendants => true;
+
         public event EventHandler? Showing;
         public event EventHandler? Shown;
         public event EventHandler? Dismissing;

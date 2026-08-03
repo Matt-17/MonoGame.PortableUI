@@ -84,10 +84,26 @@ namespace MonoGame.PortableUI.Controls
             base.UpdateLayout(rect);
 
             var contentRect = BoundingRect - Margin;
-            var headerWidth = Items.Count == 0 ? 0 : contentRect.Width / Items.Count;
-            for (var i = 0; i < _headerButtons.Count; i++)
+            if (_headerButtons.Count > 0 && contentRect.Width > 0)
             {
-                _headerButtons[i].UpdateLayout(new Rect(contentRect.Left + headerWidth * i, contentRect.Top, headerWidth, HeaderHeight));
+                // Distribute the strip proportionally to each header's measured width so long
+                // labels are not cut while short ones don't hog space.
+                var measured = new float[_headerButtons.Count];
+                var total = 0f;
+                for (var i = 0; i < _headerButtons.Count; i++)
+                {
+                    measured[i] = System.Math.Max(1, _headerButtons[i].MeasureLayout().Width);
+                    total += measured[i];
+                }
+
+                var scale = contentRect.Width / total;
+                var left = contentRect.Left;
+                for (var i = 0; i < _headerButtons.Count; i++)
+                {
+                    var width = measured[i] * scale;
+                    _headerButtons[i].UpdateLayout(new Rect(left, contentRect.Top, width, HeaderHeight));
+                    left += width;
+                }
             }
 
             var selectedItem = SelectedItem;
