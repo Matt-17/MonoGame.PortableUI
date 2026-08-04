@@ -93,6 +93,12 @@ namespace MonoGame.PortableUI.Controls
             get { return Parent as Screen ?? (Parent as Control)?.Screen; }
         }
 
+        /// <summary>Routes subsequent mouse move/up events to this control even when the
+        /// pointer leaves its bounds, until <see cref="ReleaseMouse"/> is called.</summary>
+        protected void CaptureMouse() => Screen?.CaptureMouse(this);
+
+        protected void ReleaseMouse() => Screen?.ReleaseMouse(this);
+
         public object? Tag { get; set; }
 
         public string? ToolTip

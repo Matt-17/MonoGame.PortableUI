@@ -127,6 +127,10 @@ namespace MonoGame.PortableUI.Tests
             var (screen, root, _, target) = CreateScene();
             var inner = new Border { AllowDrop = true };
             target.Content = inner;
+            // Setting Content invalidates layout; without a ScreenEngine that zeroes the
+            // manually laid-out rects, so re-establish them afterwards.
+            root.UpdateLayout(new Rect(0, 0, 800, 600));
+            target.UpdateLayout(new Rect(0, 0, 200, 200));
             inner.UpdateLayout(new Rect(20, 20, 100, 100));
 
             Control? entered = null;

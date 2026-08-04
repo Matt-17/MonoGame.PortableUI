@@ -1098,7 +1098,7 @@ namespace MonoGame.PortableUI
 
         internal Control? CapturedMouseControl => _capturedMouseControl;
 
-        internal void CaptureMouse(Control control)
+        public void CaptureMouse(Control control)
         {
             if (control.Screen != this)
                 return;
@@ -1106,7 +1106,7 @@ namespace MonoGame.PortableUI
             _capturedMouseControl = control;
         }
 
-        internal void ReleaseMouse(Control control)
+        public void ReleaseMouse(Control control)
         {
             if (_capturedMouseControl == control)
                 _capturedMouseControl = null;
