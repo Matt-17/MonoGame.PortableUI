@@ -9,6 +9,13 @@ namespace MonoGame.PortableUI.Media
 {
     public class LinearGradientBrush : Brush
     {
+        // The gradient is evaluated in rect-normalized UV space, so for a plain (non-rounded) fill a
+        // small fixed-size texture stretched to the target rect looks identical to an element-sized
+        // one (same trick RadialGradientBrush uses) but avoids minting -- and permanently caching,
+        // since BrushTextureCache only evicts on device reset -- a new texture per distinct pixel size
+        // whenever a gradient-filled control resizes or animates.
+        private const int FastPathTextureSize = 64;
+
         public LinearGradientBrush(Color startColor, Color endColor)
             : this(new GradientStop(0, startColor), new GradientStop(1, endColor))
         {
@@ -38,14 +45,35 @@ namespace MonoGame.PortableUI.Media
             if (context.Rect.Width <= 0 || context.Rect.Height <= 0)
                 return;
 
-            var width = Math.Max(1, (int)Math.Ceiling(context.Rect.Width));
-            var height = Math.Max(1, (int)Math.Ceiling(context.Rect.Height));
-            var radius = context.Radius;
-            var texture = BrushTextureCache.GetOrCreate(
-                spriteBatch.GraphicsDevice,
-                CreateTextureCacheKey(width, height, radius),
-                graphicsDevice => CreateTexture(graphicsDevice, width, height, radius));
+            Texture2D texture;
+            if (context.Radius.IsEmpty)
+            {
+                texture = BrushTextureCache.GetOrCreate(
+                    spriteBatch.GraphicsDevice,
+                    CreateFastPathCacheKey(),
+                    graphicsDevice => CreateTexture(graphicsDevice, FastPathTextureSize, FastPathTextureSize, new CornerRadius(0)));
+            }
+            else
+            {
+                // Corner-mask pixels are chosen from the actual pixel dimensions, so a rounded fill
+                // still needs an element-sized texture to look correct at every aspect ratio.
+                var width = Math.Max(1, (int)Math.Ceiling(context.Rect.Width));
+                var height = Math.Max(1, (int)Math.Ceiling(context.Rect.Height));
+                var radius = context.Radius;
+                texture = BrushTextureCache.GetOrCreate(
+                    spriteBatch.GraphicsDevice,
+                    CreateTextureCacheKey(width, height, radius),
+                    graphicsDevice => CreateTexture(graphicsDevice, width, height, radius));
+            }
             spriteBatch.Draw(texture, context.Rect, ApplyOpacity(Color.White, context.Opacity));
+        }
+
+        private BrushTextureCacheKey CreateFastPathCacheKey()
+        {
+            return new BrushTextureCacheKey(
+                "linear-gradient-v2-fixed",
+                BitConverter.SingleToInt32Bits(AngleDegrees),
+                GetStopsHash());
         }
 
         internal BrushTextureCacheKey CreateTextureCacheKey(int width, int height)
@@ -61,11 +89,6 @@ namespace MonoGame.PortableUI.Media
                 height,
                 BitConverter.SingleToInt32Bits(AngleDegrees),
                 HashCode.Combine(GetStopsHash(), radius));
-        }
-
-        private Texture2D CreateTexture(GraphicsDevice graphicsDevice, int width, int height)
-        {
-            return CreateTexture(graphicsDevice, width, height, new CornerRadius(0));
         }
 
         private Texture2D CreateTexture(GraphicsDevice graphicsDevice, int width, int height, CornerRadius radius)
@@ -100,7 +123,7 @@ namespace MonoGame.PortableUI.Media
                 {
                     var u = width == 1 ? 0 : x / (float)(width - 1);
                     var t = (GetProjection(new Vector2(u, v), direction) - min) / range;
-                    data[y * width + x] = Premultiply(Evaluate(stops, t));
+                    data[y * width + x] = Premultiply(GradientStops.Evaluate(stops, t));
                 }
             }
 
@@ -112,47 +135,17 @@ namespace MonoGame.PortableUI.Media
 
         private IReadOnlyList<GradientStop> GetOrderedStops()
         {
-            if (Stops.Count == 0)
-                return new[] { new GradientStop(0, Color.Transparent), new GradientStop(1, Color.Transparent) };
-            if (Stops.Count == 1)
-                return new[] { new GradientStop(0, Stops[0].Color), new GradientStop(1, Stops[0].Color) };
-            return Stops.OrderBy(stop => stop.Offset).ToArray();
+            return GradientStops.GetOrdered(Stops);
         }
 
         private int GetStopsHash()
         {
-            var hash = new HashCode();
-            foreach (var stop in GetOrderedStops())
-            {
-                hash.Add(BitConverter.SingleToInt32Bits(stop.Offset));
-                hash.Add(stop.Color.PackedValue);
-            }
-            return hash.ToHashCode();
+            return GradientStops.GetHash(Stops);
         }
 
         private static float GetProjection(Vector2 point, Vector2 direction)
         {
             return Vector2.Dot(point, direction);
-        }
-
-        private static Color Evaluate(IReadOnlyList<GradientStop> stops, float offset)
-        {
-            offset = MathHelper.Clamp(offset, 0, 1);
-            var previous = stops[0];
-            for (var i = 1; i < stops.Count; i++)
-            {
-                var next = stops[i];
-                if (offset > next.Offset)
-                {
-                    previous = next;
-                    continue;
-                }
-
-                var span = Math.Max(0.0001f, next.Offset - previous.Offset);
-                return Color.Lerp(previous.Color, next.Color, (offset - previous.Offset) / span);
-            }
-
-            return stops[stops.Count - 1].Color;
         }
     }
 }

@@ -478,10 +478,7 @@ namespace MonoGame.PortableUI.Controls
 
         private int ClampIndex(int value)
         {
-            if (Items.Count == 0 || value < 0)
-                return -1;
-
-            return Math.Max(0, Math.Min(value, Items.Count - 1));
+            return HelperEx.ClampSelectionIndex(value, Items.Count);
         }
     }
 }

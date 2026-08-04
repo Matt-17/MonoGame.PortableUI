@@ -76,7 +76,7 @@ namespace MonoGame.PortableUI.Media
                     var dx = (u - Center.X) / radiusX;
                     var dy = (v - Center.Y) / radiusY;
                     var t = (float)Math.Sqrt(dx * dx + dy * dy);
-                    data[y * TextureSize + x] = Premultiply(Evaluate(stops, t));
+                    data[y * TextureSize + x] = Premultiply(GradientStops.Evaluate(stops, t));
                 }
             }
 
@@ -87,42 +87,12 @@ namespace MonoGame.PortableUI.Media
 
         private IReadOnlyList<GradientStop> GetOrderedStops()
         {
-            if (Stops.Count == 0)
-                return new[] { new GradientStop(0, Color.Transparent), new GradientStop(1, Color.Transparent) };
-            if (Stops.Count == 1)
-                return new[] { new GradientStop(0, Stops[0].Color), new GradientStop(1, Stops[0].Color) };
-            return Stops.OrderBy(stop => stop.Offset).ToArray();
+            return GradientStops.GetOrdered(Stops);
         }
 
         private int GetStopsHash()
         {
-            var hash = new HashCode();
-            foreach (var stop in GetOrderedStops())
-            {
-                hash.Add(BitConverter.SingleToInt32Bits(stop.Offset));
-                hash.Add(stop.Color.PackedValue);
-            }
-            return hash.ToHashCode();
-        }
-
-        private static Color Evaluate(IReadOnlyList<GradientStop> stops, float offset)
-        {
-            offset = MathHelper.Clamp(offset, 0, 1);
-            var previous = stops[0];
-            for (var i = 1; i < stops.Count; i++)
-            {
-                var next = stops[i];
-                if (offset > next.Offset)
-                {
-                    previous = next;
-                    continue;
-                }
-
-                var span = Math.Max(0.0001f, next.Offset - previous.Offset);
-                return Color.Lerp(previous.Color, next.Color, (offset - previous.Offset) / span);
-            }
-
-            return stops[stops.Count - 1].Color;
+            return GradientStops.GetHash(Stops);
         }
     }
 }

@@ -143,9 +143,19 @@ namespace MonoGame.PortableUI.Controls
                 if (gridLength.Height.Unit == GridLengthUnit.Relative)
                     result[gridLength.Index] = gridLength.Height.Value * starSingleValue;
             }
+            // Only star (Relative) rows should absorb leftover space; Absolute/Auto rows keep their
+            // own size and any remainder below them stays empty, matching Grid star-sizing semantics.
             var f = rect.Height.IsFixed() ? rect.Height - result.Sum() : 0;
-            if (f > 0 && result.Count > 0)
-                result[result.Count - 1] += f;
+            if (f > 0 && starRows > 0)
+            {
+                for (var i = rowDefinitions.Count - 1; i >= 0; i--)
+                {
+                    if (rowDefinitions[i].Height.Unit != GridLengthUnit.Relative)
+                        continue;
+                    result[i] += f;
+                    break;
+                }
+            }
             return result;
         }
 
@@ -258,9 +268,19 @@ namespace MonoGame.PortableUI.Controls
                 if (gridLength.Width.Unit == GridLengthUnit.Relative)
                     result[gridLength.Index] = gridLength.Width.Value * starSingleValue;
             }
+            // Only star (Relative) columns should absorb leftover space; Absolute/Auto columns keep
+            // their own size and any remainder stays empty, matching Grid star-sizing semantics.
             var f = rect.Width.IsFixed() ? rect.Width - result.Sum() : 0;
-            if (f > 0 && result.Count > 0)
-                result[result.Count - 1] += f;
+            if (f > 0 && starColumns > 0)
+            {
+                for (var i = columnDefinitions.Count - 1; i >= 0; i--)
+                {
+                    if (columnDefinitions[i].Width.Unit != GridLengthUnit.Relative)
+                        continue;
+                    result[i] += f;
+                    break;
+                }
+            }
             return result;
         }
 

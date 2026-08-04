@@ -18,6 +18,14 @@ namespace MonoGame.PortableUI
         public ScreenSizeMode ScreenSizeMode { get; set; } = ScreenSizeMode.Viewport;
         public Effect? Effect { get; set; }
 
+        /// <summary>
+        /// The engine these options belong to, set once by <see cref="ScreenEngine"/>'s constructor.
+        /// Lets the <see cref="Theme"/> setter invalidate the screen this instance actually drives
+        /// instead of always the process-wide primary engine (relevant for secondary engines such as
+        /// the one behind each <see cref="UISurface"/>).
+        /// </summary>
+        internal ScreenEngine? Owner { get; set; }
+
         public PortableTheme Theme
         {
             get { return _theme; }
@@ -29,7 +37,7 @@ namespace MonoGame.PortableUI
 
                 _theme = nextTheme;
                 ThemeVersion.Next();
-                ScreenEngine.Instance?.ActiveScreen?.InvalidateLayout(true);
+                Owner?.ActiveScreen?.InvalidateLayout(true);
             }
         }
     }
