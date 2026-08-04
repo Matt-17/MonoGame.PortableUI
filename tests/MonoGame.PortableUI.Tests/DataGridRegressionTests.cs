@@ -283,6 +283,53 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void Wide_fixed_columns_enable_horizontal_scrolling()
+        {
+            var grid = CreateGrid(
+                new object[] { new Person("A", 1) },
+                new DataGridColumn { Header = "Name", Width = new GridLength(400, GridLengthUnit.Absolute), CellText = i => ((Person)i).Name },
+                new DataGridColumn { Header = "Age", Width = new GridLength(400, GridLengthUnit.Absolute), CellText = i => ((Person)i).Age.ToString() });
+
+            grid.UpdateLayout(new Rect(0, 0, 300, 200));
+
+            // Columns total 800 in a 300-wide grid, so the inner width overflows and the outer
+            // horizontal scroller can scroll.
+            Assert.AreEqual(800, grid.InnerWidth, 0.001f);
+            grid.HorizontalScroller.ScrollTo(new PointF(1000, 0));
+            Assert.IsTrue(grid.HorizontalScroller.Offset.X > 0, "grid should scroll horizontally when columns overflow");
+        }
+
+        [TestMethod]
+        public void Horizontal_scroll_can_be_disabled()
+        {
+            var grid = CreateGrid(
+                new object[] { new Person("A", 1) },
+                new DataGridColumn { Header = "Name", Width = new GridLength(400, GridLengthUnit.Absolute), CellText = i => ((Person)i).Name },
+                new DataGridColumn { Header = "Age", Width = new GridLength(400, GridLengthUnit.Absolute), CellText = i => ((Person)i).Age.ToString() });
+            grid.AllowHorizontalScroll = false;
+
+            grid.UpdateLayout(new Rect(0, 0, 300, 200));
+
+            // Inner width is clamped to the viewport; overflowing columns are clipped, not scrolled.
+            Assert.AreEqual(300, grid.InnerWidth, 0.001f);
+            grid.HorizontalScroller.ScrollTo(new PointF(1000, 0));
+            Assert.AreEqual(0, grid.HorizontalScroller.Offset.X, 0.001f);
+        }
+
+        [TestMethod]
+        public void Star_columns_never_trigger_horizontal_scroll()
+        {
+            var grid = CreateGrid(
+                new object[] { new Person("A", 1) },
+                new DataGridColumn { Header = "Name", Width = new GridLength(1, GridLengthUnit.Relative), CellText = i => ((Person)i).Name },
+                new DataGridColumn { Header = "Age", Width = new GridLength(1, GridLengthUnit.Relative), CellText = i => ((Person)i).Age.ToString() });
+
+            grid.UpdateLayout(new Rect(0, 0, 300, 200));
+
+            Assert.AreEqual(300, grid.InnerWidth, 0.001f);
+        }
+
+        [TestMethod]
         public void Cell_template_column_creates_custom_cell_controls()
         {
             var people = new object[] { new Person("A", 1), new Person("B", 2) };
