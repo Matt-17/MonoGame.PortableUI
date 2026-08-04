@@ -107,11 +107,56 @@ namespace MonoGame.PortableUI.Demo.Android
             }
             panel.AddChild(list);
 
+            panel.AddChild(new TextBlock
+            {
+                Text = "Data grid (tap a header to sort):",
+                TextColor = Muted,
+                TextSize = 14,
+                Margin = new Thickness(12, 4, 12, 4)
+            });
+            panel.AddChild(BuildDataGrid());
+
             return new ScrollViewer
             {
                 ScrollOrientation = Orientation.Vertical,
                 Content = panel
             };
+        }
+
+        private DataGrid BuildDataGrid()
+        {
+            var grid = new DataGrid
+            {
+                Height = 220,
+                Margin = new Thickness(12, 0, 12, 16),
+                SelectedRowBackgroundBrush = Accent,
+                SelectedRowTextColor = Color.White,
+                RowHeight = 34,
+                HeaderHeight = 36
+            };
+            grid.Columns.Add(new DataGridColumn
+            {
+                Header = "Fruit",
+                Width = new GridLength(2, GridLengthUnit.Relative),
+                CellText = i => (((string Name, int Qty))i).Name,
+                SortKey = i => (((string Name, int Qty))i).Name
+            });
+            grid.Columns.Add(new DataGridColumn
+            {
+                Header = "Qty",
+                Width = new GridLength(70, GridLengthUnit.Absolute),
+                CellAlignment = TextAlignment.Right,
+                CellText = i => (((string Name, int Qty))i).Qty.ToString(),
+                SortKey = i => (((string Name, int Qty))i).Qty
+            });
+            grid.Items.AddRange(new object[]
+            {
+                ("Apple", 12), ("Banana", 7), ("Cherry", 40), ("Date", 3),
+                ("Elderberry", 21), ("Fig", 9), ("Grape", 55), ("Kiwi", 18)
+            });
+            grid.Refresh();
+            grid.SortBy(grid.Columns[0], true);
+            return grid;
         }
     }
 }
