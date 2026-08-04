@@ -61,6 +61,8 @@ namespace MonoGame.PortableUI.Controls
             SelectedRowTextColor = theme.ListBoxSelectedItemTextColor;
             GridLinesBrush = new SolidColorBrush(new Color(0, 0, 0, 28));
 
+            HorizontalAlignment = HorizontalAlignment.Stretch;
+            VerticalAlignment = VerticalAlignment.Stretch;
             ShowFocusVisual = false;
             KeyPressed += DataGridKeyPressed;
         }
@@ -279,14 +281,7 @@ namespace MonoGame.PortableUI.Controls
 
             var headerRows = ShowColumnHeaders ? HeaderHeight : 0;
             if (ShowColumnHeaders)
-            {
-                _header.IsGone = false;
                 _header.UpdateLayout(new Rect(content.Left, content.Top, content.Width, headerRows));
-            }
-            else
-            {
-                _header.IsGone = true;
-            }
 
             _scrollViewer.UpdateLayout(new Rect(content.Left, content.Top + headerRows, content.Width, Math.Max(0, content.Height - headerRows)));
         }
@@ -310,6 +305,22 @@ namespace MonoGame.PortableUI.Controls
         }
 
         internal IReadOnlyList<DataGridColumn> ResolvedColumns => Columns;
+
+        /// <summary>Test/inspection hook: the non-scrolling header row.</summary>
+        internal HeaderControl HeaderRow => _header;
+
+        /// <summary>Test/inspection hook: the scroll viewer hosting the rows.</summary>
+        internal ScrollViewer Scroller => _scrollViewer;
+
+        /// <summary>Test/inspection hook: the materialized row controls.</summary>
+        internal IReadOnlyList<RowControl> Rows
+        {
+            get
+            {
+                EnsureRows();
+                return _rows;
+            }
+        }
 
         internal float ColumnOffset(int columnIndex)
         {
