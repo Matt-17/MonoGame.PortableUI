@@ -98,43 +98,7 @@ namespace MonoGame.PortableUI.Controls
                 width,
                 height);
             var color = Brush.ApplyOpacity(GlyphColor ?? TextColor, RenderOpacity);
-            spriteBatch.Draw(GetGlyphTexture(spriteBatch.GraphicsDevice), glyphRect, color);
-        }
-
-        private static Texture2D GetGlyphTexture(GraphicsDevice graphicsDevice)
-        {
-            const int width = 30;
-            const int height = 18;
-            return BrushTextureCache.GetOrCreate(graphicsDevice, new BrushTextureCacheKey("combobox-glyph-v1", width, height), device =>
-            {
-                var data = new Color[width * height];
-                for (var y = 0; y < height; y++)
-                {
-                    // Downward triangle: row y spans inset..width-inset, antialiased via 4x supersampling.
-                    for (var x = 0; x < width; x++)
-                    {
-                        var covered = 0;
-                        for (var sy = 0; sy < 2; sy++)
-                        {
-                            for (var sx = 0; sx < 2; sx++)
-                            {
-                                var py = y + 0.25f + sy * 0.5f;
-                                var px = x + 0.25f + sx * 0.5f;
-                                var inset = py / height * (width / 2f);
-                                if (px >= inset && px <= width - inset)
-                                    covered++;
-                            }
-                        }
-
-                        var coverage = (byte)(covered * 255 / 4);
-                        data[y * width + x] = new Color(coverage, coverage, coverage, coverage);
-                    }
-                }
-
-                var texture = new Texture2D(device, width, height);
-                texture.SetData(data);
-                return texture;
-            });
+            spriteBatch.Draw(TriangleGlyph.Get(spriteBatch.GraphicsDevice, pointingUp: false), glyphRect, color);
         }
 
         public int SelectedIndex

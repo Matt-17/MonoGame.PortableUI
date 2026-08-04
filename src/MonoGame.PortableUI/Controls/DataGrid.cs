@@ -25,6 +25,8 @@ namespace MonoGame.PortableUI.Controls
         private readonly HeaderControl _header;
         private readonly StackPanel _rowsPanel;
         private readonly ScrollViewer _scrollViewer;
+        private readonly Grid _bodyGrid;
+        private readonly ScrollViewer _horizontalScroll;
         private readonly List<RowControl> _rows = new List<RowControl>();
 
         private int _selectedIndex = -1;
@@ -42,14 +44,30 @@ namespace MonoGame.PortableUI.Controls
             Items = new List<object>();
             Columns = new List<DataGridColumn>();
 
+            // The library's ScrollViewer is single-axis, so 2D scrolling is composed by nesting: an
+            // outer horizontal ScrollViewer holds a vertical stack of [header, inner vertical ScrollViewer].
+            // Vertical scrolling moves only the rows (header stays put); horizontal scrolling moves the
+            // whole block, so the header scrolls in sync with the rows.
             _rowsPanel = new StackPanel { Orientation = Orientation.Vertical };
             _scrollViewer = new ScrollViewer
             {
-                Parent = this,
                 Content = _rowsPanel,
-                ScrollOrientation = Orientation.Vertical
+                ScrollOrientation = Orientation.Vertical,
+                HorizontalAlignment = HorizontalAlignment.Stretch
             };
-            _header = new HeaderControl(this) { Parent = this };
+            _header = new HeaderControl(this);
+            // Auto row sizes to the header height; the star row gives the vertical scroller the rest.
+            _bodyGrid = new Grid();
+            _bodyGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            _bodyGrid.RowDefinitions.Add(new RowDefinition());
+            _bodyGrid.AddChild(_header, row: 0);
+            _bodyGrid.AddChild(_scrollViewer, row: 1);
+            _horizontalScroll = new ScrollViewer
+            {
+                Parent = this,
+                Content = _bodyGrid,
+                ScrollOrientation = Orientation.Horizontal
+            };
 
             _rowHeight = theme.ListBoxItemHeight;
             HeaderBackgroundBrush = theme.TabHeaderBackgroundBrush;
@@ -83,6 +101,20 @@ namespace MonoGame.PortableUI.Controls
         public Brush GridLinesBrush { get; set; }
         public bool ShowGridLines { get; set; } = true;
         public bool ShowColumnHeaders { get; set; } = true;
+
+        /// <summary>
+        /// When true (default), a horizontal scrollbar appears if the columns are wider than the
+        /// grid. Set false to keep columns fixed to the visible width (content is clipped instead).
+        /// Grids whose columns include a star (relative) width fill the available width and never
+        /// scroll horizontally.
+        /// </summary>
+        public bool AllowHorizontalScroll { get; set; } = true;
+
+        /// <summary>
+        /// Width the header/rows are laid out at: the viewport width normally, or the total column
+        /// width when horizontal scrolling is active. Set each layout pass; read by the header/rows.
+        /// </summary>
+        internal float InnerWidth { get; private set; }
 
         public float RowHeight
         {
@@ -279,19 +311,20 @@ namespace MonoGame.PortableUI.Controls
             var content = BoundingRect - Margin - BorderThickness;
             ResolveColumnWidths(content.Width);
 
-            var headerRows = ShowColumnHeaders ? HeaderHeight : 0;
-            if (ShowColumnHeaders)
-                _header.UpdateLayout(new Rect(content.Left, content.Top, content.Width, headerRows));
+            var totalColumns = TotalColumnsWidth;
+            var horizontalActive = AllowHorizontalScroll && totalColumns > content.Width + 0.5f;
+            InnerWidth = horizontalActive ? totalColumns : content.Width;
 
-            _scrollViewer.UpdateLayout(new Rect(content.Left, content.Top + headerRows, content.Width, Math.Max(0, content.Height - headerRows)));
+            // The inner Grid distributes height (Auto header + star body) and the horizontal
+            // ScrollViewer constrains that Grid to the viewport height, so no explicit sizing is
+            // needed here — setting child sizes mid-layout would re-enter InvalidateLayout.
+            _horizontalScroll.UpdateLayout(content);
         }
 
         public override IEnumerable<Control> GetDescendants()
         {
             EnsureRows();
-            if (ShowColumnHeaders)
-                yield return _header;
-            yield return _scrollViewer;
+            yield return _horizontalScroll;
         }
 
         protected override Brush? GetThemeBackgroundBrush(PortableTheme theme)
@@ -309,8 +342,11 @@ namespace MonoGame.PortableUI.Controls
         /// <summary>Test/inspection hook: the non-scrolling header row.</summary>
         internal HeaderControl HeaderRow => _header;
 
-        /// <summary>Test/inspection hook: the scroll viewer hosting the rows.</summary>
+        /// <summary>Test/inspection hook: the vertical scroll viewer hosting the rows.</summary>
         internal ScrollViewer Scroller => _scrollViewer;
+
+        /// <summary>Test/inspection hook: the outer horizontal scroll viewer.</summary>
+        internal ScrollViewer HorizontalScroller => _horizontalScroll;
 
         /// <summary>Test/inspection hook: the materialized row controls.</summary>
         internal IReadOnlyList<RowControl> Rows

@@ -1069,7 +1069,7 @@ namespace MonoGame.PortableUI.Demo
             grid.Columns.Add(new DataGridColumn
             {
                 Header = "Commodity",
-                Width = new GridLength(2, GridLengthUnit.Relative),
+                Width = new GridLength(340, GridLengthUnit.Absolute),
                 MinWidth = 120,
                 CellText = item => ((MarketRow)item).Commodity,
                 SortKey = item => ((MarketRow)item).Commodity
@@ -1085,7 +1085,7 @@ namespace MonoGame.PortableUI.Demo
             grid.Columns.Add(new DataGridColumn
             {
                 Header = "Price",
-                Width = new GridLength(90, GridLengthUnit.Absolute),
+                Width = new GridLength(110, GridLengthUnit.Absolute),
                 CellAlignment = TextAlignment.Right,
                 CellText = item => ((MarketRow)item).Price.ToString("N2"),
                 SortKey = item => ((MarketRow)item).Price
@@ -1093,15 +1093,40 @@ namespace MonoGame.PortableUI.Demo
             grid.Columns.Add(new DataGridColumn
             {
                 Header = "Stock",
-                Width = new GridLength(90, GridLengthUnit.Absolute),
+                Width = new GridLength(110, GridLengthUnit.Absolute),
                 CellAlignment = TextAlignment.Right,
                 CellText = item => ((MarketRow)item).Stock.ToString("N0"),
                 SortKey = item => ((MarketRow)item).Stock
             });
             grid.Columns.Add(new DataGridColumn
             {
+                Header = "Value",
+                Width = new GridLength(130, GridLengthUnit.Absolute),
+                CellAlignment = TextAlignment.Right,
+                CellText = item => (((MarketRow)item).Price * ((MarketRow)item).Stock).ToString("N0"),
+                SortKey = item => ((MarketRow)item).Price * ((MarketRow)item).Stock
+            });
+            grid.Columns.Add(new DataGridColumn
+            {
+                Header = "Bid",
+                Width = new GridLength(110, GridLengthUnit.Absolute),
+                CellAlignment = TextAlignment.Right,
+                CellText = item => (((MarketRow)item).Price * 0.99).ToString("N2"),
+                SortKey = item => ((MarketRow)item).Price * 0.99
+            });
+            grid.Columns.Add(new DataGridColumn
+            {
+                Header = "Ask",
+                Width = new GridLength(110, GridLengthUnit.Absolute),
+                CellAlignment = TextAlignment.Right,
+                CellText = item => (((MarketRow)item).Price * 1.01).ToString("N2"),
+                SortKey = item => ((MarketRow)item).Price * 1.01
+            });
+            grid.Columns.Add(new DataGridColumn
+            {
                 Header = "Trend",
-                Width = new GridLength(80, GridLengthUnit.Absolute),
+                Width = new GridLength(90, GridLengthUnit.Absolute),
+                CellAlignment = TextAlignment.Right,
                 SortKey = item => ((MarketRow)item).Trend,
                 // Custom cell: colored +/- percentage.
                 CellTemplate = item =>

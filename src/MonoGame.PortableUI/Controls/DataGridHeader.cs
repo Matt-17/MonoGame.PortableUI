@@ -4,6 +4,7 @@ using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls.Events;
 using MonoGame.PortableUI.Controls.Input;
+using MonoGame.PortableUI.Media;
 
 namespace MonoGame.PortableUI.Controls
 {
@@ -14,6 +15,9 @@ namespace MonoGame.PortableUI.Controls
     internal sealed class HeaderControl : Control
     {
         private const float SplitterHitWidth = 6;
+        private const float GlyphWidth = 9;
+        private const float GlyphHeight = 6;
+        private const float GlyphGap = 5;
 
         private readonly DataGrid _owner;
         private readonly List<TextBlock> _labels = new List<TextBlock>();
@@ -47,18 +51,15 @@ namespace MonoGame.PortableUI.Controls
                 label.Parent = this;
                 label.TextColor = _owner.HeaderTextColor;
                 label.TextAlignment = column.CellAlignment;
-                // ASCII-only sort glyph: the default font only builds characters 32-126, so avoid
-                // unicode arrows which would throw when measured.
-                var glyph = ReferenceEquals(_owner.SortColumn, column) ? (_owner.SortAscending ? "  ^" : "  v") : "";
-                label.Text = column.Header + glyph;
+                label.Text = column.Header;
             }
         }
 
         public override Size MeasureLayout()
         {
-            if (IsGone)
+            if (IsGone || !_owner.ShowColumnHeaders)
                 return Size.Empty;
-            return ApplyConstraints(new Size(_owner.TotalColumnsWidth, _owner.HeaderHeight)) + Margin;
+            return ApplyConstraints(new Size(_owner.InnerWidth, _owner.HeaderHeight)) + Margin;
         }
 
         public override void UpdateLayout(Rect rect)
@@ -75,11 +76,14 @@ namespace MonoGame.PortableUI.Controls
             base.UpdateLayout(rect);
 
             const float pad = DataGrid.CellHorizontalPadding;
+            var sortIndex = SortColumnIndex();
             for (var i = 0; i < _labels.Count && i < _owner.Columns.Count; i++)
             {
                 var width = _owner.Columns[i].ActualWidth;
                 var left = BoundingRect.Left + _owner.ColumnOffset(i);
-                _labels[i].UpdateLayout(new Rect(left + pad, BoundingRect.Top, Math.Max(0, width - 2 * pad), BoundingRect.Height));
+                // Reserve room for the sort glyph on the active column so it never overlaps the text.
+                var reserve = i == sortIndex ? GlyphWidth + GlyphGap : 0;
+                _labels[i].UpdateLayout(new Rect(left + pad, BoundingRect.Top, Math.Max(0, width - 2 * pad - reserve), BoundingRect.Height));
             }
         }
 
@@ -90,6 +94,9 @@ namespace MonoGame.PortableUI.Controls
 
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
+            if (!_owner.ShowColumnHeaders)
+                return;
+
             DataGrid.FillRect(spriteBatch, _owner.HeaderBackgroundBrush, rect, RenderOpacity);
 
             if (_owner.ShowGridLines)
@@ -101,6 +108,39 @@ namespace MonoGame.PortableUI.Controls
                     DataGrid.FillRect(spriteBatch, _owner.GridLinesBrush, new Rect(x, rect.Top, 1, rect.Height), RenderOpacity);
                 }
             }
+
+            DrawSortGlyph(spriteBatch, rect);
+        }
+
+        private void DrawSortGlyph(SpriteBatch spriteBatch, Rect rect)
+        {
+            var sortIndex = SortColumnIndex();
+            if (sortIndex < 0)
+                return;
+
+            const float pad = DataGrid.CellHorizontalPadding;
+            var columnRight = rect.Left + _owner.ColumnOffset(sortIndex) + _owner.Columns[sortIndex].ActualWidth;
+            var glyphRect = new Rect(
+                columnRight - pad - GlyphWidth,
+                rect.Top + (rect.Height - GlyphHeight) / 2,
+                GlyphWidth,
+                GlyphHeight);
+            var color = Brush.ApplyOpacity(_owner.HeaderTextColor, RenderOpacity);
+            var texture = TriangleGlyph.Get(spriteBatch.GraphicsDevice, pointingUp: _owner.SortAscending);
+            spriteBatch.Draw(texture, glyphRect, color);
+        }
+
+        private int SortColumnIndex()
+        {
+            if (_owner.SortColumn == null)
+                return -1;
+            for (var i = 0; i < _owner.Columns.Count; i++)
+            {
+                if (ReferenceEquals(_owner.Columns[i], _owner.SortColumn))
+                    return i;
+            }
+
+            return -1;
         }
 
         private void HeaderMouseDown(object? sender, MouseEventArgs args)
