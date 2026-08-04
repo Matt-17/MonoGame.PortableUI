@@ -20,16 +20,18 @@ The library now multi-targets `net10.0` (MonoGame.Framework.DesktopGL) and `net1
 - `samples/MonoGame.PortableUI.Demo.Android` — minimal activity + manifest host, added to the `.slnx`.
   Verified building a signed APK and running on an emulator (touch input works).
 
-### Known follow-up: Android native-density text rendering in nested/button content
+### Resolved: Android text clipping in content-tight controls (back buffer vs. scissor space)
 
-On the Android GL backend at native display density (targetSdk 24+, e.g. an xxhdpi emulator), text that is
-rendered **inside a `Button`** (the `Button` -> child `TextBlock` path, which also backs `ListBox` item rows)
-is clipped to a too-narrow region and the item rows measure too tall. Standalone `TextBlock`/`TextBox` and
-all non-text chrome render correctly, and the same code renders correctly on DesktopGL and under the legacy
-pre-24 Android compatibility-scaling path. Likely a scissor/measure interaction specific to deeply-nested
-clipped content at high DPI. Does not block the port (app builds/runs/renders/handles touch); worth a
-dedicated fix before shipping button-heavy Android UI. The new `DataGrid` renders its cells as `TextBlock`s
-(not `Button`s), so it is not affected by this path.
+Earlier symptom: text inside a `Button` (and `ListBox` item rows) was clipped to a narrow sliver with rows
+looking too tall, while standalone `TextBlock`/`TextBox` and `DataGrid` cells on the same screen rendered
+fine. Root cause was **not** layout — an on-device dump proved every `BoundingRect`/`MeasureString` was
+correct. MonoGame's Android back buffer defaults to a density-scaled size *smaller* than the GL surface it
+renders into, so `SpriteBatch` draws stretched to the surface while `GraphicsDevice.ScissorRectangle` is
+applied in the smaller back-buffer space; the mismatch grows with distance from the origin, clipping
+content-tight scissor rects (button/list text sized to the text) while leaving stretched cells and full-width
+labels intact. Fixed by pinning `PreferredBackBufferWidth/Height` to the real `DisplayMetrics` in the host
+game (`samples/MonoGame.PortableUI.Demo.Android/AndroidDemoGame.cs`). **Any Android host of this library must
+do the same.**
 
 ## 2. Data grid / table control — DONE
 
