@@ -107,12 +107,7 @@ namespace MonoGame.PortableUI.Effects
 
         private RenderTarget2D EnsureTarget(ref RenderTarget2D? target, int width, int height)
         {
-            if (target != null && !target.IsDisposed && target.Width == width && target.Height == height)
-                return target;
-
-            target?.Dispose();
-            target = new RenderTarget2D(_graphicsDevice, width, height, false, SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.PreserveContents);
-            return target;
+            return RenderTargetHelper.EnsureTarget(_graphicsDevice, ref target, width, height);
         }
     }
 }

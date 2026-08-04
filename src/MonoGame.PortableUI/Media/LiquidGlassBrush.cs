@@ -13,7 +13,6 @@ namespace MonoGame.PortableUI.Media
             BlurRadius = 20;
             GrainOpacity = 0.05f;
             SaturationBoost = 0.32f;
-            LuminosityBoost = 0.12f;
         }
 
         public float EdgeRefractionStrength { get; set; } = 0.018f;

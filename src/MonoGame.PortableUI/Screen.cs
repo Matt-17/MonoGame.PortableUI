@@ -860,8 +860,14 @@ namespace MonoGame.PortableUI
         {
             var keyboardState = Keyboard.GetState();
             var pressedKeys = keyboardState.GetPressedKeys();
-            var focusedControl = ScreenEngine.FocusedControl;
             var modifiers = GetKeyboardModifiers(keyboardState);
+
+            // The debug overlay toggle isn't control-specific, so it must not be gated behind a
+            // focused control (otherwise F3 does nothing on a screen with nothing focused).
+            if (Array.IndexOf(pressedKeys, Keys.F3) >= 0 && Array.IndexOf(_lastPressedKeys, Keys.F3) < 0)
+                ScreenEngine?.ToggleDebugOverlay();
+
+            var focusedControl = ScreenEngine.FocusedControl;
 
             // Focus is global while several screens can update per frame (UISurfaces): only the
             // screen that owns the focused control may process keys, or every screen would apply
@@ -879,10 +885,7 @@ namespace MonoGame.PortableUI
                     continue;
 
                 if (key == Keys.F3)
-                {
-                    ScreenEngine?.ToggleDebugOverlay();
-                    continue;
-                }
+                    continue; // handled above regardless of focus
 
                 var command = TryGetKeyboardCommand(key, modifiers);
                 if (command.HasValue)

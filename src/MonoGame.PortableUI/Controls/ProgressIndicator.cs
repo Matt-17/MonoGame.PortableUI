@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI.Common;
@@ -34,31 +32,37 @@ namespace MonoGame.PortableUI.Controls
 
         public int MinSize { get; set; }
         public int MaxSize { get; set; }
+
         public override Size MeasureLayout()
         {
-            var size = base.MeasureLayout();
+            // Fix the width before measuring (not after), so the Size this call returns already
+            // reflects it instead of reporting 0 and forcing an extra invalidation/re-measure pass.
             if (!Width.IsFixed())
                 Width = MaxSize;
-            return size;
+            return base.MeasureLayout();
         }
+
+        private const int MaxValue = 5;
+        private const int RectangleCount = MaxValue - 2;
+
+        // Reused across frames instead of allocating a Dictionary + LINQ OrderBy on every OnDraw,
+        // which ran continuously while the spinner is visible.
+        private readonly int[] _drawOrder = { 0, 1, 2 };
+        private readonly double[] _drawOrderValues = new double[RectangleCount];
 
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
-            base.OnDraw(spriteBatch, rect);         
-            const int maxValue = 5;
+            base.OnDraw(spriteBatch, rect);
 
-            var dict = new Dictionary<int, double>();
-            for (int i = 0; i < maxValue-2; i++)
+            for (var i = 0; i < RectangleCount; i++)
             {
-                double d;
-                var abs = Precalculate(i, maxValue, out d);
-                dict.Add(i, abs);
+                _drawOrder[i] = i;
+                _drawOrderValues[i] = Precalculate(i, MaxValue, out _);
             }
-            var keyValuePairs = dict.OrderBy(x => x.Value);
-            foreach (var pair in keyValuePairs)
-            {
-                DrawRectangle(spriteBatch, rect, pair.Key, maxValue);
-            }
+            Array.Sort(_drawOrderValues, _drawOrder);
+
+            foreach (var i in _drawOrder)
+                DrawRectangle(spriteBatch, rect, i, MaxValue);
         }
 
         private void DrawRectangle(SpriteBatch spriteBatch, Rect rect, int i, int maxValue)
@@ -70,7 +74,7 @@ namespace MonoGame.PortableUI.Controls
             var size = (float)(value * (MaxSize - MinSize) + MinSize);
             var top = rect.Top + (float)((1 - Math.Abs(Math.Sin(rad))) * (rect.Height - size));
             var rectangle = new Rect(rect.Left + (rect.Width - size) / 2, top, size, size);
-            new SolidColorBrush(color).Draw(spriteBatch, rectangle, RenderOpacity);
+            spriteBatch.Draw(SolidColorBrush.Pixel, rectangle, Brush.ApplyOpacity(color, RenderOpacity));
         }
 
         private static double Precalculate(int i, int maxValue, out double rad)

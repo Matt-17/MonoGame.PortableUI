@@ -8,7 +8,7 @@ using MonoGame.PortableUI.Effects;
 
 namespace MonoGame.PortableUI
 {
-    public class ScreenEngine
+    public class ScreenEngine : IDisposable
     {
         public Game Game { get; set; }
         private static Control? _focusedControl;
@@ -21,6 +21,7 @@ namespace MonoGame.PortableUI
         {
             Game = game;
             Options = options;
+            Options.Owner = this;
             ScreenHistory = new Stack<Screen>();
             Component = new ScreenComponent(this, game);
             _keyboards = new Dictionary<string, IKeyboard>();
@@ -251,6 +252,28 @@ namespace MonoGame.PortableUI
         public void HandleTextInput(char character)
         {
             ActiveScreen?.HandleTextInput(character);
+        }
+
+        private bool _disposed;
+
+        /// <summary>
+        /// Unsubscribes from the game window's TextInput event and disposes the backdrop/post-process
+        /// pipelines. Required for surface engines created via <see cref="CreateSurfaceEngine"/> (e.g.
+        /// one per <see cref="UISurface"/>) so discarding a surface doesn't leak a handler on the shared
+        /// game window or its GPU render targets.
+        /// </summary>
+        public void Dispose()
+        {
+            if (_disposed)
+                return;
+            _disposed = true;
+#if !ANDROID
+            Game.Window.TextInput -= GameWindowTextInput;
+#endif
+            if (Options.AddComponentToGame && Game.Components.Contains(Component))
+                Game.Components.Remove(Component);
+            _backdrop?.Dispose();
+            _postProcess?.Dispose();
         }
     }
 }

@@ -112,6 +112,8 @@ namespace MonoGame.PortableUI
         {
             _target?.Dispose();
             _spriteBatch?.Dispose();
+            PostProcessManager?.Dispose();
+            Engine.Dispose();
         }
 
         private RenderTarget2D EnsureTarget()

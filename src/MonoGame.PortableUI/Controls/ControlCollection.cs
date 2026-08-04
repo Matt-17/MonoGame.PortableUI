@@ -127,11 +127,6 @@ namespace MonoGame.PortableUI.Controls
 
         public event CollectionChangedEventHandler? CollectionChanged;
 
-        protected virtual void OnCollectionChanged(CollectionChangedEventArgs args)
-        {
-            CollectionChanged?.Invoke(this, args);
-        }
-
         private void UnsetParent(Control item)
         {
             if (ScreenEngine.FocusedControl == item)

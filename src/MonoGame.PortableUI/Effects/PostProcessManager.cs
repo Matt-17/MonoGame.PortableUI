@@ -70,27 +70,13 @@ namespace MonoGame.PortableUI.Effects
         /// <summary>Render target the UI is drawn into when a post-process chain is active.</summary>
         internal RenderTarget2D EnsureUiTarget(int width, int height)
         {
-            width = Math.Max(1, width);
-            height = Math.Max(1, height);
-            if (_uiTarget != null && !_uiTarget.IsDisposed && _uiTarget.Width == width && _uiTarget.Height == height)
-                return _uiTarget;
-
-            _uiTarget?.Dispose();
-            _uiTarget = new RenderTarget2D(_graphicsDevice, width, height, false, SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.PreserveContents);
-            return _uiTarget;
+            return RenderTargetHelper.EnsureTarget(_graphicsDevice, ref _uiTarget, width, height);
         }
 
         /// <summary>Target used to render a ThemeIsland subtree before composing its post-FX chain.</summary>
         internal RenderTarget2D EnsureIslandTarget(int width, int height)
         {
-            width = Math.Max(1, width);
-            height = Math.Max(1, height);
-            if (_islandTarget != null && !_islandTarget.IsDisposed && _islandTarget.Width == width && _islandTarget.Height == height)
-                return _islandTarget;
-
-            _islandTarget?.Dispose();
-            _islandTarget = new RenderTarget2D(_graphicsDevice, width, height, false, SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.PreserveContents);
-            return _islandTarget;
+            return RenderTargetHelper.EnsureTarget(_graphicsDevice, ref _islandTarget, width, height);
         }
 
         /// <summary>

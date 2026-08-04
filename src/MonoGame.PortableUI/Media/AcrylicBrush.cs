@@ -15,6 +15,5 @@ namespace MonoGame.PortableUI.Media
         }
 
         public float SaturationBoost { get; set; } = 0.18f;
-        public float LuminosityBoost { get; set; } = 0.08f;
     }
 }
