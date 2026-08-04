@@ -6,7 +6,7 @@
 [![Release source](https://img.shields.io/badge/release%20source-master-blue)](https://github.com/Matt-17/MonoGame.PortableUI/tree/master)
 [![License](https://img.shields.io/github/license/Matt-17/MonoGame.PortableUI)](https://github.com/Matt-17/MonoGame.PortableUI/blob/master/LICENSE.md)
 
-MonoGame.PortableUI is a lightweight code-first UI layer for MonoGame. The modernized package line targets .NET 8 and the current stable MonoGame DesktopGL package line.
+MonoGame.PortableUI is a lightweight code-first UI layer for MonoGame. The modernized package line targets .NET 10 and the current stable MonoGame DesktopGL package line.
 
 This branch intentionally removes the legacy PCL, Xamarin Android/iOS and WindowsDX project set. DesktopGL is the verified demo platform for this release line; mobile platforms can be reintroduced later on current MonoGame and .NET platform projects instead of the deprecated Xamarin/PCL toolchain.
 
