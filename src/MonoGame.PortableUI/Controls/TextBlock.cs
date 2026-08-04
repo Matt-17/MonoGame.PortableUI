@@ -61,6 +61,15 @@ namespace MonoGame.PortableUI.Controls
         }
         public Vector2 MeasuredText { get; private set; }
 
+        /// <summary>Soft drop-shadow colour; fully transparent (the default) disables the shadow.</summary>
+        public Color ShadowColor { get; set; } = Color.Transparent;
+
+        /// <summary>Offset of the drop shadow from the text, in design pixels.</summary>
+        public Vector2 ShadowOffset { get; set; } = new Vector2(0, 3);
+
+        /// <summary>Extra soft-spread radius; the shadow is stamped around the offset to blur it.</summary>
+        public float ShadowBlur { get; set; } = 2f;
+
         public string Text
         {
             get { return _text; }
@@ -83,7 +92,23 @@ namespace MonoGame.PortableUI.Controls
                 if (_textSize == value)
                     return;
                 _textSize = value;
+                MeasuredText = MeasureText(Text);
                 InvalidateLayout(true);
+            }
+        }
+
+        /// <summary>
+        ///     Scale applied to the (bitmap) font so it renders at <see cref="TextSize"/> rather than
+        ///     the size it was baked at. 1 when the requested size matches the baked size.
+        /// </summary>
+        private float FontScale
+        {
+            get
+            {
+                if (Font == null || _textSize <= 0)
+                    return 1f;
+                var baked = FontManager.GetBakedSize(Font);
+                return baked > 0 ? (float)_textSize / baked : 1f;
             }
         }
 
@@ -155,7 +180,7 @@ namespace MonoGame.PortableUI.Controls
         protected Vector2 MeasureText(string text)
         {
             if (Font != null)
-                return Font.MeasureString(text ?? "");
+                return Font.MeasureString(text ?? "") * FontScale;
             return TextMeasurer.MeasureString(text ?? "");
         }
 
@@ -163,6 +188,9 @@ namespace MonoGame.PortableUI.Controls
         {                    
             base.OnDraw(spriteBatch, rect);
             var offset = rect.Offset;
+            // MeasuredText already includes FontScale; the draw scale must apply it on top of the
+            // control-transform RenderScale so glyphs render at the requested TextSize.
+            var drawScale = RenderScale * FontScale;
             var measuredText = new Vector2(MeasuredText.X * RenderScale.X, MeasuredText.Y * RenderScale.Y);
             offset.Y += (rect.Height - measuredText.Y) / 2;
 
@@ -182,8 +210,33 @@ namespace MonoGame.PortableUI.Controls
 
             if (SnapToPixel)
                 offset = offset.ToInts();
-            if (Font != null)
-                spriteBatch.DrawString(Font, Text, offset, Brush.ApplyOpacity(TextColor, RenderOpacity), 0, Vector2.Zero, RenderScale, SpriteEffects.None, 0);
+            if (Font == null)
+                return;
+
+            if (ShadowColor.A > 0)
+            {
+                var shadow = Brush.ApplyOpacity(ShadowColor, RenderOpacity);
+                var blur = MathHelper.Clamp(ShadowBlur, 0f, 6f);
+                // A ring of low-alpha stamps around the offset reads as a soft blurred shadow
+                // without a render target; the axis-aligned base stamp anchors it.
+                Span<Vector2> spread = stackalloc Vector2[]
+                {
+                    Vector2.Zero,
+                    new Vector2(blur, 0), new Vector2(-blur, 0),
+                    new Vector2(0, blur), new Vector2(0, -blur),
+                    new Vector2(blur, blur), new Vector2(-blur, blur),
+                    new Vector2(blur, -blur), new Vector2(-blur, -blur),
+                };
+                foreach (var d in spread)
+                {
+                    var pos = offset + ShadowOffset * RenderScale + d;
+                    if (SnapToPixel)
+                        pos = pos.ToInts();
+                    spriteBatch.DrawString(Font, Text, pos, shadow, 0, Vector2.Zero, drawScale, SpriteEffects.None, 0);
+                }
+            }
+
+            spriteBatch.DrawString(Font, Text, offset, Brush.ApplyOpacity(TextColor, RenderOpacity), 0, Vector2.Zero, drawScale, SpriteEffects.None, 0);
         }
     }
 }
