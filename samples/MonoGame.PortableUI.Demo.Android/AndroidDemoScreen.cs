@@ -80,7 +80,7 @@ namespace MonoGame.PortableUI.Demo.Android
             });
             panel.AddChild(new TextBox
             {
-                HintText = "Enter some text…",
+                HintText = "Enter some text...",
                 Margin = new Thickness(12, 0, 12, 16)
             });
 
