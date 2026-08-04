@@ -86,6 +86,17 @@ namespace MonoGame.PortableUI.Media
             Draw(spriteBatch, rect, 1);
         }
 
+        public override void Draw(SpriteBatch spriteBatch, in BrushContext context)
+        {
+            if (context.Radius.IsEmpty)
+            {
+                Draw(spriteBatch, context.Rect, context.Opacity);
+                return;
+            }
+
+            DrawRounded(spriteBatch, context.Rect, context.Radius, context.Opacity);
+        }
+
         public override void Draw(SpriteBatch spriteBatch, Rect rect, float opacity)
         {
             if (rect.Width <= 0 || rect.Height <= 0)
@@ -125,6 +136,58 @@ namespace MonoGame.PortableUI.Media
 
             spriteBatch.Draw(backdrop, rect, source, Color.White * opacity);
             return true;
+        }
+
+        /// <summary>
+        /// Rounded variant. A sampled backdrop texture cannot be corner-masked cheaply, so the
+        /// frosted body is drawn only across the straight fill rects (which exclude the corner
+        /// squares) and a rounded tint is laid over the whole card. The corner arcs then read as
+        /// tint while the body reads as frosted glass — the difference is subtle under the tint.
+        /// </summary>
+        private void DrawRounded(SpriteBatch spriteBatch, Rect rect, CornerRadius radius, float opacity)
+        {
+            if (rect.Width <= 0 || rect.Height <= 0)
+                return;
+
+            opacity = MathHelper.Clamp(opacity, 0, 1);
+
+            var drewBackdrop = false;
+            if (BlurRadius > 0 &&
+                BackdropSource.TryGet(spriteBatch.GraphicsDevice, out var backdrop, out var screenRect) &&
+                backdrop != null)
+            {
+                var scaleX = backdrop.Width / Math.Max(1f, screenRect.Width);
+                var scaleY = backdrop.Height / Math.Max(1f, screenRect.Height);
+                foreach (var fill in RoundedRectRenderer.GetFillRects(rect, radius))
+                {
+                    if (fill.Width <= 0 || fill.Height <= 0)
+                        continue;
+
+                    var source = new Rectangle(
+                        (int)((fill.Left - screenRect.Left) * scaleX),
+                        (int)((fill.Top - screenRect.Top) * scaleY),
+                        Math.Max(1, (int)Math.Ceiling(fill.Width * scaleX)),
+                        Math.Max(1, (int)Math.Ceiling(fill.Height * scaleY)));
+                    source = Rectangle.Intersect(source, backdrop.Bounds);
+                    if (source.Width <= 0 || source.Height <= 0)
+                        continue;
+
+                    spriteBatch.Draw(backdrop, fill, source, Color.White * opacity);
+                }
+
+                drewBackdrop = true;
+            }
+
+            // Rounded tint over everything, covering the corner arcs the backdrop skipped.
+            RoundedRectRenderer.DrawSolid(spriteBatch, rect, radius, ApplyOpacity(TintColor, opacity));
+
+            var grain = GetTexture(spriteBatch);
+            var grainColor = ApplyOpacity(Color.White, opacity * (drewBackdrop ? 0.55f : 1f));
+            foreach (var fill in RoundedRectRenderer.GetFillRects(rect, radius))
+            {
+                if (fill.Width > 0 && fill.Height > 0)
+                    spriteBatch.Draw(grain, fill, grainColor);
+            }
         }
 
         internal BrushTextureCacheKey CreateTextureCacheKey()
