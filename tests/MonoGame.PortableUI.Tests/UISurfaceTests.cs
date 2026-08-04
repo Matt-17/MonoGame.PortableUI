@@ -41,6 +41,23 @@ namespace MonoGame.PortableUI.Tests
             Assert.AreSame(second, focus.ActiveSurface);
         }
 
+        [TestMethod]
+        public void ExternalBackdrop_flows_between_surface_and_screen()
+        {
+            using var game = new Game();
+            var screen = new EmptyScreen();
+            using var surface = new UISurface(game, screen, 320, 200);
+
+            Assert.IsNull(surface.ExternalBackdrop);
+
+            // the surface property is a pass-through to the screen (textures need a live
+            // GraphicsDevice, so headless tests exercise the plumbing with null round-trips)
+            screen.ExternalBackdrop = null;
+            Assert.IsNull(surface.ExternalBackdrop);
+            surface.ExternalBackdrop = null;
+            Assert.IsNull(screen.ExternalBackdrop);
+        }
+
         private sealed class EmptyScreen : Screen
         {
         }

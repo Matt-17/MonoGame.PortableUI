@@ -203,11 +203,22 @@ namespace MonoGame.PortableUI
             BackdropSource.Clear(device);
         }
 
+        /// <summary>
+        /// Optional external scene (e.g. the host game's frame) used as the backdrop that
+        /// glass brushes blur and sample. Drawn beneath <see cref="FrameworkElement.BackgroundBrush"/>,
+        /// which stays optional when an external backdrop is present. Set every frame by the
+        /// host; the texture is only read during <see cref="Draw"/>.
+        /// </summary>
+        public Texture2D? ExternalBackdrop { get; set; }
+
         private void PrepareBackdrop(SpriteBatch spriteBatch, ScreenEngine? engine)
         {
             var device = spriteBatch.GraphicsDevice;
             BackdropSource.Clear(device);
-            if (engine == null || BackgroundBrush == null || ScreenRect.Width <= 0 || ScreenRect.Height <= 0 || !TreeRequiresBackdrop())
+            var external = ExternalBackdrop;
+            if (external != null && external.IsDisposed)
+                external = null;
+            if (engine == null || (BackgroundBrush == null && external == null) || ScreenRect.Width <= 0 || ScreenRect.Height <= 0 || !TreeRequiresBackdrop())
                 return;
 
             var backdrop = engine.Backdrop;
@@ -217,7 +228,9 @@ namespace MonoGame.PortableUI
             device.SetRenderTarget(scene);
             device.Clear(Color.Transparent);
             spriteBatch.Begin();
-            BackgroundBrush.Draw(spriteBatch, ScreenRect);
+            if (external != null)
+                spriteBatch.Draw(external, new Rectangle(0, 0, scene.Width, scene.Height), Color.White);
+            BackgroundBrush?.Draw(spriteBatch, ScreenRect);
             spriteBatch.End();
             var blurred = backdrop.Blur(spriteBatch, scene);
             if (previousTargets.Length == 0)
