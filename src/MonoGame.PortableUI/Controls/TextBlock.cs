@@ -12,10 +12,31 @@ namespace MonoGame.PortableUI.Controls
     {
         private TextAlignment _textAlignment;
         protected SpriteFont? Font;
+        private SpriteFont? _fontOverride;
         private ITextMeasurer _textMeasurer;
         private string _text = "";
         private int _textSize;
         private Color _textColor;
+
+        /// <summary>
+        ///     Explicit SpriteFont for this block (e.g. a specific size/weight loaded via
+        ///     <see cref="FontManager.GetFont"/>). Wins over theme/default font resolution;
+        ///     set null to fall back to the default font again.
+        /// </summary>
+        public SpriteFont? FontOverride
+        {
+            get { return _fontOverride; }
+            set
+            {
+                if (ReferenceEquals(_fontOverride, value))
+                    return;
+                _fontOverride = value;
+                Font = value ?? FontManager.DefaultFont;
+                _textMeasurer = Font != null ? new SpriteFontTextMeasurer(Font) : ApproximateTextMeasurer.Default;
+                MeasuredText = MeasureText(Text);
+                InvalidateLayout(true);
+            }
+        }
 
         public TextAlignment TextAlignment
         {
@@ -101,7 +122,7 @@ namespace MonoGame.PortableUI.Controls
                 TextSize = newTheme.TextSize;
 
             var font = TryResolveThemeFont(newTheme);
-            if (font != null && !ReferenceEquals(Font, font))
+            if (_fontOverride == null && font != null && !ReferenceEquals(Font, font))
             {
                 Font = font;
                 _textMeasurer = new SpriteFontTextMeasurer(Font);
