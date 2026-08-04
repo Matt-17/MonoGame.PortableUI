@@ -31,10 +31,32 @@ namespace MonoGame.PortableUI
 
         public static SpriteFont? DefaultFont { get; set; }
 
+        /// <summary>
+        /// Clears all cached fonts and the associated <see cref="Game"/>. The cached
+        /// <see cref="SpriteFont"/>s are tied to a specific <see cref="GraphicsDevice"/>, so this must
+        /// run whenever the host game/graphics device is recreated (e.g. an Android activity restart),
+        /// otherwise stale fonts referencing a disposed device would be handed out.
+        /// </summary>
+        public static void Reset()
+        {
+            Fonts = null;
+            DefaultFont = null;
+            FontGame = null;
+            ContentRoot = null;
+            CanProbeContentRoot = false;
+            RegisteredFonts.Clear();
+            WarnedMissingFonts.Clear();
+        }
+
         public static void LoadFonts(Game game, params string[] fontList)
         {
             if (game == null)
                 throw new ArgumentNullException(nameof(game));
+
+            // A new Game instance means a new content pipeline / GraphicsDevice — drop the caches
+            // bound to the previous one so we never serve fonts backed by a disposed device.
+            if (!ReferenceEquals(FontGame, game))
+                Reset();
 
             if (Fonts == null)
                 Fonts = new Dictionary<string, SpriteFont>();

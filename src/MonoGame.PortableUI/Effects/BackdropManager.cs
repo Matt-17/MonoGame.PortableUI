@@ -26,6 +26,9 @@ namespace MonoGame.PortableUI.Effects
             _graphicsDevice = graphicsDevice ?? throw new ArgumentNullException(nameof(graphicsDevice));
         }
 
+        /// <summary>The graphics device this manager's render targets are bound to.</summary>
+        public GraphicsDevice GraphicsDevice => _graphicsDevice;
+
         public int BlurPassesThisFrame { get; private set; }
 
         public void BeginFrame()
