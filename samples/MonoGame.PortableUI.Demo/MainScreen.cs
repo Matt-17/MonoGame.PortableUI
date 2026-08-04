@@ -213,6 +213,7 @@ namespace MonoGame.PortableUI.Demo
             tabs.Items.Add(new TabItem { Header = "Layout", Content = CreateLayoutTab() });
             tabs.Items.Add(new TabItem { Header = "Drag & drop", Content = CreateDragDropTab() });
             tabs.Items.Add(new TabItem { Header = "Scroll", Content = CreateScrollTab() });
+            tabs.Items.Add(new TabItem { Header = "Data grid", Content = CreateDataGridTab() });
             tabs.Items.Add(new TabItem { Header = "Stress", Content = CreateStressTab() });
             tabs.SelectedIndex = 0;
 
@@ -1017,6 +1018,120 @@ namespace MonoGame.PortableUI.Demo
                 BackgroundBrush = SurfaceBrush,
                 ScrollOrientation = Orientation.Vertical
             };
+        }
+
+        private sealed record MarketRow(string Commodity, string Sector, double Price, int Stock, double Trend);
+
+        private Control CreateDataGridTab()
+        {
+            var root = new Grid
+            {
+                Margin = 16,
+                RowDefinitions =
+                {
+                    new RowDefinition { Height = GridLength.Auto },
+                    new RowDefinition()
+                }
+            };
+
+            root.AddChild(Label("Sortable columns (click a header), draggable column edges, row selection.", Palette.MutedText, 13, new Thickness(0, 0, 0, 10)));
+
+            var rows = new object[]
+            {
+                new MarketRow("Deuterium", "Fuel", 42.50, 1280, 3.4),
+                new MarketRow("Titanium Ore", "Metals", 18.10, 9600, -1.2),
+                new MarketRow("Silicon Wafers", "Electronics", 7.85, 5400, 0.8),
+                new MarketRow("Water Ice", "Consumables", 2.40, 42000, -0.5),
+                new MarketRow("Rare Earths", "Metals", 96.30, 320, 5.9),
+                new MarketRow("Protein Vats", "Consumables", 5.15, 8800, 1.1),
+                new MarketRow("Antimatter Pods", "Fuel", 512.00, 24, 8.7),
+                new MarketRow("Polymers", "Industrial", 11.75, 15200, -2.3),
+                new MarketRow("Med Kits", "Consumables", 33.90, 640, 0.2),
+                new MarketRow("Quantum Chips", "Electronics", 148.60, 190, 4.5),
+                new MarketRow("Hull Plating", "Industrial", 27.40, 3100, -0.9),
+                new MarketRow("Xenon Gas", "Fuel", 61.20, 770, 2.0)
+            };
+
+            var grid = new DataGrid
+            {
+                BackgroundBrush = SurfaceBrush,
+                HeaderBackgroundBrush = SurfaceAltBrush,
+                HeaderTextColor = Palette.HeadingText,
+                RowBackgroundBrush = SurfaceBrush,
+                AlternateRowBackgroundBrush = SurfaceAltBrush,
+                SelectedRowBackgroundBrush = Palette.Selection,
+                RowTextColor = Palette.Text,
+                SelectedRowTextColor = Palette.SelectionText,
+                RowHeight = 30,
+                HeaderHeight = 34
+            };
+
+            grid.Columns.Add(new DataGridColumn
+            {
+                Header = "Commodity",
+                Width = new GridLength(2, GridLengthUnit.Relative),
+                MinWidth = 120,
+                CellText = item => ((MarketRow)item).Commodity,
+                SortKey = item => ((MarketRow)item).Commodity
+            });
+            grid.Columns.Add(new DataGridColumn
+            {
+                Header = "Sector",
+                Width = GridLength.Auto,
+                MinWidth = 90,
+                CellText = item => ((MarketRow)item).Sector,
+                SortKey = item => ((MarketRow)item).Sector
+            });
+            grid.Columns.Add(new DataGridColumn
+            {
+                Header = "Price",
+                Width = new GridLength(90, GridLengthUnit.Absolute),
+                CellAlignment = TextAlignment.Right,
+                CellText = item => ((MarketRow)item).Price.ToString("N2"),
+                SortKey = item => ((MarketRow)item).Price
+            });
+            grid.Columns.Add(new DataGridColumn
+            {
+                Header = "Stock",
+                Width = new GridLength(90, GridLengthUnit.Absolute),
+                CellAlignment = TextAlignment.Right,
+                CellText = item => ((MarketRow)item).Stock.ToString("N0"),
+                SortKey = item => ((MarketRow)item).Stock
+            });
+            grid.Columns.Add(new DataGridColumn
+            {
+                Header = "Trend",
+                Width = new GridLength(80, GridLengthUnit.Absolute),
+                SortKey = item => ((MarketRow)item).Trend,
+                // Custom cell: colored +/- percentage.
+                CellTemplate = item =>
+                {
+                    var trend = ((MarketRow)item).Trend;
+                    return new TextBlock
+                    {
+                        Text = (trend >= 0 ? "+" : "") + trend.ToString("0.0") + "%",
+                        TextColor = trend >= 0 ? new Color(34, 160, 74) : new Color(200, 54, 54),
+                        TextAlignment = TextAlignment.Right
+                    };
+                }
+            });
+
+            grid.Items.AddRange(rows);
+            grid.SortBy(grid.Columns[0], true);
+
+            grid.SelectionChanged += (sender, args) =>
+            {
+                if (grid.SelectedItem is MarketRow selected)
+                    _status.Text = $"Selected {selected.Commodity} ({selected.Sector})";
+            };
+            grid.RowInvoked += (sender, args) =>
+            {
+                if (args.Item is MarketRow invoked)
+                    _status.Text = $"Trading {invoked.Commodity} at {invoked.Price:N2}";
+            };
+
+            root.AddChild(grid, row: 1);
+            return root;
         }
 
         private Control CreateStressTab()

@@ -6,9 +6,9 @@
 [![Release source](https://img.shields.io/badge/release%20source-master-blue)](https://github.com/Matt-17/MonoGame.PortableUI/tree/master)
 [![License](https://img.shields.io/github/license/Matt-17/MonoGame.PortableUI)](https://github.com/Matt-17/MonoGame.PortableUI/blob/master/LICENSE.md)
 
-MonoGame.PortableUI is a lightweight code-first UI layer for MonoGame. The modernized package line targets .NET 10 and the current stable MonoGame DesktopGL package line.
+MonoGame.PortableUI is a lightweight code-first UI layer for MonoGame. The modernized package line targets .NET 10 and multi-targets `net10.0` (MonoGame DesktopGL) and `net10.0-android` (MonoGame.Framework.Android) so the same library serves desktop and Android clients.
 
-This branch intentionally removes the legacy PCL, Xamarin Android/iOS and WindowsDX project set. DesktopGL is the verified demo platform for this release line; mobile platforms can be reintroduced later on current MonoGame and .NET platform projects instead of the deprecated Xamarin/PCL toolchain.
+This branch removed the legacy PCL, Xamarin/PCL and WindowsDX project set; Android has now been reintroduced on the current MonoGame + .NET Android SDK toolchain (see `samples/MonoGame.PortableUI.Demo.Android`). DesktopGL remains the primary verified demo platform; iOS/other platforms can follow the same multi-targeting pattern.
 
 ## Quick Start
 
@@ -189,12 +189,30 @@ combo.Items.Add("Compact");
 combo.Items.Add("Touch");
 combo.SelectionChanged += (_, _) => Console.WriteLine(combo.SelectedItem);
 combo.SelectedIndex = 0;
+
+// Sortable, scrollable table with typed columns (Auto/Absolute/star widths),
+// click-to-sort headers, draggable column edges, selection and cell templates.
+var grid = new DataGrid { Height = 240 };
+grid.Columns.Add(new DataGridColumn { Header = "Name", CellText = i => ((Ship)i).Name, SortKey = i => ((Ship)i).Name });
+grid.Columns.Add(new DataGridColumn
+{
+    Header = "Price",
+    Width = new GridLength(90, GridLengthUnit.Absolute),
+    CellAlignment = TextAlignment.Right,
+    CellText = i => ((Ship)i).Price.ToString("N2"),
+    SortKey = i => ((Ship)i).Price
+});
+grid.Items.AddRange(ships);
+grid.Refresh();
+grid.SortBy(grid.Columns[0], ascending: true);
+grid.SelectionChanged += (_, _) => Console.WriteLine(grid.SelectedItem);
 ```
 
 ## Projects
 
-- `src/MonoGame.PortableUI` contains the library.
+- `src/MonoGame.PortableUI` contains the library (multi-targeted `net10.0` + `net10.0-android`).
 - `samples/MonoGame.PortableUI.Demo` contains the DesktopGL demo and MGCB content.
+- `samples/MonoGame.PortableUI.Demo.Android` contains a minimal Android host (activity + manifest) that runs the same controls on device/emulator.
 - `benchmarks/MonoGame.PortableUI.Benchmarks` contains BenchmarkDotNet layout and visual-tree baselines.
 - `tests/MonoGame.PortableUI.Tests` contains windowless regression tests for layout, state, input and composite controls.
 - `docs/issues.md` maps the historical GitHub issue backlog to fixes, tests or obsolete platform notes.
