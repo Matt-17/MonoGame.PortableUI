@@ -2,6 +2,7 @@
 
 ## 0.3.0-alpha.1 (unreleased)
 
+- `Screen.ExternalBackdrop` / `UISurface.ExternalBackdrop`: a host game can feed its rendered frame as the backdrop that glass brushes blur — frosted glass now works over live game scenes, and `BackgroundBrush` becomes optional when an external backdrop is supplied.
 - Theme catalog with 37 built-in themes, including a `default` entry that shows the library's untouched styling when no theme is applied.
 - Themes moved into their own add-on package **MonoGame.PortableUI.Themes** (`PortableThemes.All`/`Resolve`; replaces the core `ThemeRegistry`): one self-contained file per theme so a single theme can be copied into a project and customized; the core library works completely without the package. `PortableTheme.FromPalette(palette)` (in core) builds a full theme from the 19 palette slots. The demo now defines only `DemoTheme.cs`, a commented template theme shown next to `default` in the picker.
 - The Themes package ships its fonts as NuGet content files (`ThemeContent/Fonts` with TTFs, spritefont descriptors and licenses, plus a ready-to-paste `themes-fonts.mgcb-snippet.txt`); `FontManager.TryGetFont`/`GetFontOrDefault` fall back to the default font with a one-time warning when a theme font is not built, instead of throwing.

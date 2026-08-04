@@ -41,6 +41,16 @@ namespace MonoGame.PortableUI
             set { Engine.Options.Theme = value; }
         }
 
+        /// <summary>
+        /// Optional external scene texture the screen's glass brushes blur behind the UI
+        /// (see <see cref="Screen.ExternalBackdrop"/>).
+        /// </summary>
+        public Texture2D? ExternalBackdrop
+        {
+            get { return Screen.ExternalBackdrop; }
+            set { Screen.ExternalBackdrop = value; }
+        }
+
         public bool IsInteractive { get; set; } = true;
         public bool HasKeyboardFocus { get; internal set; }
         public float ScaleFactor { get; set; } = 1;
