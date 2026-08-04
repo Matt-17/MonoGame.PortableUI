@@ -1,7 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <!-- Multi-target: net10.0 (DesktopGL) + net10.0-android. Overrides the singular
-         TargetFramework inherited from Directory.Build.props. -->
+    <!-- Multi-target: net10.0 (DesktopGL) + net10.0-android. Clear the singular TargetFramework
+         inherited from Directory.Build.props first, otherwise the SDK sees it set and skips the
+         multi-targeting fan-out (only the net10.0 inner build would run). -->
+    <TargetFramework></TargetFramework>
     <TargetFrameworks>net10.0;net10.0-android</TargetFrameworks>
     <SupportedOSPlatformVersion Condition="$(TargetFramework.EndsWith('-android'))">21.0</SupportedOSPlatformVersion>
     <PackageId>MonoGame.PortableUI</PackageId>
