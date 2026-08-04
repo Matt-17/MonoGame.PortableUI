@@ -269,6 +269,12 @@ namespace MonoGame.PortableUI
 
         private bool TreeRequiresBackdrop()
         {
+            // The screen's own background brush is drawn directly (not part of _mainGrid), so it
+            // must be checked explicitly — otherwise a full-screen glass background never triggers
+            // the backdrop-blur pipeline.
+            if (BackgroundBrush is { RequiresBackdrop: true })
+                return true;
+
             _visualTreeScratch.Clear();
             VisualTreeHelper.AppendVisualTree(_mainGrid, _visualTreeScratch, false);
             if (_flyOut != null)
