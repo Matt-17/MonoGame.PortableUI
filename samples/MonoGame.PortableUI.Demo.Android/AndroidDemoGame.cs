@@ -22,6 +22,21 @@ namespace MonoGame.PortableUI.Demo.Android
                 IsFullScreen = true,
                 SupportedOrientations = DisplayOrientation.Portrait
             };
+
+            // Pin the back buffer to the real display resolution. Left at its default, MonoGame's
+            // Android back buffer comes back smaller than the GL surface it actually renders into
+            // (a density-scaled size), so SpriteBatch draws stretched to the surface while
+            // GraphicsDevice.ScissorRectangle is applied in the smaller back-buffer space. The two
+            // diverge with distance from the origin, which clips content-tight scissor rects (button
+            // and list-item text sized to the text) while leaving stretched ones intact. Matching the
+            // back buffer to the surface keeps drawing and scissoring in the same coordinate space.
+            var metrics = global::Android.App.Application.Context.Resources?.DisplayMetrics;
+            if (metrics != null)
+            {
+                _graphics.PreferredBackBufferWidth = metrics.WidthPixels;
+                _graphics.PreferredBackBufferHeight = metrics.HeightPixels;
+            }
+
             Content.RootDirectory = "Content";
         }
 
