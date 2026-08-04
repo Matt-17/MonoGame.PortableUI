@@ -212,7 +212,7 @@ grid.SelectionChanged += (_, _) => Console.WriteLine(grid.SelectedItem);
 
 - `src/MonoGame.PortableUI` contains the library (multi-targeted `net10.0` + `net10.0-android`).
 - `samples/MonoGame.PortableUI.Demo` contains the DesktopGL demo and MGCB content.
-- `samples/MonoGame.PortableUI.Demo.Android` contains a minimal Android host (activity + manifest) that runs the same controls on device/emulator.
+- `samples/MonoGame.PortableUI.Demo.Android` contains a minimal Android host (activity + manifest) that runs the same controls on device/emulator. Android hosts must pin the back buffer to the real display size (`PreferredBackBufferWidth/Height` from `Resources.DisplayMetrics`); otherwise MonoGame's density-scaled default back buffer diverges from the GL surface and clips text drawn in content-tight controls (buttons, list rows). See `AndroidDemoGame`.
 - `benchmarks/MonoGame.PortableUI.Benchmarks` contains BenchmarkDotNet layout and visual-tree baselines.
 - `tests/MonoGame.PortableUI.Tests` contains windowless regression tests for layout, state, input and composite controls.
 - `docs/issues.md` maps the historical GitHub issue backlog to fixes, tests or obsolete platform notes.
