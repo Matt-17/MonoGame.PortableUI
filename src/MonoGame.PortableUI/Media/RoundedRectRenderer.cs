@@ -129,7 +129,10 @@ namespace MonoGame.PortableUI.Media
                 return;
             }
 
-            foreach (var fillRect in GetFillRects(rect, radius))
+            // Overlap the straight fills 1px into the corner regions. On a pill/circle the middle
+            // bands would otherwise collapse to zero width/height and only the four corner masks
+            // draw, leaving a hairline "+" seam where they meet; the overlap bridges it.
+            foreach (var fillRect in GetFillRects(rect, radius, overlap: 1f))
             {
                 if (fillRect.Width > 0 && fillRect.Height > 0)
                     spriteBatch.Draw(SolidColorBrush.Pixel, fillRect, color);
@@ -141,7 +144,7 @@ namespace MonoGame.PortableUI.Media
             DrawCorner(spriteBatch, rect.Left, rect.Bottom - radius.BottomLeft, radius.BottomLeft, color, SpriteEffects.FlipVertically);
         }
 
-        internal static IEnumerable<Rect> GetFillRects(Rect rect, CornerRadius radius)
+        internal static IEnumerable<Rect> GetFillRects(Rect rect, CornerRadius radius, float overlap = 0f)
         {
             radius = Clamp(radius, rect);
             var left = Math.Max(radius.TopLeft, radius.BottomLeft);
@@ -149,9 +152,16 @@ namespace MonoGame.PortableUI.Media
             var top = Math.Max(radius.TopLeft, radius.TopRight);
             var bottom = Math.Max(radius.BottomLeft, radius.BottomRight);
 
-            yield return new Rect(rect.Left + left, rect.Top, Math.Max(0, rect.Width - left - right), rect.Height);
-            yield return new Rect(rect.Left, rect.Top + top, left, Math.Max(0, rect.Height - top - bottom));
-            yield return new Rect(rect.Right - right, rect.Top + top, right, Math.Max(0, rect.Height - top - bottom));
+            // Inset the band boundaries by `overlap` so each straight fill reaches `overlap` px into
+            // the corner squares, sharing an edge with the corner masks instead of leaving a seam.
+            var l = Math.Max(0, left - overlap);
+            var r = Math.Max(0, right - overlap);
+            var t = Math.Max(0, top - overlap);
+            var b = Math.Max(0, bottom - overlap);
+
+            yield return new Rect(rect.Left + l, rect.Top, Math.Max(0, rect.Width - l - r), rect.Height);
+            yield return new Rect(rect.Left, rect.Top + t, left, Math.Max(0, rect.Height - t - b));
+            yield return new Rect(rect.Right - right, rect.Top + t, right, Math.Max(0, rect.Height - t - b));
         }
 
         private static CornerRadius Clamp(CornerRadius radius, Rect rect)

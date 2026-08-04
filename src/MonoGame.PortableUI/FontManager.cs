@@ -23,6 +23,8 @@ namespace MonoGame.PortableUI
         private const int DefaultSize = 14;
 
         private static Dictionary<string, SpriteFont>? Fonts { get; set; }
+        // Baked pixel size per loaded SpriteFont, so TextBlock can scale glyphs to its TextSize.
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<SpriteFont, object> FontSizes = new();
         private static readonly HashSet<string> RegisteredFonts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private static readonly HashSet<string> WarnedMissingFonts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private static Game? FontGame { get; set; }
@@ -30,6 +32,18 @@ namespace MonoGame.PortableUI
         private static bool CanProbeContentRoot { get; set; }
 
         public static SpriteFont? DefaultFont { get; set; }
+
+        /// <summary>
+        ///     The pixel size a font was baked at (from its <c>name-style-size</c> asset), so callers
+        ///     can scale glyphs to a requested size. Falls back to <see cref="DefaultSize"/> for fonts
+        ///     that were not loaded through this manager.
+        /// </summary>
+        public static int GetBakedSize(SpriteFont? font)
+        {
+            if (font != null && FontSizes.TryGetValue(font, out var boxed) && boxed is int size)
+                return size;
+            return DefaultSize;
+        }
 
         /// <summary>
         /// Clears all cached fonts and the associated <see cref="Game"/>. The cached
@@ -41,6 +55,7 @@ namespace MonoGame.PortableUI
         {
             Fonts = null;
             DefaultFont = null;
+            FontSizes.Clear();
             FontGame = null;
             ContentRoot = null;
             CanProbeContentRoot = false;
@@ -191,6 +206,7 @@ namespace MonoGame.PortableUI
             {
                 spriteFont = FontGame.Content.Load<SpriteFont>(assetName);
                 Fonts[fontKey] = spriteFont;
+                FontSizes.AddOrUpdate(spriteFont, size);
                 return true;
             }
             catch when (!CanProbeContentRoot)
