@@ -2,23 +2,46 @@
 
 Feature requests noted from consuming this library in a downstream project ("The Terra Contracts", `D:\Development\Games\The Terra Contracts`, sibling repo). Filed here so they aren't only sitting in that other repo's chat history.
 
-## 1. Android platform support (high priority — blocks the downstream Android client)
+## 1. Android platform support — DONE
 
-The library currently targets `net8.0` + `MonoGame.Framework.DesktopGL` only (see `Directory.Build.props`, `src/MonoGame.PortableUI/MonoGame.PortableUI.csproj`); Android/iOS/WindowsDX were intentionally removed per the README with a note that they "can be reintroduced later on current MonoGame and .NET platform projects instead of the deprecated Xamarin/PCL toolchain."
+The library now multi-targets `net10.0` (MonoGame.Framework.DesktopGL) and `net10.0-android`
+(MonoGame.Framework.Android). Delivered:
 
-Terra Contracts needs an Android (Google Play Store) client and its `TerraContracts.Game` project references this library directly via `ProjectReference` (not the NuGet package), so it needs an Android-capable build of `MonoGame.PortableUI` to unblock `TerraContracts.Android`.
+- `Directory.Build.props` moved to `net10.0`; `src/MonoGame.PortableUI` and
+  `src/MonoGame.PortableUI.Themes` set `<TargetFrameworks>net10.0;net10.0-android</TargetFrameworks>`
+  (each clears the inherited singular `TargetFramework` first, otherwise the SDK skips the
+  multi-targeting fan-out). MonoGame package references are TFM-conditional; `MonoGame.Framework.Android`
+  version added to `Directory.Packages.props`.
+- `AndroidClipboardService : IClipboardService` (guarded `#if ANDROID`, via `ClipboardManager`).
+- Lifecycle/static-state hardening: `FontManager.Reset()` (auto-invoked when a new `Game` loads fonts),
+  `ScreenEngine.Initialize` clears stale static focus, and `Backdrop`/`PostProcess` render-target managers
+  are recreated when the `GraphicsDevice` changes. `Game.Window.TextInput` wiring is guarded off Android
+  (desktop-only backend); `ScreenEngine.HandleTextInput(char)` is the Android-side entry point.
+- `samples/MonoGame.PortableUI.Demo.Android` — minimal activity + manifest host, added to the `.slnx`.
+  Verified building a signed APK and running on an emulator (touch input works).
 
-Suggested approach (verified feasible on this machine: .NET 10 SDK 10.0.301, Android workload 36.1.53 already installed):
+### Known follow-up: Android native-density text rendering in nested/button content
 
-- Multi-target `src/MonoGame.PortableUI/MonoGame.PortableUI.csproj` as `net8.0;net8.0-android` (or `net10.0;net10.0-android` if the library moves to .NET 10 — see item 3), with the `MonoGame.Framework.DesktopGL` PackageReference conditional on the non-Android TFM and `MonoGame.Framework.Android` conditional on the Android TFM.
-- `MonoGame.Framework.Android` 3.8.4.1 declares its NuGet dependency group for `net8.0-android34.0`, but a consuming app targeting a newer Android TFM (tested: `net10.0-android`) resolves it fine (verified locally: builds clean).
-- Things to verify specifically for this library once the Android TFM exists: touch input routing (the library already has touch handling in `Screen.cs`/`Control.cs` used for the DesktopGL demo's touch paths — confirm it behaves correctly for real Android touch events, not just simulated), on-screen keyboard interaction (`ShowKeyboard`/`HideKeyboard`/`SurfaceFocusManager`), clipboard service (there's a `WindowsClipboardService` — Android needs its own `IClipboardService` implementation or `NullClipboardService` fallback), and app lifecycle (pause/resume, `GraphicsDevice` reset) since `ScreenEngine`/`FontManager` hold static state.
-- `samples/MonoGame.PortableUI.Demo` is DesktopGL-only; consider whether it's worth adding a minimal Android sample project (mirroring what `SampleClient.Android` used to be) to exercise this in CI, or whether the downstream Terra Contracts Android client is sufficient as a real-world test bed.
+On the Android GL backend at native display density (targetSdk 24+, e.g. an xxhdpi emulator), text that is
+rendered **inside a `Button`** (the `Button` -> child `TextBlock` path, which also backs `ListBox` item rows)
+is clipped to a too-narrow region and the item rows measure too tall. Standalone `TextBlock`/`TextBox` and
+all non-text chrome render correctly, and the same code renders correctly on DesktopGL and under the legacy
+pre-24 Android compatibility-scaling path. Likely a scissor/measure interaction specific to deeply-nested
+clipped content at high DPI. Does not block the port (app builds/runs/renders/handles touch); worth a
+dedicated fix before shipping button-heavy Android UI. The new `DataGrid` renders its cells as `TextBlock`s
+(not `Button`s), so it is not affected by this path.
 
-## 2. Data grid / table control (lower priority, not urgent)
+## 2. Data grid / table control — DONE
 
-Terra Contracts is a tycoon/economy game with a lot of tabular UI (market prices, ship lists, contracts, balance sheets). The library currently has `ListBox` and the layout `Grid`, but no dedicated sortable/scrollable data-grid-style control with columns. Not needed immediately — flagging so it's not forgotten if/when Terra Contracts needs it; `ListBox` + manually laid out `Grid` rows may be enough for a while.
+`DataGrid` + `DataGridColumn` (`src/MonoGame.PortableUI/Controls/`). Full-featured:
+Auto/Absolute/star column widths (same semantics as `Grid`), click-to-sort headers (stable sort, custom
+`SortKey` or text fallback), row selection with keyboard navigation and `BringIntoView`, draggable column
+resize splitters (clamped to `MinWidth`), and per-column cell templates. Composed like `ListBox`
+(a non-scrolling header + a `ScrollViewer` of materialized row controls). Covered by
+`tests/MonoGame.PortableUI.Tests/DataGridRegressionTests.cs` and demonstrated on the desktop demo's
+"Data grid" tab.
 
-## 3. .NET 10
+## 3. .NET 10 — DONE
 
-Not urgent, but noting since it came up: the library is pinned to `net8.0` today. A consuming `net10.0` project can already reference it fine (forward TFM compatibility, verified in Terra Contracts' `TerraContracts.Game` → `MonoGame.PortableUI` reference), so there's no hard requirement to move off net8.0 immediately. Worth revisiting once item 1 (Android) is settled, so the Android TFM choice and a potential net10.0 move happen together rather than twice.
+The whole solution moved from `net8.0` to `net10.0` together with the Android TFM work (bundled per the
+original note so the TFM decisions happened once).
