@@ -1,6 +1,5 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using MonoGame.PortableUI.Controls;
 
 namespace MonoGame.PortableUI
 {
@@ -8,8 +7,6 @@ namespace MonoGame.PortableUI
     {
         private readonly ScreenEngine _screenEngine;
         private SpriteBatch? _spriteBatch;
-
-        public Control? FocusedControl { get; set; }
 
         internal ScreenComponent(ScreenEngine screenEngine, Game game) : base(game)
         {

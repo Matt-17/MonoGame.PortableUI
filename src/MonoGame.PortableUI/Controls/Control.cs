@@ -236,8 +236,6 @@ namespace MonoGame.PortableUI.Controls
 
         public Thickness Margin { get; set; }
 
-        //public Border Rect { get; set; }
-
         public Vector2 Scale { get; set; }
 
         public Vector2 Translation { get; set; }
@@ -549,8 +547,6 @@ namespace MonoGame.PortableUI.Controls
 
         public virtual void OnClick()
         {
-            //if (this is TextBox)
-            //    ScreenEngine.FocusedControl = this;
             Click?.Invoke(this, EventArgs.Empty);
             if (IsDoubleClick(ref _lastClickAt))
                 DoubleClick?.Invoke(this, EventArgs.Empty);
@@ -765,7 +761,6 @@ namespace MonoGame.PortableUI.Controls
 
         internal void OnMouseUp(MouseEventArgs args)
         {
-            //foreach (var button in args.Buttons)
             var changed = new List<MouseButton>();
             foreach (var button in args.Buttons)
             {

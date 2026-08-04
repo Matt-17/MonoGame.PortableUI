@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI.Common;
@@ -46,28 +45,39 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
-        public static int GetGroupValue(string group)
+        /// <summary>
+        /// Detaching a radio button from its visual tree must drop it from the static group
+        /// registry, or a later screen reusing the same group name would read/drive stale buttons
+        /// left behind by a screen that is no longer showing (the registry is keyed by group name
+        /// only, and nothing else ever removes an entry).
+        /// </summary>
+        public override FrameworkElement? Parent
         {
-            if (!RadioButtonDictionary.ContainsKey(@group))
+            get { return base.Parent; }
+            internal set
             {
-                throw new ArgumentOutOfRangeException();
+                var wasAttached = base.Parent != null;
+                base.Parent = value;
+                if (value == null && wasAttached)
+                    RadioButton.RemoveFromList(_radioGroup, this);
+                else if (value != null && !wasAttached)
+                    RadioButton.AddToList(_radioGroup, this);
             }
-            var radioButtons = RadioButtonDictionary[@group];
-            return radioButtons.Select((b, i) => new { RadioButton = b, Index = i }).Single(x => x.RadioButton.IsChecked).Index;
         }
 
         private static void AddToList(string? radioGroup, RadioButton radioButton)
         {
             if (string.IsNullOrEmpty(radioGroup))
                 return;
-            if (!RadioButtonDictionary.ContainsKey(radioGroup))
+            if (!RadioButtonDictionary.TryGetValue(radioGroup, out var list))
             {
-                RadioButtonDictionary.Add(radioGroup, new List<RadioButton>());
+                list = new List<RadioButton>();
+                RadioButtonDictionary.Add(radioGroup, list);
                 radioButton.IsChecked = true;
             }
 
-            var list = RadioButtonDictionary[radioGroup];
-            list.Add(radioButton);
+            if (!list.Contains(radioButton))
+                list.Add(radioButton);
         }
 
         private static void RemoveFromList(string? radioGroup, RadioButton radioButton)
