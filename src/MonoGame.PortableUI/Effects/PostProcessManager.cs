@@ -32,6 +32,9 @@ namespace MonoGame.PortableUI.Effects
             Capabilities = new RenderCapabilities(graphicsDevice);
         }
 
+        /// <summary>The graphics device this manager's render targets are bound to.</summary>
+        public GraphicsDevice GraphicsDevice => _graphicsDevice;
+
         public RenderCapabilities Capabilities { get; }
 
         public int AppliedEffectsThisFrame { get; private set; }

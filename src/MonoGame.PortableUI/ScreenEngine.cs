@@ -58,11 +58,45 @@ namespace MonoGame.PortableUI
         private BackdropManager? _backdrop;
         private PostProcessManager? _postProcess;
 
-        /// <summary>Backdrop-blur pipeline shared by all screens of this engine (created on first use).</summary>
-        public BackdropManager Backdrop => _backdrop ??= new BackdropManager(Game.GraphicsDevice);
+        /// <summary>
+        /// Backdrop-blur pipeline shared by all screens of this engine (created on first use).
+        /// Recreated automatically if the game's GraphicsDevice is replaced
+        /// (e.g. an Android activity restart / device reset), so its render targets never
+        /// reference a disposed device.
+        /// </summary>
+        public BackdropManager Backdrop
+        {
+            get
+            {
+                var device = Game.GraphicsDevice;
+                if (_backdrop == null || !ReferenceEquals(_backdrop.GraphicsDevice, device))
+                {
+                    _backdrop?.Dispose();
+                    _backdrop = new BackdropManager(device);
+                }
 
-        /// <summary>Post-process chain runner shared by all screens of this engine (created on first use).</summary>
-        public PostProcessManager PostProcess => _postProcess ??= new PostProcessManager(Game.GraphicsDevice);
+                return _backdrop;
+            }
+        }
+
+        /// <summary>
+        /// Post-process chain runner shared by all screens of this engine (created on first use).
+        /// Recreated automatically when the game's GraphicsDevice is replaced.
+        /// </summary>
+        public PostProcessManager PostProcess
+        {
+            get
+            {
+                var device = Game.GraphicsDevice;
+                if (_postProcess == null || !ReferenceEquals(_postProcess.GraphicsDevice, device))
+                {
+                    _postProcess?.Dispose();
+                    _postProcess = new PostProcessManager(device);
+                }
+
+                return _postProcess;
+            }
+        }
 
         public bool DebugOverlayEnabled { get; private set; }
 
@@ -96,6 +130,9 @@ namespace MonoGame.PortableUI
 
         public static ScreenEngine Initialize(Game game, ScreenEngineOptions options)
         {
+            // A fresh Initialize means a new Game/activity: drop any focus captured by a previous
+            // engine instance so a disposed control from the old activity is never left focused.
+            _focusedControl = null;
             Instance = new ScreenEngine(game, options ?? new ScreenEngineOptions());
             return Instance;
         }
