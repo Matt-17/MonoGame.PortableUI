@@ -25,7 +25,11 @@ namespace MonoGame.PortableUI
             Component = new ScreenComponent(this, game);
             _keyboards = new Dictionary<string, IKeyboard>();
             ScaleFactor = 1;
+#if !ANDROID
+            // GameWindow.TextInput is provided by the DesktopGL/WindowsDX backends only. On Android
+            // text arrives via the soft keyboard/IME; consumers route it through HandleTextInput.
             game.Window.TextInput += GameWindowTextInput;
+#endif
             if (!game.Components.Contains(Component) && options.AddComponentToGame)
                 game.Components.Add(Component);
         }
@@ -196,9 +200,20 @@ namespace MonoGame.PortableUI
             LayoutPassesThisFrame++;
         }
 
+#if !ANDROID
         private void GameWindowTextInput(object? sender, TextInputEventArgs args)
         {
             ActiveScreen?.HandleTextInput(args.Character);
+        }
+#endif
+
+        /// <summary>
+        /// Routes a typed character into the active screen's focused control. Desktop backends call this
+        /// from the game window's TextInput event; on Android the host activity/soft keyboard calls it directly.
+        /// </summary>
+        public void HandleTextInput(char character)
+        {
+            ActiveScreen?.HandleTextInput(character);
         }
     }
 }

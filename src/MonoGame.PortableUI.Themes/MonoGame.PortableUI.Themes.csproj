@@ -1,5 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <!-- Multi-target: net10.0 (DesktopGL) + net10.0-android, mirroring the core library. -->
+    <TargetFrameworks>net10.0;net10.0-android</TargetFrameworks>
+    <SupportedOSPlatformVersion Condition="$(TargetFramework.EndsWith('-android'))">21.0</SupportedOSPlatformVersion>
     <PackageId>MonoGame.PortableUI.Themes</PackageId>
     <Title>MonoGame.PortableUI.Themes</Title>
     <Description>Theme catalog add-on for MonoGame.PortableUI. MonoGame.PortableUI works completely without this package; each theme lives in its own file so it can be copied into a project and customized.</Description>
@@ -18,7 +21,8 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" />
-    <PackageReference Include="MonoGame.Framework.DesktopGL" />
+    <PackageReference Include="MonoGame.Framework.DesktopGL" Condition="!$(TargetFramework.EndsWith('-android'))" />
+    <PackageReference Include="MonoGame.Framework.Android" Condition="$(TargetFramework.EndsWith('-android'))" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\MonoGame.PortableUI\MonoGame.PortableUI.csproj" />
