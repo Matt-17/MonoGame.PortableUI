@@ -101,7 +101,7 @@ namespace MonoGame.PortableUI.Controls
             if (IsGone)
                 return Size.Empty;
 
-            var width = _owner.TotalColumnsWidth;
+            var width = _owner.InnerWidth;
             return ApplyConstraints(new Size(width, _owner.RowHeight)) + Margin;
         }
 
