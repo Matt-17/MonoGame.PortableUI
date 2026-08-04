@@ -33,6 +33,7 @@ namespace MonoGame.PortableUI.Controls
                     value.Parent = this;
                 _content = value;
                 RebuildTemplateRoot();
+                InvalidateLayout(true);
                 OnContentChanged(value);
             }
         }
