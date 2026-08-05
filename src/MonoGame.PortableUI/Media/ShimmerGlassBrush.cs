@@ -89,9 +89,15 @@ namespace MonoGame.PortableUI.Media
 
             for (var r = 0; r < rows; r++)
             {
-                var rowY = top + r * rowHeight;
+                // Rows are contiguous (row r+1 starts exactly where row r ends) — no overlap, so
+                // additive blending can't double up into bright horizontal seams (scanlines).
+                var y0 = top + r * rowHeight;
+                var y1 = top + (r + 1) * rowHeight;
                 var vFrac = (r + 0.5f) / rows - 0.5f;      // -0.5 (top) .. +0.5 (bottom)
                 var rowCenterX = centerX + vFrac * shear;
+                // Cosine window along the streak's length so it fades in/out at the top and bottom
+                // instead of ending in a hard cut.
+                var vFade = (float)Math.Cos(vFrac * Math.PI);
 
                 for (var i = -bands; i <= bands; i++)
                 {
@@ -101,14 +107,14 @@ namespace MonoGame.PortableUI.Media
                     if (falloff <= 0.001f)
                         continue;
 
-                    var alpha = SweepStrength * opacity * falloff;
+                    var alpha = SweepStrength * opacity * falloff * vFade;
                     var x = rowCenterX + i * bandWidth;
                     // Clip to the element bounds so the streak can't spill past the rounded edges.
                     var x0 = Math.Max(rect.Left, x - bandWidth);
                     var x1 = Math.Min(rect.Right, x + bandWidth + 1f);
                     if (x1 <= x0)
                         continue;
-                    spriteBatch.Draw(SolidColorBrush.Pixel, new Rect(x0, rowY, x1 - x0, rowHeight + 1f), ApplyOpacity(SweepColor, alpha));
+                    spriteBatch.Draw(SolidColorBrush.Pixel, new Rect(x0, y0, x1 - x0, y1 - y0), ApplyOpacity(SweepColor, alpha));
                 }
             }
         }
