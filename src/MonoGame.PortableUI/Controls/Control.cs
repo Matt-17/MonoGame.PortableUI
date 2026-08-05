@@ -625,8 +625,13 @@ namespace MonoGame.PortableUI.Controls
             if (ShowFocusVisual && IsFocused && FocusBorderWidth > 0 && FocusBorderBrush != null)
                 DrawFocusVisual(spriteBatch, rect, FocusBorderWidth, FocusBorderBrush, FocusVisualKind, RenderOpacity);
 
-            if (!IsEnabled)
-                DisabledOverlayBrush?.Draw(spriteBatch, rect, RenderOpacity);
+            if (!IsEnabled && DisabledOverlayBrush is { } disabledOverlay)
+            {
+                // Carry the corner radius so the dim overlay follows the control's rounded shape;
+                // the plain (rect, opacity) overload draws a square that spills past the corners.
+                var context = new BrushContext(rect, CornerRadius, RenderOpacity, spriteBatch.GraphicsDevice, (float)ScreenSystem.TotalTime.TotalSeconds);
+                disabledOverlay.Draw(spriteBatch, in context);
+            }
         }
 
 
