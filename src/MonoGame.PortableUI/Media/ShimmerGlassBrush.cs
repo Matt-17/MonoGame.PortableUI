@@ -65,19 +65,21 @@ namespace MonoGame.PortableUI.Media
             var sweepPos = phase * 1.6f - 0.3f;
             var centerX = rect.Left + sweepPos * rect.Width;
 
-            const int bands = 11;
+            // Many thin overlapping slices so the falloff reads as a smooth band, not stripes.
+            const int bands = 40;
             var totalWidth = rect.Width * BandWidthFraction;
             var bandWidth = totalWidth / bands;
             for (var i = -bands; i <= bands; i++)
             {
                 var d = i / (float)bands;
                 var falloff = 1f - d * d;                 // soft gaussian-ish peak at the centre
-                if (falloff <= 0f)
+                falloff *= falloff;                       // sharpen so the tails fade out gently
+                if (falloff <= 0.001f)
                     continue;
 
                 var alpha = SweepStrength * opacity * falloff;
                 var x = centerX + i * bandWidth;
-                spriteBatch.Draw(SolidColorBrush.Pixel, new Rect(x - bandWidth * 0.5f, top, bandWidth + 1f, bottom - top), ApplyOpacity(SweepColor, alpha));
+                spriteBatch.Draw(SolidColorBrush.Pixel, new Rect(x - bandWidth, top, bandWidth * 2f + 1f, bottom - top), ApplyOpacity(SweepColor, alpha));
             }
         }
     }
