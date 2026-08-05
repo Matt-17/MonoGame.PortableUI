@@ -7,9 +7,11 @@ namespace MonoGame.PortableUI.Media
 {
     /// <summary>
     /// A translucent glass fill with an animated specular sweep. The fill is a rounded solid tint
-    /// (so corners are clean — no frosted backdrop seam), and the sweep is built from soft vertical
-    /// bands whose vertical extent is inset by the corner radius, so the moving highlight can never
-    /// poke out past a rounded corner. Drive it with <see cref="BrushContext.TimeSeconds"/>.
+    /// (so corners are clean — no frosted backdrop seam), and the sweep is a soft <em>diagonal</em>
+    /// streak of light that rakes across the surface, like a reflection travelling over wet glass.
+    /// The streak's vertical extent is inset by the corner radius and every slice is clipped to the
+    /// element bounds, so the moving highlight can never poke past a rounded corner or spill onto the
+    /// scene behind it. Drive it with <see cref="BrushContext.TimeSeconds"/>.
     /// </summary>
     public sealed class ShimmerGlassBrush : Brush
     {
@@ -29,6 +31,13 @@ namespace MonoGame.PortableUI.Media
 
         /// <summary>Total width of the highlight band as a fraction of the element width.</summary>
         public float BandWidthFraction { get; set; } = 0.26f;
+
+        /// <summary>
+        /// Diagonal lean of the streak: the horizontal offset between the top and bottom edges as a
+        /// fraction of the element height. 0 is a straight vertical band; positive leans the top left
+        /// of the bottom. ~0.3–0.5 reads as a natural glass glint.
+        /// </summary>
+        public float SweepSkew { get; set; } = 0.4f;
 
         public override void Draw(SpriteBatch spriteBatch, Rect rect)
             => Draw(spriteBatch, new BrushContext(rect, default, 1f, spriteBatch.GraphicsDevice));
@@ -54,7 +63,8 @@ namespace MonoGame.PortableUI.Media
             var inset = Math.Max(Math.Max(radius.TopLeft, radius.TopRight), Math.Max(radius.BottomLeft, radius.BottomRight));
             var top = rect.Top + inset;
             var bottom = rect.Bottom - inset;
-            if (bottom - top <= 1f)
+            var height = bottom - top;
+            if (height <= 1f)
                 return;
 
             // sweepPos travels a little past both edges so the band enters, crosses, then leaves —
@@ -65,21 +75,41 @@ namespace MonoGame.PortableUI.Media
             var sweepPos = phase * 1.6f - 0.3f;
             var centerX = rect.Left + sweepPos * rect.Width;
 
-            // Many thin overlapping slices so the falloff reads as a smooth band, not stripes.
-            const int bands = 40;
+            // Slice the height into rows and shear each row's centre sideways, so the streak's
+            // constant-intensity lines lean over into a diagonal (a straight vertical band sliding
+            // horizontally only ever reads as a moving gradient).
+            var shear = height * SweepSkew;               // horizontal offset from top row to bottom row
+            var rows = Math.Max(4, (int)(height / 6f));
+            var rowHeight = height / rows;
+
+            // Many thin overlapping slices so the horizontal falloff reads as a smooth band, not stripes.
+            const int bands = 18;
             var totalWidth = rect.Width * BandWidthFraction;
             var bandWidth = totalWidth / bands;
-            for (var i = -bands; i <= bands; i++)
-            {
-                var d = i / (float)bands;
-                var falloff = 1f - d * d;                 // soft gaussian-ish peak at the centre
-                falloff *= falloff;                       // sharpen so the tails fade out gently
-                if (falloff <= 0.001f)
-                    continue;
 
-                var alpha = SweepStrength * opacity * falloff;
-                var x = centerX + i * bandWidth;
-                spriteBatch.Draw(SolidColorBrush.Pixel, new Rect(x - bandWidth, top, bandWidth * 2f + 1f, bottom - top), ApplyOpacity(SweepColor, alpha));
+            for (var r = 0; r < rows; r++)
+            {
+                var rowY = top + r * rowHeight;
+                var vFrac = (r + 0.5f) / rows - 0.5f;      // -0.5 (top) .. +0.5 (bottom)
+                var rowCenterX = centerX + vFrac * shear;
+
+                for (var i = -bands; i <= bands; i++)
+                {
+                    var d = i / (float)bands;
+                    var falloff = 1f - d * d;             // soft gaussian-ish peak at the centre
+                    falloff *= falloff;                   // sharpen so the tails fade out gently
+                    if (falloff <= 0.001f)
+                        continue;
+
+                    var alpha = SweepStrength * opacity * falloff;
+                    var x = rowCenterX + i * bandWidth;
+                    // Clip to the element bounds so the streak can't spill past the rounded edges.
+                    var x0 = Math.Max(rect.Left, x - bandWidth);
+                    var x1 = Math.Min(rect.Right, x + bandWidth + 1f);
+                    if (x1 <= x0)
+                        continue;
+                    spriteBatch.Draw(SolidColorBrush.Pixel, new Rect(x0, rowY, x1 - x0, rowHeight + 1f), ApplyOpacity(SweepColor, alpha));
+                }
             }
         }
     }
