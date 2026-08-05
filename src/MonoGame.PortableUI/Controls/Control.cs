@@ -293,6 +293,15 @@ namespace MonoGame.PortableUI.Controls
             set => _borderThicknessOverride = value;
         }
 
+        /// <summary>
+        /// When both this and <see cref="BorderBevelDark"/> are set, the (rounded) border is drawn as a
+        /// diagonal bevel — this colour at the top-left blending to <see cref="BorderBevelDark"/> at the
+        /// bottom-right — instead of a flat <see cref="BorderBrush"/>. Gives glass panels a lit edge.
+        /// </summary>
+        public Color? BorderBevelLight { get; set; }
+
+        public Color? BorderBevelDark { get; set; }
+
         public CornerRadius CornerRadius
         {
             get => _cornerRadiusOverride ?? ResolveStateStyle()?.CornerRadius ?? default;
@@ -598,7 +607,11 @@ namespace MonoGame.PortableUI.Controls
             if (Shadow != null && Shadow.Inset)
                 ShadowRenderer.Draw(spriteBatch, rect, CornerRadius, Shadow, RenderOpacity);
 
-            if (BorderBrush != null && HasBorder(BorderThickness))
+            if (BorderBevelLight is { } bevelLight && BorderBevelDark is { } bevelDark && HasBorder(BorderThickness) && !CornerRadius.IsEmpty)
+            {
+                RoundedRectRenderer.DrawBevelBorder(spriteBatch, rect, CornerRadius, BorderThickness, bevelLight, bevelDark, RenderOpacity);
+            }
+            else if (BorderBrush != null && HasBorder(BorderThickness))
             {
                 if (!CornerRadius.IsEmpty && BorderBrush is SolidColorBrush solidBorder)
                     RoundedRectRenderer.DrawBorder(spriteBatch, rect, CornerRadius, BorderThickness, Brush.ApplyOpacity(solidBorder.Color, RenderOpacity));

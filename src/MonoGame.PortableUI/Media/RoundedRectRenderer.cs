@@ -41,6 +41,45 @@ namespace MonoGame.PortableUI.Media
             DrawCornerRing(spriteBatch, rect.Left, rect.Bottom - radius.BottomLeft, radius.BottomLeft, Math.Max(thickness.Bottom, thickness.Left), color, SpriteEffects.FlipVertically);
         }
 
+        /// <summary>
+        /// Draws a rounded border whose colour blends diagonally from <paramref name="light"/> at the
+        /// top-left to <paramref name="dark"/> at the bottom-right (a soft glass bevel). Each edge and
+        /// corner is tinted by the gradient value at its position so the transition wraps the corners.
+        /// </summary>
+        public static void DrawBevelBorder(SpriteBatch spriteBatch, Rect rect, CornerRadius radius, Thickness thickness, Color light, Color dark, float opacity)
+        {
+            if (rect.Width <= 0 || rect.Height <= 0)
+                return;
+
+            radius = Clamp(radius, rect);
+            if (radius.IsEmpty)
+                return;
+
+            Color At(float cx, float cy)
+            {
+                var g = MathHelper.Clamp(((cx - rect.Left) / rect.Width + (cy - rect.Top) / rect.Height) / 2f, 0, 1);
+                return Brush.ApplyOpacity(Color.Lerp(light, dark, g), opacity);
+            }
+
+            var top = new Rect(rect.Left + radius.TopLeft, rect.Top, Math.Max(0, rect.Width - radius.TopLeft - radius.TopRight), thickness.Top);
+            var bottom = new Rect(rect.Left + radius.BottomLeft, rect.Bottom - thickness.Bottom, Math.Max(0, rect.Width - radius.BottomLeft - radius.BottomRight), thickness.Bottom);
+            var left = new Rect(rect.Left, rect.Top + radius.TopLeft, thickness.Left, Math.Max(0, rect.Height - radius.TopLeft - radius.BottomLeft));
+            var right = new Rect(rect.Right - thickness.Right, rect.Top + radius.TopRight, thickness.Right, Math.Max(0, rect.Height - radius.TopRight - radius.BottomRight));
+            if (top.Height > 0 && top.Width > 0)
+                spriteBatch.Draw(SolidColorBrush.Pixel, top, At((top.Left + top.Right) / 2, rect.Top));
+            if (bottom.Height > 0 && bottom.Width > 0)
+                spriteBatch.Draw(SolidColorBrush.Pixel, bottom, At((bottom.Left + bottom.Right) / 2, rect.Bottom));
+            if (left.Width > 0 && left.Height > 0)
+                spriteBatch.Draw(SolidColorBrush.Pixel, left, At(rect.Left, (left.Top + left.Bottom) / 2));
+            if (right.Width > 0 && right.Height > 0)
+                spriteBatch.Draw(SolidColorBrush.Pixel, right, At(rect.Right, (right.Top + right.Bottom) / 2));
+
+            DrawCornerRing(spriteBatch, rect.Left, rect.Top, radius.TopLeft, Math.Max(thickness.Top, thickness.Left), At(rect.Left, rect.Top), SpriteEffects.None);
+            DrawCornerRing(spriteBatch, rect.Right - radius.TopRight, rect.Top, radius.TopRight, Math.Max(thickness.Top, thickness.Right), At(rect.Right, rect.Top), SpriteEffects.FlipHorizontally);
+            DrawCornerRing(spriteBatch, rect.Right - radius.BottomRight, rect.Bottom - radius.BottomRight, radius.BottomRight, Math.Max(thickness.Bottom, thickness.Right), At(rect.Right, rect.Bottom), SpriteEffects.FlipHorizontally | SpriteEffects.FlipVertically);
+            DrawCornerRing(spriteBatch, rect.Left, rect.Bottom - radius.BottomLeft, radius.BottomLeft, Math.Max(thickness.Bottom, thickness.Left), At(rect.Left, rect.Bottom), SpriteEffects.FlipVertically);
+        }
+
         private static void DrawCornerRing(SpriteBatch spriteBatch, float x, float y, float radius, float thickness, Color color, SpriteEffects effects)
         {
             var size = (int)Math.Ceiling(radius);
