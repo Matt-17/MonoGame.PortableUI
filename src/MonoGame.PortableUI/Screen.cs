@@ -469,7 +469,7 @@ namespace MonoGame.PortableUI
             var oldRect = new Rect(spriteBatch.GraphicsDevice.ScissorRectangle);
             control.SetRenderState(context.Opacity, context.Scale);
             spriteBatch.GraphicsDevice.ScissorRectangle = ToScissorRectangle(context.ScissorRect);
-            spriteBatch.Begin(SpriteSortMode.Deferred, rasterizerState: ScissorRasterizer, effect: ScreenEngine?.Options.Effect);
+            spriteBatch.Begin(SpriteSortMode.Deferred, samplerState: SamplerStateFor(control), rasterizerState: ScissorRasterizer, effect: ScreenEngine?.Options.Effect);
             control.OnDraw(spriteBatch, context.RenderRect);
             spriteBatch.End();
             ScreenEngine?.RecordBatchFlush();
@@ -480,11 +480,16 @@ namespace MonoGame.PortableUI
             }
 
             spriteBatch.GraphicsDevice.ScissorRectangle = ToScissorRectangle(context.ScissorRect);
-            spriteBatch.Begin(SpriteSortMode.Deferred, rasterizerState: ScissorRasterizer, effect: ScreenEngine?.Options.Effect);
+            spriteBatch.Begin(SpriteSortMode.Deferred, samplerState: SamplerStateFor(control), rasterizerState: ScissorRasterizer, effect: ScreenEngine?.Options.Effect);
             control.OnDrawOverlay(spriteBatch, context.RenderRect);
             spriteBatch.End();
             ScreenEngine?.RecordBatchFlush();
             spriteBatch.GraphicsDevice.ScissorRectangle = oldRect;
+        }
+
+        private static SamplerState? SamplerStateFor(Control control)
+        {
+            return control is Image image ? image.SamplerState : null;
         }
 
         /// <summary>
