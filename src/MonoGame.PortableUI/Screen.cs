@@ -489,7 +489,10 @@ namespace MonoGame.PortableUI
 
         private static SamplerState? SamplerStateFor(Control control)
         {
-            return control is Image image ? image.SamplerState : null;
+            if (control is Image image)
+                return image.SamplerState;
+
+            return control.BackgroundBrush is ImageBrush ? SamplerState.LinearClamp : null;
         }
 
         /// <summary>
