@@ -46,8 +46,45 @@ namespace MonoGame.PortableUI.Media
             }
 
             var sourceRect = GetSourceRect();
+            var tint = ApplyOpacity(TintColor, context.Opacity);
+
+            if (Stretch == Stretch.UniformToFill)
+            {
+                // Fill the target while preserving aspect by cropping the *source* to the target's
+                // aspect and drawing into the exact target rect. Scaling an oversized destination
+                // instead would spill outside the control (its scissor is widened for drop shadows),
+                // so the overflow must be clipped here, in the brush, not left to the scissor.
+                var croppedSource = GetUniformToFillSource(context.Rect, sourceRect);
+                spriteBatch.Draw(Source, context.Rect, croppedSource, tint);
+                return;
+            }
+
             var destination = GetStretchedRect(context.Rect, sourceRect.Width, sourceRect.Height);
-            spriteBatch.Draw(Source, destination, sourceRect, ApplyOpacity(TintColor, context.Opacity));
+            spriteBatch.Draw(Source, destination, sourceRect, tint);
+        }
+
+        /// <summary>
+        /// The centred sub-rectangle of <paramref name="source"/> whose aspect matches
+        /// <paramref name="targetRect"/>, so drawing it into the target fills it without distortion
+        /// and clips the overflow (the UniformToFill crop).
+        /// </summary>
+        internal static Rectangle GetUniformToFillSource(Rect targetRect, Rectangle source)
+        {
+            if (source.Width <= 0 || source.Height <= 0 || targetRect.Width <= 0 || targetRect.Height <= 0)
+                return source;
+
+            var widthScale = targetRect.Width / source.Width;
+            var heightScale = targetRect.Height / source.Height;
+            var fillScale = Math.Max(widthScale, heightScale);
+
+            var visibleWidth = (int)Math.Round(targetRect.Width / fillScale);
+            var visibleHeight = (int)Math.Round(targetRect.Height / fillScale);
+            visibleWidth = Math.Clamp(visibleWidth, 1, source.Width);
+            visibleHeight = Math.Clamp(visibleHeight, 1, source.Height);
+
+            var left = source.Left + (source.Width - visibleWidth) / 2;
+            var top = source.Top + (source.Height - visibleHeight) / 2;
+            return new Rectangle(left, top, visibleWidth, visibleHeight);
         }
 
         internal Rect GetStretchedRect(Rect targetRect, int sourceWidth, int sourceHeight)
