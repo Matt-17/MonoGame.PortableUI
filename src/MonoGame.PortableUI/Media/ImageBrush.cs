@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI.Common;
@@ -14,6 +15,11 @@ namespace MonoGame.PortableUI.Media
 
     public class ImageBrush : Brush
     {
+        // Stable per-texture id so cached rounded variants key off identity (Texture2D has no id of
+        // its own and reference hashes could collide). Weak so it never keeps a texture alive.
+        private static readonly ConditionalWeakTable<Texture2D, object> SourceIds = new();
+        private static int _nextSourceId;
+
         public Texture2D? Source { get; set; }
 
         public Stretch Stretch { get; set; } = Stretch.Fill;
@@ -47,6 +53,25 @@ namespace MonoGame.PortableUI.Media
 
             var sourceRect = GetSourceRect();
             var tint = ApplyOpacity(TintColor, context.Opacity);
+
+            // Source.Format guard: the rounded path reads pixels with GetData<Color>, which only
+            // works on an uncompressed Color texture; anything else falls through to a plain draw.
+            if (!context.Radius.IsEmpty && Source.Format == SurfaceFormat.Color)
+            {
+                // Rounded target: the image must follow the corners, but spriteBatch.Draw only fills
+                // a rectangle. Build (and cache) a target-sized copy that has the image sampled into
+                // it and the corners masked out — the same CPU-mask trick the gradient brushes use —
+                // then draw that once. Tint/opacity stay on the draw call so the cache is stable.
+                var width = Math.Max(1, (int)Math.Ceiling(context.Rect.Width));
+                var height = Math.Max(1, (int)Math.Ceiling(context.Rect.Height));
+                var radius = context.Radius;
+                var rounded = BrushTextureCache.GetOrCreate(
+                    spriteBatch.GraphicsDevice,
+                    CreateRoundedCacheKey(width, height, sourceRect, radius),
+                    graphicsDevice => CreateRoundedTexture(graphicsDevice, width, height, sourceRect, radius));
+                spriteBatch.Draw(rounded, context.Rect, tint);
+                return;
+            }
 
             if (Stretch == Stretch.UniformToFill)
             {
@@ -126,6 +151,72 @@ namespace MonoGame.PortableUI.Media
                 targetRect.Top + (targetRect.Height - height) / 2,
                 width,
                 height);
+        }
+
+        private BrushTextureCacheKey CreateRoundedCacheKey(int width, int height, Rectangle source, CornerRadius radius)
+        {
+            return new BrushTextureCacheKey(
+                "image-rounded",
+                width,
+                height,
+                Source != null ? GetSourceId(Source) : 0,
+                HashCode.Combine((int)Stretch, radius, source, TintColor));
+        }
+
+        /// <summary>
+        /// Builds a <paramref name="width"/>×<paramref name="height"/> texture with the image sampled
+        /// into it per the current <see cref="Stretch"/> and its corners alpha-masked to
+        /// <paramref name="radius"/>, so it can be drawn as a rounded fill with a single call.
+        /// </summary>
+        private Texture2D CreateRoundedTexture(GraphicsDevice graphicsDevice, int width, int height, Rectangle source, CornerRadius radius)
+        {
+            var image = Source!;
+            var imagePixels = new Color[image.Width * image.Height];
+            image.GetData(imagePixels);
+
+            // Where the source lands inside the target (oversized/centred for UniformToFill, inset for
+            // Uniform, exact for Fill); we invert this per pixel to find the source texel to sample.
+            var placement = GetStretchedRect(new Rect(0, 0, width, height), source.Width, source.Height);
+            var data = new Color[width * height];
+
+            if (placement.Width > 0 && placement.Height > 0)
+            {
+                for (var y = 0; y < height; y++)
+                {
+                    var v = (y + 0.5f - placement.Top) / placement.Height;
+                    if (v < 0 || v >= 1)
+                        continue;
+
+                    var sampleY = Math.Clamp(source.Top + (int)(v * source.Height), 0, image.Height - 1);
+                    var rowOffset = sampleY * image.Width;
+                    var targetRow = y * width;
+
+                    for (var x = 0; x < width; x++)
+                    {
+                        var u = (x + 0.5f - placement.Left) / placement.Width;
+                        if (u < 0 || u >= 1)
+                            continue;
+
+                        var sampleX = Math.Clamp(source.Left + (int)(u * source.Width), 0, image.Width - 1);
+                        data[targetRow + x] = imagePixels[rowOffset + sampleX];
+                    }
+                }
+            }
+
+            RoundedRectRenderer.ApplyCornerMask(data, width, height, radius);
+            var texture = new Texture2D(graphicsDevice, width, height);
+            texture.SetData(data);
+            return texture;
+        }
+
+        private static int GetSourceId(Texture2D texture)
+        {
+            if (SourceIds.TryGetValue(texture, out var boxed))
+                return (int)boxed;
+
+            var id = System.Threading.Interlocked.Increment(ref _nextSourceId);
+            SourceIds.AddOrUpdate(texture, id);
+            return id;
         }
 
         private void DrawTiled(SpriteBatch spriteBatch, Rect rect, float opacity)
