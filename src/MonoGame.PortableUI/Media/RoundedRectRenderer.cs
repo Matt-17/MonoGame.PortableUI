@@ -10,6 +10,7 @@ namespace MonoGame.PortableUI.Media
     {
         private static readonly Dictionary<int, Texture2D> CornerMasks = new Dictionary<int, Texture2D>();
         private static readonly Dictionary<(int Radius, int Thickness), Texture2D> CornerRingMasks = new Dictionary<(int, int), Texture2D>();
+        private static readonly Dictionary<RoundedRectMaskKey, Texture2D> RoundedRectMasks = new Dictionary<RoundedRectMaskKey, Texture2D>();
 
         /// <summary>Draws a border that follows the corner radius: 4 edge strips + quarter-ring corners. Expects a premultiplied color.</summary>
         public static void DrawBorder(SpriteBatch spriteBatch, Rect rect, CornerRadius radius, Thickness thickness, Color color)
@@ -168,6 +169,15 @@ namespace MonoGame.PortableUI.Media
                 return;
             }
 
+            if (color.A < 255)
+            {
+                var width = Math.Max(1, (int)Math.Ceiling(rect.Width));
+                var height = Math.Max(1, (int)Math.Ceiling(rect.Height));
+                var mask = GetRoundedRectMask(width, height, radius);
+                spriteBatch.Draw(mask, rect, color);
+                return;
+            }
+
             // Overlap the straight fills 1px into the corner regions. On a pill/circle the middle
             // bands would otherwise collapse to zero width/height and only the four corner masks
             // draw, leaving a hairline "+" seam where they meet; the overlap bridges it.
@@ -181,6 +191,58 @@ namespace MonoGame.PortableUI.Media
             DrawCorner(spriteBatch, rect.Right - radius.TopRight, rect.Top, radius.TopRight, color, SpriteEffects.FlipHorizontally);
             DrawCorner(spriteBatch, rect.Right - radius.BottomRight, rect.Bottom - radius.BottomRight, radius.BottomRight, color, SpriteEffects.FlipHorizontally | SpriteEffects.FlipVertically);
             DrawCorner(spriteBatch, rect.Left, rect.Bottom - radius.BottomLeft, radius.BottomLeft, color, SpriteEffects.FlipVertically);
+        }
+
+        private static Texture2D GetRoundedRectMask(int width, int height, CornerRadius radius)
+        {
+            var key = new RoundedRectMaskKey(
+                width,
+                height,
+                (int)Math.Ceiling(radius.TopLeft),
+                (int)Math.Ceiling(radius.TopRight),
+                (int)Math.Ceiling(radius.BottomRight),
+                (int)Math.Ceiling(radius.BottomLeft));
+            if (RoundedRectMasks.TryGetValue(key, out var texture))
+                return texture;
+
+            var data = new Color[width * height];
+            for (var y = 0; y < height; y++)
+            {
+                for (var x = 0; x < width; x++)
+                {
+                    var coverage = RoundedRectCoverage(x + 0.5f, y + 0.5f, width, height, radius);
+                    var value = (byte)(coverage * 255);
+                    data[y * width + x] = new Color(value, value, value, value);
+                }
+            }
+
+            texture = new Texture2D(ScreenEngine.Instance!.Game.GraphicsDevice, width, height);
+            texture.SetData(data);
+            RoundedRectMasks[key] = texture;
+            return texture;
+        }
+
+        private static float RoundedRectCoverage(float x, float y, int width, int height, CornerRadius radius)
+        {
+            float CoverageForCorner(float centerX, float centerY, float cornerRadius)
+            {
+                if (cornerRadius <= 0)
+                    return 1f;
+
+                var distance = Vector2.Distance(new Vector2(x, y), new Vector2(centerX, centerY));
+                return MathHelper.Clamp(cornerRadius + 0.5f - distance, 0, 1);
+            }
+
+            if (x < radius.TopLeft && y < radius.TopLeft)
+                return CoverageForCorner(radius.TopLeft, radius.TopLeft, radius.TopLeft);
+            if (x >= width - radius.TopRight && y < radius.TopRight)
+                return CoverageForCorner(width - radius.TopRight, radius.TopRight, radius.TopRight);
+            if (x >= width - radius.BottomRight && y >= height - radius.BottomRight)
+                return CoverageForCorner(width - radius.BottomRight, height - radius.BottomRight, radius.BottomRight);
+            if (x < radius.BottomLeft && y >= height - radius.BottomLeft)
+                return CoverageForCorner(radius.BottomLeft, height - radius.BottomLeft, radius.BottomLeft);
+
+            return 1f;
         }
 
         internal static IEnumerable<Rect> GetFillRects(Rect rect, CornerRadius radius, float overlap = 0f)
@@ -247,5 +309,13 @@ namespace MonoGame.PortableUI.Media
             CornerMasks[radius] = texture;
             return texture;
         }
+
+        private readonly record struct RoundedRectMaskKey(
+            int Width,
+            int Height,
+            int TopLeft,
+            int TopRight,
+            int BottomRight,
+            int BottomLeft);
     }
 }
