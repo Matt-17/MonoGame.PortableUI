@@ -14,6 +14,8 @@ namespace MonoGame.PortableUI.Controls
 
         // Uniform matches the WPF default; None would draw oversized sources clipped to a corner.
         public Stretch Stretch { get; set; } = Stretch.Uniform;
+
+        public SamplerState SamplerState { get; set; } = SamplerState.LinearClamp;
         
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
