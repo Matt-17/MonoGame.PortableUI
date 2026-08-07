@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -17,6 +18,14 @@ namespace MonoGame.PortableUI.Controls
         private string _text = "";
         private int _textSize;
         private Color _textColor;
+        private TextWrapping _textWrapping;
+
+        // Wrapped-line cache: wrapping measures every word, so it only recomputes when the
+        // text, the available width, or the effective font scale changes.
+        private List<string>? _wrappedLines;
+        private string? _wrapCacheText;
+        private float _wrapCacheWidth = -1f;
+        private float _wrapCacheScale = -1f;
 
         /// <summary>
         ///     Explicit SpriteFont for this block (e.g. a specific size/weight loaded via
@@ -47,6 +56,25 @@ namespace MonoGame.PortableUI.Controls
                 InvalidateLayout(false);
             }
         }
+
+        /// <summary>Wrap long text onto multiple lines. For wrapped *measurement* the block
+        /// needs a finite width (fixed <see cref="Control.Width"/> or <see cref="Control.MaxWidth"/>);
+        /// otherwise the text wraps visually to the arranged width at draw time.</summary>
+        public TextWrapping TextWrapping
+        {
+            get { return _textWrapping; }
+            set
+            {
+                if (_textWrapping == value)
+                    return;
+                _textWrapping = value;
+                _wrappedLines = null;
+                InvalidateLayout(true);
+            }
+        }
+
+        /// <summary>NoWrap only: trim overflowing text with an ellipsis instead of overdrawing.</summary>
+        public TextTrimming TextTrimming { get; set; }
 
         public Color TextColor
         {
@@ -117,6 +145,18 @@ namespace MonoGame.PortableUI.Controls
             if (IsGone)
                 return Size.Empty;
 
+            if (TextWrapping == TextWrapping.Wrap && TryGetWrapMeasureWidth(out var wrapWidth))
+            {
+                var lines = GetWrappedLines(wrapWidth);
+                float maxLineWidth = 0;
+                foreach (var line in lines)
+                    maxLineWidth = Math.Max(maxLineWidth, MeasureText(line).X);
+
+                var wrappedWidth = Width.IsFixed() ? Width : Math.Min(wrapWidth, maxLineWidth);
+                var wrappedHeight = Height.IsFixed() ? Height : lines.Count * LineHeight;
+                return ApplyConstraints(new Size(wrappedWidth, wrappedHeight)) + Margin;
+            }
+
             var measuredText = MeasureText(Text);
             var width = Width.IsFixed() ? Width : measuredText.X;
             var height = Height.IsFixed() ? Height : 0;
@@ -124,6 +164,89 @@ namespace MonoGame.PortableUI.Controls
                 height = measuredText.Y;
 
             return ApplyConstraints(new Size(width, height)) + Margin;
+        }
+
+        private bool TryGetWrapMeasureWidth(out float wrapWidth)
+        {
+            wrapWidth = Width.IsFixed() ? Width : MaxWidth.IsFixed() ? MaxWidth : float.NaN;
+            return wrapWidth.IsFixed() && wrapWidth > 0;
+        }
+
+        private float LineHeight => Font != null
+            ? Font.LineSpacing * FontScale
+            : MeasureText("Ag").Y;
+
+        private IReadOnlyList<string> GetWrappedLines(float availableWidth)
+        {
+            var scale = FontScale;
+            if (_wrappedLines != null &&
+                _wrapCacheText == _text &&
+                Math.Abs(_wrapCacheWidth - availableWidth) < 0.5f &&
+                Math.Abs(_wrapCacheScale - scale) < 0.0001f)
+            {
+                return _wrappedLines;
+            }
+
+            _wrappedLines = WrapText(_text, availableWidth);
+            _wrapCacheText = _text;
+            _wrapCacheWidth = availableWidth;
+            _wrapCacheScale = scale;
+            return _wrappedLines;
+        }
+
+        /// <summary>Greedy word wrap; explicit newlines are respected, and a single word wider
+        /// than the available width hard-breaks by characters.</summary>
+        private List<string> WrapText(string text, float maxWidth)
+        {
+            var lines = new List<string>();
+            foreach (var paragraph in text.Split('\n'))
+            {
+                if (maxWidth <= 0 || MeasureText(paragraph).X <= maxWidth)
+                {
+                    lines.Add(paragraph);
+                    continue;
+                }
+
+                var current = string.Empty;
+                foreach (var word in paragraph.Split(' '))
+                {
+                    var candidate = current.Length == 0 ? word : current + " " + word;
+                    if (MeasureText(candidate).X <= maxWidth)
+                    {
+                        current = candidate;
+                        continue;
+                    }
+
+                    if (current.Length > 0)
+                        lines.Add(current);
+
+                    current = word;
+                    while (current.Length > 1 && MeasureText(current).X > maxWidth)
+                    {
+                        var cut = current.Length - 1;
+                        while (cut > 1 && MeasureText(current[..cut]).X > maxWidth)
+                            cut--;
+                        lines.Add(current[..cut]);
+                        current = current[cut..];
+                    }
+                }
+
+                lines.Add(current);
+            }
+
+            return lines;
+        }
+
+        private string TrimWithEllipsis(string text, float maxWidth)
+        {
+            const string ellipsis = "...";
+            if (maxWidth <= 0 || MeasureText(text).X <= maxWidth)
+                return text;
+
+            var cut = text.Length;
+            while (cut > 0 && MeasureText(text[..cut] + ellipsis).X > maxWidth)
+                cut--;
+            return cut <= 0 ? ellipsis : text[..cut] + ellipsis;
         }
 
         public TextBlock()
@@ -186,33 +309,75 @@ namespace MonoGame.PortableUI.Controls
         }
 
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
-        {                    
+        {
             base.OnDraw(spriteBatch, rect);
-            var offset = rect.Offset;
-            // MeasuredText already includes FontScale; the draw scale must apply it on top of the
-            // control-transform RenderScale so glyphs render at the requested TextSize.
-            var drawScale = RenderScale * FontScale;
-            var measuredText = new Vector2(MeasuredText.X * RenderScale.X, MeasuredText.Y * RenderScale.Y);
-            offset.Y += (rect.Height - measuredText.Y) / 2;
+            if (Font == null)
+                return;
 
+            if (TextWrapping == TextWrapping.Wrap)
+            {
+                DrawWrapped(spriteBatch, rect);
+                return;
+            }
+
+            var renderText = TextTrimming == TextTrimming.Ellipsis && RenderScale.X > 0
+                ? TrimWithEllipsis(Text, rect.Width / RenderScale.X)
+                : Text;
+            var measured = ReferenceEquals(renderText, Text) || renderText == Text
+                ? MeasuredText
+                : MeasureText(renderText);
+
+            var offset = rect.Offset;
+            var measuredText = new Vector2(measured.X * RenderScale.X, measured.Y * RenderScale.Y);
+            offset.Y += (rect.Height - measuredText.Y) / 2;
+            offset.X += AlignmentOffsetX(rect.Width, measuredText.X);
+            DrawTextRun(spriteBatch, renderText, offset);
+        }
+
+        private void DrawWrapped(SpriteBatch spriteBatch, Rect rect)
+        {
+            if (RenderScale.X <= 0 || RenderScale.Y <= 0)
+                return;
+
+            var lines = GetWrappedLines(rect.Width / RenderScale.X);
+            var lineHeight = LineHeight * RenderScale.Y;
+            var totalHeight = lines.Count * lineHeight;
+            var top = rect.Top + (rect.Height - totalHeight) / 2;
+
+            foreach (var line in lines)
+            {
+                var lineWidth = MeasureText(line).X * RenderScale.X;
+                var offset = new PointF(rect.Left + AlignmentOffsetX(rect.Width, lineWidth), top);
+                DrawTextRun(spriteBatch, line, offset);
+                top += lineHeight;
+            }
+        }
+
+        private float AlignmentOffsetX(float availableWidth, float textWidth)
+        {
             switch (TextAlignment)
             {
                 case TextAlignment.Left:
-                    break;
+                    return 0;
                 case TextAlignment.Center:
-                    offset.X += (rect.Width - measuredText.X) / 2;
-                    break;
+                    return (availableWidth - textWidth) / 2;
                 case TextAlignment.Right:
-                    offset.X += rect.Width - measuredText.X;
-                    break;
+                    return availableWidth - textWidth;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
+        }
 
+        private void DrawTextRun(SpriteBatch spriteBatch, string text, PointF offset)
+        {
+            if (Font == null || text.Length == 0)
+                return;
+
+            // MeasuredText already includes FontScale; the draw scale must apply it on top of the
+            // control-transform RenderScale so glyphs render at the requested TextSize.
+            var drawScale = RenderScale * FontScale;
             if (SnapToPixel)
                 offset = offset.ToInts();
-            if (Font == null)
-                return;
 
             if (ShadowColor.A > 0)
             {
@@ -233,11 +398,11 @@ namespace MonoGame.PortableUI.Controls
                     var pos = offset + ShadowOffset * RenderScale + d;
                     if (SnapToPixel)
                         pos = pos.ToInts();
-                    spriteBatch.DrawString(Font, Text, pos, shadow, 0, Vector2.Zero, drawScale, SpriteEffects.None, 0);
+                    spriteBatch.DrawString(Font, text, pos, shadow, 0, Vector2.Zero, drawScale, SpriteEffects.None, 0);
                 }
             }
 
-            spriteBatch.DrawString(Font, Text, offset, Brush.ApplyOpacity(TextColor, RenderOpacity), 0, Vector2.Zero, drawScale, SpriteEffects.None, 0);
+            spriteBatch.DrawString(Font, text, offset, Brush.ApplyOpacity(TextColor, RenderOpacity), 0, Vector2.Zero, drawScale, SpriteEffects.None, 0);
         }
     }
 }
