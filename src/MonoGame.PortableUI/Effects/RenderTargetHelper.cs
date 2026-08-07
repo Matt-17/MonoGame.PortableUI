@@ -20,5 +20,17 @@ namespace MonoGame.PortableUI.Effects
             target = new RenderTarget2D(graphicsDevice, width, height, false, SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.PreserveContents);
             return target;
         }
+
+        /// <summary>
+        /// Snapshot of the currently bound render targets without allocating in the common case:
+        /// UI passes almost always start on the backbuffer, where <see cref="GraphicsDevice.GetRenderTargets()"/>
+        /// would still allocate an empty array every frame.
+        /// </summary>
+        public static RenderTargetBinding[] SnapshotRenderTargets(GraphicsDevice graphicsDevice)
+        {
+            return graphicsDevice.RenderTargetCount == 0
+                ? Array.Empty<RenderTargetBinding>()
+                : graphicsDevice.GetRenderTargets();
+        }
     }
 }

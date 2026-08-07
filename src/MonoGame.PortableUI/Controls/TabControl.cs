@@ -56,10 +56,14 @@ namespace MonoGame.PortableUI.Controls
                 var clamped = ClampSelectedIndex(value);
                 if (_selectedIndex == clamped)
                     return;
+                var oldIndex = _selectedIndex;
                 _selectedIndex = clamped;
                 InvalidateLayout(true);
+                SelectionChanged?.Invoke(this, new Events.SelectionChangedEventArgs(oldIndex, clamped));
             }
         }
+
+        public event System.EventHandler<Events.SelectionChangedEventArgs>? SelectionChanged;
 
         public TabItem? SelectedItem => SelectedIndex >= 0 && SelectedIndex < Items.Count ? Items[SelectedIndex] : null;
 
@@ -114,14 +118,12 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
-        protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
-        {
-            base.OnDraw(spriteBatch, rect);
-        }
-
         public override IEnumerable<Control> GetDescendants()
         {
-            EnsureHeaderButtons();
+            // Full header sync happens in UpdateLayout; only a structural mismatch (tabs added or
+            // removed without an invalidation) forces a rebuild in this per-frame path.
+            if (_headerButtons.Count != Items.Count)
+                EnsureHeaderButtons();
             foreach (var headerButton in _headerButtons)
                 yield return headerButton;
             if (SelectedItem != null)

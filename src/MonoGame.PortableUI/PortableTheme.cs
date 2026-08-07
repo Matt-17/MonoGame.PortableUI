@@ -94,7 +94,16 @@ namespace MonoGame.PortableUI
                 SliderThumbBrush = SurfaceBrush(palette),
                 SliderThumbBorderBrush = Solid(palette.Primary),
                 ProgressBarBackgroundBrush = FieldFrameBrush(palette),
-                ProgressBarFillBrush = SelectionBrush(palette)
+                ProgressBarFillBrush = SelectionBrush(palette),
+                ToggleSwitchOffTrackBrush = FieldFrameBrush(palette),
+                ToggleSwitchOnTrackBrush = SelectionBrush(palette),
+                ToggleSwitchKnobBrush = Solid(ContrastColor(palette.Selection)),
+                BadgeBackgroundBrush = Solid(palette.Danger),
+                BadgeTextColor = ContrastColor(palette.Danger),
+                DataGridHeaderBackgroundBrush = SurfaceBrush(palette),
+                DataGridHeaderTextColor = palette.TabText,
+                DataGridAlternateRowBackgroundBrush = palette.SurfaceAltBrush ?? Solid(palette.SurfaceAlt),
+                DataGridGridLinesBrush = Solid(new Color((int)palette.MutedText.R, (int)palette.MutedText.G, (int)palette.MutedText.B, 60))
             };
 
             ApplyPaletteStyles(theme, palette);
@@ -148,6 +157,13 @@ namespace MonoGame.PortableUI
         private static SolidColorBrush Solid(Color color)
         {
             return new SolidColorBrush(color);
+        }
+
+        /// <summary>Black or white, whichever reads better on the given color.</summary>
+        private static Color ContrastColor(Color background)
+        {
+            var luminance = (0.299 * background.R + 0.587 * background.G + 0.114 * background.B) / 255.0;
+            return luminance > 0.55 ? Color.Black : Color.White;
         }
 
         internal static PortableTheme ResolveCurrent()
@@ -273,5 +289,17 @@ namespace MonoGame.PortableUI
         public float ProgressBarWidth { get; set; } = 160;
         public Brush ProgressBarBackgroundBrush { get; set; } = new SolidColorBrush(new Color(225, 230, 235));
         public Brush ProgressBarFillBrush { get; set; } = new SolidColorBrush(new Color(20, 126, 133));
+
+        public Brush ToggleSwitchOffTrackBrush { get; set; } = new SolidColorBrush(new Color(255, 255, 255, 60));
+        public Brush ToggleSwitchOnTrackBrush { get; set; } = new SolidColorBrush(new Color(96, 226, 219));
+        public Brush ToggleSwitchKnobBrush { get; set; } = new SolidColorBrush(Color.White);
+
+        public Brush BadgeBackgroundBrush { get; set; } = new SolidColorBrush(new Color(230, 80, 80));
+        public Color BadgeTextColor { get; set; } = Color.White;
+
+        public Brush DataGridHeaderBackgroundBrush { get; set; } = new SolidColorBrush(Color.Silver);
+        public Color DataGridHeaderTextColor { get; set; } = Color.Black;
+        public Brush DataGridAlternateRowBackgroundBrush { get; set; } = new SolidColorBrush(Color.White);
+        public Brush DataGridGridLinesBrush { get; set; } = new SolidColorBrush(new Color(0, 0, 0, 28));
     }
 }

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Input.Touch;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls.Input;
@@ -11,5 +12,6 @@ namespace MonoGame.PortableUI.Input
         IReadOnlyCollection<MouseButton> PressedMouseButtons { get; }
         int ScrollWheelValue { get; }
         TouchCollection Touches { get; }
+        KeyboardState KeyboardState { get; }
     }
 }

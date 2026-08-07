@@ -4,9 +4,19 @@ using MonoGame.PortableUI.Controls.Events;
 
 namespace MonoGame.PortableUI.Controls
 {
+    /// <summary>How a <see cref="FlyOut"/>'s content relates to its anchor point.</summary>
+    public enum FlyOutPlacement
+    {
+        /// <summary>The content's bottom-left corner sits at the anchor (opens upward).</summary>
+        Above,
+        /// <summary>The content's top-left corner sits at the anchor (opens downward, e.g. dropdowns).</summary>
+        Below
+    }
+
     public class FlyOut : ContentControl, IDisposable
     {
         private readonly PointF _position;
+        private readonly FlyOutPlacement _placement;
         private bool _isOpen;
 
         // Popup content (dropdown lists, menus) must never draw outside the flyout bounds.
@@ -17,9 +27,10 @@ namespace MonoGame.PortableUI.Controls
         public event EventHandler? Dismissing;
         public event EventHandler? Dismissed;
 
-        public FlyOut(PointF position, bool removeOnRelease)
+        public FlyOut(PointF position, bool removeOnRelease, FlyOutPlacement placement = FlyOutPlacement.Above)
         {
             _position = position;
+            _placement = placement;
             MouseEventHandler onMouseDown = (sender, args) => Screen?.ClearFlyOut();
             TouchEventHandler onTouchDown = (sender, args) => Screen?.ClearFlyOut();
             if (removeOnRelease)
@@ -39,7 +50,8 @@ namespace MonoGame.PortableUI.Controls
             base.UpdateLayout(rect);
             var size = Content?.MeasureLayout() ?? Size.Empty;
             var pos = new Rect(_position, size);
-            pos.Top -= size.Height;
+            if (_placement == FlyOutPlacement.Above)
+                pos.Top -= size.Height;
             pos = Screen.ClampPopupRect(pos, Screen?.ScreenRect ?? rect, 0);
             Content?.UpdateLayout(pos);
         }

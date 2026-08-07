@@ -151,6 +151,7 @@ namespace MonoGame.PortableUI.Tests
             listBox.ItemInvoked += (sender, args) => invoked = args;
             screen.Content = listBox;
             screen.InvalidateLayout(true);
+            screen.PerformLayoutIfDirty();
 
             listBox.ItemButtons[0].OnMouseDown(new MouseEventArgs(new PointF(10, 14), MouseButton.Left));
             Assert.AreSame(listBox, screen.CapturedMouseControl);
@@ -183,6 +184,7 @@ namespace MonoGame.PortableUI.Tests
             listBox.ItemInvoked += (sender, args) => invoked = args;
             screen.Content = listBox;
             screen.InvalidateLayout(true);
+            screen.PerformLayoutIfDirty();
 
             listBox.ItemButtons[1].OnMouseDown(new MouseEventArgs(new PointF(10, 42), MouseButton.Left));
             Assert.IsTrue(screen.RouteCapturedMouseUp(new PointF(10, 42), MouseButton.Left));

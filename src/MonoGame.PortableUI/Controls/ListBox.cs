@@ -89,9 +89,10 @@ namespace MonoGame.PortableUI.Controls
                 if (_selectedIndex == clamped)
                     return;
 
+                var oldIndex = _selectedIndex;
                 _selectedIndex = clamped;
                 UpdateItemButtonVisuals();
-                SelectionChanged?.Invoke(this, EventArgs.Empty);
+                SelectionChanged?.Invoke(this, new SelectionChangedEventArgs(oldIndex, clamped));
             }
         }
 
@@ -170,7 +171,7 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
-        public event EventHandler? SelectionChanged;
+        public event EventHandler<SelectionChangedEventArgs>? SelectionChanged;
         public event EventHandler<ListBoxItemInvokedEventArgs>? ItemInvoked;
 
         /// <summary>Scrolls the selected item into view (call after the list has been laid out).</summary>
@@ -210,8 +211,20 @@ namespace MonoGame.PortableUI.Controls
 
         public override IEnumerable<Control> GetDescendants()
         {
-            EnsureItemButtons();
+            // GetDescendants runs several times per frame (draw + input walks); the full item sync
+            // belongs to the layout pass. Only a structural mismatch (items added/removed without
+            // an invalidation) forces a rebuild here. In-place item edits need Refresh().
+            if (_itemButtons.Count != Items.Count)
+                EnsureItemButtons();
             yield return _scrollViewer;
+        }
+
+        /// <summary>Re-syncs the item buttons after mutating <see cref="Items"/> in place
+        /// (adding/removing items is picked up automatically on the next layout pass).</summary>
+        public void Refresh()
+        {
+            EnsureItemButtons();
+            InvalidateLayout(true);
         }
 
         internal IReadOnlyList<Button> ItemButtons
@@ -250,8 +263,9 @@ namespace MonoGame.PortableUI.Controls
             var clamped = ClampIndex(_selectedIndex);
             if (_selectedIndex != clamped)
             {
+                var oldIndex = _selectedIndex;
                 _selectedIndex = clamped;
-                SelectionChanged?.Invoke(this, EventArgs.Empty);
+                SelectionChanged?.Invoke(this, new SelectionChangedEventArgs(oldIndex, clamped));
             }
 
             for (var i = 0; i < _itemButtons.Count; i++)
@@ -399,7 +413,7 @@ namespace MonoGame.PortableUI.Controls
             EnsureItemButtons();
             for (var i = 0; i < _itemButtons.Count; i++)
             {
-                if (!_itemButtons[i].BoundingRect.Contains(position))
+                if (!_itemButtons[i].ClippingRect.Contains(position))
                     continue;
 
                 index = i;
@@ -422,7 +436,7 @@ namespace MonoGame.PortableUI.Controls
             var args = new MouseEventArgs(position, buttons);
             foreach (var button in _itemButtons)
             {
-                var containsPosition = button.BoundingRect.Contains(position);
+                var containsPosition = button.ClippingRect.Contains(position);
                 if (containsPosition && !button.IsMouseHovering)
                     button.OnMouseEnter(args);
                 else if (!containsPosition && button.IsMouseHovering)

@@ -27,6 +27,7 @@ namespace MonoGame.PortableUI.Controls
             TextColor = theme.CheckBoxTextColor;
             ShowFocusVisual = true;
             Click += CheckBoxClick;
+            KeyPressed += ActivateOnKeyPressed;
         }
 
         protected override void OnThemeChanged(PortableTheme oldTheme, PortableTheme newTheme)
@@ -104,6 +105,9 @@ namespace MonoGame.PortableUI.Controls
         public float BoxSize { get; set; }
         public float BoxSpacing { get; set; }
         public float BoxBorderWidth { get; set; }
+
+        /// <summary>Corner radius of the check box chrome (0 = square, matching earlier versions).</summary>
+        public CornerRadius BoxCornerRadius { get; set; }
         public Brush? BoxBackgroundBrush { get; set; }
         public Brush? BoxBorderBrush { get; set; }
         public Brush? CheckMarkBrush { get; set; }
@@ -155,13 +159,23 @@ namespace MonoGame.PortableUI.Controls
             base.OnDraw(spriteBatch, rect);
 
             var box = GetBoxRect(rect - Padding);
-            BoxBackgroundBrush?.Draw(spriteBatch, box);
+            if (BoxCornerRadius.IsEmpty)
+                BoxBackgroundBrush?.Draw(spriteBatch, box);
+            else
+                BoxBackgroundBrush?.Draw(spriteBatch, new BrushContext(box, BoxCornerRadius, RenderOpacity, spriteBatch.GraphicsDevice));
 
             if (IsChecked && CheckMarkBrush != null)
                 DrawCheckMark(spriteBatch, box, BoxBorderWidth, CheckMarkBrush, GlyphKind);
 
             if (BoxBorderBrush != null && BoxBorderWidth > 0)
-                DrawBorder(spriteBatch, box, BoxBorderWidth, BoxBorderBrush);
+            {
+                // Same convention as Control's chrome: rounded borders need a solid color; other
+                // brushes fall back to the square border.
+                if (!BoxCornerRadius.IsEmpty && BoxBorderBrush is SolidColorBrush solidBorder)
+                    RoundedRectRenderer.DrawBorder(spriteBatch, box, BoxCornerRadius, new Thickness(BoxBorderWidth), Brush.ApplyOpacity(solidBorder.Color, RenderOpacity));
+                else
+                    BorderRenderer.Draw(spriteBatch, box, BoxBorderWidth, BoxBorderBrush);
+            }
         }
 
         internal override void ChangeVisualState()
@@ -188,14 +202,6 @@ namespace MonoGame.PortableUI.Controls
                 contentRect.Top + Math.Max(0, (contentRect.Height - BoxSize) / 2),
                 BoxSize,
                 BoxSize);
-        }
-
-        private static void DrawBorder(SpriteBatch spriteBatch, Rect rect, float width, Brush brush)
-        {
-            brush.Draw(spriteBatch, new Rect(rect.Left, rect.Top, rect.Width, width));
-            brush.Draw(spriteBatch, new Rect(rect.Left, rect.Top, width, rect.Height));
-            brush.Draw(spriteBatch, new Rect(rect.Right - width, rect.Top, width, rect.Height));
-            brush.Draw(spriteBatch, new Rect(rect.Left, rect.Bottom - width, rect.Width, width));
         }
 
         private static void DrawCheckMark(SpriteBatch spriteBatch, Rect rect, float borderWidth, Brush brush, CheckBoxGlyphKind glyphKind)

@@ -76,6 +76,14 @@ namespace MonoGame.PortableUI.Controls
 
         private void ToggleButton_Click(object? sender, System.EventArgs e)
         {
+            OnToggleClick();
+        }
+
+        /// <summary>Applies a click to the toggle state. RadioButton overrides this so a click
+        /// on the already-selected button does not uncheck it (which would fire spurious
+        /// Checked(false)/Checked(true) events while the group re-checks it).</summary>
+        protected virtual void OnToggleClick()
+        {
             IsChecked = !IsChecked;
         }
 
