@@ -127,6 +127,7 @@ namespace MonoGame.PortableUI.Controls
         {
             var theme = PortableTheme.ResolveCurrent();
 
+            IsFocusable = true; // TextBlock disables this; text input needs focus back
             TextColor = theme.TextBoxTextColor;
             CursorColor = theme.TextBoxCursorBrush;
             SelectionBrush = theme.TextBoxSelectionBrush;
@@ -243,7 +244,8 @@ namespace MonoGame.PortableUI.Controls
             var width = Width.IsFixed() ? Width : measuredWidth + Padding.Horizontal;
             var height = Height.IsFixed() ? Height : measuredHeight + Padding.Vertical;
 
-            return ApplyConstraints(new Size(width, height) + Margin);
+            // Min/Max constrain the content box only; margin is added afterwards (same as Control).
+            return ApplyConstraints(new Size(width, height)) + Margin;
         }
 
         public override void UpdateLayout(Rect rect)
@@ -646,7 +648,7 @@ namespace MonoGame.PortableUI.Controls
                 if (rangeStart >= rangeEnd)
                     continue;
 
-                var top = GetLineTop(textRect, lineHeight, lines.Count, i);
+                var top = GetLineTop(textRect, lineHeight, i);
                 if (!IsLineVisible(textRect, top, lineHeight))
                     continue;
 
@@ -677,7 +679,7 @@ namespace MonoGame.PortableUI.Controls
             for (var i = 0; i < lines.Count; i++)
             {
                 var line = lines[i];
-                var lineTop = GetLineTop(textRect, lineHeight, lines.Count, i);
+                var lineTop = GetLineTop(textRect, lineHeight, i);
                 if (!IsLineVisible(textRect, lineTop, lineHeight))
                     continue;
 
@@ -715,7 +717,7 @@ namespace MonoGame.PortableUI.Controls
             var lineIndex = GetLineIndexFromPosition(CursorPosition, lines);
             var line = lines[lineIndex];
             var lineHeight = GetLineHeight();
-            var top = GetLineTop(textRect, lineHeight, lines.Count, lineIndex);
+            var top = GetLineTop(textRect, lineHeight, lineIndex);
             if (!IsLineVisible(textRect, top, lineHeight))
                 return Rect.Empty;
 
@@ -726,7 +728,7 @@ namespace MonoGame.PortableUI.Controls
             return new Rect(x, top, 1, lineHeight);
         }
 
-        private float GetTextTop(Rect textRect, float lineHeight, int lineCount)
+        private float GetTextTop(Rect textRect, float lineHeight)
         {
             if (IsMultiline)
                 return textRect.Top;
@@ -734,9 +736,9 @@ namespace MonoGame.PortableUI.Controls
             return textRect.Top + (textRect.Height - lineHeight) / 2;
         }
 
-        private float GetLineTop(Rect textRect, float lineHeight, int lineCount, int lineIndex)
+        private float GetLineTop(Rect textRect, float lineHeight, int lineIndex)
         {
-            var top = GetTextTop(textRect, lineHeight, lineCount) + lineIndex * lineHeight;
+            var top = GetTextTop(textRect, lineHeight) + lineIndex * lineHeight;
             return IsMultiline ? top - _verticalScrollOffset : top;
         }
 

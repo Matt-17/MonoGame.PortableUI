@@ -31,6 +31,10 @@ namespace MonoGame.PortableUI.Controls
             MouseDown += SliderMouseDown;
             MouseMove += SliderMouseMove;
             MouseUp += SliderMouseUp;
+            TouchDown += SliderTouchDown;
+            TouchMove += SliderTouchMove;
+            TouchUp += SliderTouchUp;
+            TouchCancel += SliderTouchCancel;
             KeyPressed += SliderKeyPressed;
         }
 
@@ -129,23 +133,46 @@ namespace MonoGame.PortableUI.Controls
 
             var width = Width.IsFixed() ? Width : PortableTheme.ResolveCurrent().SliderWidth;
             var height = Height.IsFixed() ? Height : PortableTheme.ResolveCurrent().SliderHeight;
-            return ApplyConstraints(new Size(width, height) + Margin);
+            // Min/Max constrain the content box only; margin is added afterwards (same as Control).
+            return ApplyConstraints(new Size(width, height)) + Margin;
         }
+
+        /// <summary>Corner radius of track and fill (0 = square, matching earlier versions).</summary>
+        public CornerRadius TrackCornerRadius { get; set; }
+
+        /// <summary>Corner radius of the thumb (0 = square; ThumbSize/2 yields a circle).</summary>
+        public CornerRadius ThumbCornerRadius { get; set; }
 
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
             base.OnDraw(spriteBatch, rect);
             var track = GetTrackRect(rect);
-            TrackBrush.Draw(spriteBatch, track, RenderOpacity);
+            DrawChrome(spriteBatch, TrackBrush, track, TrackCornerRadius);
 
             var fill = track;
             fill.Width = Math.Max(0, GetThumbCenterX(rect) - track.Left);
-            FillBrush.Draw(spriteBatch, fill, RenderOpacity);
+            DrawChrome(spriteBatch, FillBrush, fill, TrackCornerRadius);
 
             var thumb = GetThumbRect(rect);
-            ThumbBrush.Draw(spriteBatch, thumb, RenderOpacity);
+            DrawChrome(spriteBatch, ThumbBrush, thumb, ThumbCornerRadius);
             if (ThumbBorderBrush != null && ThumbBorderWidth > 0)
-                DrawBorder(spriteBatch, thumb, ThumbBorderWidth, ThumbBorderBrush, RenderOpacity);
+            {
+                if (!ThumbCornerRadius.IsEmpty && ThumbBorderBrush is SolidColorBrush solidBorder)
+                    RoundedRectRenderer.DrawBorder(spriteBatch, thumb, ThumbCornerRadius, new Thickness(ThumbBorderWidth), Brush.ApplyOpacity(solidBorder.Color, RenderOpacity));
+                else
+                    BorderRenderer.Draw(spriteBatch, thumb, ThumbBorderWidth, ThumbBorderBrush, RenderOpacity);
+            }
+        }
+
+        private void DrawChrome(SpriteBatch spriteBatch, Brush brush, Rect rect, CornerRadius radius)
+        {
+            if (rect.Width <= 0 || rect.Height <= 0)
+                return;
+
+            if (radius.IsEmpty)
+                brush.Draw(spriteBatch, rect, RenderOpacity);
+            else
+                brush.Draw(spriteBatch, new BrushContext(rect, radius, RenderOpacity, spriteBatch.GraphicsDevice));
         }
 
         internal Rect GetTrackRect(Rect rect)
@@ -204,6 +231,39 @@ namespace MonoGame.PortableUI.Controls
             args.Handled = true;
         }
 
+        private void SliderTouchDown(object? sender, TouchEventArgs args)
+        {
+            _isDragging = true;
+            SetValueFromPosition(args.Position);
+            args.Handled = true;
+        }
+
+        private void SliderTouchMove(object? sender, TouchEventArgs args)
+        {
+            if (!_isDragging)
+                return;
+
+            SetValueFromPosition(args.Position);
+            args.Handled = true;
+        }
+
+        private void SliderTouchUp(object? sender, TouchEventArgs args)
+        {
+            if (!_isDragging)
+                return;
+
+            SetValueFromPosition(args.Position);
+            StopDragging();
+            args.Handled = true;
+        }
+
+        private void SliderTouchCancel(object? sender, TouchEventArgs args)
+        {
+            // Touch has no capture: the finger drifting off the control ends the drag.
+            if (_isDragging)
+                StopDragging();
+        }
+
         private void SliderKeyPressed(object? sender, KeyEventArgs args)
         {
             if (args.InputType != InputType.Command)
@@ -253,14 +313,6 @@ namespace MonoGame.PortableUI.Controls
         {
             _isDragging = false;
             Screen?.ReleaseMouse(this);
-        }
-
-        private static void DrawBorder(SpriteBatch spriteBatch, Rect rect, float width, Brush brush, float opacity)
-        {
-            brush.Draw(spriteBatch, new Rect(rect.Left, rect.Top, rect.Width, width), opacity);
-            brush.Draw(spriteBatch, new Rect(rect.Left, rect.Top, width, rect.Height), opacity);
-            brush.Draw(spriteBatch, new Rect(rect.Right - width, rect.Top, width, rect.Height), opacity);
-            brush.Draw(spriteBatch, new Rect(rect.Left, rect.Bottom - width, rect.Width, width), opacity);
         }
     }
 }

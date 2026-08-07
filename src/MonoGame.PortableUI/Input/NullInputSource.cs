@@ -22,5 +22,7 @@ namespace MonoGame.PortableUI.Input
         public int ScrollWheelValue => 0;
 
         public TouchCollection Touches => default(TouchCollection);
+
+        public Microsoft.Xna.Framework.Input.KeyboardState KeyboardState => default(Microsoft.Xna.Framework.Input.KeyboardState);
     }
 }

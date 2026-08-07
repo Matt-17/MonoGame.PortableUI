@@ -109,15 +109,16 @@ namespace MonoGame.PortableUI.Controls
                 var clamped = ClampIndex(value);
                 if (_selectedIndex == clamped)
                     return;
+                var oldIndex = _selectedIndex;
                 _selectedIndex = clamped;
                 Text = SelectedItem?.ToString() ?? "";
-                SelectionChanged?.Invoke(this, EventArgs.Empty);
+                SelectionChanged?.Invoke(this, new SelectionChangedEventArgs(oldIndex, clamped));
             }
         }
 
         public object? SelectedItem => SelectedIndex >= 0 && SelectedIndex < Items.Count ? Items[SelectedIndex] : null;
 
-        public event EventHandler? SelectionChanged;
+        public event EventHandler<SelectionChangedEventArgs>? SelectionChanged;
 
         private void ComboBoxClick(object? sender, EventArgs e)
         {
@@ -132,7 +133,8 @@ namespace MonoGame.PortableUI.Controls
             listBox.Height = targetHeight;
 
             var bounds = BoundingRect - Margin;
-            Screen.ShowFlyOut(new PointF(bounds.Left, bounds.Bottom + targetHeight), listBox, false, this);
+            // Dropdown opens below the box: anchor its top-left to the box's bottom-left.
+            Screen.ShowFlyOut(new PointF(bounds.Left, bounds.Bottom), listBox, false, this, FlyOutPlacement.Below);
             listBox.ScrollSelectedIntoView();
         }
 

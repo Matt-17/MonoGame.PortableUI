@@ -154,7 +154,10 @@ namespace MonoGame.PortableUI.Common
 
         public bool Contains(PointF position)
         {
-            return position.X > Left && position.Y > Top && position.X <= Left + Width && position.Y <= Top + Height;
+            // Inclusive left/top, exclusive right/bottom (the standard convention): a point on the
+            // shared edge of two adjacent controls hits exactly one of them, and a control's own
+            // origin point counts as inside.
+            return position.X >= Left && position.Y >= Top && position.X < Left + Width && position.Y < Top + Height;
         }
     }
 }

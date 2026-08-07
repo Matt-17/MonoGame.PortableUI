@@ -17,10 +17,13 @@ namespace MonoGame.PortableUI.Controls
         private int _count;
         private bool _dot;
         private bool _showZero;
-        private Color _badgeColor = new Color(230, 80, 80);
+        private Color _badgeColor;
 
         public Badge()
         {
+            var theme = PortableTheme.ResolveCurrent();
+
+            IsFocusable = false;
             // Fully rounded: the renderer clamps the radius to min(w,h)/2, so this yields a pill.
             CornerRadius = 999;
             Padding = new Thickness(6, 1);
@@ -28,12 +31,14 @@ namespace MonoGame.PortableUI.Controls
             MinHeight = 20;
             HorizontalAlignment = HorizontalAlignment.Center;
             VerticalAlignment = VerticalAlignment.Center;
-            BackgroundBrush = new SolidColorBrush(_badgeColor);
+            BackgroundBrush = theme.BadgeBackgroundBrush;
+            if (theme.BadgeBackgroundBrush is SolidColorBrush solid)
+                _badgeColor = solid.Color;
 
             _label = new TextBlock
             {
                 Text = "0",
-                TextColor = Color.White,
+                TextColor = theme.BadgeTextColor,
                 TextSize = 12,
                 TextAlignment = TextAlignment.Center,
                 HorizontalAlignment = HorizontalAlignment.Center,
@@ -41,6 +46,20 @@ namespace MonoGame.PortableUI.Controls
             };
             Content = _label;
             UpdateVisibility();
+        }
+
+        protected override void OnThemeChanged(PortableTheme oldTheme, PortableTheme newTheme)
+        {
+            base.OnThemeChanged(oldTheme, newTheme);
+
+            if (ReferenceEquals(BackgroundBrush, oldTheme.BadgeBackgroundBrush))
+            {
+                BackgroundBrush = newTheme.BadgeBackgroundBrush;
+                if (newTheme.BadgeBackgroundBrush is SolidColorBrush solid)
+                    _badgeColor = solid.Color;
+            }
+            if (_label.TextColor.Equals(oldTheme.BadgeTextColor))
+                _label.TextColor = newTheme.BadgeTextColor;
         }
 
         /// <summary>The number shown in the badge. 0 hides it (unless <see cref="ShowZero"/>).</summary>

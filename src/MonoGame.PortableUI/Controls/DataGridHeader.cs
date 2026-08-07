@@ -35,6 +35,10 @@ namespace MonoGame.PortableUI.Controls
             MouseDown += HeaderMouseDown;
             MouseMove += HeaderMouseMove;
             MouseUp += HeaderMouseUp;
+            TouchDown += HeaderTouchDown;
+            TouchMove += HeaderTouchMove;
+            TouchUp += HeaderTouchUp;
+            TouchCancel += HeaderTouchCancel;
         }
 
         public void RebuildLabels()
@@ -148,54 +152,99 @@ namespace MonoGame.PortableUI.Controls
             if (!args.Buttons.Contains(MouseButton.Left))
                 return;
 
-            var localX = args.Position.X - BoundingRect.Left;
-
-            if (TryGetResizeColumn(localX, out var resizeIndex))
-            {
-                _resizeColumnIndex = resizeIndex;
-                _resizeStartX = args.Position.X;
-                _resizeStartWidth = _owner.Columns[resizeIndex].ActualWidth;
-                CaptureMouse();
-                args.Handled = true;
-                return;
-            }
-
-            _pressColumnIndex = ColumnAtX(localX);
+            BeginHeaderPress(args.Position.X, captureMouse: true);
             args.Handled = true;
         }
 
         private void HeaderMouseMove(object? sender, MouseEventArgs args)
         {
-            if (_resizeColumnIndex < 0)
+            if (!MoveHeaderResize(args.Position.X))
                 return;
-
-            var delta = args.Position.X - _resizeStartX;
-            var column = _owner.Columns[_resizeColumnIndex];
-            column.ResizeOverride = Math.Max(column.MinWidth, _resizeStartWidth + delta);
-            _owner.InvalidateLayout(true);
             args.Handled = true;
         }
 
         private void HeaderMouseUp(object? sender, MouseEventArgs args)
         {
+            EndHeaderPress(args.Position.X, releaseMouse: true);
+            args.Handled = true;
+        }
+
+        private void HeaderTouchDown(object? sender, TouchEventArgs args)
+        {
+            BeginHeaderPress(args.Position.X, captureMouse: false);
+            args.Handled = true;
+        }
+
+        private void HeaderTouchMove(object? sender, TouchEventArgs args)
+        {
+            if (!MoveHeaderResize(args.Position.X))
+                return;
+            args.Handled = true;
+        }
+
+        private void HeaderTouchUp(object? sender, TouchEventArgs args)
+        {
+            EndHeaderPress(args.Position.X, releaseMouse: false);
+            args.Handled = true;
+        }
+
+        private void HeaderTouchCancel(object? sender, TouchEventArgs args)
+        {
+            // Touch has no capture: leaving the header row abandons a pending sort but keeps a
+            // running resize alive only while the finger is inside; end it at the last position.
+            if (_resizeColumnIndex >= 0)
+                _resizeColumnIndex = -1;
+            _pressColumnIndex = -1;
+        }
+
+        private void BeginHeaderPress(float positionX, bool captureMouse)
+        {
+            var localX = positionX - BoundingRect.Left;
+
+            if (TryGetResizeColumn(localX, out var resizeIndex))
+            {
+                _resizeColumnIndex = resizeIndex;
+                _resizeStartX = positionX;
+                _resizeStartWidth = _owner.Columns[resizeIndex].ActualWidth;
+                if (captureMouse)
+                    CaptureMouse();
+                return;
+            }
+
+            _pressColumnIndex = ColumnAtX(localX);
+        }
+
+        private bool MoveHeaderResize(float positionX)
+        {
+            if (_resizeColumnIndex < 0)
+                return false;
+
+            var delta = positionX - _resizeStartX;
+            var column = _owner.Columns[_resizeColumnIndex];
+            column.ResizeOverride = Math.Max(column.MinWidth, _resizeStartWidth + delta);
+            _owner.InvalidateLayout(true);
+            return true;
+        }
+
+        private void EndHeaderPress(float positionX, bool releaseMouse)
+        {
             if (_resizeColumnIndex >= 0)
             {
                 _resizeColumnIndex = -1;
-                ReleaseMouse();
-                args.Handled = true;
+                if (releaseMouse)
+                    ReleaseMouse();
                 return;
             }
 
             if (_pressColumnIndex >= 0)
             {
-                var localX = args.Position.X - BoundingRect.Left;
+                var localX = positionX - BoundingRect.Left;
                 var releaseColumn = ColumnAtX(localX);
                 if (releaseColumn == _pressColumnIndex && releaseColumn >= 0 && releaseColumn < _owner.Columns.Count)
                     _owner.SortByColumn(_owner.Columns[releaseColumn]);
             }
 
             _pressColumnIndex = -1;
-            args.Handled = true;
         }
 
         private bool TryGetResizeColumn(float localX, out int columnIndex)

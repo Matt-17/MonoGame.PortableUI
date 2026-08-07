@@ -14,6 +14,7 @@ namespace MonoGame.PortableUI.Controls
         {
             var theme = PortableTheme.ResolveCurrent();
 
+            IsFocusable = false;
             Foreground = theme.ProgressIndicatorForeground;
             Height = theme.ProgressIndicatorHeight;
             MinSize = 6;

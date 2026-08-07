@@ -8,6 +8,11 @@ namespace MonoGame.PortableUI.Controls
 {
     public class Image : Control
     {
+        public Image()
+        {
+            IsFocusable = false;
+        }
+
         public Texture2D? Source { get; set; }
 
         public Color TintColor { get; set; }
@@ -58,29 +63,29 @@ namespace MonoGame.PortableUI.Controls
 
         public override Size MeasureLayout()
         {
-            var size = base.MeasureLayout();
+            if (IsGone)
+                return Size.Empty;
 
-            if (size.Height != 0 && size.Width != 0)
-                return ApplyConstraints(size);
+            // Margin must stay out of the size the source image is fitted into, and constraints
+            // apply to the content box only (same order as Control.MeasureLayout).
+            var size = new Size(Width.IsFixed() ? Width : 0, Height.IsFixed() ? Height : 0);
 
-            if (Source == null)
-                return ApplyConstraints(size);
+            if (Source != null && (size.Width == 0 || size.Height == 0))
+            {
+                if (size.Height == 0)
+                    size.Height = Source.Height;
+                if (size.Width == 0)
+                    size.Width = Source.Width;
 
-            if (size.Height == 0)
-                size.Height = Source.Height;
+                size = GetImageSize(size);
 
-            if (size.Width == 0)
-                size.Width = Source.Width;
+                if (Height.IsFixed())
+                    size.Height = Height;
+                if (Width.IsFixed())
+                    size.Width = Width;
+            }
 
-            size = GetImageSize(size);
-
-            if (Height.IsFixed())
-                size.Height = Height;
-
-            if (Width.IsFixed())
-                size.Width = Width;
-
-            return ApplyConstraints(size);
+            return ApplyConstraints(size) + Margin;
         }
 
         private Size GetImageSize(Size size)

@@ -199,6 +199,7 @@ namespace MonoGame.PortableUI.Tests
                 listBox.Items.Add($"Item {i}");
             screen.Content = listBox;
             screen.InvalidateLayout(true);
+            screen.PerformLayoutIfDirty();
             var scrollViewer = listBox.GetDescendants().OfType<ScrollViewer>().Single();
 
             RouteMouseDown(listBox, new PointF(98, 16));

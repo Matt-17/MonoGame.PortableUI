@@ -51,7 +51,17 @@ namespace MonoGame.PortableUI
         private ContextMenu? _dismissingContextMenu;
         private FlyOutAnimationStyle _activeFlyOutAnimationStyle = FlyOutAnimationStyle.Popup;
         private Control? _capturedMouseControl;
-        private Keys[] _lastPressedKeys = Array.Empty<Keys>();
+        private Keys[] _pressedKeysBuffer = Array.Empty<Keys>();
+        private Keys[] _lastPressedKeysBuffer = Array.Empty<Keys>();
+        private int _lastPressedKeyCount;
+        private readonly Func<Control, MouseEventArgs, bool> _mouseEnterPredicate;
+        private readonly Func<Control, MouseEventArgs, bool> _mouseMovePredicate;
+        private readonly Func<Control, MouseEventArgs, bool> _mouseLeavePredicate;
+        private readonly Func<Control, MouseEventArgs, bool> _hitTestPredicate;
+        private readonly Func<Control, MouseEventArgs, bool> _lastPositionPredicate;
+        private static readonly Action<Control, MouseEventArgs> MouseEnterAction = (c, a) => c.OnMouseEnter(a);
+        private static readonly Action<Control, MouseEventArgs> MouseMoveAction = (c, a) => c.OnMouseMove(a);
+        private static readonly Action<Control, MouseEventArgs> MouseLeaveAction = (c, a) => c.OnMouseLeave(a);
         private bool _inIslandPostFx;
         private long _appliedThemeVersion = -1;
         // Rebuilt every Draw; Update reads the previous frame's entries for pointer inverse mapping.
@@ -70,6 +80,14 @@ namespace MonoGame.PortableUI
                 }
             };
             _mainGrid.Parent = this;
+
+            // Cached once: these read LastMousePosition through `this`, so inline lambdas would
+            // allocate a fresh closure on every mouse-move frame.
+            _mouseEnterPredicate = (c, a) => c.ClippingRect.Contains(a.Position) && !c.ClippingRect.Contains(LastMousePosition);
+            _mouseMovePredicate = (c, a) => c.ClippingRect.Contains(a.Position) && c.ClippingRect.Contains(LastMousePosition);
+            _mouseLeavePredicate = (c, a) => !c.ClippingRect.Contains(a.Position) && c.ClippingRect.Contains(LastMousePosition);
+            _hitTestPredicate = (c, a) => c.ClippingRect.Contains(a.Position);
+            _lastPositionPredicate = (c, a) => c.ClippingRect.Contains(LastMousePosition);
         }
 
         public bool Initialized { get; set; }
@@ -126,8 +144,28 @@ namespace MonoGame.PortableUI
         }
 
 
+        private bool _layoutDirty;
+
+        /// <summary>Marks the tree dirty; the actual measure/arrange runs once per frame in
+        /// <see cref="PerformLayoutIfDirty"/> (start of Update, safety flush in Draw). Every
+        /// property setter bubbles here, so deferring is what coalesces N invalidations per frame
+        /// into a single full-tree pass.</summary>
         public override void InvalidateLayout(bool boundsChanged)
         {
+            _layoutDirty = true;
+        }
+
+        /// <summary>Runs the deferred layout pass if anything invalidated since the last one.
+        /// Call this when fresh <see cref="Control.BoundingRect"/>s are needed synchronously
+        /// (e.g. in tests that route input right after building a tree).</summary>
+        public void PerformLayoutIfDirty()
+        {
+            if (!_layoutDirty)
+                return;
+
+            // Cleared before the pass: a legitimate mid-layout invalidation re-marks the tree
+            // and gets picked up on the next frame instead of being lost.
+            _layoutDirty = false;
             ScreenEngine?.RecordLayoutPass();
             _mainGrid?.UpdateLayout(ScreenRect);
         }
@@ -139,6 +177,9 @@ namespace MonoGame.PortableUI
 
         internal void Draw(SpriteBatch spriteBatch)
         {
+            // Safety flush: timers/animations in Update may have invalidated after the layout pass.
+            PerformLayoutIfDirty();
+
             var device = spriteBatch.GraphicsDevice;
             var engine = ScreenEngine;
             var theme = engine?.Options.Theme;
@@ -158,7 +199,7 @@ namespace MonoGame.PortableUI
             RenderTarget2D? uiTarget = null;
             if (usePostFx)
             {
-                previousTargets = device.GetRenderTargets();
+                previousTargets = RenderTargetHelper.SnapshotRenderTargets(device);
                 uiTarget = engine!.PostProcess.EnsureUiTarget((int)Math.Ceiling(ScreenRect.Width), (int)Math.Ceiling(ScreenRect.Height));
                 device.SetRenderTarget(uiTarget);
                 device.Clear(Color.Transparent);
@@ -223,7 +264,7 @@ namespace MonoGame.PortableUI
 
             var backdrop = engine.Backdrop;
             backdrop.BeginFrame();
-            var previousTargets = device.GetRenderTargets();
+            var previousTargets = RenderTargetHelper.SnapshotRenderTargets(device);
             var scene = backdrop.EnsureSceneTarget((int)Math.Ceiling(ScreenRect.Width), (int)Math.Ceiling(ScreenRect.Height));
             device.SetRenderTarget(scene);
             device.Clear(Color.Transparent);
@@ -329,10 +370,10 @@ namespace MonoGame.PortableUI
             content.OnOpened();
         }
 
-        internal void ShowFlyOut(PointF position, Control content, bool removeOnRelease, Control? owner = null)
+        internal void ShowFlyOut(PointF position, Control content, bool removeOnRelease, Control? owner = null, FlyOutPlacement placement = FlyOutPlacement.Above)
         {
             ClearToolTip();
-            FlyOut = new FlyOut(position, removeOnRelease)
+            FlyOut = new FlyOut(position, removeOnRelease, placement)
             {
                 Content = content,
                 ThemeOwner = owner
@@ -479,11 +520,15 @@ namespace MonoGame.PortableUI
                 DrawControlBatched(spriteBatch, c, context);
             }
 
-            spriteBatch.GraphicsDevice.ScissorRectangle = ToScissorRectangle(context.ScissorRect);
-            spriteBatch.Begin(SpriteSortMode.Deferred, samplerState: SamplerStateFor(control), rasterizerState: ScissorRasterizer, effect: ScreenEngine?.Options.Effect);
-            control.OnDrawOverlay(spriteBatch, context.RenderRect);
-            spriteBatch.End();
-            ScreenEngine?.RecordBatchFlush();
+            if (control.NeedsOverlayPass)
+            {
+                spriteBatch.GraphicsDevice.ScissorRectangle = ToScissorRectangle(context.ScissorRect);
+                spriteBatch.Begin(SpriteSortMode.Deferred, samplerState: SamplerStateFor(control), rasterizerState: ScissorRasterizer, effect: ScreenEngine?.Options.Effect);
+                control.OnDrawOverlay(spriteBatch, context.RenderRect);
+                spriteBatch.End();
+                ScreenEngine?.RecordBatchFlush();
+            }
+
             spriteBatch.GraphicsDevice.ScissorRectangle = oldRect;
         }
 
@@ -516,7 +561,7 @@ namespace MonoGame.PortableUI
                 return false;
 
             var device = spriteBatch.GraphicsDevice;
-            var previousTargets = device.GetRenderTargets();
+            var previousTargets = RenderTargetHelper.SnapshotRenderTargets(device);
             // Full-frame target so the subtree can keep drawing at absolute screen coordinates.
             var targetWidth = (int)Math.Ceiling(Math.Max(ScreenRect.Right, islandRect.Right));
             var targetHeight = (int)Math.Ceiling(Math.Max(ScreenRect.Bottom, islandRect.Bottom));
@@ -677,7 +722,14 @@ namespace MonoGame.PortableUI
                 InvalidateLayout(true);
             }
 
-            UpdateTimersForTree(content);
+            // One coalesced layout pass per frame, before timers/input read control rects.
+            PerformLayoutIfDirty();
+
+            // Timers/animations tick for the whole screen even while a flyout is open — only input
+            // routing is restricted to the flyout (`content`), otherwise background tweens freeze.
+            UpdateTimersForTree(_mainGrid);
+            if (_flyOut != null)
+                UpdateTimersForTree(_flyOut);
             if (_toolTip != null)
                 UpdateTimersForTree(_toolTip);
             if (_dismissingFlyOut != null)
@@ -685,7 +737,7 @@ namespace MonoGame.PortableUI
             if (_dismissingToolTip != null)
                 UpdateTimersForTree(_dismissingToolTip);
 
-            HandleKeyboardInput();
+            HandleKeyboardInput(inputSource);
 
             if (_activeDrag is { } drag)
             {
@@ -694,7 +746,7 @@ namespace MonoGame.PortableUI
                     ? !hasTouch || touchState.State == TouchLocationState.Released
                     : GetButtonState(pressedMouseButtons, MouseButton.Left) == ButtonState.Released;
 
-                if (Keyboard.GetState().IsKeyDown(Keys.Escape)
+                if (inputSource.KeyboardState.IsKeyDown(Keys.Escape)
                     || (!drag.IsTouchDrag && GetButtonState(pressedMouseButtons, MouseButton.Right) == ButtonState.Pressed))
                     CancelDrag();
                 else if (pointerReleased)
@@ -717,11 +769,11 @@ namespace MonoGame.PortableUI
             {
                 if (!RouteCapturedMouseMove(mousePosition, pressedMouseButtons))
                 {
-                    var args = new MouseEventArgs(mousePosition, pressedMouseButtons);
-                    VisualTreeHelper.IterateVisualTree(content, args,
-                        (c, a) => c.BoundingRect.Contains(a.Position) && !c.BoundingRect.Contains(LastMousePosition), (c, a) => { c.OnMouseEnter(a); }, (c, a) => c.BoundingRect.Contains(a.Position));
-                    VisualTreeHelper.IterateVisualTree(content, args, (c, a) => c.BoundingRect.Contains(a.Position) && c.BoundingRect.Contains(LastMousePosition), (c, a) => { c.OnMouseMove(a); }, null);
-                    VisualTreeHelper.IterateVisualTree(content, args, (c, a) => !c.BoundingRect.Contains(a.Position) && c.BoundingRect.Contains(LastMousePosition), (c, a) => { c.OnMouseLeave(a); }, (c, a) => c.BoundingRect.Contains(LastMousePosition));
+                    // Copy the scratch snapshot: args may be retained by handlers beyond this frame.
+                    var args = new MouseEventArgs(mousePosition, new List<MouseButton>(pressedMouseButtons));
+                    VisualTreeHelper.IterateVisualTree(content, args, _mouseEnterPredicate, MouseEnterAction, _hitTestPredicate);
+                    VisualTreeHelper.IterateVisualTree(content, args, _mouseMovePredicate, MouseMoveAction, null);
+                    VisualTreeHelper.IterateVisualTree(content, args, _mouseLeavePredicate, MouseLeaveAction, _lastPositionPredicate);
                 }
                 LastMousePosition = mousePosition;
             }
@@ -736,7 +788,7 @@ namespace MonoGame.PortableUI
             {
                 var args = new ScrollWheelChangedEventArgs(mousePosition, inputSource.ScrollWheelValue - LastScrollWheelValue);
 
-                VisualTreeHelper.IterateVisualTree(content, args, (c, a) => c.BoundingRect.Contains(a.Position), (c, a) => { c.OnScrollWheelChanged(a); }, null);
+                VisualTreeHelper.IterateVisualTree(content, args, (c, a) => c.ClippingRect.Contains(a.Position), (c, a) => { c.OnScrollWheelChanged(a); }, null);
 
                 LastScrollWheelValue = inputSource.ScrollWheelValue;
             }
@@ -746,7 +798,7 @@ namespace MonoGame.PortableUI
             {
                 var args = new TouchEventArgs(touchPosition);
                 VisualTreeHelper.IterateVisualTree(content, args,
-                    (c, a) => c.BoundingRect.Contains(a.Position),
+                    (c, a) => c.ClippingRect.Contains(a.Position),
                     (c, a) => { c.OnTouchDown(a); },
                     null
                     );
@@ -756,7 +808,7 @@ namespace MonoGame.PortableUI
             {
                 var args = new TouchEventArgs(touchPosition);
                 VisualTreeHelper.IterateVisualTree(content, args,
-                    (c, a) => c.BoundingRect.Contains(a.Position),
+                    (c, a) => c.ClippingRect.Contains(a.Position),
                     (c, a) => { c.OnTouchUp(a); },
                     null
                     );
@@ -765,10 +817,10 @@ namespace MonoGame.PortableUI
             {
                 var args = new TouchEventArgs(touchPosition);
                 VisualTreeHelper.IterateVisualTree(content, args,
-                    (c, a) => c.BoundingRect.Contains(a.Position) || c.BoundingRect.Contains(LastTouchPosition),
+                    (c, a) => c.ClippingRect.Contains(a.Position) || c.ClippingRect.Contains(LastTouchPosition),
                     (c, a) =>
                     {
-                        if (c.BoundingRect.Contains(a.Position))
+                        if (c.ClippingRect.Contains(a.Position))
                             c.OnTouchMove(a);
                         else
                             c.OnTouchCancel(a);
@@ -786,6 +838,18 @@ namespace MonoGame.PortableUI
         /// </summary>
         private PointF TransformPointerPosition(PointF position)
         {
+            // Pointer devices report window pixels; the UI lives in logical space when the frame is
+            // scaled (and possibly letter-boxed) to fit the window, so undo the centring offset and
+            // the scale before any further UI-space mapping.
+            var engine = ScreenEngine;
+            if (engine != null)
+            {
+                var renderScale = engine.RenderScale;
+                var offset = engine.RenderOffset;
+                if (renderScale > 0 && (renderScale != 1 || offset.X != 0 || offset.Y != 0))
+                    position = new PointF((position.X - offset.X) / renderScale, (position.Y - offset.Y) / renderScale);
+            }
+
             var screenDistortion = GetActiveBarrelDistortion();
             if (screenDistortion > 0 && ScreenRect.Width > 0 && ScreenRect.Height > 0)
                 position = PostProcessManager.InverseBarrel(position, ScreenRect, screenDistortion);
@@ -864,15 +928,19 @@ namespace MonoGame.PortableUI
         private static readonly TimeSpan KeyRepeatInitialDelay = TimeSpan.FromMilliseconds(500);
         private static readonly TimeSpan KeyRepeatInterval = TimeSpan.FromMilliseconds(45);
 
-        private void HandleKeyboardInput()
+        private void HandleKeyboardInput(IInputSource inputSource)
         {
-            var keyboardState = Keyboard.GetState();
-            var pressedKeys = keyboardState.GetPressedKeys();
+            var keyboardState = inputSource.KeyboardState;
+            var pressedKeyCount = keyboardState.GetPressedKeyCount();
+            if (_pressedKeysBuffer.Length < pressedKeyCount)
+                _pressedKeysBuffer = new Keys[Math.Max(8, pressedKeyCount)];
+            keyboardState.GetPressedKeys(_pressedKeysBuffer);
             var modifiers = GetKeyboardModifiers(keyboardState);
 
             // The debug overlay toggle isn't control-specific, so it must not be gated behind a
             // focused control (otherwise F3 does nothing on a screen with nothing focused).
-            if (Array.IndexOf(pressedKeys, Keys.F3) >= 0 && Array.IndexOf(_lastPressedKeys, Keys.F3) < 0)
+            if (Array.IndexOf(_pressedKeysBuffer, Keys.F3, 0, pressedKeyCount) >= 0
+                && Array.IndexOf(_lastPressedKeysBuffer, Keys.F3, 0, _lastPressedKeyCount) < 0)
                 ScreenEngine?.ToggleDebugOverlay();
 
             var focusedControl = ScreenEngine.FocusedControl;
@@ -882,14 +950,15 @@ namespace MonoGame.PortableUI
             // the same backspace/arrow once each. Unattached controls keep the legacy routing.
             if (focusedControl == null || (focusedControl.Screen != null && focusedControl.Screen != this))
             {
-                _lastPressedKeys = pressedKeys;
+                SwapPressedKeyBuffers(pressedKeyCount);
                 _repeatKey = Keys.None;
                 return;
             }
 
-            foreach (var key in pressedKeys)
+            for (var i = 0; i < pressedKeyCount; i++)
             {
-                if (_lastPressedKeys.Contains(key))
+                var key = _pressedKeysBuffer[i];
+                if (Array.IndexOf(_lastPressedKeysBuffer, key, 0, _lastPressedKeyCount) >= 0)
                     continue;
 
                 if (key == Keys.F3)
@@ -924,7 +993,15 @@ namespace MonoGame.PortableUI
                 }
             }
 
-            _lastPressedKeys = pressedKeys;
+            SwapPressedKeyBuffers(pressedKeyCount);
+        }
+
+        private void SwapPressedKeyBuffers(int pressedKeyCount)
+        {
+            var previous = _lastPressedKeysBuffer;
+            _lastPressedKeysBuffer = _pressedKeysBuffer;
+            _lastPressedKeyCount = pressedKeyCount;
+            _pressedKeysBuffer = previous;
         }
 
         internal void HandleTextInput(char character)
@@ -1005,7 +1082,7 @@ namespace MonoGame.PortableUI
                 return;
 
             VisualTreeHelper.IterateVisualTree(control, args,
-                (c, a) => c.BoundingRect.Contains(a.Position),
+                (c, a) => c.ClippingRect.Contains(a.Position),
                 action,
                 null
             );
@@ -1054,14 +1131,14 @@ namespace MonoGame.PortableUI
             Control? target = null;
             var probe = new DragEventArgs(drag) { Position = position };
             VisualTreeHelper.IterateVisualTree(content, probe,
-                (c, a) => c.AllowDrop && c.BoundingRect.Contains(position),
+                (c, a) => c.AllowDrop && c.ClippingRect.Contains(position),
                 (c, a) =>
                 {
                     // Descendants are visited before their parents, so the deepest AllowDrop wins.
                     target = c;
                     a.Handled = true;
                 },
-                (c, a) => c.BoundingRect.Contains(position));
+                (c, a) => c.ClippingRect.Contains(position));
 
             if (!ReferenceEquals(target, drag.CurrentTarget))
             {
@@ -1144,10 +1221,17 @@ namespace MonoGame.PortableUI
 
         internal bool RouteCapturedMouseMove(PointF position, List<MouseButton> buttons)
         {
-            var args = new MouseEventArgs(position, buttons);
-            return RouteCapturedMouseInput(args, (control, eventArgs) => control.OnMouseMove(eventArgs));
+            if (_capturedMouseControl == null)
+                return false;
+
+            // Copy: `buttons` is the per-frame scratch list, but handlers may retain the args.
+            var args = new MouseEventArgs(position, new List<MouseButton>(buttons));
+            return RouteCapturedMouseInput(args, MouseMoveAction);
         }
 
+        /// <summary>Not called by the frame loop (mouse-up routing happens in HandleMouseButton);
+        /// kept as the counterpart to <see cref="RouteCapturedMouseMove"/> for simulating captured
+        /// input in tests.</summary>
         internal bool RouteCapturedMouseUp(PointF position, MouseButton button)
         {
             var args = new MouseEventArgs(position, button);

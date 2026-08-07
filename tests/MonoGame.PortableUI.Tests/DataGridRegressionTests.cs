@@ -115,11 +115,14 @@ namespace MonoGame.PortableUI.Tests
 
             grid.SortByColumn(age);
             Assert.IsTrue(grid.SortAscending);
-            CollectionAssert.AreEqual(new[] { 1, 2, 3 }, grid.Items.Cast<Person>().Select(p => p.Age).ToArray());
+            CollectionAssert.AreEqual(new[] { 1, 2, 3 }, grid.DisplayedItems.Cast<Person>().Select(p => p.Age).ToArray());
 
             grid.SortByColumn(age);
             Assert.IsFalse(grid.SortAscending);
-            CollectionAssert.AreEqual(new[] { 3, 2, 1 }, grid.Items.Cast<Person>().Select(p => p.Age).ToArray());
+            CollectionAssert.AreEqual(new[] { 3, 2, 1 }, grid.DisplayedItems.Cast<Person>().Select(p => p.Age).ToArray());
+
+            // Sorting only changes the display order; the caller's Items list is never reordered.
+            CollectionAssert.AreEqual(new[] { 3, 1, 2 }, grid.Items.Cast<Person>().Select(p => p.Age).ToArray());
         }
 
         [TestMethod]
@@ -131,7 +134,7 @@ namespace MonoGame.PortableUI.Tests
 
             grid.SortByColumn(column);
 
-            CollectionAssert.AreEqual(new[] { "alice", "Bob", "Charlie" }, grid.Items.Cast<Person>().Select(p => p.Name).ToArray());
+            CollectionAssert.AreEqual(new[] { "alice", "Bob", "Charlie" }, grid.DisplayedItems.Cast<Person>().Select(p => p.Name).ToArray());
         }
 
         [TestMethod]
@@ -144,7 +147,7 @@ namespace MonoGame.PortableUI.Tests
 
             grid.SortByColumn(age);
 
-            CollectionAssert.AreEqual(new[] { "First", "Second", "Third" }, grid.Items.Cast<Person>().Select(p => p.Name).ToArray());
+            CollectionAssert.AreEqual(new[] { "First", "Second", "Third" }, grid.DisplayedItems.Cast<Person>().Select(p => p.Name).ToArray());
         }
 
         [TestMethod]
@@ -156,10 +159,13 @@ namespace MonoGame.PortableUI.Tests
             var grid = CreateGrid(people, NameColumn(), age);
             grid.SelectedIndex = 2; // "B"
 
-            grid.SortByColumn(age); // order becomes A,B,C
+            grid.SortByColumn(age); // display order becomes A,B,C
 
+            // SelectedIndex refers to Items (which sorting never reorders), so it stays put and
+            // the selected item is stable by construction.
             Assert.AreSame(target, grid.SelectedItem);
-            Assert.AreEqual(1, grid.SelectedIndex);
+            Assert.AreEqual(2, grid.SelectedIndex);
+            Assert.AreSame(target, grid.DisplayedItems.Cast<Person>().ElementAt(1));
         }
 
         [TestMethod]

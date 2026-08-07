@@ -76,6 +76,8 @@ namespace MonoGame.PortableUI.Controls
             _toolTipLongPressTimer.Elapsed += OnToolTipLongPressTimerElapsed;
         }
 
+        private static readonly MouseButton[] AllMouseButtons = { MouseButton.Left, MouseButton.Middle, MouseButton.Right };
+
         protected Dictionary<MouseButton, ButtonState> MouseButtonStates { get; } = new Dictionary<MouseButton, ButtonState>
         {
             {MouseButton.Left, ButtonState.Released},
@@ -87,6 +89,12 @@ namespace MonoGame.PortableUI.Controls
         {
             get { return ScreenEngine.FocusedControl == this; }
         }
+
+        /// <summary>Whether pointer-down moves keyboard focus to this control. Non-interactive
+        /// controls (TextBlock, Image, Border, panels, progress indicators) default to false so
+        /// clicking them doesn't blur an active TextBox and hide the soft keyboard. A direct
+        /// <see cref="Focus"/> call is programmatic and ignores this flag.</summary>
+        public bool IsFocusable { get; set; } = true;
 
         internal Screen? Screen
         {
@@ -561,6 +569,19 @@ namespace MonoGame.PortableUI.Controls
                 DoubleClick?.Invoke(this, EventArgs.Empty);
         }
 
+        /// <summary>Raises Click when Enter or Space is pressed. Clickable controls (Button,
+        /// CheckBox, ToggleSwitch) subscribe this to their own KeyPressed so the focused control
+        /// can be activated from the keyboard, matching mouse/touch behavior.</summary>
+        private protected void ActivateOnKeyPressed(object? sender, KeyEventArgs args)
+        {
+            if (args.Modifiers != KeyboardModifiers.None)
+                return;
+
+            if ((args.InputType == InputType.Command && args.Command == KeyboardCommand.Enter)
+                || (args.InputType == InputType.Char && args.Char == ' '))
+                OnClick();
+        }
+
         public virtual void OnRightClick()
         {
             RightClick?.Invoke(this, EventArgs.Empty);
@@ -617,6 +638,32 @@ namespace MonoGame.PortableUI.Controls
                     RoundedRectRenderer.DrawBorder(spriteBatch, rect, CornerRadius, BorderThickness, Brush.ApplyOpacity(solidBorder.Color, RenderOpacity));
                 else
                     DrawBorder(spriteBatch, rect, BorderThickness, BorderBrush, RenderOpacity);
+            }
+        }
+
+        private bool? _overridesDrawOverlay;
+
+        /// <summary>Whether the renderer must open the second per-control SpriteBatch for
+        /// <see cref="OnDrawOverlay"/> this frame. Skipping it for the common case (no override,
+        /// enabled, unfocused) halves the per-control Begin/End pairs.</summary>
+        internal bool NeedsOverlayPass
+        {
+            get
+            {
+                _overridesDrawOverlay ??= GetType().GetMethod(
+                        nameof(OnDrawOverlay),
+                        System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
+                        binder: null,
+                        new[] { typeof(SpriteBatch), typeof(Rect) },
+                        modifiers: null)!
+                    .DeclaringType != typeof(Control);
+                if (_overridesDrawOverlay.Value)
+                    return true;
+
+                if (ShowFocusVisual && IsFocused && FocusBorderWidth > 0 && FocusBorderBrush != null)
+                    return true;
+
+                return !IsEnabled && DisabledOverlayBrush != null;
             }
         }
 
@@ -746,10 +793,10 @@ namespace MonoGame.PortableUI.Controls
         internal void OnMouseEnter(MouseEventArgs args)
         {
             HoverState = HoverStates.Hovering;
-            foreach (var button in MouseButtonStates.Where(x => x.Value == ButtonState.Pressed).ToList())
+            foreach (var button in AllMouseButtons)
             {
-                if (!args.Buttons.Contains(button.Key))
-                    MouseButtonStates[button.Key] = ButtonState.Released;
+                if (MouseButtonStates[button] == ButtonState.Pressed && !args.Buttons.Contains(button))
+                    MouseButtonStates[button] = ButtonState.Released;
             }
             MouseEnter?.Invoke(this, args);
             StartToolTipHover(args.Position);
@@ -769,7 +816,10 @@ namespace MonoGame.PortableUI.Controls
             ClearToolTipState();
             foreach (var button in args.Buttons)
                 MouseButtonStates[button] = ButtonState.Pressed;
-            Focus();
+            // Only a primary click on a focusable control moves focus; right-clicks and clicks on
+            // labels/decoration must not blur an active TextBox (which would hide the soft keyboard).
+            if (IsFocusable && args.Buttons.Contains(MouseButton.Left))
+                Focus();
             MouseDown?.Invoke(this, args);
             ChangeVisualState();
             if ((Click != null && args.Buttons.Contains(MouseButton.Left)) || (RightClick != null && args.Buttons.Contains(MouseButton.Right)))
@@ -1075,14 +1125,7 @@ namespace MonoGame.PortableUI.Controls
 
         private static void DrawBorder(SpriteBatch spriteBatch, Rect rect, Thickness width, Brush brush, float opacity)
         {
-            if (width.Top > 0)
-                brush.Draw(spriteBatch, new Rect(rect.Left, rect.Top, rect.Width, width.Top), opacity);
-            if (width.Left > 0)
-                brush.Draw(spriteBatch, new Rect(rect.Left, rect.Top, width.Left, rect.Height), opacity);
-            if (width.Right > 0)
-                brush.Draw(spriteBatch, new Rect(rect.Right - width.Right, rect.Top, width.Right, rect.Height), opacity);
-            if (width.Bottom > 0)
-                brush.Draw(spriteBatch, new Rect(rect.Left, rect.Bottom - width.Bottom, rect.Width, width.Bottom), opacity);
+            BorderRenderer.Draw(spriteBatch, rect, width, brush, opacity);
         }
 
         private static bool HasBorder(Thickness thickness)

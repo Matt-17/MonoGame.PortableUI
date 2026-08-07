@@ -20,6 +20,12 @@ namespace MonoGame.PortableUI.Controls
             DotSize = theme.RadioButtonDotSize;
         }
 
+        protected override void OnToggleClick()
+        {
+            // Clicking the selected radio keeps it selected; only an unchecked one toggles on.
+            IsChecked = true;
+        }
+
         protected override void OnThemeChanged(PortableTheme oldTheme, PortableTheme newTheme)
         {
             base.OnThemeChanged(oldTheme, newTheme);

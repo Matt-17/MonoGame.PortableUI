@@ -1,4 +1,4 @@
-using System.Linq;
+using System;
 using MonoGame.PortableUI.Common;
 
 namespace MonoGame.PortableUI.Controls
@@ -13,19 +13,38 @@ namespace MonoGame.PortableUI.Controls
             if (Width.IsFixed() && Height.IsFixed())
                 return size;
 
+            // Single pass: measuring per child is the expensive part, so accumulate the
+            // main-axis sum and cross-axis max from one MeasureLayout call each.
+            float mainSum = 0;
+            float crossMax = 0;
+            foreach (var child in Children)
+            {
+                var childSize = child.MeasureLayout();
+                if (Orientation == Orientation.Vertical)
+                {
+                    mainSum += childSize.Height;
+                    crossMax = Math.Max(crossMax, childSize.Width);
+                }
+                else
+                {
+                    mainSum += childSize.Width;
+                    crossMax = Math.Max(crossMax, childSize.Height);
+                }
+            }
+
             if (Orientation == Orientation.Vertical)
             {
                 if (!Width.IsFixed())
-                    size.Width += (Children.Count > 0 ? Children.Max(child => child.MeasureLayout().Width) : 0) + Padding.Horizontal;
+                    size.Width += crossMax + Padding.Horizontal;
                 if (!Height.IsFixed())
-                    size.Height += Children.Sum(child => child.MeasureLayout().Height) + Padding.Vertical;
+                    size.Height += mainSum + Padding.Vertical;
             }
             else
             {
                 if (!Width.IsFixed())
-                    size.Width += Children.Sum(child => child.MeasureLayout().Width) + Padding.Horizontal;
+                    size.Width += mainSum + Padding.Horizontal;
                 if (!Height.IsFixed())
-                    size.Height += (Children.Count > 0 ? Children.Max(child => child.MeasureLayout().Height) : 0) + Padding.Vertical;
+                    size.Height += crossMax + Padding.Vertical;
             }
 
             return ApplyConstraints(size);

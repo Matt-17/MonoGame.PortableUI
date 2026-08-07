@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using MonoGame.PortableUI.Common;
 
@@ -81,47 +80,62 @@ namespace MonoGame.PortableUI.Controls
             SetColumnSpan(child, columnSpan);
         }
 
-        private Rect GetRect(Rect rect, Control child, IReadOnlyList<float> rowHeights, IReadOnlyList<float> columnWidths)
+        private static Rect GetRect(Rect rect, Control child, float[] rowOffsets, float[] columnOffsets)
         {
-            var columnCount = ColumnDefinitions.Count > 0 ? ColumnDefinitions.Count : 1;
-            var rowCount = RowDefinitions.Count > 0 ? RowDefinitions.Count : 1;
+            // Offsets are prefix sums (offsets[i] = start of track i, offsets[count] = total), so a
+            // child rect is two subtractions instead of the former per-child Take/Skip/Sum passes.
+            var rowCount = rowOffsets.Length - 1;
+            var columnCount = columnOffsets.Length - 1;
 
             var row = Math.Min(Math.Max(GetRow(child), 0), rowCount - 1);
             var column = Math.Min(Math.Max(GetColumn(child), 0), columnCount - 1);
             var rowSpan = Math.Min(Math.Max(GetRowSpan(child), 1), rowCount - row);
             var columnSpan = Math.Min(Math.Max(GetColumnSpan(child), 1), columnCount - column);
 
-            var rectangle = new Rect(
-                columnWidths.Take(column).Sum() + rect.Left,
-                rowHeights.Take(row).Sum() + rect.Top,
-                columnWidths.Skip(column).Take(columnSpan).Sum(),
-                rowHeights.Skip(row).Take(rowSpan).Sum()
-            );
-            return rectangle;
+            return new Rect(
+                rect.Left + columnOffsets[column],
+                rect.Top + rowOffsets[row],
+                columnOffsets[column + columnSpan] - columnOffsets[column],
+                rowOffsets[row + rowSpan] - rowOffsets[row]);
+        }
+
+        private static float[] BuildOffsets(List<float> sizes)
+        {
+            var offsets = new float[sizes.Count + 1];
+            var total = 0f;
+            for (var i = 0; i < sizes.Count; i++)
+            {
+                offsets[i] = total;
+                total += sizes[i];
+            }
+
+            offsets[sizes.Count] = total;
+            return offsets;
         }
 
         private List<float> GetRowHeights(Rect rect)
         {
             if (RowDefinitions.Count == 0)
-                return new List<float> { rect.Height.IsFixed() ? rect.Height : 0 };
+                return new List<float>(1) { rect.Height.IsFixed() ? rect.Height : 0 };
 
             var starRows = 0f;
             var absoluteRows = 0f;
             var rowDefinitions = RowDefinitions;
-            var result = new List<float>();
-            foreach (var gridLength in rowDefinitions.Select((row, i) => new { row.Height, Index = i }))
+            var result = new List<float>(rowDefinitions.Count);
+            for (var i = 0; i < rowDefinitions.Count; i++)
             {
-                switch (gridLength.Height.Unit)
+                var height = rowDefinitions[i].Height;
+                switch (height.Unit)
                 {
                     case GridLengthUnit.Auto:
-                        result.Add(GetAutoRowHeight(gridLength.Index));
+                        result.Add(GetAutoRowHeight(i));
                         break;
                     case GridLengthUnit.Absolute:
-                        absoluteRows += gridLength.Height.Value;
-                        result.Add(gridLength.Height.Value);
+                        absoluteRows += height.Value;
+                        result.Add(height.Value);
                         break;
                     case GridLengthUnit.Relative:
-                        starRows += gridLength.Height.Value;
+                        starRows += height.Value;
                         result.Add(0);
                         break;
                 }
@@ -129,23 +143,29 @@ namespace MonoGame.PortableUI.Controls
 
             AddSpanningRowContributions(result);
 
-            var autoRows = rowDefinitions
-                .Select((row, index) => row.Height.Unit == GridLengthUnit.Auto ? result[index] : 0)
-                .Sum();
+            var autoRows = 0f;
+            for (var i = 0; i < rowDefinitions.Count; i++)
+            {
+                if (rowDefinitions[i].Height.Unit == GridLengthUnit.Auto)
+                    autoRows += result[i];
+            }
 
             var starLeftover = Math.Max(0, rect.Height - absoluteRows - autoRows);
 
             if (!starLeftover.IsFixed())
                 starLeftover = 0;
             var starSingleValue = starRows > 0 ? starLeftover / starRows : 0;
-            foreach (var gridLength in rowDefinitions.Select((row, i) => new { row.Height, Index = i }))
+            var total = 0f;
+            for (var i = 0; i < rowDefinitions.Count; i++)
             {
-                if (gridLength.Height.Unit == GridLengthUnit.Relative)
-                    result[gridLength.Index] = gridLength.Height.Value * starSingleValue;
+                var height = rowDefinitions[i].Height;
+                if (height.Unit == GridLengthUnit.Relative)
+                    result[i] = height.Value * starSingleValue;
+                total += result[i];
             }
             // Only star (Relative) rows should absorb leftover space; Absolute/Auto rows keep their
             // own size and any remainder below them stays empty, matching Grid star-sizing semantics.
-            var f = rect.Height.IsFixed() ? rect.Height - result.Sum() : 0;
+            var f = rect.Height.IsFixed() ? rect.Height - total : 0;
             if (f > 0 && starRows > 0)
             {
                 for (var i = rowDefinitions.Count - 1; i >= 0; i--)
@@ -163,11 +183,11 @@ namespace MonoGame.PortableUI.Controls
         {
             base.UpdateLayout(rect);
             var layoutRect = BoundingRect - Margin - Padding;
-            var rowHeights = GetRowHeights(layoutRect);
-            var columnWidths = GetColumnWidths(layoutRect);
+            var rowOffsets = BuildOffsets(GetRowHeights(layoutRect));
+            var columnOffsets = BuildOffsets(GetColumnWidths(layoutRect));
             foreach (var child in Children)
             {
-                child.UpdateLayout(GetRect(layoutRect, child, rowHeights, columnWidths));
+                child.UpdateLayout(GetRect(layoutRect, child, rowOffsets, columnOffsets));
             }
             _measureCache.Clear();
         }
@@ -229,25 +249,26 @@ namespace MonoGame.PortableUI.Controls
         private List<float> GetColumnWidths(Rect rect)
         {
             if (ColumnDefinitions.Count == 0)
-                return new List<float> { rect.Width.IsFixed() ? rect.Width : 0 };
+                return new List<float>(1) { rect.Width.IsFixed() ? rect.Width : 0 };
 
             var starColumns = 0f;
             var absoluteColumns = 0f;
             var columnDefinitions = ColumnDefinitions;
-            var result = new List<float>();
-            foreach (var gridLength in columnDefinitions.Select((column, i) => new { column.Width, Index = i }))
+            var result = new List<float>(columnDefinitions.Count);
+            for (var i = 0; i < columnDefinitions.Count; i++)
             {
-                switch (gridLength.Width.Unit)
+                var width = columnDefinitions[i].Width;
+                switch (width.Unit)
                 {
                     case GridLengthUnit.Auto:
-                        result.Add(GetAutoColumnWidth(gridLength.Index));
+                        result.Add(GetAutoColumnWidth(i));
                         break;
                     case GridLengthUnit.Absolute:
-                        absoluteColumns += gridLength.Width.Value;
-                        result.Add(gridLength.Width.Value);
+                        absoluteColumns += width.Value;
+                        result.Add(width.Value);
                         break;
                     case GridLengthUnit.Relative:
-                        starColumns += gridLength.Width.Value;
+                        starColumns += width.Value;
                         result.Add(0);
                         break;
                 }
@@ -255,22 +276,28 @@ namespace MonoGame.PortableUI.Controls
 
             AddSpanningColumnContributions(result);
 
-            var autoColumns = columnDefinitions
-                .Select((column, index) => column.Width.Unit == GridLengthUnit.Auto ? result[index] : 0)
-                .Sum();
+            var autoColumns = 0f;
+            for (var i = 0; i < columnDefinitions.Count; i++)
+            {
+                if (columnDefinitions[i].Width.Unit == GridLengthUnit.Auto)
+                    autoColumns += result[i];
+            }
 
             var starLeftover = Math.Max(0, rect.Width - absoluteColumns - autoColumns);
             if (!starLeftover.IsFixed())
                 starLeftover = 0;
             var starSingleValue = starColumns > 0 ? starLeftover / starColumns : 0;
-            foreach (var gridLength in columnDefinitions.Select((column, i) => new { column.Width, Index = i }))
+            var total = 0f;
+            for (var i = 0; i < columnDefinitions.Count; i++)
             {
-                if (gridLength.Width.Unit == GridLengthUnit.Relative)
-                    result[gridLength.Index] = gridLength.Width.Value * starSingleValue;
+                var width = columnDefinitions[i].Width;
+                if (width.Unit == GridLengthUnit.Relative)
+                    result[i] = width.Value * starSingleValue;
+                total += result[i];
             }
             // Only star (Relative) columns should absorb leftover space; Absolute/Auto columns keep
             // their own size and any remainder stays empty, matching Grid star-sizing semantics.
-            var f = rect.Width.IsFixed() ? rect.Width - result.Sum() : 0;
+            var f = rect.Width.IsFixed() ? rect.Width - total : 0;
             if (f > 0 && starColumns > 0)
             {
                 for (var i = columnDefinitions.Count - 1; i >= 0; i--)
@@ -325,21 +352,36 @@ namespace MonoGame.PortableUI.Controls
 
                 // Star tracks absorb the remaining space at arrange time; only spans made of
                 // auto/absolute tracks need their deficit pushed into the auto tracks.
-                if (SpanContainsStarTrack(RowDefinitions.Select(definition => definition.Height.Unit), row, rowSpan))
+                var containsStar = false;
+                var autoCount = 0;
+                var occupiedHeight = 0f;
+                for (var i = row; i < row + rowSpan; i++)
+                {
+                    var unit = RowDefinitions[i].Height.Unit;
+                    if (unit == GridLengthUnit.Relative)
+                    {
+                        containsStar = true;
+                        break;
+                    }
+
+                    if (unit == GridLengthUnit.Auto)
+                        autoCount++;
+                    occupiedHeight += result[i];
+                }
+
+                if (containsStar || autoCount == 0)
                     continue;
 
-                var autoRows = GetAutoTrackIndices(RowDefinitions.Select(definition => definition.Height.Unit), row, rowSpan);
-                if (autoRows.Count == 0)
-                    continue;
-
-                var occupiedHeight = result.Skip(row).Take(rowSpan).Sum();
                 var deficit = MeasureChild(child).Height - occupiedHeight;
                 if (deficit <= 0)
                     continue;
 
-                var addition = deficit / autoRows.Count;
-                foreach (var autoRow in autoRows)
-                    result[autoRow] += addition;
+                var addition = deficit / autoCount;
+                for (var i = row; i < row + rowSpan; i++)
+                {
+                    if (RowDefinitions[i].Height.Unit == GridLengthUnit.Auto)
+                        result[i] += addition;
+                }
             }
         }
 
@@ -352,36 +394,37 @@ namespace MonoGame.PortableUI.Controls
                 if (columnSpan <= 1)
                     continue;
 
-                if (SpanContainsStarTrack(ColumnDefinitions.Select(definition => definition.Width.Unit), column, columnSpan))
+                var containsStar = false;
+                var autoCount = 0;
+                var occupiedWidth = 0f;
+                for (var i = column; i < column + columnSpan; i++)
+                {
+                    var unit = ColumnDefinitions[i].Width.Unit;
+                    if (unit == GridLengthUnit.Relative)
+                    {
+                        containsStar = true;
+                        break;
+                    }
+
+                    if (unit == GridLengthUnit.Auto)
+                        autoCount++;
+                    occupiedWidth += result[i];
+                }
+
+                if (containsStar || autoCount == 0)
                     continue;
 
-                var autoColumns = GetAutoTrackIndices(ColumnDefinitions.Select(definition => definition.Width.Unit), column, columnSpan);
-                if (autoColumns.Count == 0)
-                    continue;
-
-                var occupiedWidth = result.Skip(column).Take(columnSpan).Sum();
                 var deficit = MeasureChild(child).Width - occupiedWidth;
                 if (deficit <= 0)
                     continue;
 
-                var addition = deficit / autoColumns.Count;
-                foreach (var autoColumn in autoColumns)
-                    result[autoColumn] += addition;
+                var addition = deficit / autoCount;
+                for (var i = column; i < column + columnSpan; i++)
+                {
+                    if (ColumnDefinitions[i].Width.Unit == GridLengthUnit.Auto)
+                        result[i] += addition;
+                }
             }
-        }
-
-        private static bool SpanContainsStarTrack(IEnumerable<GridLengthUnit> units, int start, int span)
-        {
-            return units.Skip(start).Take(span).Any(unit => unit == GridLengthUnit.Relative);
-        }
-
-        private static List<int> GetAutoTrackIndices(IEnumerable<GridLengthUnit> units, int start, int span)
-        {
-            return units
-                .Select((unit, index) => new { unit, index })
-                .Where(track => track.index >= start && track.index < start + span && track.unit == GridLengthUnit.Auto)
-                .Select(track => track.index)
-                .ToList();
         }
 
         private Size MeasureChild(Control child)

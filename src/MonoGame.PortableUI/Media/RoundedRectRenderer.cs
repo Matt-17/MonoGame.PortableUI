@@ -8,9 +8,61 @@ namespace MonoGame.PortableUI.Media
 {
     internal static class RoundedRectRenderer
     {
-        private static readonly Dictionary<int, Texture2D> CornerMasks = new Dictionary<int, Texture2D>();
-        private static readonly Dictionary<(int Radius, int Thickness), Texture2D> CornerRingMasks = new Dictionary<(int, int), Texture2D>();
-        private static readonly Dictionary<RoundedRectMaskKey, Texture2D> RoundedRectMasks = new Dictionary<RoundedRectMaskKey, Texture2D>();
+        // Per-device caches with DeviceReset/Disposing cleanup (same pattern as BrushTextureCache):
+        // a process-wide static Dictionary would leak textures across device resets and mix
+        // textures between devices when surface engines exist.
+        private static readonly object SyncRoot = new object();
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<GraphicsDevice, DeviceCache> Caches =
+            new System.Runtime.CompilerServices.ConditionalWeakTable<GraphicsDevice, DeviceCache>();
+
+        // Full W×H masks are keyed by pixel size, so animated/resizing controls would otherwise
+        // grow the cache without bound. On overflow the current generation is retired and only
+        // disposed on the *next* overflow, so textures referenced by an unflushed SpriteBatch
+        // survive the frame they were drawn in.
+        private const int MaxRoundedRectMasks = 128;
+
+        private sealed class DeviceCache
+        {
+            public readonly Dictionary<int, Texture2D> CornerMasks = new Dictionary<int, Texture2D>();
+            public readonly Dictionary<(int Radius, int Thickness), Texture2D> CornerRingMasks = new Dictionary<(int, int), Texture2D>();
+            public readonly Dictionary<RoundedRectMaskKey, Texture2D> RoundedRectMasks = new Dictionary<RoundedRectMaskKey, Texture2D>();
+            public readonly List<Texture2D> RetiredMasks = new List<Texture2D>();
+        }
+
+        private static DeviceCache GetCache(GraphicsDevice device)
+        {
+            lock (SyncRoot)
+            {
+                return Caches.GetValue(device, CreateCache);
+            }
+        }
+
+        private static DeviceCache CreateCache(GraphicsDevice device)
+        {
+            var cache = new DeviceCache();
+            device.DeviceReset += (_, _) => Clear(cache);
+            device.Disposing += (_, _) => Clear(cache);
+            return cache;
+        }
+
+        private static void Clear(DeviceCache cache)
+        {
+            lock (SyncRoot)
+            {
+                foreach (var texture in cache.CornerMasks.Values)
+                    texture.Dispose();
+                foreach (var texture in cache.CornerRingMasks.Values)
+                    texture.Dispose();
+                foreach (var texture in cache.RoundedRectMasks.Values)
+                    texture.Dispose();
+                foreach (var texture in cache.RetiredMasks)
+                    texture.Dispose();
+                cache.CornerMasks.Clear();
+                cache.CornerRingMasks.Clear();
+                cache.RoundedRectMasks.Clear();
+                cache.RetiredMasks.Clear();
+            }
+        }
 
         /// <summary>Draws a border that follows the corner radius: 4 edge strips + quarter-ring corners. Expects a premultiplied color.</summary>
         public static void DrawBorder(SpriteBatch spriteBatch, Rect rect, CornerRadius radius, Thickness thickness, Color color)
@@ -87,13 +139,14 @@ namespace MonoGame.PortableUI.Media
             if (size <= 0 || thickness <= 0)
                 return;
 
-            var mask = GetCornerRingMask(size, Math.Max(1, (int)Math.Round(thickness)));
+            var mask = GetCornerRingMask(spriteBatch.GraphicsDevice, size, Math.Max(1, (int)Math.Round(thickness)));
             spriteBatch.Draw(mask, new Rect(x, y, radius, radius), null, color, 0, Vector2.Zero, effects, 0);
         }
 
-        private static Texture2D GetCornerRingMask(int radius, int thickness)
+        private static Texture2D GetCornerRingMask(GraphicsDevice device, int radius, int thickness)
         {
-            if (CornerRingMasks.TryGetValue((radius, thickness), out var texture))
+            var cache = GetCache(device);
+            if (cache.CornerRingMasks.TryGetValue((radius, thickness), out var texture))
                 return texture;
 
             var data = new Color[radius * radius];
@@ -111,9 +164,9 @@ namespace MonoGame.PortableUI.Media
                 }
             }
 
-            texture = new Texture2D(ScreenEngine.Instance!.Game.GraphicsDevice, radius, radius);
+            texture = new Texture2D(device, radius, radius);
             texture.SetData(data);
-            CornerRingMasks[(radius, thickness)] = texture;
+            cache.CornerRingMasks[(radius, thickness)] = texture;
             return texture;
         }
 
@@ -173,7 +226,7 @@ namespace MonoGame.PortableUI.Media
             {
                 var width = Math.Max(1, (int)Math.Ceiling(rect.Width));
                 var height = Math.Max(1, (int)Math.Ceiling(rect.Height));
-                var mask = GetRoundedRectMask(width, height, radius);
+                var mask = GetRoundedRectMask(spriteBatch.GraphicsDevice, width, height, radius);
                 spriteBatch.Draw(mask, rect, color);
                 return;
             }
@@ -193,7 +246,7 @@ namespace MonoGame.PortableUI.Media
             DrawCorner(spriteBatch, rect.Left, rect.Bottom - radius.BottomLeft, radius.BottomLeft, color, SpriteEffects.FlipVertically);
         }
 
-        private static Texture2D GetRoundedRectMask(int width, int height, CornerRadius radius)
+        private static Texture2D GetRoundedRectMask(GraphicsDevice device, int width, int height, CornerRadius radius)
         {
             var key = new RoundedRectMaskKey(
                 width,
@@ -202,8 +255,18 @@ namespace MonoGame.PortableUI.Media
                 (int)Math.Ceiling(radius.TopRight),
                 (int)Math.Ceiling(radius.BottomRight),
                 (int)Math.Ceiling(radius.BottomLeft));
-            if (RoundedRectMasks.TryGetValue(key, out var texture))
+            var cache = GetCache(device);
+            if (cache.RoundedRectMasks.TryGetValue(key, out var texture))
                 return texture;
+
+            if (cache.RoundedRectMasks.Count >= MaxRoundedRectMasks)
+            {
+                foreach (var retired in cache.RetiredMasks)
+                    retired.Dispose();
+                cache.RetiredMasks.Clear();
+                cache.RetiredMasks.AddRange(cache.RoundedRectMasks.Values);
+                cache.RoundedRectMasks.Clear();
+            }
 
             var data = new Color[width * height];
             for (var y = 0; y < height; y++)
@@ -216,9 +279,9 @@ namespace MonoGame.PortableUI.Media
                 }
             }
 
-            texture = new Texture2D(ScreenEngine.Instance!.Game.GraphicsDevice, width, height);
+            texture = new Texture2D(device, width, height);
             texture.SetData(data);
-            RoundedRectMasks[key] = texture;
+            cache.RoundedRectMasks[key] = texture;
             return texture;
         }
 
@@ -281,13 +344,14 @@ namespace MonoGame.PortableUI.Media
             if (size <= 0)
                 return;
 
-            var mask = GetCornerMask(size);
+            var mask = GetCornerMask(spriteBatch.GraphicsDevice, size);
             spriteBatch.Draw(mask, new Rect(x, y, radius, radius), null, color, 0, Vector2.Zero, effects, 0);
         }
 
-        private static Texture2D GetCornerMask(int radius)
+        private static Texture2D GetCornerMask(GraphicsDevice device, int radius)
         {
-            if (CornerMasks.TryGetValue(radius, out var texture))
+            var cache = GetCache(device);
+            if (cache.CornerMasks.TryGetValue(radius, out var texture))
                 return texture;
 
             var data = new Color[radius * radius];
@@ -304,9 +368,9 @@ namespace MonoGame.PortableUI.Media
                 }
             }
 
-            texture = new Texture2D(ScreenEngine.Instance!.Game.GraphicsDevice, radius, radius);
+            texture = new Texture2D(device, radius, radius);
             texture.SetData(data);
-            CornerMasks[radius] = texture;
+            cache.CornerMasks[radius] = texture;
             return texture;
         }
 

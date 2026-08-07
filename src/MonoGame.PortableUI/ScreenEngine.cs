@@ -38,6 +38,22 @@ namespace MonoGame.PortableUI
         public static float ScaleFactor { get; set; }
         public ScreenEngineOptions Options { get; }
 
+        /// <summary>
+        /// Factor the logical (layout) space is magnified by to fill the real window when
+        /// <see cref="ScreenEngineOptions.ReferenceSize"/> is set. 1 means no scaling — layout and
+        /// pixels coincide. The <see cref="ScreenComponent"/> uses it to scale the drawn frame and
+        /// the active <see cref="Screen"/> uses it to map pointer input back into logical space.
+        /// </summary>
+        public float RenderScale { get; private set; } = 1;
+
+        /// <summary>
+        /// Top-left of the scaled UI within the window, in window pixels. Non-zero when the window's
+        /// aspect ratio differs from the reference and the UI is letter-boxed (centred with bars).
+        /// The <see cref="ScreenComponent"/> blits the frame here and the active <see cref="Screen"/>
+        /// subtracts it before un-scaling pointer input.
+        /// </summary>
+        public PointF RenderOffset { get; private set; }
+
         public static Control? FocusedControl
         {
             get { return _focusedControl; }
@@ -188,10 +204,38 @@ namespace MonoGame.PortableUI
             if (Options.ScreenSizeMode != ScreenSizeMode.Viewport)
                 return false;
 
-            if (ScreenRect.Width == width && ScreenRect.Height == height)
+            float scale;
+            float logicalWidth, logicalHeight;
+            PointF offset;
+
+            var reference = Options.ReferenceSize;
+            if (reference.X > 0 && reference.Y > 0 && width > 0 && height > 0)
+            {
+                // Letter-box: lay out at exactly the reference resolution and scale that uniformly to
+                // fit the window (tighter axis wins), then centre it. Surplus window space becomes
+                // bars rather than extra logical room, so the UI never distorts on odd aspects.
+                scale = Math.Min(width / reference.X, height / reference.Y);
+                logicalWidth = reference.X;
+                logicalHeight = reference.Y;
+                offset = new PointF((width - reference.X * scale) / 2f, (height - reference.Y * scale) / 2f);
+            }
+            else
+            {
+                // No reference set: layout maps 1:1 to the viewport, exactly as before.
+                scale = 1;
+                logicalWidth = width;
+                logicalHeight = height;
+                offset = new PointF(0, 0);
+            }
+
+            if (RenderScale == scale && RenderOffset.X == offset.X && RenderOffset.Y == offset.Y
+                && ScreenRect.Width == logicalWidth && ScreenRect.Height == logicalHeight)
                 return false;
 
-            SetScreenSize(width, height);
+            RenderScale = scale;
+            RenderOffset = offset;
+            ScreenRect = new Rect(logicalWidth, logicalHeight);
+            ActiveScreen?.InvalidateLayout(true);
             return true;
         }
 

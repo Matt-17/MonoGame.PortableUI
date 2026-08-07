@@ -87,7 +87,7 @@ namespace MonoGame.PortableUI.Benchmarks
         }
 
         [Benchmark]
-        public int ThemeRegistryCreateAll()
+        public int PortableThemesCreateAll()
         {
             var count = 0;
             foreach (var definition in PortableThemes.All)
