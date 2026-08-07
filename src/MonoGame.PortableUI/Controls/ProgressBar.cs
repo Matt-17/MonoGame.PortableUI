@@ -16,6 +16,7 @@ namespace MonoGame.PortableUI.Controls
         {
             var theme = PortableTheme.ResolveCurrent();
 
+            IsFocusable = false;
             Height = theme.ProgressBarHeight;
             Width = theme.ProgressBarWidth;
             FillBrush = theme.ProgressBarFillBrush;
@@ -69,10 +70,14 @@ namespace MonoGame.PortableUI.Controls
                 if (Math.Abs(_value - clamped) < 0.0001f)
                     return;
 
+                var old = _value;
                 _value = clamped;
                 InvalidateLayout(false);
+                ValueChanged?.Invoke(this, new Events.ValueChangedEventArgs { OldValue = old, NewValue = _value });
             }
         }
+
+        public event EventHandler<Events.ValueChangedEventArgs>? ValueChanged;
 
         public Brush FillBrush { get; set; }
 
@@ -89,7 +94,8 @@ namespace MonoGame.PortableUI.Controls
 
             var width = Width.IsFixed() ? Width : PortableTheme.ResolveCurrent().ProgressBarWidth;
             var height = Height.IsFixed() ? Height : PortableTheme.ResolveCurrent().ProgressBarHeight;
-            return ApplyConstraints(new Size(width, height) + Margin);
+            // Min/Max constrain the content box only; margin is added afterwards (same as Control).
+            return ApplyConstraints(new Size(width, height)) + Margin;
         }
 
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
@@ -103,7 +109,17 @@ namespace MonoGame.PortableUI.Controls
 
             var fillRect = GetFillRect(rect);
             if (fillRect.Width > 0 && fillRect.Height > 0)
+                DrawFill(spriteBatch, fillRect);
+        }
+
+        /// <summary>Draws the fill with the control's corner radius (the base already rounds the
+        /// background); the renderer clamps the radius to the partial fill's size.</summary>
+        private void DrawFill(SpriteBatch spriteBatch, Rect fillRect)
+        {
+            if (CornerRadius.IsEmpty)
                 FillBrush.Draw(spriteBatch, fillRect, RenderOpacity);
+            else
+                FillBrush.Draw(spriteBatch, new BrushContext(fillRect, CornerRadius, RenderOpacity, spriteBatch.GraphicsDevice));
         }
 
         private void DrawIndeterminate(SpriteBatch spriteBatch, Rect rect)
@@ -115,7 +131,7 @@ namespace MonoGame.PortableUI.Controls
             var visibleLeft = Math.Max(left, rect.Left);
             var visibleRight = Math.Min(left + blockWidth, rect.Right);
             if (visibleRight > visibleLeft)
-                FillBrush.Draw(spriteBatch, new Rect(visibleLeft, rect.Top, visibleRight - visibleLeft, rect.Height), RenderOpacity);
+                DrawFill(spriteBatch, new Rect(visibleLeft, rect.Top, visibleRight - visibleLeft, rect.Height));
         }
 
         internal Rect GetFillRect(Rect rect)

@@ -809,6 +809,40 @@ namespace MonoGame.PortableUI.Demo
             panel.AddChild(radioA);
             panel.AddChild(radioB);
 
+            panel.AddChild(Label("ToggleSwitch + Badge", Palette.MutedText, 14, new Thickness(0, 8, 0, 2)));
+            var switchRow = new Grid
+            {
+                Margin = new Thickness(0, 2, 0, 0),
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition { Width = GridLength.Auto },
+                    new ColumnDefinition()
+                }
+            };
+            var toggleSwitch = new ToggleSwitch
+            {
+                Width = 64,
+                Height = 34,
+                KnobInset = 4,
+                Margin = new Thickness(0, 0, 12, 0),
+                ToolTip = "Theme-colored on/off switch"
+            };
+            var badge = new Badge
+            {
+                Count = 3,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Center,
+                ToolTip = "Notification badge"
+            };
+            toggleSwitch.Toggled += (sender, args) =>
+            {
+                badge.Count = args.IsChecked ? 12 : 3;
+                _status.Text = args.IsChecked ? "Switch on" : "Switch off";
+            };
+            switchRow.AddChild(toggleSwitch);
+            switchRow.AddChild(badge, column: 1);
+            panel.AddChild(switchRow);
+
             return panel;
         }
 

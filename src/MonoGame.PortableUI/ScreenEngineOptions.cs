@@ -19,6 +19,16 @@ namespace MonoGame.PortableUI
         public Effect? Effect { get; set; }
 
         /// <summary>
+        /// Design ("logical") resolution the UI is authored for. When set (both components &gt; 0),
+        /// the whole screen is laid out in this virtual space and the finished frame is uniformly
+        /// scaled to fill the real window, so controls keep their proportions on larger displays
+        /// instead of merely gaining empty space. The larger window axis receives extra logical
+        /// space (no letter-boxing) so the reference area is always fully visible. Zero (the
+        /// default) disables scaling: layout uses the raw viewport, exactly as before.
+        /// </summary>
+        public PointF ReferenceSize { get; set; }
+
+        /// <summary>
         /// The engine these options belong to, set once by <see cref="ScreenEngine"/>'s constructor.
         /// Lets the <see cref="Theme"/> setter invalidate the screen this instance actually drives
         /// instead of always the process-wide primary engine (relevant for secondary engines such as

@@ -28,6 +28,9 @@ namespace MonoGame.PortableUI.Controls
         private readonly Grid _bodyGrid;
         private readonly ScrollViewer _horizontalScroll;
         private readonly List<RowControl> _rows = new List<RowControl>();
+        // Display position -> Items index. Sorting reorders this list only; the caller's Items
+        // list is never mutated, so external indices into Items stay valid across sorts.
+        private readonly List<int> _displayOrder = new List<int>();
 
         private int _selectedIndex = -1;
         private DataGridColumn? _sortColumn;
@@ -70,14 +73,14 @@ namespace MonoGame.PortableUI.Controls
             };
 
             _rowHeight = theme.ListBoxItemHeight;
-            HeaderBackgroundBrush = theme.TabHeaderBackgroundBrush;
-            HeaderTextColor = theme.TabHeaderTextColor;
+            HeaderBackgroundBrush = theme.DataGridHeaderBackgroundBrush;
+            HeaderTextColor = theme.DataGridHeaderTextColor;
             RowBackgroundBrush = theme.ListBoxItemBackgroundBrush;
-            AlternateRowBackgroundBrush = theme.ListBoxItemBackgroundBrush;
+            AlternateRowBackgroundBrush = theme.DataGridAlternateRowBackgroundBrush;
             SelectedRowBackgroundBrush = theme.ListBoxSelectedItemBackgroundBrush;
             RowTextColor = theme.ListBoxItemTextColor;
             SelectedRowTextColor = theme.ListBoxSelectedItemTextColor;
-            GridLinesBrush = new SolidColorBrush(new Color(0, 0, 0, 28));
+            GridLinesBrush = theme.DataGridGridLinesBrush;
 
             HorizontalAlignment = HorizontalAlignment.Stretch;
             VerticalAlignment = VerticalAlignment.Stretch;
@@ -148,9 +151,10 @@ namespace MonoGame.PortableUI.Controls
                 var clamped = ClampIndex(value);
                 if (_selectedIndex == clamped)
                     return;
+                var oldIndex = _selectedIndex;
                 _selectedIndex = clamped;
                 UpdateRowVisuals();
-                SelectionChanged?.Invoke(this, EventArgs.Empty);
+                SelectionChanged?.Invoke(this, new SelectionChangedEventArgs(oldIndex, clamped));
             }
         }
 
@@ -162,13 +166,14 @@ namespace MonoGame.PortableUI.Controls
         /// <summary>True when the current sort is ascending.</summary>
         public bool SortAscending => _sortAscending;
 
-        public event EventHandler? SelectionChanged;
+        public event EventHandler<SelectionChangedEventArgs>? SelectionChanged;
         public event EventHandler<DataGridRowInvokedEventArgs>? RowInvoked;
 
         /// <summary>Rebuilds all rows from <see cref="Items"/> and <see cref="Columns"/>.</summary>
         public void Refresh()
         {
             _columnsDirty = true;
+            RebuildDisplayOrder();
             RebuildRows();
             _header.RebuildLabels();
             InvalidateLayout(true);
@@ -203,38 +208,35 @@ namespace MonoGame.PortableUI.Controls
 
         private void ApplySort()
         {
-            if (_sortColumn == null || Items.Count < 2)
-            {
-                _header.RebuildLabels();
-                RebuildRows();
-                InvalidateLayout(true);
-                return;
-            }
-
-            var selected = SelectedItem;
-            var column = _sortColumn;
-            var direction = _sortAscending ? 1 : -1;
-
-            // Stable sort: decorate with the original index and break ties on it so equal keys keep
-            // their relative order across repeated sorts.
-            var ordered = Items
-                .Select((item, index) => (item, index))
-                .OrderBy(entry => entry, Comparer<(object item, int index)>.Create((a, b) =>
-                {
-                    var result = CompareValues(column.GetSortValue(a.item), column.GetSortValue(b.item)) * direction;
-                    return result != 0 ? result : a.index.CompareTo(b.index);
-                }))
-                .Select(entry => entry.item)
-                .ToList();
-
-            Items.Clear();
-            Items.AddRange(ordered);
-
+            RebuildDisplayOrder();
             _header.RebuildLabels();
             RebuildRows();
-            if (selected != null)
-                SelectItemByReference(selected);
             InvalidateLayout(true);
+        }
+
+        private void EnsureDisplayOrder()
+        {
+            if (_displayOrder.Count != Items.Count)
+                RebuildDisplayOrder();
+        }
+
+        private void RebuildDisplayOrder()
+        {
+            _displayOrder.Clear();
+            for (var i = 0; i < Items.Count; i++)
+                _displayOrder.Add(i);
+
+            if (_sortColumn == null || Items.Count < 2)
+                return;
+
+            var column = _sortColumn;
+            var direction = _sortAscending ? 1 : -1;
+            // Ties break on the original index, making the sort stable across repeated sorts.
+            _displayOrder.Sort((a, b) =>
+            {
+                var result = CompareValues(column.GetSortValue(Items[a]), column.GetSortValue(Items[b])) * direction;
+                return result != 0 ? result : a.CompareTo(b);
+            });
         }
 
         private static int CompareValues(IComparable? a, IComparable? b)
@@ -259,14 +261,18 @@ namespace MonoGame.PortableUI.Controls
             return string.Compare(a.ToString(), b.ToString(), StringComparison.CurrentCultureIgnoreCase);
         }
 
-        internal void SelectRow(int index, bool invoke)
+        /// <summary>Selects the row at a display position (rows are shown in sort order, so the
+        /// display position maps through the display order to an <see cref="Items"/> index).</summary>
+        internal void SelectRow(int displayIndex, bool invoke)
         {
-            SelectedIndex = index;
+            EnsureDisplayOrder();
+            var itemIndex = displayIndex >= 0 && displayIndex < _displayOrder.Count ? _displayOrder[displayIndex] : -1;
+            SelectedIndex = itemIndex;
             Focus();
-            if (index >= 0 && index < _rows.Count)
-                _scrollViewer.BringIntoView(_rows[index]);
+            if (displayIndex >= 0 && displayIndex < _rows.Count)
+                _scrollViewer.BringIntoView(_rows[displayIndex]);
             if (invoke)
-                InvokeRow(index);
+                InvokeRow(itemIndex);
         }
 
         private void InvokeRow(int index)
@@ -274,13 +280,6 @@ namespace MonoGame.PortableUI.Controls
             if (index < 0 || index >= Items.Count)
                 return;
             RowInvoked?.Invoke(this, new DataGridRowInvokedEventArgs(index, Items[index]));
-        }
-
-        private void SelectItemByReference(object item)
-        {
-            var index = Items.FindIndex(candidate => ReferenceEquals(candidate, item));
-            if (index >= 0)
-                SelectedIndex = index;
         }
 
         public override Size MeasureLayout()
@@ -323,7 +322,11 @@ namespace MonoGame.PortableUI.Controls
 
         public override IEnumerable<Control> GetDescendants()
         {
-            EnsureRows();
+            // GetDescendants runs several times per frame (draw + input walks); the full row sync
+            // belongs to the layout pass. Only a structural mismatch (items added/removed without
+            // an invalidation) forces a rebuild here. In-place item edits need Refresh().
+            if (_rows.Count != Items.Count)
+                EnsureRows();
             yield return _horizontalScroll;
         }
 
@@ -335,6 +338,33 @@ namespace MonoGame.PortableUI.Controls
         protected override ControlStyle? GetThemeStyle(PortableTheme theme)
         {
             return theme.ListBox;
+        }
+
+        protected override void OnThemeChanged(PortableTheme oldTheme, PortableTheme newTheme)
+        {
+            base.OnThemeChanged(oldTheme, newTheme);
+
+            if (Math.Abs(_rowHeight - oldTheme.ListBoxItemHeight) < float.Epsilon)
+                _rowHeight = newTheme.ListBoxItemHeight;
+            if (ReferenceEquals(HeaderBackgroundBrush, oldTheme.DataGridHeaderBackgroundBrush))
+                HeaderBackgroundBrush = newTheme.DataGridHeaderBackgroundBrush;
+            if (HeaderTextColor.Equals(oldTheme.DataGridHeaderTextColor))
+                HeaderTextColor = newTheme.DataGridHeaderTextColor;
+            if (ReferenceEquals(RowBackgroundBrush, oldTheme.ListBoxItemBackgroundBrush))
+                RowBackgroundBrush = newTheme.ListBoxItemBackgroundBrush;
+            if (ReferenceEquals(AlternateRowBackgroundBrush, oldTheme.DataGridAlternateRowBackgroundBrush))
+                AlternateRowBackgroundBrush = newTheme.DataGridAlternateRowBackgroundBrush;
+            if (ReferenceEquals(SelectedRowBackgroundBrush, oldTheme.ListBoxSelectedItemBackgroundBrush))
+                SelectedRowBackgroundBrush = newTheme.ListBoxSelectedItemBackgroundBrush;
+            if (RowTextColor.Equals(oldTheme.ListBoxItemTextColor))
+                RowTextColor = newTheme.ListBoxItemTextColor;
+            if (SelectedRowTextColor.Equals(oldTheme.ListBoxSelectedItemTextColor))
+                SelectedRowTextColor = newTheme.ListBoxSelectedItemTextColor;
+            if (ReferenceEquals(GridLinesBrush, oldTheme.DataGridGridLinesBrush))
+                GridLinesBrush = newTheme.DataGridGridLinesBrush;
+
+            _header.RebuildLabels();
+            UpdateRowVisuals();
         }
 
         internal IReadOnlyList<DataGridColumn> ResolvedColumns => Columns;
@@ -355,6 +385,17 @@ namespace MonoGame.PortableUI.Controls
             {
                 EnsureRows();
                 return _rows;
+            }
+        }
+
+        /// <summary>The items in display (sort) order. Sorting never reorders <see cref="Items"/> itself.</summary>
+        public IEnumerable<object> DisplayedItems
+        {
+            get
+            {
+                EnsureDisplayOrder();
+                foreach (var index in _displayOrder)
+                    yield return Items[index];
             }
         }
 
@@ -387,8 +428,9 @@ namespace MonoGame.PortableUI.Controls
                     _rowsPanel.AddChild(row);
                 }
 
+                EnsureDisplayOrder();
                 for (var i = 0; i < _rows.Count; i++)
-                    _rows[i].SetItem(Items[i], i, _columnsDirty);
+                    _rows[i].SetItem(Items[_displayOrder[i]], i, _columnsDirty);
             }
             finally
             {
@@ -423,8 +465,9 @@ namespace MonoGame.PortableUI.Controls
 
         private void UpdateRowVisuals()
         {
-            for (var i = 0; i < _rows.Count; i++)
-                _rows[i].ApplyVisualState(i == _selectedIndex);
+            EnsureDisplayOrder();
+            for (var i = 0; i < _rows.Count && i < _displayOrder.Count; i++)
+                _rows[i].ApplyVisualState(_displayOrder[i] == _selectedIndex);
         }
 
         private int ClampIndex(int value)
@@ -440,16 +483,30 @@ namespace MonoGame.PortableUI.Controls
             switch (args.Command)
             {
                 case KeyboardCommand.CursorUp:
-                    SelectRow(SelectedIndex < 0 ? 0 : Math.Max(0, SelectedIndex - 1), false);
+                    MoveSelection(-1);
                     break;
                 case KeyboardCommand.CursorDown:
-                    SelectRow(SelectedIndex < 0 ? 0 : Math.Min(Items.Count - 1, SelectedIndex + 1), false);
+                    MoveSelection(1);
                     break;
                 case KeyboardCommand.Enter:
                     if (SelectedIndex >= 0)
                         InvokeRow(SelectedIndex);
                     break;
             }
+        }
+
+        /// <summary>Moves the selection through the rows in display (sort) order.</summary>
+        private void MoveSelection(int delta)
+        {
+            EnsureDisplayOrder();
+            if (_displayOrder.Count == 0)
+                return;
+
+            var displayPosition = _selectedIndex < 0 ? -1 : _displayOrder.IndexOf(_selectedIndex);
+            var target = displayPosition < 0
+                ? 0
+                : Math.Max(0, Math.Min(_displayOrder.Count - 1, displayPosition + delta));
+            SelectRow(target, false);
         }
 
         private static float NaturalColumnWidth(DataGridColumn column)

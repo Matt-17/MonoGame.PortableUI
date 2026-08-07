@@ -143,11 +143,6 @@ namespace MonoGame.PortableUI.Controls
             UpdateContentLayout();
         }
 
-        protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
-        {
-            base.OnDraw(spriteBatch, rect);
-        }
-
         protected internal override void OnDrawOverlay(SpriteBatch spriteBatch, Rect rect)
         {
             DrawScrollBars(spriteBatch, rect - Padding);
@@ -156,12 +151,24 @@ namespace MonoGame.PortableUI.Controls
 
         protected internal override bool CapturesInputBeforeDescendants(BaseEventArgs args)
         {
-            return args is MouseEventArgs mouseArgs
-                && (_isScrollBarDragging || IsScrollBarThumbHit(mouseArgs.Position));
+            return args switch
+            {
+                MouseEventArgs mouseArgs => _isScrollBarDragging || IsScrollBarThumbHit(mouseArgs.Position),
+                TouchEventArgs touchArgs => _isScrollBarDragging || IsScrollBarThumbHit(touchArgs.Position),
+                _ => false,
+            };
         }
 
         private void ScrollViewerTouchUp(object? sender, TouchEventArgs args)
         {
+            if (_isScrollBarDragging)
+            {
+                DragScrollBarTo(args.Position);
+                EndScrollBarDrag(args.Position);
+                args.Handled = true;
+                return;
+            }
+
             _touchPosition = null;
             if (EnableFling)
             {
@@ -176,6 +183,13 @@ namespace MonoGame.PortableUI.Controls
 
         private void ScrollViewerTouchMove(object? sender, TouchEventArgs args)
         {
+            if (_isScrollBarDragging)
+            {
+                DragScrollBarTo(args.Position);
+                args.Handled = true;
+                return;
+            }
+
             if (_touchPosition != null)
             {
                 _lastTouchDelta = args.Position - _touchPosition.Value;
@@ -186,6 +200,18 @@ namespace MonoGame.PortableUI.Controls
 
         private void ScrollViewerTouchDown(object? sender, TouchEventArgs args)
         {
+            // A touch that starts on the scrollbar thumb drags the thumb; anywhere else pans the content.
+            if (TryGetScrollBarThumbRect(out var thumbRect) && GetScrollBarThumbHitRect(thumbRect).Contains(args.Position))
+            {
+                _isScrollBarDragging = true;
+                _scrollBarDragPointerOffset = ScrollOrientation == Orientation.Horizontal
+                    ? args.Position.X - thumbRect.Left
+                    : args.Position.Y - thumbRect.Top;
+                SetScrollBarThumbHovering(true);
+                args.Handled = true;
+                return;
+            }
+
             _touchPosition = args.Position;
             _lastTouchDelta = new PointF();
         }
@@ -331,7 +357,7 @@ namespace MonoGame.PortableUI.Controls
             VisualTreeHelper.AppendVisualTree(Content, _visualTreeScratch, false);
             foreach (var control in _visualTreeScratch)
             {
-                var containsPosition = control.BoundingRect.Contains(position);
+                var containsPosition = control.ClippingRect.Contains(position);
                 if (containsPosition && !control.IsMouseHovering)
                     control.OnMouseEnter(args);
                 else if (!containsPosition && control.IsMouseHovering)

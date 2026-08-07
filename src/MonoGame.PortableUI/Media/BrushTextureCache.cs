@@ -10,6 +10,12 @@ namespace MonoGame.PortableUI.Media
         private static readonly object SyncRoot = new object();
         private static readonly ConditionalWeakTable<GraphicsDevice, DeviceCache> Caches = new ConditionalWeakTable<GraphicsDevice, DeviceCache>();
 
+        // Some entries are keyed by pixel size (rounded gradients), so animated/resizing controls
+        // would grow the cache without bound. On overflow the current generation is retired and
+        // only disposed on the next overflow, so textures already recorded in an unflushed
+        // SpriteBatch survive the frame they were drawn in.
+        private const int MaxEntries = 256;
+
         public static Texture2D GetOrCreate(GraphicsDevice graphicsDevice, BrushTextureCacheKey key, Func<GraphicsDevice, Texture2D> factory)
         {
             if (graphicsDevice == null)
@@ -22,6 +28,15 @@ namespace MonoGame.PortableUI.Media
                 var cache = Caches.GetValue(graphicsDevice, CreateCache);
                 if (cache.Textures.TryGetValue(key, out var texture))
                     return texture;
+
+                if (cache.Textures.Count >= MaxEntries)
+                {
+                    foreach (var retired in cache.Retired)
+                        retired.Dispose();
+                    cache.Retired.Clear();
+                    cache.Retired.AddRange(cache.Textures.Values);
+                    cache.Textures.Clear();
+                }
 
                 texture = factory(graphicsDevice);
                 cache.Textures[key] = texture;
@@ -51,11 +66,15 @@ namespace MonoGame.PortableUI.Media
             foreach (var texture in cache.Textures.Values)
                 texture.Dispose();
             cache.Textures.Clear();
+            foreach (var texture in cache.Retired)
+                texture.Dispose();
+            cache.Retired.Clear();
         }
 
         private sealed class DeviceCache
         {
             public Dictionary<BrushTextureCacheKey, Texture2D> Textures { get; } = new Dictionary<BrushTextureCacheKey, Texture2D>();
+            public List<Texture2D> Retired { get; } = new List<Texture2D>();
         }
     }
 

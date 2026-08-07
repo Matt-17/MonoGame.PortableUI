@@ -17,6 +17,13 @@ namespace MonoGame.PortableUI.Input
 
         public TouchCollection Touches { get; private set; }
 
+        public Microsoft.Xna.Framework.Input.KeyboardState KeyboardState { get; private set; }
+
+        public void SetKeyboardState(Microsoft.Xna.Framework.Input.KeyboardState keyboardState)
+        {
+            KeyboardState = keyboardState;
+        }
+
         public void SetPointer(PointF position, bool leftDown = false, bool rightDown = false, bool middleDown = false)
         {
             MousePosition = position;

@@ -5,6 +5,11 @@ namespace MonoGame.PortableUI.Controls
 {
     public class Border : ContentControl
     {
+        public Border()
+        {
+            IsFocusable = false;
+        }
+
         public Brush? BorderColor
         {
             get { return BorderBrush; }

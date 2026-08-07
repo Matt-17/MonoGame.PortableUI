@@ -22,14 +22,29 @@ namespace MonoGame.PortableUI.Controls
 
         public ToggleSwitch()
         {
+            var theme = PortableTheme.ResolveCurrent();
+
             Width = 96;
             Height = 52;
             KnobInset = 5;
-            OffTrackBrush = new SolidColorBrush(new Color(255, 255, 255, 60));
-            OnTrackBrush = new SolidColorBrush(new Color(96, 226, 219));
-            KnobBrush = new SolidColorBrush(Color.White);
+            OffTrackBrush = theme.ToggleSwitchOffTrackBrush;
+            OnTrackBrush = theme.ToggleSwitchOnTrackBrush;
+            KnobBrush = theme.ToggleSwitchKnobBrush;
             ShowFocusVisual = true;
             Click += (_, _) => IsOn = !IsOn;
+            KeyPressed += ActivateOnKeyPressed;
+        }
+
+        protected override void OnThemeChanged(PortableTheme oldTheme, PortableTheme newTheme)
+        {
+            base.OnThemeChanged(oldTheme, newTheme);
+
+            if (ReferenceEquals(OffTrackBrush, oldTheme.ToggleSwitchOffTrackBrush))
+                OffTrackBrush = newTheme.ToggleSwitchOffTrackBrush;
+            if (ReferenceEquals(OnTrackBrush, oldTheme.ToggleSwitchOnTrackBrush))
+                OnTrackBrush = newTheme.ToggleSwitchOnTrackBrush;
+            if (ReferenceEquals(KnobBrush, oldTheme.ToggleSwitchKnobBrush))
+                KnobBrush = newTheme.ToggleSwitchKnobBrush;
         }
 
         /// <summary>Padding between the knob and the track edge.</summary>
@@ -64,7 +79,8 @@ namespace MonoGame.PortableUI.Controls
 
             var width = Width.IsFixed() ? Width : 96;
             var height = Height.IsFixed() ? Height : 52;
-            return ApplyConstraints(new Size(width, height) + Margin);
+            // Min/Max constrain the content box only; margin is added afterwards (same as Control).
+            return ApplyConstraints(new Size(width, height)) + Margin;
         }
 
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
