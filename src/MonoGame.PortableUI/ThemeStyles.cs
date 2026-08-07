@@ -26,14 +26,27 @@ namespace MonoGame.PortableUI
 
     public sealed class StateStyle
     {
-        public Brush? Background { get; set; }
-        public Brush? BorderBrush { get; set; }
-        public Thickness? BorderThickness { get; set; }
-        public CornerRadius? CornerRadius { get; set; }
-        public CornerStyle? CornerStyle { get; set; }
-        public ShadowStyle[]? Shadows { get; set; }
-        public Color? TextColor { get; set; }
-        public FocusVisualKind? FocusVisualKind { get; set; }
+        private Brush? _background;
+        private Brush? _borderBrush;
+        private Thickness? _borderThickness;
+        private CornerRadius? _cornerRadius;
+        private CornerStyle? _cornerStyle;
+        private ShadowStyle[]? _shadows;
+        private Color? _textColor;
+        private FocusVisualKind? _focusVisualKind;
+
+        /// <summary>Bumped by every setter so <see cref="ControlStyle"/> can detect runtime
+        /// mutation and drop its resolved cache automatically.</summary>
+        internal int Version { get; private set; }
+
+        public Brush? Background { get => _background; set { _background = value; Version++; } }
+        public Brush? BorderBrush { get => _borderBrush; set { _borderBrush = value; Version++; } }
+        public Thickness? BorderThickness { get => _borderThickness; set { _borderThickness = value; Version++; } }
+        public CornerRadius? CornerRadius { get => _cornerRadius; set { _cornerRadius = value; Version++; } }
+        public CornerStyle? CornerStyle { get => _cornerStyle; set { _cornerStyle = value; Version++; } }
+        public ShadowStyle[]? Shadows { get => _shadows; set { _shadows = value; Version++; } }
+        public Color? TextColor { get => _textColor; set { _textColor = value; Version++; } }
+        public FocusVisualKind? FocusVisualKind { get => _focusVisualKind; set { _focusVisualKind = value; Version++; } }
 
         public StateStyle Resolve(StateStyle normal)
         {
@@ -57,29 +70,49 @@ namespace MonoGame.PortableUI
     public sealed class ControlStyle
     {
         private StateStyle?[]? _resolvedCache;
+        private int _cachedVersion = -1;
+        private int _slotVersion;
 
-        public StateStyle Normal { get; set; } = new StateStyle();
-        public StateStyle Hover { get; set; } = new StateStyle();
-        public StateStyle Pressed { get; set; } = new StateStyle();
-        public StateStyle Focused { get; set; } = new StateStyle();
-        public StateStyle Disabled { get; set; } = new StateStyle();
-        public StateStyle Checked { get; set; } = new StateStyle();
+        private StateStyle _normal = new StateStyle();
+        private StateStyle _hover = new StateStyle();
+        private StateStyle _pressed = new StateStyle();
+        private StateStyle _focused = new StateStyle();
+        private StateStyle _disabled = new StateStyle();
+        private StateStyle _checked = new StateStyle();
+
+        public StateStyle Normal { get => _normal; set { _normal = value; _slotVersion++; } }
+        public StateStyle Hover { get => _hover; set { _hover = value; _slotVersion++; } }
+        public StateStyle Pressed { get => _pressed; set { _pressed = value; _slotVersion++; } }
+        public StateStyle Focused { get => _focused; set { _focused = value; _slotVersion++; } }
+        public StateStyle Disabled { get => _disabled; set { _disabled = value; _slotVersion++; } }
+        public StateStyle Checked { get => _checked; set { _checked = value; _slotVersion++; } }
         public TimeSpan TransitionDuration { get; set; } = TimeSpan.FromMilliseconds(120);
 
+        // Versions only ever increment, so the sum strictly increases on any mutation.
+        private int CurrentVersion =>
+            _slotVersion + _normal.Version + _hover.Version + _pressed.Version +
+            _focused.Version + _disabled.Version + _checked.Version;
+
         /// <summary>
-        ///     Cached per-state resolution used by controls every frame. Themes are treated as
-        ///     immutable once in use; call <see cref="InvalidateResolvedCache"/> after mutating
-        ///     state styles at runtime.
+        ///     Cached per-state resolution used by controls every frame. The cache drops itself
+        ///     when any state style is replaced or mutated — no manual invalidation needed.
         /// </summary>
         public StateStyle GetResolved(ControlVisualState state)
         {
-            _resolvedCache ??= new StateStyle?[6];
+            var version = CurrentVersion;
+            if (_resolvedCache is null || _cachedVersion != version)
+            {
+                _resolvedCache = new StateStyle?[6];
+                _cachedVersion = version;
+            }
+
             var index = (int)state;
             if (index < 0 || index >= _resolvedCache.Length)
                 return Resolve(state);
             return _resolvedCache[index] ??= Resolve(state);
         }
 
+        /// <summary>Kept for compatibility; the cache now invalidates itself on mutation.</summary>
         public void InvalidateResolvedCache()
         {
             _resolvedCache = null;

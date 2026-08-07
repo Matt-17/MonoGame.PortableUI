@@ -945,6 +945,20 @@ namespace MonoGame.PortableUI
 
             var focusedControl = ScreenEngine.FocusedControl;
 
+            // Tab traversal is screen-level, not control-level: handle it before per-control
+            // routing so it also works when nothing is focused yet. Only the screen that owns
+            // the current focus (or any screen when focus is empty — the first one to see the
+            // press wins and thereby claims focus) may act.
+            var tabPressed = Array.IndexOf(_pressedKeysBuffer, Keys.Tab, 0, pressedKeyCount) >= 0
+                && Array.IndexOf(_lastPressedKeysBuffer, Keys.Tab, 0, _lastPressedKeyCount) < 0;
+            if (tabPressed && (focusedControl == null || focusedControl.Screen == this))
+            {
+                FocusNextTabStop((modifiers & KeyboardModifiers.Shift) != KeyboardModifiers.None);
+                SwapPressedKeyBuffers(pressedKeyCount);
+                _repeatKey = Keys.None;
+                return;
+            }
+
             // Focus is global while several screens can update per frame (UISurfaces): only the
             // screen that owns the focused control may process keys, or every screen would apply
             // the same backspace/arrow once each. Unattached controls keep the legacy routing.
@@ -994,6 +1008,41 @@ namespace MonoGame.PortableUI
             }
 
             SwapPressedKeyBuffers(pressedKeyCount);
+        }
+
+        /// <summary>Moves keyboard focus to the next (or previous) tab stop on this screen.
+        /// Traversal order: controls with a non-negative <see cref="Control.TabIndex"/> first,
+        /// ascending, then the rest in visual-tree order. Wraps around at both ends.</summary>
+        public void FocusNextTabStop(bool backwards = false)
+        {
+            _visualTreeScratch.Clear();
+            VisualTreeHelper.AppendVisualTree(_mainGrid, _visualTreeScratch, false);
+
+            var stops = new List<Control>();
+            foreach (var control in _visualTreeScratch)
+            {
+                if (control.IsEffectiveTabStop)
+                    stops.Add(control);
+            }
+
+            _visualTreeScratch.Clear();
+            if (stops.Count == 0)
+                return;
+
+            // Stable sort: explicit TabIndex first (ascending), ties and the -1 rest keep
+            // visual-tree order.
+            var ordered = stops
+                .Select((control, sequence) => (control, sequence))
+                .OrderBy(entry => entry.control.TabIndex < 0 ? int.MaxValue : entry.control.TabIndex)
+                .ThenBy(entry => entry.sequence)
+                .Select(entry => entry.control)
+                .ToList();
+
+            var index = ScreenEngine.FocusedControl is { } focused ? ordered.IndexOf(focused) : -1;
+            var next = backwards
+                ? index <= 0 ? ordered.Count - 1 : index - 1
+                : index < 0 || index == ordered.Count - 1 ? 0 : index + 1;
+            ordered[next].Focus();
         }
 
         private void SwapPressedKeyBuffers(int pressedKeyCount)

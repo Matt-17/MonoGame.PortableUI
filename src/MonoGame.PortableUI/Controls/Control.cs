@@ -96,6 +96,17 @@ namespace MonoGame.PortableUI.Controls
         /// <see cref="Focus"/> call is programmatic and ignores this flag.</summary>
         public bool IsFocusable { get; set; } = true;
 
+        /// <summary>Whether Tab/Shift+Tab traversal stops at this control. Defaults to
+        /// <see cref="IsFocusable"/>, so interactive controls participate automatically and
+        /// labels/panels don't; set explicitly to opt a control in or out.</summary>
+        public bool? IsTabStop { get; set; }
+
+        /// <summary>Explicit traversal order. Controls with a non-negative TabIndex come first
+        /// (ascending); the rest follow in visual-tree order.</summary>
+        public int TabIndex { get; set; } = -1;
+
+        internal bool IsEffectiveTabStop => (IsTabStop ?? IsFocusable) && IsEnabled && IsVisible && !IsGone;
+
         internal Screen? Screen
         {
             get { return Parent as Screen ?? (Parent as Control)?.Screen; }
@@ -699,16 +710,20 @@ namespace MonoGame.PortableUI.Controls
 
         protected Rect GetRectForAlignment(Rect rect, Size measuredSize, PointF offset)
         {
+            // Center/Bottom/Right need a finite available extent; inside an unbounded axis
+            // (e.g. a StackPanel's stacking direction arranges with Size.Infinity) the offset
+            // would become Infinity/NaN, so fall back to Top/Left alignment there — the same
+            // guard Stretch already applies.
             switch (VerticalAlignment)
             {
                 case VerticalAlignment.Stretch:
                     if (!Height.IsFixed() && rect.Height.IsFixed()) measuredSize.Height = rect.Height;
                     break;
                 case VerticalAlignment.Center:
-                    offset.Y += (rect.Height - measuredSize.Height) / 2;
+                    if (rect.Height.IsFixed()) offset.Y += (rect.Height - measuredSize.Height) / 2;
                     break;
                 case VerticalAlignment.Bottom:
-                    offset.Y += rect.Height - measuredSize.Height;
+                    if (rect.Height.IsFixed()) offset.Y += rect.Height - measuredSize.Height;
                     break;
             }
 
@@ -718,10 +733,10 @@ namespace MonoGame.PortableUI.Controls
                     if (!Width.IsFixed() && rect.Width.IsFixed()) measuredSize.Width = rect.Width;
                     break;
                 case HorizontalAlignment.Center:
-                    offset.X += (rect.Width - measuredSize.Width) / 2;
+                    if (rect.Width.IsFixed()) offset.X += (rect.Width - measuredSize.Width) / 2;
                     break;
                 case HorizontalAlignment.Right:
-                    offset.X += rect.Width - measuredSize.Width;
+                    if (rect.Width.IsFixed()) offset.X += rect.Width - measuredSize.Width;
                     break;
             }
             measuredSize = ApplyConstraints(measuredSize);
@@ -829,24 +844,27 @@ namespace MonoGame.PortableUI.Controls
 
         internal void OnMouseUp(MouseEventArgs args)
         {
-            var changed = new List<MouseButton>();
+            // Runs on every mouse release for every hovered control: track the two buttons that
+            // matter as flags instead of allocating a list per event.
+            var leftReleased = false;
+            var rightReleased = false;
             foreach (var button in args.Buttons)
             {
                 if (MouseButtonStates[button] == ButtonState.Pressed)
                 {
                     MouseButtonStates[button] = ButtonState.Released;
-                    changed.Add(button);
+                    leftReleased |= button == MouseButton.Left;
+                    rightReleased |= button == MouseButton.Right;
                 }
-
             }
             MouseUp?.Invoke(this, args);
             ChangeVisualState();
-            if (Click != null && changed.Contains(MouseButton.Left))
+            if (Click != null && leftReleased)
             {
                 OnClick();
                 args.Handled = true;
             }
-            if (RightClick != null && changed.Contains(MouseButton.Right))
+            if (RightClick != null && rightReleased)
             {
                 OnRightClick();
                 args.Handled = true;
