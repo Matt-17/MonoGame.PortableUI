@@ -20,6 +20,10 @@ namespace MonoGame.PortableUI.Controls
         private float _scrollBarDragPointerOffset;
         private readonly List<Control> _visualTreeScratch = new List<Control>();
 
+        // Hover-sync fires on every wheel tick; the handlers never mutate the button list, so
+        // one shared empty instance avoids a per-scroll allocation.
+        private static readonly List<MouseButton> EmptyMouseButtons = new List<MouseButton>();
+
         public Orientation ScrollOrientation { get; set; }
 
         protected internal override bool ClipsDescendants => true;
@@ -352,7 +356,7 @@ namespace MonoGame.PortableUI.Controls
             if (Content == null)
                 return;
 
-            var args = new MouseEventArgs(position, new List<MouseButton>());
+            var args = new MouseEventArgs(position, EmptyMouseButtons);
             _visualTreeScratch.Clear();
             VisualTreeHelper.AppendVisualTree(Content, _visualTreeScratch, false);
             foreach (var control in _visualTreeScratch)
