@@ -41,7 +41,9 @@ jobs:
 
       - name: Build
         shell: pwsh
-        run: dotnet build MonoGame.PortableUI.slnx --configuration Release --no-restore -p:TreatWarningsAsErrors=true -p:Version=$env:PACKAGE_VERSION -p:PackageVersion=$env:PACKAGE_VERSION
+        # -m:1 avoids a race in MonoGame.Content.Builder.Task where the Android
+        # RID inner-builds run mgcb concurrently against the same .mgcontent file.
+        run: dotnet build MonoGame.PortableUI.slnx --configuration Release --no-restore -m:1 -p:TreatWarningsAsErrors=true -p:Version=$env:PACKAGE_VERSION -p:PackageVersion=$env:PACKAGE_VERSION
 
       - name: Test
         run: dotnet test MonoGame.PortableUI.slnx --configuration Release --no-build
