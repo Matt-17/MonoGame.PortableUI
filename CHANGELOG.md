@@ -1,7 +1,21 @@
 # Changelog
 
-## 0.3.0-alpha.1 (unreleased)
+## 0.3.0-alpha.1
 
+- Solution, library and packages moved to **.NET 10**. The NuGet packages now ship `net10.0` and `net10.0-android36.0` assemblies instead of `net8.0`.
+- **Android support**: `MonoGame.PortableUI` and `MonoGame.PortableUI.Themes` multi-target `net10.0-android`; `AndroidClipboardService` wires the clipboard to the platform, and `ScreenEngine`/`FontManager`/`BackdropManager`/`PostProcessManager` reset their static state so the UI survives an activity restart. `samples/MonoGame.PortableUI.Demo.Android` is a minimal host (activity + manifest) running the same controls on device/emulator. Android hosts must pin `PreferredBackBufferWidth/Height` to the real display size — MonoGame's density-scaled default diverges from the GL surface and clips text in content-tight controls (buttons, list rows); see `AndroidDemoGame` and the README.
+- **`DataGrid`**: columns (`DataGridColumn`), click-to-sort with triangle sort glyphs, row selection (`SelectedIndex`/`SelectedItem`, `SelectionChanged`, `RowInvoked`), alternating row brushes, optional grid lines and column headers, and a horizontal scrollbar for wide grids. Covered by regression tests and shown in the demo.
+- **`Badge`**: count/dot pill (`Count`, `Dot`, `ShowZero`, `BadgeColor`, `TextColor`).
+- **`ToggleSwitch`**: animated sliding knob (`IsOn`, `Toggled`, `SlideSeconds`, `KnobInset`, separate on/off track and knob brushes).
+- **`SwipePresenter`**: panel that animates content swaps in a direction (`Swipe(content, direction)`, `SetContent`, `Duration`, `Easing`).
+- **`ShimmerGlassBrush`**: rounded glass fill with an animated diagonal sweep (`SweepColor`, `SweepSpeed`, `SweepStrength`, `BandWidthFraction`, `SweepSkew`). The streak is a soft-faded band sheared across the surface, clipped to the brush bounds and free of scanline seams.
+- `FrostedGlassBrush` supports rounded corners; backdrop blur is triggered from the screen's own background brush.
+- `TextBlock` gained `TextWrapping` and `TextTrimming` (word wrap and ellipsis) plus a text shadow (`ShadowColor`, `ShadowOffset`, `ShadowBlur`).
+- Rounded borders can be drawn with a diagonal bevel via `Control.BorderBevelLight`/`BorderBevelDark`.
+- Image fixes: `ImageBrush` in `UniformToFill` clips its overflow instead of bleeding past the control, image brushes follow the control's corner radius, and the disabled-state overlay is clipped to that radius too. Image controls and image-brush backgrounds now sample linearly, so scaled images are smooth instead of blocky.
+- Fixed seams between the slices of translucent rounded surfaces.
+- Gradient brushes share one ordered-stop evaluation and caching path (`LinearGradientBrush`, `RadialGradientBrush`).
+- Broad control fixes across `Grid`, `StackPanel`, `TabControl`, `ComboBox`, `ListBox`, `RadioButton`, `ProgressIndicator`, `TextBox`, `ToggleButton`, `ScrollViewer`, `Screen` and the rounded-rect/border renderers, with new regression suites covering them.
 - `Screen.ExternalBackdrop` / `UISurface.ExternalBackdrop`: a host game can feed its rendered frame as the backdrop that glass brushes blur — frosted glass now works over live game scenes, and `BackgroundBrush` becomes optional when an external backdrop is supplied.
 - `TextBlock.FontOverride`: assign a specific SpriteFont (size/weight) per block; wins over theme/default resolution and survives theme switches.
 - Theme catalog with 37 built-in themes, including a `default` entry that shows the library's untouched styling when no theme is applied.
