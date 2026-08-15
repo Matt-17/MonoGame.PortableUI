@@ -21,6 +21,10 @@
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <!-- eng/build-effects.ps1 ships as documentation for recompiling the shader sources,
+         not as a NuGet install hook. NU5110/NU5111 only warn that it will not be executed
+         on install, which is exactly what we want. -->
+    <NoWarn>$(NoWarn);NU5110;NU5111</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" />
