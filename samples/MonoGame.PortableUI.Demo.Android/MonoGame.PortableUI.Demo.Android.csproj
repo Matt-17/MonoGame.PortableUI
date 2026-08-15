@@ -27,4 +27,22 @@
   <ItemGroup>
     <MonoGameContentReference Include="Content\Content.mgcb" />
   </ItemGroup>
+
+  <!--
+    MonoGame.Content.Builder.Task derives the mgcb output and intermediate paths from
+    $(TargetFramework) alone, without the RID. The per-RID project instances spawned by
+    _ComputeFilesToPublishForRuntimeIdentifiers therefore run mgcb concurrently against the
+    same directories, and the losing process dies on the shared .mgcontent file. Give each
+    RID its own pair of directories so the inner builds cannot collide.
+  -->
+  <Target Name="IsolateContentBuilderDirsPerRid"
+          AfterTargets="CollectContentReferences"
+          Condition="'$(RuntimeIdentifier)' != ''">
+    <ItemGroup>
+      <ContentReference>
+        <ContentOutputDir>%(ContentReference.ContentOutputDir)/$(RuntimeIdentifier)</ContentOutputDir>
+        <ContentIntermediateOutputDir>%(ContentReference.ContentIntermediateOutputDir)/$(RuntimeIdentifier)</ContentIntermediateOutputDir>
+      </ContentReference>
+    </ItemGroup>
+  </Target>
 </Project>

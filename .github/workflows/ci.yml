@@ -24,9 +24,7 @@ jobs:
         run: dotnet restore MonoGame.PortableUI.slnx
 
       - name: Build
-        # -m:1 avoids a race in MonoGame.Content.Builder.Task where the Android
-        # RID inner-builds run mgcb concurrently against the same .mgcontent file.
-        run: dotnet build MonoGame.PortableUI.slnx --configuration Release --no-restore -m:1 -p:TreatWarningsAsErrors=true
+        run: dotnet build MonoGame.PortableUI.slnx --configuration Release --no-restore -p:TreatWarningsAsErrors=true
 
       - name: Test
         run: dotnet test MonoGame.PortableUI.slnx --configuration Release --no-build
