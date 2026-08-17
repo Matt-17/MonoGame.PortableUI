@@ -1,7 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using MonoGame.PortableUI.Common;
+using MonoGame.PortableUI.Controls;
 
 namespace MonoGame.PortableUI.Tests
 {
@@ -42,6 +46,47 @@ namespace MonoGame.PortableUI.Tests
             var key = FontManager.CreateFontKey("Segoe", FontStyle.BoldItalic, 16);
 
             Assert.AreEqual("Segoe-bolditalic-16", key);
+        }
+
+        [TestMethod]
+        public void Characters_outside_an_ascii_font_measure_as_the_fallback_glyph_instead_of_throwing()
+        {
+            var font = CreateAsciiFont();
+            Assert.ThrowsExactly<ArgumentException>(() => font.MeasureString("ä"));
+
+            var block = new TextBlock { FontOverride = font };
+            block.Text = "Grüße €";
+
+            Assert.AreEqual('?', font.DefaultCharacter);
+            Assert.AreEqual(font.MeasureString("Gr??e ?"), font.MeasureString("Grüße €"));
+            Assert.AreEqual("Grüße €", block.Text);
+        }
+
+        [TestMethod]
+        public void Existing_default_character_is_kept()
+        {
+            var font = CreateAsciiFont(defaultCharacter: '*');
+
+            FontManager.EnsureFallbackCharacter(font);
+
+            Assert.AreEqual('*', font.DefaultCharacter);
+        }
+
+        private static SpriteFont CreateAsciiFont(char? defaultCharacter = null)
+        {
+            var glyphs = new List<Rectangle>();
+            var cropping = new List<Rectangle>();
+            var characters = new List<char>();
+            var kerning = new List<Vector3>();
+            for (var c = (char)32; c <= 126; c++)
+            {
+                glyphs.Add(new Rectangle(0, 0, 8, 14));
+                cropping.Add(new Rectangle(0, 0, 8, 14));
+                characters.Add(c);
+                kerning.Add(new Vector3(0, 8, 0));
+            }
+
+            return new SpriteFont(null, glyphs, cropping, characters, 14, 0, kerning, defaultCharacter);
         }
 
         [TestMethod]
