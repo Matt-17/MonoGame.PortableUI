@@ -405,6 +405,13 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void Theme_registry_themes_render_with_their_declared_font()
+        {
+            foreach (var definition in PortableThemes.All)
+                Assert.AreEqual(definition.FontName, definition.CreateTheme().Typography.FontName, definition.Id);
+        }
+
+        [TestMethod]
         public void Theme_registry_contains_full_wave_catalog()
         {
             var ids = PortableThemes.All.Select(theme => theme.Id).ToArray();

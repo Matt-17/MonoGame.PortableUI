@@ -44,6 +44,7 @@ public static class ThemeBuilder
             CreateTheme = () =>
             {
                 var theme = PortableTheme.FromPalette(palette);
+                theme.Typography.FontName = fontName;
                 styleTheme?.Invoke(theme);
                 return theme;
             },

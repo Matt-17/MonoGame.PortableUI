@@ -50,7 +50,7 @@ public static class C64Theme
         {
             Id = "c64",
             DisplayName = "C64",
-            FontName = "pressstart2p",
+            FontName = FontName,
             Palette = palette,
             Metadata = new ThemeMetadata
             {
@@ -66,12 +66,15 @@ public static class C64Theme
         };
     }
 
+    private const string FontName = "pressstart2p";
+
     public static PortableTheme CreateTheme()
     {
         return new PortableTheme
         {
             TextColor = White,
             TextSize = 14,
+            Typography = new Typography { FontName = FontName, TextSize = 14 },
             FocusBorderBrush = new SolidColorBrush(White),
             FocusBorderWidth = 2,
             DisabledOverlayBrush = new SolidColorBrush(new Color(0, 0, 0, 95)),
