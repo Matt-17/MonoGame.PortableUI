@@ -39,6 +39,7 @@ namespace MonoGame.PortableUI.Controls
             {
                 if (ReferenceEquals(_fontOverride, value))
                     return;
+                FontManager.EnsureFallbackCharacter(value);
                 _fontOverride = value;
                 Font = value ?? FontManager.DefaultFont;
                 _textMeasurer = Font != null ? new SpriteFontTextMeasurer(Font) : ApproximateTextMeasurer.Default;
