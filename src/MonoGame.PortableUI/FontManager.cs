@@ -31,7 +31,38 @@ namespace MonoGame.PortableUI
         private static string? ContentRoot { get; set; }
         private static bool CanProbeContentRoot { get; set; }
 
-        public static SpriteFont? DefaultFont { get; set; }
+        private static SpriteFont? _defaultFont;
+
+        public static SpriteFont? DefaultFont
+        {
+            get => _defaultFont;
+            set
+            {
+                EnsureFallbackCharacter(value);
+                _defaultFont = value;
+            }
+        }
+
+        /// <summary>
+        ///     Gives a font without a <see cref="SpriteFont.DefaultCharacter"/> a fallback glyph
+        ///     ('?' when the font contains it), so measuring or drawing text with characters the font
+        ///     does not cover — e.g. 'ä' typed into a TextBox with an ASCII-only font — renders a
+        ///     placeholder instead of throwing <see cref="ArgumentException"/>. Fonts that already
+        ///     define a default character are left untouched.
+        /// </summary>
+        public static void EnsureFallbackCharacter(SpriteFont? font)
+        {
+            if (font == null || font.DefaultCharacter.HasValue)
+                return;
+
+            var characters = font.Characters;
+            if (characters.Count == 0)
+                return;
+
+            font.DefaultCharacter = characters.Contains('?') ? '?'
+                : characters.Contains(' ') ? ' '
+                : characters[0];
+        }
 
         /// <summary>
         ///     The pixel size a font was baked at (from its <c>name-style-size</c> asset), so callers
@@ -205,6 +236,7 @@ namespace MonoGame.PortableUI
             try
             {
                 spriteFont = FontGame.Content.Load<SpriteFont>(assetName);
+                EnsureFallbackCharacter(spriteFont);
                 Fonts[fontKey] = spriteFont;
                 FontSizes.AddOrUpdate(spriteFont, size);
                 return true;
