@@ -129,6 +129,39 @@ namespace MonoGame.PortableUI.Tests
             Assert.AreEqual(1, clicks);
         }
 
+        [TestMethod]
+        public void Click_on_overlapping_siblings_goes_to_the_topmost_one()
+        {
+            using var game = new Game();
+            var engine = ScreenEngine.Initialize(game, new ScreenEngineOptions { AddComponentToGame = false });
+            engine.SetScreenSize(120, 80);
+            var screen = new TestScreen();
+            var source = new VirtualInputSource();
+            var below = new Button { Width = 80, Height = 40, Text = "Below" };
+            var above = new Button { Width = 80, Height = 40, Text = "Above" };
+            var belowClicks = 0;
+            var aboveClicks = 0;
+            below.Click += (sender, args) => belowClicks++;
+            above.Click += (sender, args) => aboveClicks++;
+            var grid = new Grid();
+            grid.Children.Add(below);
+            grid.Children.Add(above);
+            screen.InputSource = source;
+            screen.Content = grid;
+            engine.NavigateToScreen(screen);
+            screen.InvalidateLayout(true);
+
+            source.SetPointer(new PointF(10, 10));
+            screen.Update();
+            source.SetPointer(new PointF(10, 10), leftDown: true);
+            screen.Update();
+            source.SetPointer(new PointF(10, 10));
+            screen.Update();
+
+            Assert.AreEqual(1, aboveClicks);
+            Assert.AreEqual(0, belowClicks);
+        }
+
         private sealed class TestScreen : Screen
         {
         }
