@@ -149,10 +149,12 @@ namespace MonoGame.PortableUI
         /// <summary>Marks the tree dirty; the actual measure/arrange runs once per frame in
         /// <see cref="PerformLayoutIfDirty"/> (start of Update, safety flush in Draw). Every
         /// property setter bubbles here, so deferring is what coalesces N invalidations per frame
-        /// into a single full-tree pass.</summary>
+        /// into a single full-tree pass. Visual-only changes (<paramref name="boundsChanged"/> false:
+        /// colors, values, hover) are read live at draw time and need no layout pass.</summary>
         public override void InvalidateLayout(bool boundsChanged)
         {
-            _layoutDirty = true;
+            if (boundsChanged)
+                _layoutDirty = true;
         }
 
         /// <summary>Runs the deferred layout pass if anything invalidated since the last one.
