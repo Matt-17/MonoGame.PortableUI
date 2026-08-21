@@ -269,6 +269,34 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void Visual_only_changes_do_not_trigger_a_layout_pass()
+        {
+            using var game = new Game();
+            var engine = ScreenEngine.Initialize(game, new ScreenEngineOptions { AddComponentToGame = false });
+            engine.SetScreenSize(200, 120);
+            var screen = new TestScreen();
+            var progress = new ProgressBar { Width = 100, Height = 10 };
+            var label = new TextBlock { Text = "A" };
+            var stack = new StackPanel();
+            stack.AddChild(progress);
+            stack.AddChild(label);
+            screen.Content = stack;
+            engine.NavigateToScreen(screen);
+            screen.Update(); // initial layout
+
+            var passesAfterInit = engine.LayoutPassesThisFrame;
+            progress.Value = 0.5f;
+            label.TextColor = Color.Red;
+            screen.Update();
+
+            Assert.AreEqual(passesAfterInit, engine.LayoutPassesThisFrame, "value/color changes are drawn live and must not relayout");
+
+            label.Text = "Longer";
+            screen.Update();
+            Assert.AreEqual(passesAfterInit + 1, engine.LayoutPassesThisFrame);
+        }
+
+        [TestMethod]
         public void From_palette_populates_toggle_switch_badge_and_data_grid_slots()
         {
             var palette = new ThemePalette
