@@ -2,10 +2,12 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Input.Touch;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
 using MonoGame.PortableUI.Controls.Events;
 using MonoGame.PortableUI.Controls.Input;
+using MonoGame.PortableUI.Input;
 using MonoGame.PortableUI.Media;
 
 namespace MonoGame.PortableUI.Tests
@@ -55,6 +57,64 @@ namespace MonoGame.PortableUI.Tests
 
             Assert.IsNotNull(brush);
             Assert.AreEqual(new Color(245, 245, 245), brush.Color);
+        }
+
+        [TestMethod]
+        public void Touch_pan_starting_on_a_clickable_child_scrolls_and_does_not_click()
+        {
+            using var game = new Game();
+            var (screen, source, viewer, clicks) = CreateTouchScreenWithButtons(game);
+
+            Touch(screen, source, TouchLocationState.Pressed, new Vector2(10, 90));
+            Touch(screen, source, TouchLocationState.Moved, new Vector2(10, 60));
+            Touch(screen, source, TouchLocationState.Moved, new Vector2(10, 30));
+            Touch(screen, source, TouchLocationState.Released, new Vector2(10, 30));
+
+            Assert.IsTrue(viewer.Offset.Y > 0, $"expected the list to scroll, offset {viewer.Offset.Y}");
+            Assert.AreEqual(0, clicks[0]);
+        }
+
+        [TestMethod]
+        public void Touch_tap_on_a_clickable_child_inside_a_scroll_viewer_still_clicks()
+        {
+            using var game = new Game();
+            var (screen, source, viewer, clicks) = CreateTouchScreenWithButtons(game);
+
+            Touch(screen, source, TouchLocationState.Pressed, new Vector2(10, 10));
+            Touch(screen, source, TouchLocationState.Moved, new Vector2(11, 12));
+            Touch(screen, source, TouchLocationState.Released, new Vector2(11, 12));
+
+            Assert.AreEqual(1, clicks[0]);
+        }
+
+        private static (TestScreen Screen, VirtualInputSource Source, ScrollViewer Viewer, int[] Clicks) CreateTouchScreenWithButtons(Game game)
+        {
+            var engine = ScreenEngine.Initialize(game, new ScreenEngineOptions { AddComponentToGame = false });
+            engine.SetScreenSize(100, 100);
+            var clicks = new int[1];
+            var stack = new StackPanel();
+            for (var i = 0; i < 10; i++)
+            {
+                var button = new Button { Height = 40, Text = $"Item {i}" };
+                button.Click += (sender, args) => clicks[0]++;
+                stack.AddChild(button);
+            }
+
+            var viewer = new ScrollViewer { Content = stack, EnableFling = false };
+            var screen = new TestScreen();
+            var source = new VirtualInputSource();
+            screen.InputSource = source;
+            screen.Content = viewer;
+            engine.NavigateToScreen(screen);
+            screen.InvalidateLayout(true);
+            screen.Update();
+            return (screen, source, viewer, clicks);
+        }
+
+        private static void Touch(TestScreen screen, VirtualInputSource source, TouchLocationState state, Vector2 position)
+        {
+            source.SetTouches(new TouchCollection(new[] { new TouchLocation(1, state, position) }));
+            screen.Update();
         }
 
         [TestMethod]

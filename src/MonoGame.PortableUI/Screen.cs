@@ -797,6 +797,7 @@ namespace MonoGame.PortableUI
             if (hasTouch && touchState.State == TouchLocationState.Pressed)
             {
                 var args = new TouchEventArgs(touchPosition);
+                VisualTreeHelper.PreviewTouchDown(content, args);
                 VisualTreeHelper.IterateVisualTree(content, args,
                     (c, a) => c.ClippingRect.Contains(a.Position),
                     (c, a) => { c.OnTouchDown(a); },

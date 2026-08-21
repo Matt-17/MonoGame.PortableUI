@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -13,6 +14,11 @@ namespace MonoGame.PortableUI.Controls
         private const float MinimumScrollBarHitThickness = 12;
         private PointF? _touchPosition;
         private PointF _lastTouchDelta;
+        private PointF _touchStartPosition;
+        private bool _isTouchPanning;
+
+        /// <summary>Finger travel (design px) after which a touch counts as a pan and pressed children stop clicking.</summary>
+        private const float TouchPanThreshold = 8f;
         private bool _isScrollBarDragging;
         private bool _isScrollBarThumbHovering;
         private bool _hasHorizontalScrollBar;
@@ -196,6 +202,13 @@ namespace MonoGame.PortableUI.Controls
 
             if (_touchPosition != null)
             {
+                if (!_isTouchPanning && Distance(args.Position, _touchStartPosition) > TouchPanThreshold)
+                {
+                    // The finger is panning, not tapping: the pressed child must not click on release.
+                    _isTouchPanning = true;
+                    VisualTreeHelper.CancelDescendantTouches(this, args);
+                }
+
                 _lastTouchDelta = args.Position - _touchPosition.Value;
                 ScrollBy(new PointF(-_lastTouchDelta.X, -_lastTouchDelta.Y), EnableRubberBanding);
                 _touchPosition = args.Position;
@@ -216,8 +229,31 @@ namespace MonoGame.PortableUI.Controls
                 return;
             }
 
-            _touchPosition = args.Position;
+            BeginTouchPan(args.Position);
+        }
+
+        // Clickable children handle TouchDown before it bubbles here, so the pan starts in the
+        // tunneling pre-pass instead; the bubbling handler above only covers direct calls.
+        internal override void OnPreviewTouchDown(TouchEventArgs args)
+        {
+            if (TryGetScrollBarThumbRect(out var thumbRect) && GetScrollBarThumbHitRect(thumbRect).Contains(args.Position))
+                return;
+            BeginTouchPan(args.Position);
+        }
+
+        private void BeginTouchPan(PointF position)
+        {
+            _touchPosition = position;
+            _touchStartPosition = position;
+            _isTouchPanning = false;
             _lastTouchDelta = new PointF();
+        }
+
+        private static float Distance(PointF a, PointF b)
+        {
+            var dx = a.X - b.X;
+            var dy = a.Y - b.Y;
+            return MathF.Sqrt(dx * dx + dy * dy);
         }
 
         private void ScrollViewerMouseEnter(object? sender, MouseEventArgs args)

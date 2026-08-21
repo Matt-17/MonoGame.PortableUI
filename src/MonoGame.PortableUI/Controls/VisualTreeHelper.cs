@@ -40,6 +40,29 @@ namespace MonoGame.PortableUI.Controls
             (_bufferPool ??= new Stack<List<Control>>()).Push(buffer);
         }
 
+        /// <summary>Tunneling pre-pass for touch-down: notifies every routable control under the finger, ancestors first.</summary>
+        internal static void PreviewTouchDown(Control control, TouchEventArgs args)
+        {
+            if (control.IsGone || !control.IsVisible || !control.IsEnabled || !control.IsHitTestVisible)
+                return;
+            if (!control.ClippingRect.Contains(args.Position))
+                return;
+
+            control.OnPreviewTouchDown(args);
+            foreach (var descendant in control.GetDescendants())
+                PreviewTouchDown(descendant, args);
+        }
+
+        /// <summary>Cancels pending touch presses in the subtree below <paramref name="control"/>.</summary>
+        internal static void CancelDescendantTouches(Control control, TouchEventArgs args)
+        {
+            foreach (var descendant in control.GetDescendants())
+            {
+                descendant.CancelPendingTouch(args);
+                CancelDescendantTouches(descendant, args);
+            }
+        }
+
         /// <summary>Input-routing walk, topmost child first: skips subtrees that are gone, invisible, disabled or hit-test invisible.</summary>
         internal static void IterateVisualTree<T>(Control control, T args, Func<Control, T, bool> actionFunc, Action<Control, T> action, Func<Control, T, bool>? treeFunc) where T : BaseEventArgs
         {

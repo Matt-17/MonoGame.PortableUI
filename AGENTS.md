@@ -60,8 +60,10 @@ that override it. Offscreen passes: backdrop blur (glass brushes), post-FX (CRT/
 letter-box scale target. Render targets are pooled (`RenderTargetHelper`) and recreated on device reset.
 
 **Input:** `Screen.Update` polls `IInputSource` (mouse, touch, keyboard) and diffs against the previous
-state. Routing is **bubbling only** (depth-first descendants, then self; `args.Handled` stops it); there
-is no tunneling. Hit-testing uses `ClippingRect` — margins are inert. Focus lives in
+state. Routing is **bubbling** (depth-first descendants, then self; `args.Handled` stops it); siblings are
+visited **topmost first** (reverse `GetDescendants` order = reverse draw order). The only tunneling hook is
+`OnPreviewTouchDown`, which lets containers like `ScrollViewer` start a pan under a clickable child; a pan
+past the threshold cancels the child's pending click. Hit-testing uses `ClippingRect` — margins are inert. Focus lives in
 `ScreenEngine.FocusedControl` (currently a process-global static — see audit A1); only controls with
 `IsFocusable` take focus on left-mouse-down. Enter/Space activate the focused clickable control.
 `ScreenSystem.TotalTime` is the global clock for animations, timers, caret blink, and double-click.

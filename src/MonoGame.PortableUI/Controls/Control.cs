@@ -871,6 +871,22 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        /// <summary>
+        ///     Tunneling notification for a new touch, delivered top-down to every control under the
+        ///     finger before the bubbling <see cref="TouchDown"/> pass — so a container (e.g.
+        ///     <see cref="ScrollViewer"/>) sees touches that a clickable descendant will handle.
+        /// </summary>
+        internal virtual void OnPreviewTouchDown(TouchEventArgs args)
+        {
+        }
+
+        /// <summary>Cancels a pending touch press (no click on release), e.g. when an ancestor starts panning.</summary>
+        internal void CancelPendingTouch(TouchEventArgs args)
+        {
+            if (TouchState == TouchStates.Touched)
+                OnTouchCancel(args);
+        }
+
         internal void OnTouchDown(TouchEventArgs args)
         {
             TouchState = TouchStates.Touched;
