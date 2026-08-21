@@ -60,7 +60,7 @@ namespace MonoGame.PortableUI.Controls
                 _passwordChar = value;
                 InvalidateLineMetrics();
                 EnsureCursorVisible();
-                InvalidateLayout(false);
+                InvalidateLayout(true);
             }
         }
 
