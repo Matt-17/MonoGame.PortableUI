@@ -9,9 +9,8 @@ namespace MonoGame.PortableUI.Controls
 
         public override Size MeasureLayout()
         {
-            var size = base.MeasureLayout();
-            if (Width.IsFixed() && Height.IsFixed())
-                return size;
+            if (IsGone || (Width.IsFixed() && Height.IsFixed()))
+                return base.MeasureLayout();
 
             // Single pass: measuring per child is the expensive part, so accumulate the
             // main-axis sum and cross-axis max from one MeasureLayout call each.
@@ -32,22 +31,14 @@ namespace MonoGame.PortableUI.Controls
                 }
             }
 
-            if (Orientation == Orientation.Vertical)
-            {
-                if (!Width.IsFixed())
-                    size.Width += crossMax + Padding.Horizontal;
-                if (!Height.IsFixed())
-                    size.Height += mainSum + Padding.Vertical;
-            }
-            else
-            {
-                if (!Width.IsFixed())
-                    size.Width += mainSum + Padding.Horizontal;
-                if (!Height.IsFixed())
-                    size.Height += crossMax + Padding.Vertical;
-            }
+            var contentWidth = Orientation == Orientation.Vertical ? crossMax : mainSum;
+            var contentHeight = Orientation == Orientation.Vertical ? mainSum : crossMax;
+            var size = new Size(
+                Width.IsFixed() ? Width : contentWidth + Padding.Horizontal,
+                Height.IsFixed() ? Height : contentHeight + Padding.Vertical);
 
-            return ApplyConstraints(size);
+            // Min/Max bound the content box; margin is added afterwards (same as Control).
+            return ApplyConstraints(size) + Margin;
         }
 
         public override void UpdateLayout(Rect rect)
