@@ -11,8 +11,9 @@ namespace MonoGame.PortableUI.Controls
         {
             public int Row { get; set; }
             public int Column { get; set; }
-            public int RowSpan { get; set; }
-            public int ColumnSpan { get; set; }
+            // Children added via Children.Add (not AddChild) never get spans set explicitly.
+            public int RowSpan { get; set; } = 1;
+            public int ColumnSpan { get; set; } = 1;
         }
 
         public Grid()
@@ -316,7 +317,7 @@ namespace MonoGame.PortableUI.Controls
             var max = 0f;
             foreach (var child in Children)
             {
-                if (GetRow(child) != index || GetRowSpan(child) != 1)
+                if (GetRow(child) != index || GetRowSpan(child) > 1)
                     continue;
 
                 var size = MeasureChild(child);
@@ -331,7 +332,7 @@ namespace MonoGame.PortableUI.Controls
             var max = 0f;
             foreach (var child in Children)
             {
-                if (GetColumn(child) != index || GetColumnSpan(child) != 1)
+                if (GetColumn(child) != index || GetColumnSpan(child) > 1)
                     continue;
 
                 var size = MeasureChild(child);

@@ -9,6 +9,22 @@ namespace MonoGame.PortableUI.Tests
     public class LayoutRegressionTests
     {
         [TestMethod]
+        public void Grid_auto_row_sizes_to_a_child_added_through_children_add()
+        {
+            var grid = new Grid();
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            var child = new Border { Width = 40, Height = 30 };
+            Grid.SetRow(child, 1);
+            grid.Children.Add(child);
+
+            grid.UpdateLayout(new Rect(0, 0, 200, 200));
+
+            Assert.AreEqual(1, Grid.GetRowSpan(child));
+            Assert.AreEqual(30, child.BoundingRect.Height, 0.001f);
+        }
+
+        [TestMethod]
         public void Content_control_min_width_is_a_lower_bound_not_an_addend()
         {
             var border = new Border { MinWidth = 100, MinHeight = 30, Content = new Border { Width = 50, Height = 20 } };
