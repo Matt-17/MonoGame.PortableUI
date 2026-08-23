@@ -60,19 +60,14 @@ namespace MonoGame.PortableUI.Controls
 
         public override Size MeasureLayout()
         {
-            var size = base.MeasureLayout();
+            if (IsGone || (Height.IsFixed() && Width.IsFixed()))
+                return base.MeasureLayout();
 
-            if (Height.IsFixed() && Width.IsFixed())
-                return size;
-
-            size -= Margin;
-            size += Padding;
-            size += VisualChild?.MeasureLayout() ?? Size.Empty;
-
-            if (Height.IsFixed())
-                size.Height = Height;
-            if (Width.IsFixed())
-                size.Width = Width;
+            // Min/Max bound the content box (content + padding); margin is added afterwards.
+            var content = VisualChild?.MeasureLayout() ?? Size.Empty;
+            var size = new Size(
+                Width.IsFixed() ? Width : content.Width + Padding.Horizontal,
+                Height.IsFixed() ? Height : content.Height + Padding.Vertical);
 
             return ApplyConstraints(size) + Margin;
         }
