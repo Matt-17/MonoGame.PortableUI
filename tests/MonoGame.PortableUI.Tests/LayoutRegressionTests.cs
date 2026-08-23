@@ -9,6 +9,31 @@ namespace MonoGame.PortableUI.Tests
     public class LayoutRegressionTests
     {
         [TestMethod]
+        public void Content_control_min_width_is_a_lower_bound_not_an_addend()
+        {
+            var border = new Border { MinWidth = 100, MinHeight = 30, Content = new Border { Width = 50, Height = 20 } };
+
+            var size = border.MeasureLayout();
+
+            Assert.AreEqual(100, size.Width, 0.001f);
+            Assert.AreEqual(30, size.Height, 0.001f);
+        }
+
+        [TestMethod]
+        public void Stack_panel_constraints_bound_the_content_box_and_margin_is_added_after()
+        {
+            var minPanel = new StackPanel { MinHeight = 100 };
+            minPanel.AddChild(new Border { Width = 40, Height = 60 });
+            Assert.AreEqual(100, minPanel.MeasureLayout().Height, 0.001f);
+
+            var maxPanel = new StackPanel { MaxWidth = 100, Margin = new Thickness(10) };
+            maxPanel.AddChild(new Border { Width = 200, Height = 20 });
+            var size = maxPanel.MeasureLayout();
+            Assert.AreEqual(120, size.Width, 0.001f);
+            Assert.AreEqual(40, size.Height, 0.001f);
+        }
+
+        [TestMethod]
         public void Grid_handles_auto_star_and_absolute_definitions()
         {
             var grid = new Grid
