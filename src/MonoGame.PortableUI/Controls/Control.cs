@@ -167,7 +167,35 @@ namespace MonoGame.PortableUI.Controls
                     return;
                 if (_parent != null && value != null)
                     throw new MultipleParentException();
+                // Detaching a subtree that holds focus must drop it, or keys keep reaching a
+                // control that is no longer on screen.
+                if (value == null && ScreenEngine.FocusedControl is { } focused && IsSelfOrAncestorOf(focused))
+                    ScreenEngine.FocusedControl = null;
                 _parent = value;
+            }
+        }
+
+        private bool IsSelfOrAncestorOf(Control control)
+        {
+            for (FrameworkElement? current = control; current != null; current = current.Parent)
+            {
+                if (ReferenceEquals(current, this))
+                    return true;
+            }
+            return false;
+        }
+
+        /// <summary>False when this control or any ancestor is gone, hidden or disabled.</summary>
+        internal bool IsEffectivelyInteractive
+        {
+            get
+            {
+                for (var current = this; current != null; current = current.Parent as Control)
+                {
+                    if (current.IsGone || !current.IsVisible || !current.IsEnabled)
+                        return false;
+                }
+                return true;
             }
         }
 

@@ -86,6 +86,37 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void Hiding_an_ancestor_drops_focus_before_text_reaches_the_control()
+        {
+            var screen = new TestScreen();
+            var page = new StackPanel();
+            var textBox = new TextBox();
+            page.AddChild(textBox);
+            ScreenEngine.FocusedControl = textBox;
+
+            page.IsGone = true;
+            screen.HandleTextInput('x');
+
+            Assert.AreEqual("", textBox.Text);
+            Assert.IsNull(ScreenEngine.FocusedControl);
+        }
+
+        [TestMethod]
+        public void Detaching_a_subtree_drops_focus_held_inside_it()
+        {
+            var host = new Border();
+            var page = new StackPanel();
+            var textBox = new TextBox();
+            page.AddChild(textBox);
+            host.Content = page;
+            ScreenEngine.FocusedControl = textBox;
+
+            host.Content = null;
+
+            Assert.IsNull(ScreenEngine.FocusedControl);
+        }
+
+        [TestMethod]
         public void Screen_text_input_routes_localized_characters_to_focused_control()
         {
             var screen = new TestScreen();
