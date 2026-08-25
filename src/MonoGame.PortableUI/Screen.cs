@@ -946,7 +946,7 @@ namespace MonoGame.PortableUI
                 && Array.IndexOf(_lastPressedKeysBuffer, Keys.F3, 0, _lastPressedKeyCount) < 0)
                 ScreenEngine?.ToggleDebugOverlay();
 
-            var focusedControl = ScreenEngine.FocusedControl;
+            var focusedControl = DropFocusIfNotInteractive();
 
             // Tab traversal is screen-level, not control-level: handle it before per-control
             // routing so it also works when nothing is focused yet. Only the screen that owns
@@ -1056,12 +1056,25 @@ namespace MonoGame.PortableUI
             _pressedKeysBuffer = previous;
         }
 
+        /// <summary>Hiding, collapsing or disabling an ancestor leaves focus on a control the user
+        /// can no longer see; drop it before routing keys so Enter/typing cannot reach it.</summary>
+        private static Control? DropFocusIfNotInteractive()
+        {
+            var focused = ScreenEngine.FocusedControl;
+            if (focused != null && !focused.IsEffectivelyInteractive)
+            {
+                ScreenEngine.FocusedControl = null;
+                return null;
+            }
+            return focused;
+        }
+
         internal void HandleTextInput(char character)
         {
             if (char.IsControl(character))
                 return;
 
-            var focusedControl = ScreenEngine.FocusedControl;
+            var focusedControl = DropFocusIfNotInteractive();
             // Same ownership rule as HandleKeyboardInput: prevents double characters when both a
             // host screen and a surface screen receive the same TextInput event.
             if (focusedControl == null || (focusedControl.Screen != null && focusedControl.Screen != this))
