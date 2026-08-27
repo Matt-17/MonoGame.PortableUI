@@ -13,6 +13,7 @@ namespace MonoGame.PortableUI.Tests
             var engine = ScreenEngine.Initialize(game, new ScreenEngineOptions { AddComponentToGame = false });
             var screen = new CountingScreen();
             engine.NavigateToScreen(screen);
+            screen.ResetInvalidations();
 
             var changed = engine.ApplyViewportSize(1180, 760);
 
@@ -20,6 +21,23 @@ namespace MonoGame.PortableUI.Tests
             Assert.AreEqual(1180, engine.ScreenRect.Width);
             Assert.AreEqual(760, engine.ScreenRect.Height);
             Assert.AreEqual(1, screen.LayoutInvalidations);
+        }
+
+        [TestMethod]
+        public void Navigating_back_relayouts_the_revealed_screen_after_a_resize()
+        {
+            using var game = new Game();
+            var engine = ScreenEngine.Initialize(game, new ScreenEngineOptions { AddComponentToGame = false });
+            var first = new CountingScreen();
+            engine.NavigateToScreen(first);
+            engine.NavigateToScreen(new CountingScreen());
+            first.ResetInvalidations();
+
+            engine.SetScreenSize(640, 480);
+            engine.NavigateBack();
+
+            Assert.AreSame(first, engine.ActiveScreen);
+            Assert.AreEqual(1, first.LayoutInvalidations);
         }
 
         [TestMethod]
