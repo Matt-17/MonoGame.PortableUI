@@ -245,8 +245,11 @@ namespace MonoGame.PortableUI
         public void NavigateToScreen<T>(T screen) where T : Screen
         {
             FocusedControl = null;
+            // The screen being covered must not keep a drag, mouse capture or pressed state alive.
+            ActiveScreen?.OnNavigationFrom(this);
             screen.ScreenEngine = this;
             ScreenHistory.Push(screen);
+            screen.InvalidateLayout(true);
         }
 
         public void NavigateBack()
@@ -255,7 +258,10 @@ namespace MonoGame.PortableUI
                 return;
             FocusedControl = null;
             var screen = ScreenHistory.Pop();
+            screen.OnNavigationFrom(this);
             screen.ScreenEngine = null;
+            // Resizes only invalidate the active screen, so the revealed one may be stale.
+            ActiveScreen?.InvalidateLayout(true);
         }
 
         public void Update(GameTime gameTime)
