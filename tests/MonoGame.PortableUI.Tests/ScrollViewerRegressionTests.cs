@@ -131,6 +131,52 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void Touch_cancel_resets_overscroll_and_pan_state()
+        {
+            var viewer = CreateViewer(new Size(100, 300));
+            viewer.EnableFling = false;
+            viewer.UpdateLayout(new Rect(0, 0, 100, 100));
+
+            viewer.OnTouchDown(new TouchEventArgs(new PointF(0, 0)));
+            viewer.OnTouchMove(new TouchEventArgs(new PointF(0, 30)));
+            viewer.OnTouchCancel(new TouchEventArgs(new PointF(0, 120)));
+
+            Assert.AreEqual(0, viewer.Offset.Y);
+
+            // A later move without a new touch-down must not apply a stale delta.
+            viewer.OnTouchMove(new TouchEventArgs(new PointF(0, 10)));
+            Assert.AreEqual(0, viewer.Offset.Y);
+        }
+
+        [TestMethod]
+        public void Wheel_scrolls_only_the_innermost_viewer_that_can_move()
+        {
+            using var game = new Game();
+            var engine = ScreenEngine.Initialize(game, new ScreenEngineOptions { AddComponentToGame = false });
+            engine.SetScreenSize(100, 100);
+            var inner = CreateViewer(new Size(100, 300));
+            inner.Height = 60;
+            var page = new StackPanel();
+            page.AddChild(inner);
+            page.AddChild(new FixedSizeControl(new Size(100, 300)));
+            var outer = new ScrollViewer { Content = page };
+            var screen = new TestScreen();
+            var source = new VirtualInputSource();
+            screen.InputSource = source;
+            screen.Content = outer;
+            engine.NavigateToScreen(screen);
+            screen.InvalidateLayout(true);
+
+            source.SetPointer(new PointF(10, 10));
+            screen.Update();
+            source.SetScrollWheelValue(-120);
+            screen.Update();
+
+            Assert.IsTrue(inner.Offset.Y > 0, "inner viewer should scroll");
+            Assert.AreEqual(0, outer.Offset.Y, "outer viewer must not scroll on the same tick");
+        }
+
+        [TestMethod]
         public void Scroll_viewer_allows_limited_rubber_band()
         {
             var viewer = CreateViewer(new Size(100, 300));

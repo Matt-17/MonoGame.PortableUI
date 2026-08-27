@@ -66,6 +66,7 @@ namespace MonoGame.PortableUI.Controls
             TouchDown += ScrollViewerTouchDown;
             TouchMove += ScrollViewerTouchMove;
             TouchUp += ScrollViewerTouchUp;
+            TouchCancel += ScrollViewerTouchCancel;
             ScrollWheelChanged += ScrollViewerScrollWheelChanged;
             MouseEnter += ScrollViewerMouseEnter;
             MouseLeave += ScrollViewerMouseLeave;
@@ -93,10 +94,14 @@ namespace MonoGame.PortableUI.Controls
         private void ScrollViewerScrollWheelChanged(object? sender, ScrollWheelChangedEventArgs args)
         {
             var delta = -args.Delta / 4f;
+            var before = Offset;
             if (ScrollOrientation == Orientation.Horizontal)
                 ScrollBy(new PointF(delta, 0), false);
             else
                 ScrollBy(new PointF(0, delta), false);
+            // Consume the tick only when it scrolled; at the limits it bubbles to an outer viewer.
+            if (Offset != before)
+                args.Handled = true;
             SynchronizeHoverAfterScroll(args.Position);
         }
 
@@ -210,9 +215,27 @@ namespace MonoGame.PortableUI.Controls
                 }
 
                 _lastTouchDelta = args.Position - _touchPosition.Value;
+                var before = Offset;
                 ScrollBy(new PointF(-_lastTouchDelta.X, -_lastTouchDelta.Y), EnableRubberBanding);
                 _touchPosition = args.Position;
+                // Same as the wheel: an outer viewer only pans what this one could not.
+                if (Offset != before)
+                    args.Handled = true;
             }
+        }
+
+        // Touch has no capture: the finger leaving the viewer ends the gesture. Without this the
+        // pan state, an over-scrolled offset or a thumb drag would survive into the next touch.
+        private void ScrollViewerTouchCancel(object? sender, TouchEventArgs args)
+        {
+            if (_isScrollBarDragging)
+                EndScrollBarDrag(args.Position);
+
+            _touchPosition = null;
+            _isTouchPanning = false;
+            _lastTouchDelta = new PointF();
+            ClampOffset();
+            UpdateContentLayout();
         }
 
         private void ScrollViewerTouchDown(object? sender, TouchEventArgs args)
