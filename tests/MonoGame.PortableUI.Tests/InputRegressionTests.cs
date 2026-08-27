@@ -161,6 +161,59 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void Open_flyout_is_relaid_out_when_the_screen_shrinks()
+        {
+            using var game = new Game();
+            var engine = ScreenEngine.Initialize(game, new ScreenEngineOptions { AddComponentToGame = false });
+            engine.SetScreenSize(200, 200);
+            var screen = new TestScreen();
+            screen.InputSource = new VirtualInputSource();
+            screen.Content = new Border();
+            engine.NavigateToScreen(screen);
+            screen.Update();
+            var popup = new Border { Width = 50, Height = 30 };
+            screen.ShowFlyOut(new PointF(140, 150), popup, removeOnRelease: false, placement: FlyOutPlacement.Below);
+
+            engine.SetScreenSize(100, 100);
+            screen.Update();
+
+            Assert.IsTrue(popup.BoundingRect.Right <= 100 && popup.BoundingRect.Bottom <= 100,
+                $"popup must be clamped into the new screen, was {popup.BoundingRect}");
+        }
+
+        [TestMethod]
+        public void Hover_is_cleared_while_a_flyout_is_open_and_restored_after()
+        {
+            using var game = new Game();
+            var engine = ScreenEngine.Initialize(game, new ScreenEngineOptions { AddComponentToGame = false });
+            engine.SetScreenSize(200, 200);
+            var screen = new TestScreen();
+            var source = new VirtualInputSource();
+            var button = new Button
+            {
+                Width = 80,
+                Height = 40,
+                Text = "Menu",
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Top
+            };
+            screen.InputSource = source;
+            screen.Content = button;
+            engine.NavigateToScreen(screen);
+            source.SetPointer(new PointF(150, 150));
+            screen.Update();
+            source.SetPointer(new PointF(10, 10));
+            screen.Update();
+            Assert.IsTrue(button.IsMouseHovering);
+
+            screen.ShowFlyOut(new PointF(100, 150), new Border { Width = 50, Height = 30 }, removeOnRelease: false);
+            Assert.IsFalse(button.IsMouseHovering, "main tree hover must end when a popup takes input");
+
+            screen.ClearFlyOut();
+            Assert.IsTrue(button.IsMouseHovering, "hover must resync for a stationary pointer");
+        }
+
+        [TestMethod]
         public void Click_on_overlapping_siblings_goes_to_the_topmost_one()
         {
             using var game = new Game();

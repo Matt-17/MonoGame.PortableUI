@@ -133,14 +133,44 @@ namespace MonoGame.PortableUI
                     _dismissingFlyOut = null;
                     _dismissingContextMenu = null;
                 }
+                var hadFlyOut = _flyOut != null;
                 _flyOut = value;
                 if (_flyOut != null)
                 {
+                    // While a popup is open only it receives pointer input, so the main tree would
+                    // never see the matching MouseLeave and its hover visuals would stick.
+                    LeaveHoveredControls(_mainGrid, CreateHoverSyncArgs());
                     _flyOut.NotifyShowing();
                     _flyOut.Parent = this;
                     _flyOut.NotifyShown();
                 }
+                else if (hadFlyOut)
+                {
+                    ResyncMainTreeHover();
+                }
             }
+        }
+
+        private MouseEventArgs CreateHoverSyncArgs()
+        {
+            return new MouseEventArgs(LastMousePosition, new List<MouseButton>());
+        }
+
+        private static void LeaveHoveredControls(Control control, MouseEventArgs args)
+        {
+            foreach (var child in control.GetDescendants())
+                LeaveHoveredControls(child, args);
+            if (control.IsMouseHovering)
+                control.OnMouseLeave(args);
+        }
+
+        /// <summary>After a popup closes, re-enter the controls under the pointer: the enter
+        /// predicate only fires on crossing an edge, which never happens for a stationary pointer.</summary>
+        private void ResyncMainTreeHover()
+        {
+            VisualTreeHelper.IterateVisualTree(_mainGrid, CreateHoverSyncArgs(),
+                (c, a) => c.ClippingRect.Contains(a.Position) && !c.IsMouseHovering,
+                MouseEnterAction, _hitTestPredicate);
         }
 
 
@@ -170,6 +200,9 @@ namespace MonoGame.PortableUI
             _layoutDirty = false;
             ScreenEngine?.RecordLayoutPass();
             _mainGrid?.UpdateLayout(ScreenRect);
+            // Popups invalidate through this screen too (resize, rotation, theme switch).
+            _flyOut?.UpdateLayout(ScreenRect);
+            UpdateToolTipLayout();
         }
 
         public override IEnumerable<Control> GetDescendants()
@@ -1328,6 +1361,7 @@ namespace MonoGame.PortableUI
             var contextMenu = _activeContextMenu;
             var animationStyle = _activeFlyOutAnimationStyle;
             _flyOut = null;
+            ResyncMainTreeHover();
             _activeContextMenu = null;
             _activeFlyOutAnimationStyle = FlyOutAnimationStyle.Popup;
             _dismissingFlyOut = flyOut;
