@@ -20,6 +20,7 @@ namespace MonoGame.PortableUI.Effects
 
         private readonly GraphicsDevice _graphicsDevice;
         private RenderTarget2D? _uiTarget;
+        private BackdropManager? _bloomBlur;
         private RenderTarget2D? _islandTarget;
         private BasicEffect? _basicEffect;
         private VertexPositionColorTexture[]? _barrelVertices;
@@ -132,7 +133,7 @@ namespace MonoGame.PortableUI.Effects
         ///     <paramref name="sourceRect"/> selects the region of <paramref name="ui"/> holding the
         ///     content (used for ThemeIsland composition); defaults to the full texture.
         /// </summary>
-        internal void Compose(SpriteBatch spriteBatch, RenderTarget2D ui, IReadOnlyList<PostEffect> effects, Rect screenRect, BackdropManager backdrop, Rect? sourceRect = null)
+        internal void Compose(SpriteBatch spriteBatch, RenderTarget2D ui, IReadOnlyList<PostEffect> effects, Rect screenRect, Rect? sourceRect = null)
         {
             var source = sourceRect ?? new Rect(0, 0, ui.Width, ui.Height);
             Texture2D? bloomTexture = null;
@@ -140,7 +141,10 @@ namespace MonoGame.PortableUI.Effects
             if (bloom != null)
             {
                 var previousTargets = _graphicsDevice.GetRenderTargets();
-                bloomTexture = backdrop.Blur(spriteBatch, ui);
+                // Own blur chain: island bloom runs mid-frame, and sharing the backdrop's targets
+                // would overwrite the blurred backdrop that later glass brushes sample.
+                _bloomBlur ??= new BackdropManager(_graphicsDevice);
+                bloomTexture = _bloomBlur.Blur(spriteBatch, ui);
                 RestoreTargets(previousTargets);
             }
 
@@ -250,6 +254,7 @@ namespace MonoGame.PortableUI.Effects
         {
             _uiTarget?.Dispose();
             _islandTarget?.Dispose();
+            _bloomBlur?.Dispose();
             _basicEffect?.Dispose();
         }
 
