@@ -272,7 +272,7 @@ namespace MonoGame.PortableUI
                     device.SetRenderTarget(null);
                 else
                     device.SetRenderTargets(previousTargets);
-                engine!.PostProcess.Compose(spriteBatch, uiTarget!, postEffects ?? Array.Empty<PostEffect>(), ScreenRect, engine.Backdrop);
+                engine!.PostProcess.Compose(spriteBatch, uiTarget!, postEffects ?? Array.Empty<PostEffect>(), ScreenRect);
                 engine.RecordBatchFlush();
             }
 
@@ -619,7 +619,7 @@ namespace MonoGame.PortableUI
             else
                 device.SetRenderTargets(previousTargets);
 
-            engine.PostProcess.Compose(spriteBatch, target, effects, islandRect, engine.Backdrop, islandRect);
+            engine.PostProcess.Compose(spriteBatch, target, effects, islandRect, islandRect);
             engine.RecordBatchFlush();
 
             var barrel = FindEnabledBarrel(effects);
