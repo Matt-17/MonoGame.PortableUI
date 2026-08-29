@@ -7,29 +7,19 @@ namespace MonoGame.PortableUI.Media
 {
     public class SolidColorBrush : Brush
     {
-        private static Texture2D? _pixel;
-
-        /// <summary>Shared 1×1 white texture. Recreated when the cached instance (or its device)
-        /// has been disposed, e.g. after a graphics device reset.</summary>
+        /// <summary>Shared 1×1 white texture on the primary engine's device. Rendering code should
+        /// use <see cref="Primitives.Pixel(SpriteBatch)"/> instead, which follows the device of the
+        /// batch at hand (surface engines, no initialized primary engine) and survives device resets.</summary>
         public static Texture2D Pixel
         {
             get
             {
-                var pixel = _pixel;
-                if (pixel != null && !pixel.IsDisposed && !pixel.GraphicsDevice.IsDisposed)
-                    return pixel;
-
                 var device = ScreenEngine.Instance?.Game.GraphicsDevice
                     ?? throw new InvalidOperationException(
-                        "SolidColorBrush.Pixel needs an initialized ScreenEngine (call ScreenEngine.Initialize first).");
-                pixel = new Texture2D(device, 1, 1);
-                pixel.SetData(new[] { Color.White });
-                _pixel = pixel;
-                return pixel;
+                        "SolidColorBrush.Pixel needs an initialized ScreenEngine; use Primitives.Pixel(spriteBatch) in rendering code.");
+                return Primitives.Pixel(device);
             }
         }
-
-
 
         public Color Color { get; set; }
 
@@ -45,12 +35,12 @@ namespace MonoGame.PortableUI.Media
 
         public override void Draw(SpriteBatch spriteBatch, Rect rect)
         {
-            spriteBatch.Draw(Pixel, rect, Premultiply(Color));
+            spriteBatch.Draw(Primitives.Pixel(spriteBatch), rect, Premultiply(Color));
         }
 
         public override void Draw(SpriteBatch spriteBatch, Rect rect, float opacity)
         {
-            spriteBatch.Draw(Pixel, rect, ApplyOpacity(Color, opacity));
+            spriteBatch.Draw(Primitives.Pixel(spriteBatch), rect, ApplyOpacity(Color, opacity));
         }
 
         public override void Draw(SpriteBatch spriteBatch, in BrushContext context)

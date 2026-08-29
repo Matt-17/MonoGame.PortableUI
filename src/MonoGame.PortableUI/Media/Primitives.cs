@@ -16,18 +16,40 @@ namespace MonoGame.PortableUI.Media
         // One pixel per device; the weak table drops the entry when a device is collected.
         private static readonly ConditionalWeakTable<GraphicsDevice, Texture2D> PixelPerDevice = new();
 
+        // Hot path (every solid fill): skip the weak-table lookup while the device doesn't change.
+        private static GraphicsDevice? _lastDevice;
+        private static Texture2D? _lastPixel;
+
         public static Texture2D Pixel(GraphicsDevice device)
         {
             if (device is null)
                 throw new ArgumentNullException(nameof(device));
 
+            var last = _lastPixel;
+            if (last != null && ReferenceEquals(device, _lastDevice) && !last.IsDisposed)
+                return last;
+
             if (PixelPerDevice.TryGetValue(device, out var pixel) && !pixel.IsDisposed)
+            {
+                _lastDevice = device;
+                _lastPixel = pixel;
                 return pixel;
+            }
 
             pixel = new Texture2D(device, 1, 1);
             pixel.SetData(new[] { Color.White });
-            PixelPerDevice.Remove(device);
-            PixelPerDevice.Add(device, pixel);
+            if (!PixelPerDevice.TryGetValue(device, out _))
+            {
+                // A lost context (Android) recreates textures empty: refill the pixel on reset.
+                device.DeviceReset += (_, _) =>
+                {
+                    if (PixelPerDevice.TryGetValue(device, out var current) && !current.IsDisposed)
+                        current.SetData(new[] { Color.White });
+                };
+            }
+            PixelPerDevice.AddOrUpdate(device, pixel);
+            _lastDevice = device;
+            _lastPixel = pixel;
             return pixel;
         }
 

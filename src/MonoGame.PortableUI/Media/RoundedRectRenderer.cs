@@ -80,13 +80,13 @@ namespace MonoGame.PortableUI.Media
             var left = new Rect(rect.Left, rect.Top + radius.TopLeft, thickness.Left, Math.Max(0, rect.Height - radius.TopLeft - radius.BottomLeft));
             var right = new Rect(rect.Right - thickness.Right, rect.Top + radius.TopRight, thickness.Right, Math.Max(0, rect.Height - radius.TopRight - radius.BottomRight));
             if (top.Height > 0 && top.Width > 0)
-                spriteBatch.Draw(SolidColorBrush.Pixel, top, color);
+                spriteBatch.Draw(Primitives.Pixel(spriteBatch), top, color);
             if (bottom.Height > 0 && bottom.Width > 0)
-                spriteBatch.Draw(SolidColorBrush.Pixel, bottom, color);
+                spriteBatch.Draw(Primitives.Pixel(spriteBatch), bottom, color);
             if (left.Width > 0 && left.Height > 0)
-                spriteBatch.Draw(SolidColorBrush.Pixel, left, color);
+                spriteBatch.Draw(Primitives.Pixel(spriteBatch), left, color);
             if (right.Width > 0 && right.Height > 0)
-                spriteBatch.Draw(SolidColorBrush.Pixel, right, color);
+                spriteBatch.Draw(Primitives.Pixel(spriteBatch), right, color);
 
             DrawCornerRing(spriteBatch, rect.Left, rect.Top, radius.TopLeft, Math.Max(thickness.Top, thickness.Left), color, SpriteEffects.None);
             DrawCornerRing(spriteBatch, rect.Right - radius.TopRight, rect.Top, radius.TopRight, Math.Max(thickness.Top, thickness.Right), color, SpriteEffects.FlipHorizontally);
@@ -119,13 +119,13 @@ namespace MonoGame.PortableUI.Media
             var left = new Rect(rect.Left, rect.Top + radius.TopLeft, thickness.Left, Math.Max(0, rect.Height - radius.TopLeft - radius.BottomLeft));
             var right = new Rect(rect.Right - thickness.Right, rect.Top + radius.TopRight, thickness.Right, Math.Max(0, rect.Height - radius.TopRight - radius.BottomRight));
             if (top.Height > 0 && top.Width > 0)
-                spriteBatch.Draw(SolidColorBrush.Pixel, top, At((top.Left + top.Right) / 2, rect.Top));
+                spriteBatch.Draw(Primitives.Pixel(spriteBatch), top, At((top.Left + top.Right) / 2, rect.Top));
             if (bottom.Height > 0 && bottom.Width > 0)
-                spriteBatch.Draw(SolidColorBrush.Pixel, bottom, At((bottom.Left + bottom.Right) / 2, rect.Bottom));
+                spriteBatch.Draw(Primitives.Pixel(spriteBatch), bottom, At((bottom.Left + bottom.Right) / 2, rect.Bottom));
             if (left.Width > 0 && left.Height > 0)
-                spriteBatch.Draw(SolidColorBrush.Pixel, left, At(rect.Left, (left.Top + left.Bottom) / 2));
+                spriteBatch.Draw(Primitives.Pixel(spriteBatch), left, At(rect.Left, (left.Top + left.Bottom) / 2));
             if (right.Width > 0 && right.Height > 0)
-                spriteBatch.Draw(SolidColorBrush.Pixel, right, At(rect.Right, (right.Top + right.Bottom) / 2));
+                spriteBatch.Draw(Primitives.Pixel(spriteBatch), right, At(rect.Right, (right.Top + right.Bottom) / 2));
 
             DrawCornerRing(spriteBatch, rect.Left, rect.Top, radius.TopLeft, Math.Max(thickness.Top, thickness.Left), At(rect.Left, rect.Top), SpriteEffects.None);
             DrawCornerRing(spriteBatch, rect.Right - radius.TopRight, rect.Top, radius.TopRight, Math.Max(thickness.Top, thickness.Right), At(rect.Right, rect.Top), SpriteEffects.FlipHorizontally);
@@ -218,7 +218,7 @@ namespace MonoGame.PortableUI.Media
             radius = Clamp(radius, rect);
             if (radius.IsEmpty)
             {
-                spriteBatch.Draw(SolidColorBrush.Pixel, rect, color);
+                spriteBatch.Draw(Primitives.Pixel(spriteBatch), rect, color);
                 return;
             }
 
@@ -237,7 +237,7 @@ namespace MonoGame.PortableUI.Media
             foreach (var fillRect in GetFillRects(rect, radius, overlap: 1f))
             {
                 if (fillRect.Width > 0 && fillRect.Height > 0)
-                    spriteBatch.Draw(SolidColorBrush.Pixel, fillRect, color);
+                    spriteBatch.Draw(Primitives.Pixel(spriteBatch), fillRect, color);
             }
 
             DrawCorner(spriteBatch, rect.Left, rect.Top, radius.TopLeft, color, SpriteEffects.None);
