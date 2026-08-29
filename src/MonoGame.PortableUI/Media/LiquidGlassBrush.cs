@@ -47,7 +47,7 @@ namespace MonoGame.PortableUI.Media
                 var falloff = 1 - Math.Abs(band) / (bands / 2f + 1);
                 var color = Premultiply(new Color((byte)255, (byte)255, (byte)255, (byte)(64 * strength * falloff)));
                 spriteBatch.Draw(
-                    SolidColorBrush.Pixel,
+                    Primitives.Pixel(spriteBatch),
                     new Vector2(sweepCenterX + band * bandWidth, centerY),
                     null,
                     color,

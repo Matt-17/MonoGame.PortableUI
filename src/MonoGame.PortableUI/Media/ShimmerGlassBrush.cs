@@ -114,7 +114,7 @@ namespace MonoGame.PortableUI.Media
                     var x1 = Math.Min(rect.Right, x + bandWidth + 1f);
                     if (x1 <= x0)
                         continue;
-                    spriteBatch.Draw(SolidColorBrush.Pixel, new Rect(x0, y0, x1 - x0, y1 - y0), ApplyOpacity(SweepColor, alpha));
+                    spriteBatch.Draw(Primitives.Pixel(spriteBatch), new Rect(x0, y0, x1 - x0, y1 - y0), ApplyOpacity(SweepColor, alpha));
                 }
             }
         }

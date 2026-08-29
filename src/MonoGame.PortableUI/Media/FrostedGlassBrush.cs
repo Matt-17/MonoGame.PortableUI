@@ -105,13 +105,13 @@ namespace MonoGame.PortableUI.Media
             opacity = MathHelper.Clamp(opacity, 0, 1);
             if (BlurRadius > 0 && TryDrawBackdrop(spriteBatch, rect, opacity))
             {
-                spriteBatch.Draw(SolidColorBrush.Pixel, rect, ApplyOpacity(TintColor, opacity));
+                spriteBatch.Draw(Primitives.Pixel(spriteBatch), rect, ApplyOpacity(TintColor, opacity));
                 spriteBatch.Draw(GetTexture(spriteBatch), rect, ApplyOpacity(Color.White, opacity * 0.55f));
                 DrawHighlights(spriteBatch, rect, opacity);
                 return;
             }
 
-            spriteBatch.Draw(SolidColorBrush.Pixel, rect, ApplyOpacity(TintColor, opacity));
+            spriteBatch.Draw(Primitives.Pixel(spriteBatch), rect, ApplyOpacity(TintColor, opacity));
 
             spriteBatch.Draw(GetTexture(spriteBatch), rect, ApplyOpacity(Color.White, opacity));
 
@@ -246,11 +246,11 @@ namespace MonoGame.PortableUI.Media
             var washColor = WithAlpha(SheenColor, Math.Min(sheenAlpha, 14));
             var shadeColor = WithAlpha(Color.Black, Math.Min((int)TintColor.A, 42));
 
-            spriteBatch.Draw(SolidColorBrush.Pixel, new Rect(rect.Left, rect.Top, rect.Width, topHeight), ApplyOpacity(topColor, opacity));
-            spriteBatch.Draw(SolidColorBrush.Pixel, new Rect(rect.Left, rect.Top, leftWidth, rect.Height), ApplyOpacity(leftColor, opacity));
-            spriteBatch.Draw(SolidColorBrush.Pixel, new Rect(rect.Left, rect.Top, rect.Width, Math.Min(rect.Height * 0.28f, 32)), ApplyOpacity(washColor, opacity));
-            spriteBatch.Draw(SolidColorBrush.Pixel, new Rect(rect.Left, rect.Bottom - 1, rect.Width, 1), ApplyOpacity(shadeColor, opacity));
-            spriteBatch.Draw(SolidColorBrush.Pixel, new Rect(rect.Right - 1, rect.Top, 1, rect.Height), ApplyOpacity(shadeColor, opacity));
+            spriteBatch.Draw(Primitives.Pixel(spriteBatch), new Rect(rect.Left, rect.Top, rect.Width, topHeight), ApplyOpacity(topColor, opacity));
+            spriteBatch.Draw(Primitives.Pixel(spriteBatch), new Rect(rect.Left, rect.Top, leftWidth, rect.Height), ApplyOpacity(leftColor, opacity));
+            spriteBatch.Draw(Primitives.Pixel(spriteBatch), new Rect(rect.Left, rect.Top, rect.Width, Math.Min(rect.Height * 0.28f, 32)), ApplyOpacity(washColor, opacity));
+            spriteBatch.Draw(Primitives.Pixel(spriteBatch), new Rect(rect.Left, rect.Bottom - 1, rect.Width, 1), ApplyOpacity(shadeColor, opacity));
+            spriteBatch.Draw(Primitives.Pixel(spriteBatch), new Rect(rect.Right - 1, rect.Top, 1, rect.Height), ApplyOpacity(shadeColor, opacity));
         }
 
         private static Color WithAlpha(Color color, int alpha)
