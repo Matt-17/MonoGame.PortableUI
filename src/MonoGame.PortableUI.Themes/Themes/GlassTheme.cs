@@ -130,7 +130,7 @@ public sealed class GlassBackdropBrush : Brush
     {
         var position = new Vector2(rect.Left + rect.Width * x, rect.Top + rect.Height * y);
         spriteBatch.Draw(
-            SolidColorBrush.Pixel,
+            Primitives.Pixel(spriteBatch),
             position,
             null,
             ApplyOpacity(color, opacity),
@@ -143,6 +143,6 @@ public sealed class GlassBackdropBrush : Brush
 
     private static void DrawRect(SpriteBatch spriteBatch, float left, float top, float width, float height, Color color, float opacity)
     {
-        spriteBatch.Draw(SolidColorBrush.Pixel, new Rect(left, top, width, height), ApplyOpacity(color, opacity));
+        spriteBatch.Draw(Primitives.Pixel(spriteBatch), new Rect(left, top, width, height), ApplyOpacity(color, opacity));
     }
 }

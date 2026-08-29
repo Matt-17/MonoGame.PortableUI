@@ -57,7 +57,7 @@ namespace MonoGame.PortableUI.Media
             var topLeftOuter = ApplyOpacity(Sunken ? OuterDark : OuterLight, opacity);
             var bottomRightOuter = ApplyOpacity(Sunken ? OuterLight : OuterDark, opacity);
 
-            spriteBatch.Draw(SolidColorBrush.Pixel, rect, face);
+            spriteBatch.Draw(Primitives.Pixel(spriteBatch), rect, face);
             DrawFrame(spriteBatch, rect, topLeftOuter, bottomRightOuter);
 
             if (!_singleLine && rect.Width > 4 && rect.Height > 4)
@@ -71,10 +71,10 @@ namespace MonoGame.PortableUI.Media
 
         private static void DrawFrame(SpriteBatch spriteBatch, Rect rect, Color topLeft, Color bottomRight)
         {
-            spriteBatch.Draw(SolidColorBrush.Pixel, new Rect(rect.Left, rect.Top, rect.Width, 1), topLeft);
-            spriteBatch.Draw(SolidColorBrush.Pixel, new Rect(rect.Left, rect.Top, 1, rect.Height), topLeft);
-            spriteBatch.Draw(SolidColorBrush.Pixel, new Rect(rect.Left, rect.Bottom - 1, rect.Width, 1), bottomRight);
-            spriteBatch.Draw(SolidColorBrush.Pixel, new Rect(rect.Right - 1, rect.Top, 1, rect.Height), bottomRight);
+            spriteBatch.Draw(Primitives.Pixel(spriteBatch), new Rect(rect.Left, rect.Top, rect.Width, 1), topLeft);
+            spriteBatch.Draw(Primitives.Pixel(spriteBatch), new Rect(rect.Left, rect.Top, 1, rect.Height), topLeft);
+            spriteBatch.Draw(Primitives.Pixel(spriteBatch), new Rect(rect.Left, rect.Bottom - 1, rect.Width, 1), bottomRight);
+            spriteBatch.Draw(Primitives.Pixel(spriteBatch), new Rect(rect.Right - 1, rect.Top, 1, rect.Height), bottomRight);
         }
     }
 }

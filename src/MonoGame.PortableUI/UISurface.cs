@@ -132,9 +132,9 @@ namespace MonoGame.PortableUI
             var x = SoftwareCursorPosition.X;
             var y = SoftwareCursorPosition.Y;
             spriteBatch.Begin();
-            spriteBatch.Draw(Media.SolidColorBrush.Pixel, new Rect(x, y, 10, 2), SoftwareCursorColor);
-            spriteBatch.Draw(Media.SolidColorBrush.Pixel, new Rect(x, y, 2, 14), SoftwareCursorColor);
-            spriteBatch.Draw(Media.SolidColorBrush.Pixel, new Rect(x + 2, y + 10, 8, 2), SoftwareCursorColor);
+            spriteBatch.Draw(Media.Primitives.Pixel(spriteBatch), new Rect(x, y, 10, 2), SoftwareCursorColor);
+            spriteBatch.Draw(Media.Primitives.Pixel(spriteBatch), new Rect(x, y, 2, 14), SoftwareCursorColor);
+            spriteBatch.Draw(Media.Primitives.Pixel(spriteBatch), new Rect(x + 2, y + 10, 8, 2), SoftwareCursorColor);
             spriteBatch.End();
             Engine.RecordBatchFlush();
         }
