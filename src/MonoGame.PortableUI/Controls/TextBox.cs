@@ -422,7 +422,7 @@ namespace MonoGame.PortableUI.Controls
                     offset.Y += (textRect.Height - scaledHint.Y) / 2;
                 if (SnapToPixel)
                     offset = offset.ToInts();
-                spriteBatch.DrawString(Font, HintText, offset, Brush.ApplyOpacity(HintTextColor, RenderOpacity), 0, Vector2.Zero, RenderScale, SpriteEffects.None, 0);
+                spriteBatch.DrawString(Font, HintText, offset, Brush.ApplyOpacity(HintTextColor, RenderOpacity), 0, Vector2.Zero, TextDrawScale, SpriteEffects.None, 0);
             }
 
             DrawSelection(spriteBatch, textRect);
@@ -690,9 +690,15 @@ namespace MonoGame.PortableUI.Controls
                 var offset = new PointF(textRect.Left + (GetLineMetric(line).GetWidth(visibleRange.Start) - _horizontalScrollOffset) * RenderScale.X, lineTop);
                 if (SnapToPixel)
                     offset = offset.ToInts();
-                spriteBatch.DrawString(Font, displayText.Substring(line.Start + visibleRange.Start, visibleRange.Length), offset, Brush.ApplyOpacity(TextColor, RenderOpacity), 0, Vector2.Zero, RenderScale, SpriteEffects.None, 0);
+                spriteBatch.DrawString(Font, displayText.Substring(line.Start + visibleRange.Start, visibleRange.Length), offset, Brush.ApplyOpacity(TextColor, RenderOpacity), 0, Vector2.Zero, TextDrawScale, SpriteEffects.None, 0);
             }
         }
+
+        /// <summary>Glyph scale for DrawString. Caret, selection and hit-test metrics come from
+        /// MeasureText, which includes <see cref="TextBlock.FontScale"/>, so the glyphs must be
+        /// drawn with it too or they drift from the caret whenever TextSize differs from the
+        /// font's baked size.</summary>
+        internal Vector2 TextDrawScale => RenderScale * FontScale;
 
         private void DrawCursor(SpriteBatch spriteBatch, Rect textRect)
         {
@@ -721,7 +727,8 @@ namespace MonoGame.PortableUI.Controls
             if (!IsLineVisible(textRect, top, lineHeight))
                 return Rect.Empty;
 
-            var x = textRect.Left + GetCursorX(CursorPosition, line) - _horizontalScrollOffset;
+            // Same transform as text and selection, so the caret stays on the glyphs while scaled.
+            var x = textRect.Left + (GetCursorX(CursorPosition, line) - _horizontalScrollOffset) * RenderScale.X;
             if (x < textRect.Left || x > textRect.Right)
                 return Rect.Empty;
 
