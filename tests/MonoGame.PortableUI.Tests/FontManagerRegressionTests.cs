@@ -63,6 +63,17 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void Text_box_draws_glyphs_with_the_same_font_scale_its_caret_metrics_use()
+        {
+            var font = CreateAsciiFont();
+            var textBox = new TextBox { FontOverride = font, TextSize = 28 };
+
+            // Fonts not loaded through FontManager count as baked at 14 px.
+            Assert.AreEqual(2f, textBox.TextDrawScale.X, 0.0001f);
+            Assert.AreEqual(2f, textBox.TextDrawScale.Y, 0.0001f);
+        }
+
+        [TestMethod]
         public void Existing_default_character_is_kept()
         {
             var font = CreateAsciiFont(defaultCharacter: '*');

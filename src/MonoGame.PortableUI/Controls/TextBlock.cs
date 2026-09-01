@@ -130,7 +130,7 @@ namespace MonoGame.PortableUI.Controls
         ///     Scale applied to the (bitmap) font so it renders at <see cref="TextSize"/> rather than
         ///     the size it was baked at. 1 when the requested size matches the baked size.
         /// </summary>
-        private float FontScale
+        protected float FontScale
         {
             get
             {
