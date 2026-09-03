@@ -45,6 +45,40 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void Theme_switch_reseeds_text_box_and_combo_box_specific_slots()
+        {
+            var themeA = PortableTheme.CreateDefault();
+            themeA.TextColor = Color.White;
+            themeA.TextBoxTextColor = Color.White;
+            themeA.ButtonPadding = new Thickness(9, 7);
+            var themeB = PortableTheme.CreateDefault();
+            themeB.TextColor = Color.Silver;
+            themeB.TextBoxTextColor = Color.Yellow;
+            themeB.ButtonTextColor = Color.Black;
+            themeB.ButtonPadding = new Thickness(12, 4);
+
+            var island = new ThemeIsland { Theme = themeA };
+            var stack = new StackPanel();
+            var textBox = new TextBox();
+            var comboBox = new ComboBox();
+            stack.AddChild(textBox);
+            stack.AddChild(comboBox);
+            island.Content = stack;
+            textBox.RefreshThemeResources();
+            comboBox.RefreshThemeResources();
+            var reserve = comboBox.Padding.Right - themeA.ButtonPadding.Right;
+
+            island.Theme = themeB;
+            textBox.RefreshThemeResources();
+            comboBox.RefreshThemeResources();
+
+            Assert.AreEqual(Color.Yellow, textBox.TextColor);
+            Assert.AreEqual(themeB.ComboBox.Normal.TextColor ?? Color.Black, comboBox.TextColor);
+            Assert.AreEqual(12 + reserve, comboBox.Padding.Right, 0.001f);
+            Assert.AreEqual(4, comboBox.Padding.Top, 0.001f);
+        }
+
+        [TestMethod]
         public void Theme_switch_preserves_user_overrides()
         {
             var themeA = CreateTheme(Color.Yellow, new SolidColorBrush(Color.Red));
