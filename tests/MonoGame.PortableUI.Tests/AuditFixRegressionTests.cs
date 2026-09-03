@@ -85,6 +85,39 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void Unchecking_a_grouped_radio_in_code_keeps_it_unchecked()
+        {
+            var first = new RadioButton { RadioGroup = "audit-group-uncheck" };
+            _ = new RadioButton { RadioGroup = "audit-group-uncheck" };
+            var events = new List<bool>();
+            first.Checked += (_, args) => events.Add(args.IsChecked);
+
+            first.IsChecked = false;
+
+            Assert.IsFalse(first.IsChecked);
+            CollectionAssert.AreEqual(new[] { false }, events);
+        }
+
+        [TestMethod]
+        public void Reattaching_a_radio_group_keeps_a_single_selection()
+        {
+            var panel = new StackPanel();
+            var first = new RadioButton { RadioGroup = "audit-group-reattach" };
+            var second = new RadioButton { RadioGroup = "audit-group-reattach" };
+            panel.AddChild(first);
+            panel.AddChild(second);
+            second.OnClick();
+
+            panel.Children.Remove(first);
+            panel.Children.Remove(second);
+            panel.AddChild(first);
+            panel.AddChild(second);
+
+            Assert.IsFalse(first.IsChecked);
+            Assert.IsTrue(second.IsChecked);
+        }
+
+        [TestMethod]
         public void Mouse_down_on_label_does_not_steal_focus()
         {
             var textBox = new TextBox();
