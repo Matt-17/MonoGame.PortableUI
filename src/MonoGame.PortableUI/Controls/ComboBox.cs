@@ -32,7 +32,7 @@ namespace MonoGame.PortableUI.Controls
             if (theme.ComboBox.Normal.TextColor is { } styleTextColor)
                 TextColor = styleTextColor;
             // Reserve room on the right so text never overlaps the dropdown glyph.
-            Padding = new Thickness(Padding.Left, Padding.Top, Padding.Right + GlyphSize + 8, Padding.Bottom);
+            Padding = WithGlyphReserve(Padding);
             Click += ComboBoxClick;
         }
 
@@ -53,9 +53,24 @@ namespace MonoGame.PortableUI.Controls
             return UseThemeStyle ? theme.ComboBox : null;
         }
 
+        private Thickness WithGlyphReserve(Thickness padding)
+        {
+            return new Thickness(padding.Left, padding.Top, padding.Right + GlyphSize + 8, padding.Bottom);
+        }
+
         protected override void OnThemeChanged(PortableTheme oldTheme, PortableTheme newTheme)
         {
+            // Decide what was theme-seeded before base runs: Button re-seeds TextColor itself, after
+            // which the ComboBox-specific comparison would no longer match.
+            var textWasThemeDefault = TextColor.Equals(oldTheme.ComboBox.Normal.TextColor ?? oldTheme.ButtonTextColor);
+            var paddingWasThemeDefault = Padding.Equals(WithGlyphReserve(oldTheme.ButtonPadding));
+
             base.OnThemeChanged(oldTheme, newTheme);
+
+            if (textWasThemeDefault)
+                TextColor = newTheme.ComboBox.Normal.TextColor ?? newTheme.ButtonTextColor;
+            if (paddingWasThemeDefault)
+                Padding = WithGlyphReserve(newTheme.ButtonPadding);
 
             if (Height.Equals(oldTheme.ComboBoxHeight))
                 Height = newTheme.ComboBoxHeight;
@@ -75,8 +90,6 @@ namespace MonoGame.PortableUI.Controls
                 SelectedItemTextColor = newTheme.ListBoxSelectedItemTextColor;
             if (Nullable.Equals(GlyphColor, oldTheme.ComboBoxGlyphColor))
                 GlyphColor = newTheme.ComboBoxGlyphColor;
-            if (newTheme.ComboBox.Normal.TextColor is { } styleTextColor && TextColor.Equals(oldTheme.ComboBox.Normal.TextColor ?? oldTheme.ButtonTextColor))
-                TextColor = styleTextColor;
         }
 
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)

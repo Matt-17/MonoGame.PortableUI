@@ -157,9 +157,13 @@ namespace MonoGame.PortableUI.Controls
 
         protected override void OnThemeChanged(PortableTheme oldTheme, PortableTheme newTheme)
         {
+            // TextBlock re-seeds TextColor from the generic text color first; capture whether it was
+            // the TextBox slot before that, or the comparison below never matches.
+            var textWasThemeDefault = TextColor.Equals(oldTheme.TextBoxTextColor);
+
             base.OnThemeChanged(oldTheme, newTheme);
 
-            if (TextColor.Equals(oldTheme.TextBoxTextColor))
+            if (textWasThemeDefault)
                 TextColor = newTheme.TextBoxTextColor;
             if (ReferenceEquals(CursorColor, oldTheme.TextBoxCursorBrush))
                 CursorColor = newTheme.TextBoxCursorBrush;
