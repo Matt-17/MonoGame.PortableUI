@@ -75,15 +75,22 @@ namespace MonoGame.PortableUI.Controls
         {
             if (string.IsNullOrEmpty(radioGroup))
                 return;
-            if (!RadioButtonDictionary.TryGetValue(radioGroup, out var list))
+            var isNewGroup = !RadioButtonDictionary.TryGetValue(radioGroup, out var list);
+            if (list == null)
             {
                 list = new List<RadioButton>();
                 RadioButtonDictionary.Add(radioGroup, list);
-                radioButton.IsChecked = true;
             }
 
             if (!list.Contains(radioButton))
                 list.Add(radioButton);
+
+            // A checked button joining wins the group, so re-attaching a group (e.g. moving its
+            // panel) keeps the user's selection instead of ending up with two checked buttons.
+            if (radioButton.IsChecked)
+                SetGroupChecked(radioGroup, radioButton);
+            else if (isNewGroup)
+                radioButton.IsChecked = true;
         }
 
         private static void RemoveFromList(string? radioGroup, RadioButton radioButton)
@@ -113,7 +120,8 @@ namespace MonoGame.PortableUI.Controls
 
         protected override void OnChecked(bool e)
         {
-            if (!_isSettingGroup)
+            // Only checking drives the group; unchecking in code must not re-check this button.
+            if (e && !_isSettingGroup)
                 RadioButton.SetGroupChecked(RadioGroup, this);
             base.OnChecked(e);
         }
