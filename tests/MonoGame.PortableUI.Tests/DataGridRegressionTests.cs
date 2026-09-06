@@ -32,6 +32,41 @@ namespace MonoGame.PortableUI.Tests
             return grid;
         }
 
+        [TestMethod]
+        public void Removing_the_selected_last_row_reports_the_clamped_selection()
+        {
+            var grid = CreateGrid(new object[] { new Person("A", 1), new Person("B", 2) }, NameColumn());
+            grid.UpdateLayout(new Rect(0, 0, 200, 200));
+            grid.SelectedIndex = 1;
+            SelectionChangedEventArgs? change = null;
+            grid.SelectionChanged += (_, args) => change = args;
+
+            grid.Items.RemoveAt(1);
+            grid.UpdateLayout(new Rect(0, 0, 200, 200));
+
+            Assert.AreEqual(0, grid.SelectedIndex);
+            Assert.IsNotNull(change);
+            Assert.AreEqual(1, change.OldIndex);
+            Assert.AreEqual(0, change.NewIndex);
+        }
+
+        [TestMethod]
+        public void Combo_box_clamps_selection_and_text_after_the_selected_item_is_removed()
+        {
+            var combo = new ComboBox();
+            combo.Items.AddRange(new object[] { "one", "two", "three" });
+            combo.SelectedIndex = 2;
+            var changes = 0;
+            combo.SelectionChanged += (_, _) => changes++;
+
+            combo.Items.RemoveAt(2);
+            combo.MeasureLayout();
+
+            Assert.AreEqual(1, combo.SelectedIndex);
+            Assert.AreEqual("two", combo.Text);
+            Assert.AreEqual(1, changes);
+        }
+
         private static DataGridColumn NameColumn() => new DataGridColumn
         {
             Header = "Name",

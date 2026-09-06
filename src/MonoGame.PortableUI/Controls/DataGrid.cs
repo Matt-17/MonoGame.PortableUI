@@ -158,6 +158,18 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        /// <summary>Items is a plain list, so removals are only noticed in the layout pass; clamp the
+        /// selection there and report it like an explicit change (same as ListBox).</summary>
+        private void SyncSelectionToItems()
+        {
+            var clamped = ClampIndex(_selectedIndex);
+            if (_selectedIndex == clamped)
+                return;
+            var oldIndex = _selectedIndex;
+            _selectedIndex = clamped;
+            SelectionChanged?.Invoke(this, new SelectionChangedEventArgs(oldIndex, clamped));
+        }
+
         public object? SelectedItem => _selectedIndex >= 0 && _selectedIndex < Items.Count ? Items[_selectedIndex] : null;
 
         /// <summary>The column the grid is currently sorted by, or null.</summary>
@@ -304,7 +316,7 @@ namespace MonoGame.PortableUI.Controls
             }
 
             EnsureRows();
-            _selectedIndex = ClampIndex(_selectedIndex);
+            SyncSelectionToItems();
             base.UpdateLayout(rect);
 
             var content = BoundingRect - Margin - BorderThickness;
@@ -439,10 +451,7 @@ namespace MonoGame.PortableUI.Controls
 
             _columnsDirty = false;
 
-            var clamped = ClampIndex(_selectedIndex);
-            if (_selectedIndex != clamped)
-                _selectedIndex = clamped;
-
+            SyncSelectionToItems();
             UpdateRowVisuals();
         }
 
