@@ -129,6 +129,20 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        /// <summary>Items is a plain list: removals surface in the layout pass, where the selection
+        /// is clamped (with SelectionChanged) and the shown text follows the selected item.</summary>
+        public override Size MeasureLayout()
+        {
+            var clamped = ClampIndex(_selectedIndex);
+            if (_selectedIndex != clamped)
+                SelectedIndex = clamped;
+            else if (SelectedItem is { } item && Text != (item.ToString() ?? ""))
+            {
+                Text = item.ToString() ?? "";
+            }
+            return base.MeasureLayout();
+        }
+
         public object? SelectedItem => SelectedIndex >= 0 && SelectedIndex < Items.Count ? Items[SelectedIndex] : null;
 
         public event EventHandler<SelectionChangedEventArgs>? SelectionChanged;
