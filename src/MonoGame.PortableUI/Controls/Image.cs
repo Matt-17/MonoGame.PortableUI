@@ -70,6 +70,19 @@ namespace MonoGame.PortableUI.Controls
             // apply to the content box only (same order as Control.MeasureLayout).
             var size = new Size(Width.IsFixed() ? Width : 0, Height.IsFixed() ? Height : 0);
 
+            // One fixed side with a uniform stretch: the other side follows the aspect ratio
+            // (Width=400 on a 100x100 texture measures 400x400, as in WPF).
+            if (Source != null && Source.Width > 0 && Source.Height > 0
+                && (Stretch == Stretch.Uniform || Stretch == Stretch.UniformToFill)
+                && Width.IsFixed() != Height.IsFixed())
+            {
+                if (Width.IsFixed())
+                    size.Height = Width * Source.Height / Source.Width;
+                else
+                    size.Width = Height * Source.Width / Source.Height;
+                return ApplyConstraints(size) + Margin;
+            }
+
             if (Source != null && (size.Width == 0 || size.Height == 0))
             {
                 if (size.Height == 0)
