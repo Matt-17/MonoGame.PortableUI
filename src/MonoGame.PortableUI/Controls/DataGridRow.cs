@@ -46,6 +46,8 @@ namespace MonoGame.PortableUI.Controls
 
         private void RebuildCells()
         {
+            foreach (var cell in _cells)
+                cell.Parent = null;
             _cells.Clear();
             for (var i = 0; i < _owner.Columns.Count; i++)
             {
@@ -77,7 +79,19 @@ namespace MonoGame.PortableUI.Controls
             for (var i = 0; i < _cells.Count && i < _owner.Columns.Count; i++)
             {
                 var column = _owner.Columns[i];
-                if (_cells[i] is TextBlock textBlock && column.CellTemplate == null && _item != null)
+                if (_item == null)
+                    continue;
+                if (column.CellTemplate != null)
+                {
+                    // Template cells are built for one item; reusing them would show (and act on)
+                    // the row's previous item after an insert or sort shifted items across rows.
+                    var cell = column.CellTemplate(_item);
+                    _cells[i].Parent = null;
+                    cell.Parent = this;
+                    _cells[i] = cell;
+                    InvalidateLayout(true);
+                }
+                else if (_cells[i] is TextBlock textBlock)
                 {
                     textBlock.Text = column.GetText(_item);
                     textBlock.TextAlignment = column.CellAlignment;
