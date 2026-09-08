@@ -122,14 +122,15 @@ namespace MonoGame.PortableUI.Controls
 
             var contentSize = Content?.MeasureLayout() ?? Size.Empty;
             var hasContent = Content != null;
+            // A fixed Width/Height is final (like ContentControl); padding only grows auto axes.
             var width = Width.IsFixed()
                 ? Width
-                : BoxSize + (hasContent ? BoxSpacing + contentSize.Width : 0);
+                : BoxSize + (hasContent ? BoxSpacing + contentSize.Width : 0) + Padding.Horizontal;
             var height = Height.IsFixed()
                 ? Height
-                : Math.Max(BoxSize, contentSize.Height);
+                : Math.Max(BoxSize, contentSize.Height) + Padding.Vertical;
 
-            return ApplyConstraints(new Size(width, height) + Padding) + Margin;
+            return ApplyConstraints(new Size(width, height)) + Margin;
         }
 
         public override void UpdateLayout(Rect rect)
