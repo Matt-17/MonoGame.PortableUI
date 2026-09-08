@@ -59,6 +59,19 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        public void ApplyTextColor()
+        {
+            foreach (var label in _labels)
+                label.TextColor = _owner.HeaderTextColor;
+        }
+
+        /// <summary>Measures with a label's theme-resolved font, so auto columns size to what the
+        /// cells (TextBlocks under the same theme) actually render; null before labels exist.</summary>
+        public float? MeasureTextWidth(string? text)
+        {
+            return _labels.Count > 0 ? _labels[0].MeasureTextWidth(text) : null;
+        }
+
         public override Size MeasureLayout()
         {
             if (IsGone || !_owner.ShowColumnHeaders)
@@ -274,7 +287,8 @@ namespace MonoGame.PortableUI.Controls
                     return i;
             }
 
-            return _owner.Columns.Count - 1;
+            // Empty header space right of the last column is not a column.
+            return -1;
         }
     }
 }

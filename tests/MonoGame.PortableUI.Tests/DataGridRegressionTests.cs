@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.Xna.Framework;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
 using MonoGame.PortableUI.Controls.Events;
@@ -368,6 +369,52 @@ namespace MonoGame.PortableUI.Tests
             grid.UpdateLayout(new Rect(0, 0, 300, 200));
 
             Assert.AreEqual(300, grid.InnerWidth, 0.001f);
+        }
+
+        [TestMethod]
+        public void Template_cells_follow_their_row_item_after_an_insert()
+        {
+            var column = new DataGridColumn
+            {
+                Header = "Custom",
+                CellTemplate = item => new TextBlock { Text = "#" + ((Person)item).Age }
+            };
+            var grid = CreateGrid(new object[] { new Person("A", 1), new Person("B", 2) }, column);
+            grid.UpdateLayout(new Rect(0, 0, 200, 200));
+
+            grid.Items.Insert(0, new Person("Z", 9));
+            grid.UpdateLayout(new Rect(0, 0, 200, 200));
+
+            var texts = grid.Rows.Select(r => r.GetDescendants().OfType<TextBlock>().First().Text).ToArray();
+            CollectionAssert.AreEqual(new[] { "#9", "#1", "#2" }, texts);
+        }
+
+        [TestMethod]
+        public void Text_colors_set_after_construction_reach_header_and_cells()
+        {
+            var grid = CreateGrid(new object[] { new Person("A", 1) }, NameColumn());
+            grid.UpdateLayout(new Rect(0, 0, 200, 200));
+
+            grid.HeaderTextColor = Color.Orange;
+            grid.RowTextColor = Color.Lime;
+
+            var cell = grid.Rows[0].GetDescendants().OfType<TextBlock>().First();
+            Assert.AreEqual(Color.Lime, cell.TextColor);
+            var headerLabel = VisualTreeHelper.GetVisualTreeAsList(grid).OfType<TextBlock>().First(t => t.Text == "Name");
+            Assert.AreEqual(Color.Orange, headerLabel.TextColor);
+        }
+
+        [TestMethod]
+        public void Auto_column_measure_includes_its_widest_cell()
+        {
+            var grid = CreateGrid(
+                new object[] { new Person("A much longer name than the header", 1) },
+                new DataGridColumn { Header = "N", Width = GridLength.Auto, CellText = i => ((Person)i).Name });
+            grid.UpdateLayout(new Rect(0, 0, 1000, 200));
+
+            var measured = grid.MeasureLayout().Width;
+
+            Assert.AreEqual(grid.Columns[0].ActualWidth, measured, 0.5f);
         }
 
         [TestMethod]
