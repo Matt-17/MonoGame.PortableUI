@@ -25,6 +25,40 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void Auto_sized_tab_control_keeps_its_margin()
+        {
+            var tabs = new TabControl { Margin = new Thickness(10) };
+
+            var size = tabs.MeasureLayout();
+
+            Assert.AreEqual(tabs.HeaderHeight + 20, size.Height, 0.001f);
+            Assert.AreEqual(20, size.Width, 0.001f);
+        }
+
+        [TestMethod]
+        public void Check_box_fixed_size_is_not_grown_by_padding()
+        {
+            var checkBox = new CheckBox { Width = 100, Height = 30, Padding = new Thickness(10) };
+
+            var size = checkBox.MeasureLayout();
+
+            Assert.AreEqual(100, size.Width, 0.001f);
+            Assert.AreEqual(30, size.Height, 0.001f);
+        }
+
+        [TestMethod]
+        public void Swipe_presenter_auto_size_includes_padding()
+        {
+            var presenter = new SwipePresenter { Padding = new Thickness(5) };
+            presenter.Children.Add(new Border { Width = 40, Height = 20 });
+
+            var size = presenter.MeasureLayout();
+
+            Assert.AreEqual(50, size.Width, 0.001f);
+            Assert.AreEqual(30, size.Height, 0.001f);
+        }
+
+        [TestMethod]
         public void Content_control_min_width_is_a_lower_bound_not_an_addend()
         {
             var border = new Border { MinWidth = 100, MinHeight = 30, Content = new Border { Width = 50, Height = 20 } };

@@ -143,9 +143,8 @@ namespace MonoGame.PortableUI.Controls
 
         public override Size MeasureLayout()
         {
-            var size = base.MeasureLayout();
-            if (Width.IsFixed() && Height.IsFixed())
-                return size;
+            if (IsGone || (Width.IsFixed() && Height.IsFixed()))
+                return base.MeasureLayout();
 
             var content = Size.Empty;
             foreach (var child in Children)
@@ -155,10 +154,9 @@ namespace MonoGame.PortableUI.Controls
                 content.Height = Math.Max(content.Height, childSize.Height);
             }
 
-            if (Width.IsFixed())
-                content.Width = Width;
-            if (Height.IsFixed())
-                content.Height = Height;
+            // UpdateLayout arranges inside Padding, so the auto size must include it.
+            content.Width = Width.IsFixed() ? Width : content.Width + Padding.Horizontal;
+            content.Height = Height.IsFixed() ? Height : content.Height + Padding.Vertical;
 
             return ApplyConstraints(content) + Margin;
         }
