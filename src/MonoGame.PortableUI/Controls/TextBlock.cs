@@ -302,6 +302,9 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        /// <summary>Width of <paramref name="text"/> in this block's resolved font and size.</summary>
+        internal float MeasureTextWidth(string? text) => MeasureText(text ?? "").X;
+
         protected Vector2 MeasureText(string text)
         {
             if (Font != null)

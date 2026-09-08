@@ -33,6 +33,9 @@ namespace MonoGame.PortableUI.Controls
         private readonly List<int> _displayOrder = new List<int>();
 
         private int _selectedIndex = -1;
+        private Color _headerTextColor;
+        private Color _rowTextColor;
+        private Color _selectedRowTextColor;
         private DataGridColumn? _sortColumn;
         private bool _sortAscending = true;
         private bool _columnsDirty = true;
@@ -95,12 +98,47 @@ namespace MonoGame.PortableUI.Controls
         public List<DataGridColumn> Columns { get; }
 
         public Brush HeaderBackgroundBrush { get; set; }
-        public Color HeaderTextColor { get; set; }
+        public Color HeaderTextColor
+        {
+            get => _headerTextColor;
+            set
+            {
+                if (_headerTextColor == value)
+                    return;
+                _headerTextColor = value;
+                _header?.ApplyTextColor();
+            }
+        }
         public Brush RowBackgroundBrush { get; set; }
         public Brush AlternateRowBackgroundBrush { get; set; }
         public Brush SelectedRowBackgroundBrush { get; set; }
-        public Color RowTextColor { get; set; }
-        public Color SelectedRowTextColor { get; set; }
+        // Row and header text colors are snapshotted into cell TextBlocks, so changing them must
+        // push the new value instead of waiting for the next Refresh().
+        public Color RowTextColor
+        {
+            get => _rowTextColor;
+            set
+            {
+                if (_rowTextColor == value)
+                    return;
+                _rowTextColor = value;
+                if (_rows.Count > 0)
+                    UpdateRowVisuals();
+            }
+        }
+
+        public Color SelectedRowTextColor
+        {
+            get => _selectedRowTextColor;
+            set
+            {
+                if (_selectedRowTextColor == value)
+                    return;
+                _selectedRowTextColor = value;
+                if (_rows.Count > 0)
+                    UpdateRowVisuals();
+            }
+        }
         public Brush GridLinesBrush { get; set; }
         public bool ShowGridLines { get; set; } = true;
         public bool ShowColumnHeaders { get; set; } = true;
@@ -301,7 +339,9 @@ namespace MonoGame.PortableUI.Controls
 
             EnsureRows();
             var headerRows = ShowColumnHeaders ? HeaderHeight : 0;
-            var naturalWidth = Columns.Count == 0 ? 0 : Columns.Sum(NaturalColumnWidth);
+            var naturalWidth = 0f;
+            foreach (var column in Columns)
+                naturalWidth += NaturalColumnWidth(column);
             var width = Width.IsFixed() ? Width : naturalWidth;
             var height = Height.IsFixed() ? Height : headerRows + Items.Count * RowHeight;
             return ApplyConstraints(new Size(width, height)) + Margin;
@@ -518,11 +558,16 @@ namespace MonoGame.PortableUI.Controls
             SelectRow(target, false);
         }
 
-        private static float NaturalColumnWidth(DataGridColumn column)
+        // Must agree with ResolveColumnWidths: Auto columns size to their widest cell there, so
+        // measuring only the header made auto-sized grids too narrow (spurious h-scrollbar).
+        private float NaturalColumnWidth(DataGridColumn column)
         {
-            return column.Width.Unit == GridLengthUnit.Absolute
-                ? Math.Max(column.MinWidth, column.Width.Value)
-                : Math.Max(column.MinWidth, MeasureTextWidth(column.Header) + CellHorizontalPadding * 2);
+            return column.Width.Unit switch
+            {
+                GridLengthUnit.Absolute => Math.Max(column.MinWidth, column.Width.Value),
+                GridLengthUnit.Auto => Math.Max(column.MinWidth, MeasureAutoColumnWidth(column)),
+                _ => Math.Max(column.MinWidth, MeasureCellTextWidth(column.Header) + CellHorizontalPadding * 2)
+            };
         }
 
         private void ResolveColumnWidths(float availableWidth)
@@ -570,13 +615,18 @@ namespace MonoGame.PortableUI.Controls
 
         private float MeasureAutoColumnWidth(DataGridColumn column)
         {
-            var max = MeasureTextWidth(column.Header);
+            var max = MeasureCellTextWidth(column.Header);
             foreach (var item in Items)
-                max = Math.Max(max, MeasureTextWidth(column.GetText(item)));
+                max = Math.Max(max, MeasureCellTextWidth(column.GetText(item)));
             return max + CellHorizontalPadding * 2;
         }
 
         internal const float CellHorizontalPadding = 8;
+
+        private float MeasureCellTextWidth(string? text)
+        {
+            return _header.MeasureTextWidth(text) ?? MeasureTextWidth(text);
+        }
 
         internal static float MeasureTextWidth(string? text)
         {
