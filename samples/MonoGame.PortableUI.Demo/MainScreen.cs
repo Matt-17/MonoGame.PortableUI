@@ -419,7 +419,8 @@ namespace MonoGame.PortableUI.Demo
             grid.AddChild(CreateInputPanel());
             grid.AddChild(CreateListPanel(), column: 1);
             grid.AddChild(CreateActionPanel(), column: 2);
-            return grid;
+            // Small windows: scroll the page instead of overflowing below the tab.
+            return new ScrollViewer { Content = grid, ScrollOrientation = Orientation.Vertical };
         }
 
         private Control CreateVisualFxTab()
@@ -685,7 +686,7 @@ namespace MonoGame.PortableUI.Demo
                 }
             };
             var indicatorCell = new StackPanel { Orientation = Orientation.Vertical };
-            indicatorCell.AddChild(Label("ProgressIndicator", Palette.MutedText));
+            indicatorCell.AddChild(Label("Busy indicator", Palette.MutedText));
             indicatorCell.AddChild(new ProgressIndicator
             {
                 Height = 34,
