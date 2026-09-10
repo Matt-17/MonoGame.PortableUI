@@ -67,6 +67,9 @@ namespace MonoGame.PortableUI.Controls
 
         public TabItem? SelectedItem => SelectedIndex >= 0 && SelectedIndex < Items.Count ? Items[SelectedIndex] : null;
 
+        // A page taller than the control must not draw over whatever sits below the TabControl.
+        protected internal override bool ClipsDescendants => true;
+
         public override Size MeasureLayout()
         {
             if (IsGone || (Width.IsFixed() && Height.IsFixed()))
