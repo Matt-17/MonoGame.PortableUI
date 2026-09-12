@@ -376,10 +376,17 @@ namespace MonoGame.PortableUI.Controls
                         EnterPressed?.Invoke(this, EventArgs.Empty);
                     break;
                 case KeyboardCommand.CursorLeft:
-                    MoveCursorTo(Math.Max(0, CursorPosition - 1), shift);
+                    // Without Shift an existing selection collapses to its edge (standard editors).
+                    if (!shift && HasSelection)
+                        MoveCursorTo(SelectionStart, false);
+                    else
+                        MoveCursorTo(PreviousCaretStop(CursorPosition), shift);
                     break;
                 case KeyboardCommand.CursorRight:
-                    MoveCursorTo(Math.Min(Text.Length, CursorPosition + 1), shift);
+                    if (!shift && HasSelection)
+                        MoveCursorTo(SelectionStart + SelectionLength, false);
+                    else
+                        MoveCursorTo(NextCaretStop(CursorPosition), shift);
                     break;
                 case KeyboardCommand.CursorUp:
                     MoveCursorVertically(-1, shift);
@@ -476,7 +483,32 @@ namespace MonoGame.PortableUI.Controls
             }
 
             if (CursorPosition > 0)
-                ReplaceRange(CursorPosition - 1, 1, "");
+            {
+                var start = PreviousCaretStop(CursorPosition);
+                ReplaceRange(start, CursorPosition - start, "");
+            }
+        }
+
+        // Caret stops never fall between the two halves of a surrogate pair (emoji, rare CJK),
+        // so arrows and deletion treat such a character as one unit.
+        private int PreviousCaretStop(int position)
+        {
+            if (position <= 0)
+                return 0;
+            var previous = position - 1;
+            if (previous > 0 && char.IsLowSurrogate(Text[previous]) && char.IsHighSurrogate(Text[previous - 1]))
+                previous--;
+            return previous;
+        }
+
+        private int NextCaretStop(int position)
+        {
+            if (position >= Text.Length)
+                return Text.Length;
+            var next = position + 1;
+            if (next < Text.Length && char.IsLowSurrogate(Text[next]) && char.IsHighSurrogate(Text[next - 1]))
+                next++;
+            return next;
         }
 
         private void Delete()
@@ -491,7 +523,7 @@ namespace MonoGame.PortableUI.Controls
             }
 
             if (CursorPosition < Text.Length)
-                ReplaceRange(CursorPosition, 1, "");
+                ReplaceRange(CursorPosition, NextCaretStop(CursorPosition) - CursorPosition, "");
         }
 
         private void DeleteSelection()

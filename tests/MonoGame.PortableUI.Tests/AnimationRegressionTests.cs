@@ -48,6 +48,26 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void Completion_callback_cancelling_other_animations_does_not_throw()
+        {
+            var control = new TestControl();
+            var longRunning = control.Animate()
+                .FadeTo(0)
+                .Duration(TimeSpan.FromMilliseconds(1000))
+                .Start();
+            control.Animate()
+                .Scale(2)
+                .Duration(TimeSpan.FromMilliseconds(100))
+                .OnCompleted(() => longRunning.Cancel())
+                .Start();
+
+            ScreenSystem.TotalTime = TimeSpan.FromMilliseconds(150);
+            control.UpdateTimers();
+
+            Assert.AreEqual(2, control.Scale.X, 0.001f);
+        }
+
+        [TestMethod]
         public void Completion_runs_once_when_animation_finishes()
         {
             var control = new TestControl();

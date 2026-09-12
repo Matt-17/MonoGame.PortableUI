@@ -161,12 +161,12 @@ namespace MonoGame.PortableUI.Controls
 
             var box = GetBoxRect(rect - Padding);
             if (BoxCornerRadius.IsEmpty)
-                BoxBackgroundBrush?.Draw(spriteBatch, box);
+                BoxBackgroundBrush?.Draw(spriteBatch, box, RenderOpacity);
             else
                 BoxBackgroundBrush?.Draw(spriteBatch, new BrushContext(box, BoxCornerRadius, RenderOpacity, spriteBatch.GraphicsDevice));
 
             if (IsChecked && CheckMarkBrush != null)
-                DrawCheckMark(spriteBatch, box, BoxBorderWidth, CheckMarkBrush, GlyphKind);
+                DrawCheckMark(spriteBatch, box, BoxBorderWidth, CheckMarkBrush, GlyphKind, RenderOpacity);
 
             if (BoxBorderBrush != null && BoxBorderWidth > 0)
             {
@@ -175,7 +175,7 @@ namespace MonoGame.PortableUI.Controls
                 if (!BoxCornerRadius.IsEmpty && BoxBorderBrush is SolidColorBrush solidBorder)
                     RoundedRectRenderer.DrawBorder(spriteBatch, box, BoxCornerRadius, new Thickness(BoxBorderWidth), Brush.ApplyOpacity(solidBorder.Color, RenderOpacity));
                 else
-                    BorderRenderer.Draw(spriteBatch, box, BoxBorderWidth, BoxBorderBrush);
+                    BorderRenderer.Draw(spriteBatch, box, BoxBorderWidth, BoxBorderBrush, RenderOpacity);
             }
         }
 
@@ -205,10 +205,10 @@ namespace MonoGame.PortableUI.Controls
                 BoxSize);
         }
 
-        private static void DrawCheckMark(SpriteBatch spriteBatch, Rect rect, float borderWidth, Brush brush, CheckBoxGlyphKind glyphKind)
+        private static void DrawCheckMark(SpriteBatch spriteBatch, Rect rect, float borderWidth, Brush brush, CheckBoxGlyphKind glyphKind, float opacity)
         {
             foreach (var markRect in GetCheckMarkRects(rect, borderWidth, glyphKind))
-                brush.Draw(spriteBatch, markRect);
+                brush.Draw(spriteBatch, markRect, opacity);
         }
 
         internal static IEnumerable<Rect> GetCheckMarkRects(Rect rect, float borderWidth, CheckBoxGlyphKind glyphKind = CheckBoxGlyphKind.Cross)
