@@ -175,6 +175,14 @@ namespace MonoGame.PortableUI
 
 
         private bool _layoutDirty;
+        private bool _themeRefreshRequested;
+
+        /// <summary>A subtree was attached (possibly into another ThemeIsland): re-run the theme
+        /// refresh on the next update so moved controls pick up their new theme.</summary>
+        internal void RequestThemeRefresh()
+        {
+            _themeRefreshRequested = true;
+        }
 
         /// <summary>Marks the tree dirty; the actual measure/arrange runs once per frame in
         /// <see cref="PerformLayoutIfDirty"/> (start of Update, safety flush in Draw). Every
@@ -746,9 +754,10 @@ namespace MonoGame.PortableUI
                 content = _mainGrid;
 
             var themeVersion = ThemeVersion.Current;
-            if (_appliedThemeVersion != themeVersion)
+            if (_appliedThemeVersion != themeVersion || _themeRefreshRequested)
             {
                 _appliedThemeVersion = themeVersion;
+                _themeRefreshRequested = false;
                 RefreshThemeForTree(_mainGrid);
                 if (_flyOut != null)
                     RefreshThemeForTree(_flyOut);

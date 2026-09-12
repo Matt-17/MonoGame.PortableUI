@@ -23,6 +23,8 @@ namespace MonoGame.PortableUI.Controls
         // Wrapped-line cache: wrapping measures every word, so it only recomputes when the
         // text, the available width, or the effective font scale changes.
         private List<string>? _wrappedLines;
+        // Two fonts baked at the same size give the same FontScale but different line breaks.
+        private SpriteFont? _wrapCacheFont;
         private string? _wrapCacheText;
         private float _wrapCacheWidth = -1f;
         private float _wrapCacheScale = -1f;
@@ -182,6 +184,7 @@ namespace MonoGame.PortableUI.Controls
             var scale = FontScale;
             if (_wrappedLines != null &&
                 _wrapCacheText == _text &&
+                ReferenceEquals(_wrapCacheFont, Font) &&
                 Math.Abs(_wrapCacheWidth - availableWidth) < 0.5f &&
                 Math.Abs(_wrapCacheScale - scale) < 0.0001f)
             {
@@ -190,6 +193,7 @@ namespace MonoGame.PortableUI.Controls
 
             _wrappedLines = WrapText(_text, availableWidth);
             _wrapCacheText = _text;
+            _wrapCacheFont = Font;
             _wrapCacheWidth = availableWidth;
             _wrapCacheScale = scale;
             return _wrappedLines;
