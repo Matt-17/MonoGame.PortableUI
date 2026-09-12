@@ -9,6 +9,9 @@ namespace MonoGame.PortableUI.Controls
     public class TabControl : Control
     {
         private int _selectedIndex;
+        // SelectedIndex set while Items is still empty would clamp to -1 and be lost; it is kept
+        // here and applied once items arrive (on the next layout pass).
+        private int _pendingSelectedIndex = -1;
         private readonly List<Button> _headerButtons = new List<Button>();
 
         public TabControl()
@@ -53,6 +56,7 @@ namespace MonoGame.PortableUI.Controls
             get { return _selectedIndex; }
             set
             {
+                _pendingSelectedIndex = Items.Count == 0 && value >= 0 ? value : -1;
                 var clamped = ClampSelectedIndex(value);
                 if (_selectedIndex == clamped)
                     return;
@@ -85,7 +89,9 @@ namespace MonoGame.PortableUI.Controls
 
         public override void UpdateLayout(Rect rect)
         {
-            SelectedIndex = ClampSelectedIndex(SelectedIndex);
+            SelectedIndex = _pendingSelectedIndex >= 0 && Items.Count > 0
+                ? _pendingSelectedIndex
+                : ClampSelectedIndex(SelectedIndex);
             EnsureHeaderButtons();
             base.UpdateLayout(rect);
 

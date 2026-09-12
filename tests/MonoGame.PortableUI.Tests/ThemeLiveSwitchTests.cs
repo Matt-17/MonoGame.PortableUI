@@ -79,6 +79,25 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void Moving_a_control_between_theme_islands_applies_the_new_theme()
+        {
+            var themeA = CreateTheme(Color.Yellow, new SolidColorBrush(Color.Red));
+            var themeB = CreateTheme(Color.Cyan, new SolidColorBrush(Color.Lime));
+            var islandA = new ThemeIsland { Theme = themeA };
+            var islandB = new ThemeIsland { Theme = themeB };
+            var button = new Button();
+            islandA.Content = button;
+            button.RefreshThemeResources();
+            Assert.AreEqual(Color.Yellow, button.TextColor);
+
+            islandA.Content = null;
+            islandB.Content = button;
+            button.RefreshThemeResources();
+
+            Assert.AreEqual(Color.Cyan, button.TextColor);
+        }
+
+        [TestMethod]
         public void Theme_switch_preserves_user_overrides()
         {
             var themeA = CreateTheme(Color.Yellow, new SolidColorBrush(Color.Red));

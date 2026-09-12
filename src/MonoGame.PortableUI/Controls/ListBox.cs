@@ -20,6 +20,9 @@ namespace MonoGame.PortableUI.Controls
         private bool _isMouseSelecting;
         private int _mouseSelectionStartIndex = -1;
         private int _selectedIndex = -1;
+        // SelectedIndex set while Items is still empty would clamp to -1 and be lost; it is kept
+        // here and applied once items arrive (on the next layout pass).
+        private int _pendingSelectedIndex = -1;
         private Brush _selectedItemBackgroundBrush = new SolidColorBrush(new Color(20, 126, 133));
         private Color _selectedItemTextColor;
 
@@ -85,6 +88,7 @@ namespace MonoGame.PortableUI.Controls
             get { return _selectedIndex; }
             set
             {
+                _pendingSelectedIndex = Items.Count == 0 && value >= 0 ? value : -1;
                 var clamped = ClampIndex(value);
                 if (_selectedIndex == clamped)
                     return;
@@ -259,6 +263,9 @@ namespace MonoGame.PortableUI.Controls
             {
                 _itemsPanel.SuppressUpdate(false);
             }
+
+            if (_pendingSelectedIndex >= 0 && Items.Count > 0)
+                SelectedIndex = _pendingSelectedIndex;
 
             var clamped = ClampIndex(_selectedIndex);
             if (_selectedIndex != clamped)

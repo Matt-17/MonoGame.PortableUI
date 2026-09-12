@@ -45,18 +45,17 @@ namespace MonoGame.PortableUI.Controls
             set
             {
                 _minimum = value;
-                if (_maximum < _minimum)
-                    _maximum = _minimum;
                 Value = _value;
             }
         }
 
+        /// <summary>Coerced on read like <see cref="Slider.Maximum"/>, so assignment order doesn't matter.</summary>
         public float Maximum
         {
-            get { return _maximum; }
+            get { return Math.Max(_minimum, _maximum); }
             set
             {
-                _maximum = Math.Max(Minimum, value);
+                _maximum = value;
                 Value = _value;
             }
         }
@@ -66,6 +65,8 @@ namespace MonoGame.PortableUI.Controls
             get { return _value; }
             set
             {
+                if (float.IsNaN(value))
+                    return;
                 var clamped = MathHelper.Clamp(value, Minimum, Maximum);
                 if (Math.Abs(_value - clamped) < 0.0001f)
                     return;

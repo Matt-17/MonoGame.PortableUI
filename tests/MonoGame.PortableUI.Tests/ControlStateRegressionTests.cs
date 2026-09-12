@@ -241,8 +241,71 @@ namespace MonoGame.PortableUI.Tests
 
             Assert.AreEqual("bc", clipboard.Text);
             Assert.AreEqual("abcd", textBox.Text);
-            Assert.AreEqual(2, textBox.CursorPosition);
+            // Left without Shift collapses the selection to its start, as in standard editors.
+            Assert.AreEqual(1, textBox.CursorPosition);
             Assert.AreEqual(0, textBox.SelectionLength);
+        }
+
+        [TestMethod]
+        public void Textbox_treats_a_surrogate_pair_as_one_character()
+        {
+            var textBox = new KeyboardBackedTextBox { Text = "a😀b" };
+            textBox.Select(3, 0);
+
+            textBox.Press(KeyboardCommand.CursorLeft);
+            Assert.AreEqual(1, textBox.CursorPosition);
+
+            textBox.Press(KeyboardCommand.Delete);
+            Assert.AreEqual("ab", textBox.Text);
+        }
+
+        [TestMethod]
+        public void Textbox_right_arrow_collapses_selection_to_its_end()
+        {
+            var textBox = new KeyboardBackedTextBox { Text = "abcd" };
+            textBox.Select(1, 2);
+
+            textBox.Press(KeyboardCommand.CursorRight);
+
+            Assert.AreEqual(3, textBox.CursorPosition);
+            Assert.AreEqual(0, textBox.SelectionLength);
+        }
+
+        [TestMethod]
+        public void Slider_range_does_not_depend_on_assignment_order_and_ignores_nan()
+        {
+            var slider = new Slider { Maximum = -10, Minimum = -50 };
+
+            Assert.AreEqual(-50, slider.Minimum);
+            Assert.AreEqual(-10, slider.Maximum);
+
+            slider.Value = -20;
+            slider.Value = float.NaN;
+            Assert.AreEqual(-20, slider.Value);
+
+            var progress = new ProgressBar { Maximum = -10, Minimum = -50 };
+            Assert.AreEqual(-10, progress.Maximum);
+        }
+
+        [TestMethod]
+        public void Selected_index_set_before_items_is_applied_once_items_arrive()
+        {
+            var listBox = new ListBox { SelectedIndex = 2 };
+            listBox.Items.AddRange(new object[] { "a", "b", "c" });
+            listBox.UpdateLayout(new Rect(0, 0, 200, 200));
+            Assert.AreEqual(2, listBox.SelectedIndex);
+
+            var comboBox = new ComboBox { SelectedIndex = 1 };
+            comboBox.Items.AddRange(new object[] { "a", "b" });
+            comboBox.MeasureLayout();
+            Assert.AreEqual(1, comboBox.SelectedIndex);
+            Assert.AreEqual("b", comboBox.Text);
+
+            var tabs = new TabControl { SelectedIndex = 1 };
+            tabs.Items.Add(new TabItem { Header = "A", Content = new Border() });
+            tabs.Items.Add(new TabItem { Header = "B", Content = new Border() });
+            tabs.UpdateLayout(new Rect(0, 0, 200, 200));
+            Assert.AreEqual(1, tabs.SelectedIndex);
         }
 
         [TestMethod]

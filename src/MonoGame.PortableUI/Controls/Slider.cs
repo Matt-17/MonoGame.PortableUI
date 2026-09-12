@@ -69,22 +69,22 @@ namespace MonoGame.PortableUI.Controls
                     return;
 
                 _minimum = value;
-                if (_maximum < _minimum)
-                    _maximum = _minimum;
                 Value = _value;
                 InvalidateLayout(false);
             }
         }
 
+        /// <summary>The requested maximum is kept and coerced on read (WPF style), so setting
+        /// Maximum before Minimum gives the same range as the other way round.</summary>
         public float Maximum
         {
-            get { return _maximum; }
+            get { return Math.Max(_minimum, _maximum); }
             set
             {
                 if (Math.Abs(_maximum - value) < float.Epsilon)
                     return;
 
-                _maximum = Math.Max(_minimum, value);
+                _maximum = value;
                 Value = _value;
                 InvalidateLayout(false);
             }
@@ -95,6 +95,8 @@ namespace MonoGame.PortableUI.Controls
             get { return _value; }
             set
             {
+                if (float.IsNaN(value))
+                    return;
                 var clamped = ClampValue(value);
                 if (Math.Abs(_value - clamped) < 0.0001f)
                     return;

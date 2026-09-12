@@ -172,7 +172,21 @@ namespace MonoGame.PortableUI.Controls
                 if (value == null && ScreenEngine.FocusedControl is { } focused && IsSelfOrAncestorOf(focused))
                     ScreenEngine.FocusedControl = null;
                 _parent = value;
+                if (value != null)
+                {
+                    // The resolved theme is cached per global ThemeVersion only; moving a subtree
+                    // into or between ThemeIslands must re-resolve it and re-seed its snapshots.
+                    InvalidateResolvedTheme(this);
+                    (value as Screen ?? (value as Control)?.Screen)?.RequestThemeRefresh();
+                }
             }
+        }
+
+        private static void InvalidateResolvedTheme(Control control)
+        {
+            control._resolvedThemeVersion = -1;
+            foreach (var descendant in control.GetDescendants())
+                InvalidateResolvedTheme(descendant);
         }
 
         private bool IsSelfOrAncestorOf(Control control)
@@ -1221,6 +1235,10 @@ namespace MonoGame.PortableUI.Controls
         {
             for (var i = _animations.Count - 1; i >= 0; i--)
             {
+                // A completion callback may cancel or start other animations on this control,
+                // shrinking the list below the current index.
+                if (i >= _animations.Count)
+                    continue;
                 var animation = _animations[i];
                 if (animation.Update())
                     _animations.Remove(animation);
