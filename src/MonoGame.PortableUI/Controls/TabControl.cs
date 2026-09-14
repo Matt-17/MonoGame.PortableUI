@@ -80,7 +80,7 @@ namespace MonoGame.PortableUI.Controls
                 return base.MeasureLayout();
 
             // Constraints bound the content box; margin is added once, afterwards.
-            var selectedSize = SelectedItem?.MeasureLayout() ?? Size.Empty;
+            var selectedSize = SelectedItem?.Measure() ?? Size.Empty;
             var size = new Size(
                 Width.IsFixed() ? Width : selectedSize.Width,
                 Height.IsFixed() ? Height : HeaderHeight + selectedSize.Height);
@@ -104,7 +104,7 @@ namespace MonoGame.PortableUI.Controls
                 var total = 0f;
                 for (var i = 0; i < _headerButtons.Count; i++)
                 {
-                    measured[i] = System.Math.Max(1, _headerButtons[i].MeasureLayout().Width);
+                    measured[i] = System.Math.Max(1, _headerButtons[i].Measure().Width);
                     total += measured[i];
                 }
 

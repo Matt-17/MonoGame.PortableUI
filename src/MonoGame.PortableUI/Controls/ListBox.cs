@@ -192,7 +192,7 @@ namespace MonoGame.PortableUI.Controls
                 return Size.Empty;
 
             EnsureItemButtons();
-            var contentSize = _itemsPanel.MeasureLayout();
+            var contentSize = _itemsPanel.Measure();
             var width = Width.IsFixed() ? Width : contentSize.Width;
             var height = Height.IsFixed() ? Height : contentSize.Height;
             return ApplyConstraints(new Size(width, height)) + Margin;
