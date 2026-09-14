@@ -14,6 +14,9 @@ namespace MonoGame.PortableUI.Controls
         private const float MinimumScrollBarHitThickness = 12;
         private PointF? _touchPosition;
         private PointF _lastTouchDelta;
+        private Control? _arrangedContent;
+        private Rect _arrangedContentRect;
+        private bool _contentArrangeValid;
         private PointF _touchStartPosition;
         private bool _isTouchPanning;
 
@@ -155,6 +158,8 @@ namespace MonoGame.PortableUI.Controls
             base.UpdateLayout(rect);
             UpdateViewportAndExtent();
             ClampOffset();
+            // An arrange from the parent always lays the content out in full.
+            _contentArrangeValid = false;
             UpdateContentLayout();
         }
 
@@ -407,7 +412,32 @@ namespace MonoGame.PortableUI.Controls
                 ScrollOrientation == Orientation.Horizontal ? Extent.Width : viewportRect.Width,
                 ScrollOrientation == Orientation.Vertical ? Extent.Height : viewportRect.Height);
 
-            Content.UpdateLayout(contentRect);
+            // Scrolling only moves the content: when nothing inside invalidated since the last
+            // full arrange and the slot size is unchanged, shift the arranged rects instead of
+            // re-running measure and arrange for every item (touch pans do this each frame).
+            if (_contentArrangeValid && ReferenceEquals(_arrangedContent, Content)
+                && contentRect.Width.Equals(_arrangedContentRect.Width)
+                && contentRect.Height.Equals(_arrangedContentRect.Height))
+            {
+                var delta = new PointF(contentRect.Left - _arrangedContentRect.Left, contentRect.Top - _arrangedContentRect.Top);
+                if (delta.X != 0 || delta.Y != 0)
+                    Content.OffsetArrangement(delta);
+            }
+            else
+            {
+                Content.UpdateLayout(contentRect);
+                _arrangedContent = Content;
+                _contentArrangeValid = true;
+            }
+
+            _arrangedContentRect = contentRect;
+        }
+
+        public override void InvalidateLayout(bool boundsChanged)
+        {
+            if (boundsChanged)
+                _contentArrangeValid = false;
+            base.InvalidateLayout(boundsChanged);
         }
 
         private void SynchronizeHoverAfterScroll(PointF position)

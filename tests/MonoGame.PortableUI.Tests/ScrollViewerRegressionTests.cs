@@ -118,6 +118,49 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void Scrolling_shifts_content_to_the_same_rects_a_full_relayout_produces()
+        {
+            var stack = new StackPanel();
+            var items = new List<Button>();
+            for (var i = 0; i < 20; i++)
+            {
+                var button = new Button { Height = 30, Margin = new Thickness(2), Text = $"Item {i}" };
+                items.Add(button);
+                stack.AddChild(button);
+            }
+            var viewer = new ScrollViewer { Content = stack };
+            var slot = new Rect(10, 20, 200, 150);
+            viewer.UpdateLayout(slot);
+
+            viewer.ScrollBy(new PointF(0, 75));
+            var shifted = items.Select(b => (b.BoundingRect, b.ClippingRect)).ToArray();
+            var textRect = ((TextBlock)items[3].Content!).BoundingRect;
+
+            viewer.UpdateLayout(slot);
+            CollectionAssert.AreEqual(items.Select(b => (b.BoundingRect, b.ClippingRect)).ToArray(), shifted);
+            Assert.AreEqual(((TextBlock)items[3].Content!).BoundingRect, textRect);
+        }
+
+        [TestMethod]
+        public void Scrolling_after_a_content_change_relayouts_instead_of_shifting()
+        {
+            var first = new Border { Height = 30 };
+            var second = new Border { Height = 30 };
+            var stack = new StackPanel();
+            stack.AddChild(first);
+            stack.AddChild(second);
+            for (var i = 0; i < 10; i++)
+                stack.AddChild(new Border { Height = 30 });
+            var viewer = new ScrollViewer { Content = stack };
+            viewer.UpdateLayout(new Rect(0, 0, 100, 100));
+
+            first.Height = 60;
+            viewer.ScrollBy(new PointF(0, 10));
+
+            Assert.AreEqual(60 - 10, second.BoundingRect.Top, 0.001f);
+        }
+
+        [TestMethod]
         public void Scroll_viewer_applies_touch_fling()
         {
             var viewer = CreateViewer(new Size(100, 300));
