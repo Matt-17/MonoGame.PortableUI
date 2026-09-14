@@ -298,8 +298,47 @@ namespace MonoGame.PortableUI.Tests
 
             grid.UpdateLayout(new Rect(0, 0, 200, 120));
 
+            // Measured once per pass: the grid's own measure and its arrange share the result.
+            Assert.AreEqual(1, single.MeasureCount);
+            Assert.AreEqual(1, spanning.MeasureCount);
+
+            // A new pass on the root re-measures, so changes that never invalidated are picked up.
+            grid.UpdateLayout(new Rect(0, 0, 200, 120));
             Assert.AreEqual(2, single.MeasureCount);
-            Assert.AreEqual(2, spanning.MeasureCount);
+        }
+
+        [TestMethod]
+        public void Nested_layout_measures_each_control_once_per_pass()
+        {
+            var leaf = new CountingFixedSizeControl(new Size(20, 10));
+            Control tree = leaf;
+            for (var depth = 0; depth < 5; depth++)
+            {
+                var stack = new StackPanel();
+                stack.AddChild(tree);
+                tree = new Border { Padding = new Thickness(1), Content = stack };
+            }
+
+            tree.UpdateLayout(new Rect(0, 0, 400, 400));
+
+            Assert.AreEqual(1, leaf.MeasureCount);
+        }
+
+        [TestMethod]
+        public void Invalidating_a_child_remeasures_it_within_the_same_parent_pass()
+        {
+            var child = new Border { Width = 20, Height = 10 };
+            var stack = new StackPanel();
+            stack.AddChild(child);
+            var root = new Border { Content = stack };
+            root.UpdateLayout(new Rect(0, 0, 200, 200));
+
+            // Re-arranging a non-root (as ScrollViewer does on scroll) keeps the pass, but the
+            // invalidated child and its ancestors must not serve their stale cached size.
+            child.Height = 30;
+            stack.UpdateLayout(stack.BoundingRect);
+
+            Assert.AreEqual(30, child.BoundingRect.Height, 0.001f);
         }
 
         [TestMethod]

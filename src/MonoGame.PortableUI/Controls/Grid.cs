@@ -24,7 +24,6 @@ namespace MonoGame.PortableUI.Controls
 
         public RowDefinitionCollection RowDefinitions { get; }
         public ColumnDefinitionCollection ColumnDefinitions { get; }
-        private readonly Dictionary<Control, Size> _measureCache = new Dictionary<Control, Size>();
 
         private static readonly ConditionalWeakTable<Control, GridPosition> ControlGridPositionDictionary = new ConditionalWeakTable<Control, GridPosition>();
 
@@ -190,7 +189,6 @@ namespace MonoGame.PortableUI.Controls
             {
                 child.UpdateLayout(GetRect(layoutRect, child, rowOffsets, columnOffsets));
             }
-            _measureCache.Clear();
         }
 
         public override Size MeasureLayout()
@@ -198,8 +196,6 @@ namespace MonoGame.PortableUI.Controls
             if (IsGone)
                 return Size.Empty;
 
-            // Refresh cached child measurements; UpdateLayout reuses them for the track passes.
-            _measureCache.Clear();
             var width = Width.IsFixed() ? Width : MeasureContentWidth() + Padding.Horizontal;
             var height = Height.IsFixed() ? Height : MeasureContentHeight() + Padding.Vertical;
             return ApplyConstraints(new Size(width, height)) + Margin;
@@ -428,14 +424,7 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
-        private Size MeasureChild(Control child)
-        {
-            if (_measureCache.TryGetValue(child, out var size))
-                return size;
-
-            size = child.MeasureLayout();
-            _measureCache[child] = size;
-            return size;
-        }
+        // Child measures are cached per layout pass by Control.Measure, which the track passes reuse.
+        private static Size MeasureChild(Control child) => child.Measure();
     }
 }

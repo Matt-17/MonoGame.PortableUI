@@ -64,7 +64,7 @@ namespace MonoGame.PortableUI.Controls
                 return base.MeasureLayout();
 
             // Min/Max bound the content box (content + padding); margin is added afterwards.
-            var content = VisualChild?.MeasureLayout() ?? Size.Empty;
+            var content = VisualChild?.Measure() ?? Size.Empty;
             var size = new Size(
                 Width.IsFixed() ? Width : content.Width + Padding.Horizontal,
                 Height.IsFixed() ? Height : content.Height + Padding.Vertical);
