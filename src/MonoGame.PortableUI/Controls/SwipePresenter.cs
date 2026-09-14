@@ -149,7 +149,7 @@ namespace MonoGame.PortableUI.Controls
             var content = Size.Empty;
             foreach (var child in Children)
             {
-                var childSize = child.MeasureLayout();
+                var childSize = child.Measure();
                 content.Width = Math.Max(content.Width, childSize.Width);
                 content.Height = Math.Max(content.Height, childSize.Height);
             }

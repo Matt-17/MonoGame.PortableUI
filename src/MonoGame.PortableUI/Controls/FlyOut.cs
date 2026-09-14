@@ -48,7 +48,7 @@ namespace MonoGame.PortableUI.Controls
         public override void UpdateLayout(Rect rect)
         {
             base.UpdateLayout(rect);
-            var size = Content?.MeasureLayout() ?? Size.Empty;
+            var size = Content?.Measure() ?? Size.Empty;
             var pos = new Rect(_position, size);
             if (_placement == FlyOutPlacement.Above)
                 pos.Top -= size.Height;

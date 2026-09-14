@@ -18,7 +18,7 @@ namespace MonoGame.PortableUI.Controls
             float crossMax = 0;
             foreach (var child in Children)
             {
-                var childSize = child.MeasureLayout();
+                var childSize = child.Measure();
                 if (Orientation == Orientation.Vertical)
                 {
                     mainSum += childSize.Height;

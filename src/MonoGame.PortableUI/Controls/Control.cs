@@ -600,6 +600,10 @@ namespace MonoGame.PortableUI.Controls
 
         public override void InvalidateLayout(bool boundsChanged)
         {
+            // A size-affecting change drops the cached measure of this control and, as the call
+            // bubbles, of every ancestor whose measure depends on it.
+            if (boundsChanged)
+                _desiredSizePass = -1;
             if (_suppressUpdate)
                 return;
             Parent?.InvalidateLayout(boundsChanged);
@@ -743,7 +747,12 @@ namespace MonoGame.PortableUI.Controls
             if (IsGone)
                 BoundingRect = Rect.Empty;
 
-            var measuredSize = MeasureLayout();
+            // Arranging a root (no parent control) starts a new layout pass: measures cached in
+            // earlier passes expire, so state changes that never invalidated are still picked up.
+            if (Parent is not Control)
+                _layoutPassId++;
+
+            var measuredSize = Measure();
             var offset = rect.Offset;
 
             BoundingRect = GetRectForAlignment(rect, measuredSize, offset);
@@ -783,6 +792,29 @@ namespace MonoGame.PortableUI.Controls
             }
             measuredSize = ApplyConstraints(measuredSize);
             return new Rect(offset, measuredSize);
+        }
+
+        // Measure cache. Every arrange measures its subtree again (and a panel measures each child
+        // both while measuring itself and while arranging it), so without caching a node deep in
+        // the tree was measured once per ancestor. A cached size is valid for the current layout
+        // pass until InvalidateLayout(true) passes through this control.
+        private static int _layoutPassId;
+        private int _desiredSizePass = -1;
+        private Size _desiredSize;
+
+        /// <summary>
+        ///     <see cref="MeasureLayout"/> with a per-layout-pass cache. Panels and custom layout code
+        ///     should measure children through this so each subtree is measured once per pass.
+        /// </summary>
+        public Size Measure()
+        {
+            if (_desiredSizePass == _layoutPassId)
+                return _desiredSize;
+
+            var size = MeasureLayout();
+            _desiredSize = size;
+            _desiredSizePass = _layoutPassId;
+            return size;
         }
 
         public virtual Size MeasureLayout()

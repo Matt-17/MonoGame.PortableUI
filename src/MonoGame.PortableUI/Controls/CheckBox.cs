@@ -120,7 +120,7 @@ namespace MonoGame.PortableUI.Controls
             if (IsGone)
                 return Size.Empty;
 
-            var contentSize = Content?.MeasureLayout() ?? Size.Empty;
+            var contentSize = Content?.Measure() ?? Size.Empty;
             var hasContent = Content != null;
             // A fixed Width/Height is final (like ContentControl); padding only grows auto axes.
             var width = Width.IsFixed()

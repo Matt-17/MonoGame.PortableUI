@@ -16,6 +16,8 @@ namespace MonoGame.PortableUI.Benchmarks
     {
         private Grid _stressGrid = new Grid();
         private ScrollViewer _scrollList = new ScrollViewer();
+        private Control _nestedTree = new Border();
+        private float _scrollDirection = 1;
         private Rect _viewport;
 
         [GlobalSetup]
@@ -26,6 +28,52 @@ namespace MonoGame.PortableUI.Benchmarks
             _stressGrid.UpdateLayout(_viewport);
             _scrollList = CreateScrollList(500);
             _scrollList.UpdateLayout(_viewport);
+            _nestedTree = CreateNestedTree(depth: 6, fanOut: 3);
+            _nestedTree.UpdateLayout(_viewport);
+        }
+
+        /// <summary>Deep tree (depth 6, fan-out 3 = 729 leaves): layout cost that grows with depth
+        /// shows up here, not in the flat 500-control grid.</summary>
+        [Benchmark]
+        public Rect NestedLayout729Leaves()
+        {
+            _nestedTree.UpdateLayout(_viewport);
+            return _nestedTree.BoundingRect;
+        }
+
+        /// <summary>One wheel/pan step on a 500-item list.</summary>
+        [Benchmark]
+        public PointF ScrollStep500Controls()
+        {
+            _scrollDirection = -_scrollDirection;
+            _scrollList.ScrollBy(new PointF(0, 24 * _scrollDirection));
+            return _scrollList.Offset;
+        }
+
+        /// <summary>Full descendant walk as the per-frame draw/timer/input passes do it.</summary>
+        [Benchmark]
+        public int DescendantWalk729Leaves()
+        {
+            return CountDescendants(_nestedTree);
+        }
+
+        private static int CountDescendants(Control control)
+        {
+            var count = 1;
+            foreach (var child in control.GetDescendants())
+                count += CountDescendants(child);
+            return count;
+        }
+
+        private static Control CreateNestedTree(int depth, int fanOut)
+        {
+            if (depth == 0)
+                return new FixedSizeControl(new Size(20, 12));
+
+            var stack = new StackPanel { Orientation = depth % 2 == 0 ? Orientation.Vertical : Orientation.Horizontal };
+            for (var i = 0; i < fanOut; i++)
+                stack.AddChild(CreateNestedTree(depth - 1, fanOut));
+            return new Border { Padding = new Thickness(1), Content = stack };
         }
 
         [Benchmark]

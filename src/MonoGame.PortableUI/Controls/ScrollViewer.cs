@@ -372,7 +372,7 @@ namespace MonoGame.PortableUI.Controls
                 return;
             }
 
-            var measuredContent = Content.MeasureLayout();
+            var measuredContent = Content.Measure();
             _hasVerticalScrollBar = CanShowScrollBars
                 && ScrollOrientation == Orientation.Vertical
                 && measuredContent.Height > viewportRect.Height;
