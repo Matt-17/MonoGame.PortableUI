@@ -759,6 +759,20 @@ namespace MonoGame.PortableUI.Controls
             ClippingRect = BoundingRect - Margin;
         }
 
+        /// <summary>Moves an already arranged subtree by <paramref name="delta"/> without re-running
+        /// layout (scrolling). Positions live only in the arranged rects, so this is equivalent to
+        /// arranging the same subtree in a slot of the same size at a shifted origin.</summary>
+        internal void OffsetArrangement(PointF delta)
+        {
+            if (IsGone)
+                return;
+
+            BoundingRect += delta;
+            ClippingRect += delta;
+            foreach (var descendant in GetDescendants())
+                descendant.OffsetArrangement(delta);
+        }
+
         protected Rect GetRectForAlignment(Rect rect, Size measuredSize, PointF offset)
         {
             // Center/Bottom/Right need a finite available extent; inside an unbounded axis
