@@ -42,5 +42,9 @@ namespace MonoGame.PortableUI.Controls
             return Children;
         }
 
+        protected internal override int VisualChildCount => Children.Count;
+
+        protected internal override Control GetVisualChild(int index) => Children[index];
+
     }
 }

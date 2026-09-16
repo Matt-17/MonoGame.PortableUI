@@ -158,8 +158,9 @@ namespace MonoGame.PortableUI
 
         private static void LeaveHoveredControls(Control control, MouseEventArgs args)
         {
-            foreach (var child in control.GetDescendants())
-                LeaveHoveredControls(child, args);
+            var count = control.VisualChildCount;
+            for (var i = 0; i < count; i++)
+                LeaveHoveredControls(control.GetVisualChild(i), args);
             if (control.IsMouseHovering)
                 control.OnMouseLeave(args);
         }
@@ -331,25 +332,14 @@ namespace MonoGame.PortableUI
             if (engine == null)
                 return false;
 
-            _visualTreeScratch.Clear();
-            VisualTreeHelper.AppendVisualTree(_mainGrid, _visualTreeScratch, false);
-            if (_flyOut != null)
-                VisualTreeHelper.AppendVisualTree(_flyOut, _visualTreeScratch, false);
-
-            var found = false;
-            foreach (var control in _visualTreeScratch)
-            {
-                if (control is ThemeIsland { IsVisible: true, Theme.PostEffects: { Count: > 0 } effects }
-                    && engine.PostProcess.CountEnabled(effects) > 0)
-                {
-                    found = true;
-                    break;
-                }
-            }
-
-            _visualTreeScratch.Clear();
-            return found;
+            // Runs every frame: walk without flattening and stop at the first match.
+            return VisualTreeHelper.Any(_mainGrid, engine, IsPostFxIsland)
+                || (_flyOut != null && VisualTreeHelper.Any(_flyOut, engine, IsPostFxIsland));
         }
+
+        private static readonly Func<Control, ScreenEngine, bool> IsPostFxIsland = static (control, engine) =>
+            control is ThemeIsland { IsVisible: true, Theme.PostEffects: { Count: > 0 } effects }
+            && engine.PostProcess.CountEnabled(effects) > 0;
 
         private bool TreeRequiresBackdrop()
         {
@@ -359,24 +349,12 @@ namespace MonoGame.PortableUI
             if (BackgroundBrush is { RequiresBackdrop: true })
                 return true;
 
-            _visualTreeScratch.Clear();
-            VisualTreeHelper.AppendVisualTree(_mainGrid, _visualTreeScratch, false);
-            if (_flyOut != null)
-                VisualTreeHelper.AppendVisualTree(_flyOut, _visualTreeScratch, false);
-
-            var requiresBackdrop = false;
-            foreach (var control in _visualTreeScratch)
-            {
-                if (control.IsVisible && control.BackgroundBrush is { RequiresBackdrop: true })
-                {
-                    requiresBackdrop = true;
-                    break;
-                }
-            }
-
-            _visualTreeScratch.Clear();
-            return requiresBackdrop;
+            return VisualTreeHelper.Any(_mainGrid, 0, RequiresBackdrop)
+                || (_flyOut != null && VisualTreeHelper.Any(_flyOut, 0, RequiresBackdrop));
         }
+
+        private static readonly Func<Control, int, bool> RequiresBackdrop = static (control, _) =>
+            control.IsVisible && control.BackgroundBrush is { RequiresBackdrop: true };
 
         protected internal virtual void OnBeforeDraw(SpriteBatch spriteBatch)
         {
@@ -553,15 +531,17 @@ namespace MonoGame.PortableUI
             var oldRect = new Rect(spriteBatch.GraphicsDevice.ScissorRectangle);
             control.SetRenderState(context.Opacity, context.Scale);
             spriteBatch.GraphicsDevice.ScissorRectangle = ToScissorRectangle(context.ScissorRect);
-            spriteBatch.Begin(SpriteSortMode.Deferred, samplerState: SamplerStateFor(control), rasterizerState: ScissorRasterizer, effect: ScreenEngine?.Options.Effect);
-            control.OnDraw(spriteBatch, context.RenderRect);
-            spriteBatch.End();
-            ScreenEngine?.RecordBatchFlush();
-
-            foreach (var c in control.GetDescendants())
+            if (control.NeedsDrawPass)
             {
-                DrawControlBatched(spriteBatch, c, context);
+                spriteBatch.Begin(SpriteSortMode.Deferred, samplerState: SamplerStateFor(control), rasterizerState: ScissorRasterizer, effect: ScreenEngine?.Options.Effect);
+                control.OnDraw(spriteBatch, context.RenderRect);
+                spriteBatch.End();
+                ScreenEngine?.RecordBatchFlush();
             }
+
+            var childCount = control.VisualChildCount;
+            for (var i = 0; i < childCount; i++)
+                DrawControlBatched(spriteBatch, control.GetVisualChild(i), context);
 
             if (control.NeedsOverlayPass)
             {

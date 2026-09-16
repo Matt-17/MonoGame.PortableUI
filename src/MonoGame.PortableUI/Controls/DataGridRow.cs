@@ -144,6 +144,10 @@ namespace MonoGame.PortableUI.Controls
             return _cells;
         }
 
+        protected internal override int VisualChildCount => _cells.Count;
+
+        protected internal override Control GetVisualChild(int index) => _cells[index];
+
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
             var background = _selected

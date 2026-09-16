@@ -109,6 +109,10 @@ namespace MonoGame.PortableUI.Controls
             return _labels;
         }
 
+        protected internal override int VisualChildCount => _labels.Count;
+
+        protected internal override Control GetVisualChild(int index) => _labels[index];
+
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
             if (!_owner.ShowColumnHeaders)

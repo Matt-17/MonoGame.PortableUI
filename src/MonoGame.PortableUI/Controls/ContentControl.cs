@@ -79,6 +79,10 @@ namespace MonoGame.PortableUI.Controls
                 yield return VisualChild;
         }
 
+        protected internal override int VisualChildCount => VisualChild != null ? 1 : 0;
+
+        protected internal override Control GetVisualChild(int index) => VisualChild!;
+
         protected Control? VisualChild => _templateRoot ?? _content;
 
         private void RebuildTemplateRoot()
