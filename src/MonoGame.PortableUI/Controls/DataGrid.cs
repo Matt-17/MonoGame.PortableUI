@@ -392,6 +392,18 @@ namespace MonoGame.PortableUI.Controls
             yield return _horizontalScroll;
         }
 
+        protected internal override int VisualChildCount
+        {
+            get
+            {
+                if (_rows.Count != Items.Count)
+                    EnsureRows();
+                return 1;
+            }
+        }
+
+        protected internal override Control GetVisualChild(int index) => _horizontalScroll;
+
         protected override Brush? GetThemeBackgroundBrush(PortableTheme theme)
         {
             return theme.ListBoxBackgroundBrush;

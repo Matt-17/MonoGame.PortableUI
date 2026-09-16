@@ -138,6 +138,21 @@ namespace MonoGame.PortableUI.Controls
                 yield return SelectedItem;
         }
 
+        protected internal override int VisualChildCount
+        {
+            get
+            {
+                if (_headerButtons.Count != Items.Count)
+                    EnsureHeaderButtons();
+                return _headerButtons.Count + (SelectedItem != null ? 1 : 0);
+            }
+        }
+
+        protected internal override Control GetVisualChild(int index)
+        {
+            return index < _headerButtons.Count ? _headerButtons[index] : SelectedItem!;
+        }
+
         private void EnsureHeaderButtons()
         {
             while (_headerButtons.Count > Items.Count)

@@ -18,26 +18,29 @@ namespace MonoGame.PortableUI.Controls
             if (content.IsGone && !addTreeWhichIsGone)
                 return;
 
-            foreach (var descendant in content.GetDescendants())
-                AppendVisualTree(descendant, result, addTreeWhichIsGone);
+            var count = content.VisualChildCount;
+            for (var i = 0; i < count; i++)
+                AppendVisualTree(content.GetVisualChild(i), result, addTreeWhichIsGone);
 
             result.Add(content);
         }
 
-        // One scratch list per nesting level of the reverse walk; reused so routing stays allocation-free.
-        [ThreadStatic]
-        private static Stack<List<Control>>? _bufferPool;
-
-        private static List<Control> RentBuffer()
+        /// <summary>True when <paramref name="predicate"/> matches any control in the subtree
+        /// (gone subtrees skipped). Allocation-free with a static lambda; stops at the first match.</summary>
+        internal static bool Any<TState>(Control control, TState state, Func<Control, TState, bool> predicate)
         {
-            var pool = _bufferPool ??= new Stack<List<Control>>();
-            return pool.Count > 0 ? pool.Pop() : new List<Control>();
-        }
+            if (control.IsGone)
+                return false;
+            if (predicate(control, state))
+                return true;
 
-        private static void ReturnBuffer(List<Control> buffer)
-        {
-            buffer.Clear();
-            (_bufferPool ??= new Stack<List<Control>>()).Push(buffer);
+            var count = control.VisualChildCount;
+            for (var i = 0; i < count; i++)
+            {
+                if (Any(control.GetVisualChild(i), state, predicate))
+                    return true;
+            }
+            return false;
         }
 
         /// <summary>Tunneling pre-pass for touch-down: notifies every routable control under the finger, ancestors first.</summary>
@@ -49,15 +52,18 @@ namespace MonoGame.PortableUI.Controls
                 return;
 
             control.OnPreviewTouchDown(args);
-            foreach (var descendant in control.GetDescendants())
-                PreviewTouchDown(descendant, args);
+            var count = control.VisualChildCount;
+            for (var i = 0; i < count; i++)
+                PreviewTouchDown(control.GetVisualChild(i), args);
         }
 
         /// <summary>Cancels pending touch presses in the subtree below <paramref name="control"/>.</summary>
         internal static void CancelDescendantTouches(Control control, TouchEventArgs args)
         {
-            foreach (var descendant in control.GetDescendants())
+            var count = control.VisualChildCount;
+            for (var i = 0; i < count; i++)
             {
+                var descendant = control.GetVisualChild(i);
                 descendant.CancelPendingTouch(args);
                 CancelDescendantTouches(descendant, args);
             }
@@ -78,39 +84,16 @@ namespace MonoGame.PortableUI.Controls
                 if (args.Handled)
                     return;
             }
-            // Children are drawn in GetDescendants order, so the last one is topmost: hit-test
-            // back to front so an overlapping sibling on top gets the event before the one below.
-            var descendants = control.GetDescendants();
-            if (descendants is IList<Control> list)
+            // Children are drawn in order, so the last one is topmost: hit-test back to front so
+            // an overlapping sibling on top gets the event before the one below.
+            for (var i = control.VisualChildCount - 1; i >= 0; i--)
             {
-                for (var i = list.Count - 1; i >= 0; i--)
-                {
-                    // A handler may have removed children while we were routing.
-                    if (i >= list.Count)
-                        continue;
-                    IterateVisualTree(list[i], args, actionFunc, action, treeFunc);
-                    if (args.Handled)
-                        return;
-                }
-            }
-            else
-            {
-                var buffer = RentBuffer();
-                try
-                {
-                    foreach (var descendant in descendants)
-                        buffer.Add(descendant);
-                    for (var i = buffer.Count - 1; i >= 0; i--)
-                    {
-                        IterateVisualTree(buffer[i], args, actionFunc, action, treeFunc);
-                        if (args.Handled)
-                            return;
-                    }
-                }
-                finally
-                {
-                    ReturnBuffer(buffer);
-                }
+                // A handler may have removed children while we were routing.
+                if (i >= control.VisualChildCount)
+                    continue;
+                IterateVisualTree(control.GetVisualChild(i), args, actionFunc, action, treeFunc);
+                if (args.Handled)
+                    return;
             }
             if (actionAppliesToControl)
                 action(control, args);

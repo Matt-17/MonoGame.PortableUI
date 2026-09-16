@@ -223,6 +223,18 @@ namespace MonoGame.PortableUI.Controls
             yield return _scrollViewer;
         }
 
+        protected internal override int VisualChildCount
+        {
+            get
+            {
+                if (_itemButtons.Count != Items.Count)
+                    EnsureItemButtons();
+                return 1;
+            }
+        }
+
+        protected internal override Control GetVisualChild(int index) => _scrollViewer;
+
         /// <summary>Re-syncs the item buttons after mutating <see cref="Items"/> in place
         /// (adding/removing items is picked up automatically on the next layout pass).</summary>
         public void Refresh()

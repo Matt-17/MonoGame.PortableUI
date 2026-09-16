@@ -60,8 +60,9 @@ namespace MonoGame.PortableUI.Benchmarks
         private static int CountDescendants(Control control)
         {
             var count = 1;
-            foreach (var child in control.GetDescendants())
-                count += CountDescendants(child);
+            var childCount = control.VisualChildCount;
+            for (var i = 0; i < childCount; i++)
+                count += CountDescendants(control.GetVisualChild(i));
             return count;
         }
 

@@ -185,8 +185,9 @@ namespace MonoGame.PortableUI.Controls
         private static void InvalidateResolvedTheme(Control control)
         {
             control._resolvedThemeVersion = -1;
-            foreach (var descendant in control.GetDescendants())
-                InvalidateResolvedTheme(descendant);
+            var count = control.VisualChildCount;
+            for (var i = 0; i < count; i++)
+                InvalidateResolvedTheme(control.GetVisualChild(i));
         }
 
         private bool IsSelfOrAncestorOf(Control control)
@@ -614,6 +615,41 @@ namespace MonoGame.PortableUI.Controls
             return Enumerable.Empty<Control>();
         }
 
+        // Indexed, allocation-free view of the visual children for the per-frame walks (draw,
+        // timers, input, scans). Built-in containers override both members; a third-party control
+        // that only overrides GetDescendants still works through the materializing fallback.
+        private List<Control>? _fallbackChildren;
+        private sbyte _hasCustomDescendants;
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, bool> OverridesGetDescendants = new();
+
+        /// <summary>Number of visual children, in draw order (see <see cref="GetVisualChild"/>).</summary>
+        protected internal virtual int VisualChildCount
+        {
+            get
+            {
+                // Leaves hit this on every walk: resolve the per-type answer once per instance.
+                if (_hasCustomDescendants == 0)
+                {
+                    _hasCustomDescendants = OverridesGetDescendants.GetOrAdd(GetType(), static type =>
+                        type.GetMethod(nameof(GetDescendants), Type.EmptyTypes)!.DeclaringType != typeof(Control)) ? (sbyte)1 : (sbyte)-1;
+                }
+                if (_hasCustomDescendants < 0)
+                    return 0;
+
+                var children = _fallbackChildren ??= new List<Control>();
+                children.Clear();
+                foreach (var child in GetDescendants())
+                    children.Add(child);
+                return children.Count;
+            }
+        }
+
+        /// <summary>Visual child at <paramref name="index"/>; valid after reading <see cref="VisualChildCount"/>.</summary>
+        protected internal virtual Control GetVisualChild(int index)
+        {
+            return _fallbackChildren![index];
+        }
+
         protected internal virtual bool CapturesInputBeforeDescendants(BaseEventArgs args)
         {
             return false;
@@ -698,7 +734,36 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
-        private bool? _overridesDrawOverlay;
+        // Per type, not per instance: which draw hooks a subclass overrides (reflection once).
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, (bool Draw, bool Overlay)> DrawOverrides = new();
+
+        private (bool Draw, bool Overlay) GetDrawOverrides()
+        {
+            return DrawOverrides.GetOrAdd(GetType(), static type =>
+            {
+                static bool Overrides(Type t, string name) => t.GetMethod(
+                        name,
+                        System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
+                        binder: null,
+                        new[] { typeof(SpriteBatch), typeof(Rect) },
+                        modifiers: null)!
+                    .DeclaringType != typeof(Control);
+                return (Overrides(type, nameof(OnDraw)), Overrides(type, nameof(OnDrawOverlay)));
+            });
+        }
+
+        /// <summary>Whether <see cref="OnDraw"/> can produce output this frame. Plain layout
+        /// containers (no background, border or shadow) skip their SpriteBatch Begin/End.</summary>
+        internal bool NeedsDrawPass
+        {
+            get
+            {
+                if (GetDrawOverrides().Draw)
+                    return true;
+                return Shadow != null || BackgroundBrush != null
+                    || ((BorderBrush != null || BorderBevelLight != null) && HasBorder(BorderThickness));
+            }
+        }
 
         /// <summary>Whether the renderer must open the second per-control SpriteBatch for
         /// <see cref="OnDrawOverlay"/> this frame. Skipping it for the common case (no override,
@@ -707,14 +772,7 @@ namespace MonoGame.PortableUI.Controls
         {
             get
             {
-                _overridesDrawOverlay ??= GetType().GetMethod(
-                        nameof(OnDrawOverlay),
-                        System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
-                        binder: null,
-                        new[] { typeof(SpriteBatch), typeof(Rect) },
-                        modifiers: null)!
-                    .DeclaringType != typeof(Control);
-                if (_overridesDrawOverlay.Value)
+                if (GetDrawOverrides().Overlay)
                     return true;
 
                 if (ShowFocusVisual && IsFocused && FocusBorderWidth > 0 && FocusBorderBrush != null)
@@ -769,8 +827,9 @@ namespace MonoGame.PortableUI.Controls
 
             BoundingRect += delta;
             ClippingRect += delta;
-            foreach (var descendant in GetDescendants())
-                descendant.OffsetArrangement(delta);
+            var count = VisualChildCount;
+            for (var i = 0; i < count; i++)
+                GetVisualChild(i).OffsetArrangement(delta);
         }
 
         protected Rect GetRectForAlignment(Rect rect, Size measuredSize, PointF offset)
