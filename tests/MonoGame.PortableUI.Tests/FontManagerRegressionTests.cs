@@ -74,6 +74,17 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void Text_box_metrics_follow_a_text_size_change()
+        {
+            var textBox = new TextBox { FontOverride = CreateAsciiFont(), TextSize = 14, Text = "abcd", Padding = new Thickness(0) };
+            var before = textBox.MeasureLayout().Width;
+
+            textBox.TextSize = 28;
+
+            Assert.AreEqual(before * 2, textBox.MeasureLayout().Width, 0.001f);
+        }
+
+        [TestMethod]
         public void Existing_default_character_is_kept()
         {
             var font = CreateAsciiFont(defaultCharacter: '*');
