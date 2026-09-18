@@ -15,18 +15,11 @@ namespace MonoGame.PortableUI.Media
         private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<GraphicsDevice, DeviceCache> Caches =
             new System.Runtime.CompilerServices.ConditionalWeakTable<GraphicsDevice, DeviceCache>();
 
-        // Full W×H masks are keyed by pixel size, so animated/resizing controls would otherwise
-        // grow the cache without bound. On overflow the current generation is retired and only
-        // disposed on the *next* overflow, so textures referenced by an unflushed SpriteBatch
-        // survive the frame they were drawn in.
-        private const int MaxRoundedRectMasks = 128;
-
         private sealed class DeviceCache
         {
             public readonly Dictionary<int, Texture2D> CornerMasks = new Dictionary<int, Texture2D>();
             public readonly Dictionary<(int Radius, int Thickness), Texture2D> CornerRingMasks = new Dictionary<(int, int), Texture2D>();
-            public readonly Dictionary<RoundedRectMaskKey, Texture2D> RoundedRectMasks = new Dictionary<RoundedRectMaskKey, Texture2D>();
-            public readonly List<Texture2D> RetiredMasks = new List<Texture2D>();
+            public readonly Dictionary<(int TopLeft, int TopRight, int BottomRight, int BottomLeft), Texture2D> NineSliceMasks = new Dictionary<(int, int, int, int), Texture2D>();
         }
 
         private static DeviceCache GetCache(GraphicsDevice device)
@@ -53,14 +46,11 @@ namespace MonoGame.PortableUI.Media
                     texture.Dispose();
                 foreach (var texture in cache.CornerRingMasks.Values)
                     texture.Dispose();
-                foreach (var texture in cache.RoundedRectMasks.Values)
+                foreach (var texture in cache.NineSliceMasks.Values)
                     texture.Dispose();
-                foreach (var texture in cache.RetiredMasks)
-                    texture.Dispose();
+                cache.NineSliceMasks.Clear();
                 cache.CornerMasks.Clear();
                 cache.CornerRingMasks.Clear();
-                cache.RoundedRectMasks.Clear();
-                cache.RetiredMasks.Clear();
             }
         }
 
@@ -224,10 +214,10 @@ namespace MonoGame.PortableUI.Media
 
             if (color.A < 255)
             {
-                var width = Math.Max(1, (int)Math.Ceiling(rect.Width));
-                var height = Math.Max(1, (int)Math.Ceiling(rect.Height));
-                var mask = GetRoundedRectMask(spriteBatch.GraphicsDevice, width, height, radius);
-                spriteBatch.Draw(mask, rect, color);
+                // Translucent fills must not overlap (overlap doubles alpha into visible seams).
+                // A 9-slice of one small mask keyed by the radii covers any size without
+                // overlap, so fading/animated/shadowed rects no longer build a W×H mask per size.
+                DrawNineSlice(spriteBatch, rect, radius, color);
                 return;
             }
 
@@ -246,42 +236,88 @@ namespace MonoGame.PortableUI.Media
             DrawCorner(spriteBatch, rect.Left, rect.Bottom - radius.BottomLeft, radius.BottomLeft, color, SpriteEffects.FlipVertically);
         }
 
-        private static Texture2D GetRoundedRectMask(GraphicsDevice device, int width, int height, CornerRadius radius)
+        private static void DrawNineSlice(SpriteBatch spriteBatch, Rect rect, CornerRadius radius, Color color)
         {
-            var key = new RoundedRectMaskKey(
-                width,
-                height,
-                (int)Math.Ceiling(radius.TopLeft),
-                (int)Math.Ceiling(radius.TopRight),
-                (int)Math.Ceiling(radius.BottomRight),
-                (int)Math.Ceiling(radius.BottomLeft));
-            var cache = GetCache(device);
-            if (cache.RoundedRectMasks.TryGetValue(key, out var texture))
-                return texture;
+            var tl = (int)Math.Ceiling(radius.TopLeft);
+            var tr = (int)Math.Ceiling(radius.TopRight);
+            var br = (int)Math.Ceiling(radius.BottomRight);
+            var bl = (int)Math.Ceiling(radius.BottomLeft);
+            var mask = GetNineSliceMask(spriteBatch.GraphicsDevice, tl, tr, br, bl);
 
-            if (cache.RoundedRectMasks.Count >= MaxRoundedRectMasks)
+            // Source layout: [left corner band][1 pad][1 stretch][1 pad][right corner band], same
+            // for rows. Stretching a single texel whose neighbours are also fully covered keeps
+            // linear filtering from bleeding corner coverage into the stretched edges.
+            var srcLeft = Math.Max(tl, bl);
+            var srcRight = Math.Max(tr, br);
+            var srcTop = Math.Max(tl, tr);
+            var srcBottom = Math.Max(bl, br);
+            Span<int> srcX = stackalloc int[] { 0, srcLeft + 1, srcLeft + 3 };
+            Span<int> srcW = stackalloc int[] { srcLeft, 1, srcRight };
+            Span<int> srcY = stackalloc int[] { 0, srcTop + 1, srcTop + 3 };
+            Span<int> srcH = stackalloc int[] { srcTop, 1, srcBottom };
+
+            // Integer destination like every other SpriteBatch draw here (Rect -> Rectangle), so
+            // edges land on the same pixels as the opaque path instead of half-covering a row.
+            Rectangle target = rect;
+            var left = srcLeft;
+            var right = srcRight;
+            if (left + right > target.Width)
             {
-                foreach (var retired in cache.RetiredMasks)
-                    retired.Dispose();
-                cache.RetiredMasks.Clear();
-                cache.RetiredMasks.AddRange(cache.RoundedRectMasks.Values);
-                cache.RoundedRectMasks.Clear();
+                left = target.Width * left / Math.Max(1, left + right);
+                right = target.Width - left;
+            }
+            var top = srcTop;
+            var bottom = srcBottom;
+            if (top + bottom > target.Height)
+            {
+                top = target.Height * top / Math.Max(1, top + bottom);
+                bottom = target.Height - top;
             }
 
+            Span<int> dstX = stackalloc int[] { target.Left, target.Left + left, target.Right - right };
+            Span<int> dstW = stackalloc int[] { left, target.Width - left - right, right };
+            Span<int> dstY = stackalloc int[] { target.Top, target.Top + top, target.Bottom - bottom };
+            Span<int> dstH = stackalloc int[] { top, target.Height - top - bottom, bottom };
+
+            for (var row = 0; row < 3; row++)
+            {
+                if (dstH[row] <= 0 || srcH[row] <= 0)
+                    continue;
+                for (var column = 0; column < 3; column++)
+                {
+                    if (dstW[column] <= 0 || srcW[column] <= 0)
+                        continue;
+                    spriteBatch.Draw(
+                        mask,
+                        new Rectangle(dstX[column], dstY[row], dstW[column], dstH[row]),
+                        new Rectangle(srcX[column], srcY[row], srcW[column], srcH[row]),
+                        color);
+                }
+            }
+        }
+
+        private static Texture2D GetNineSliceMask(GraphicsDevice device, int tl, int tr, int br, int bl)
+        {
+            var cache = GetCache(device);
+            if (cache.NineSliceMasks.TryGetValue((tl, tr, br, bl), out var texture))
+                return texture;
+
+            var width = Math.Max(tl, bl) + 3 + Math.Max(tr, br);
+            var height = Math.Max(tl, tr) + 3 + Math.Max(bl, br);
+            var radius = new CornerRadius(tl, tr, br, bl);
             var data = new Color[width * height];
             for (var y = 0; y < height; y++)
             {
                 for (var x = 0; x < width; x++)
                 {
-                    var coverage = RoundedRectCoverage(x + 0.5f, y + 0.5f, width, height, radius);
-                    var value = (byte)(coverage * 255);
+                    var value = (byte)(RoundedRectCoverage(x + 0.5f, y + 0.5f, width, height, radius) * 255);
                     data[y * width + x] = new Color(value, value, value, value);
                 }
             }
 
             texture = new Texture2D(device, width, height);
             texture.SetData(data);
-            cache.RoundedRectMasks[key] = texture;
+            cache.NineSliceMasks[(tl, tr, br, bl)] = texture;
             return texture;
         }
 
@@ -374,12 +410,5 @@ namespace MonoGame.PortableUI.Media
             return texture;
         }
 
-        private readonly record struct RoundedRectMaskKey(
-            int Width,
-            int Height,
-            int TopLeft,
-            int TopRight,
-            int BottomRight,
-            int BottomLeft);
     }
 }
