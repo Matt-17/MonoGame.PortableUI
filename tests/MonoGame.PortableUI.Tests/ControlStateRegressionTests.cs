@@ -180,9 +180,33 @@ namespace MonoGame.PortableUI.Tests
             textBox.GetCursorRect(textRect);
             textBox.GetCursorRect(textRect);
 
-            Assert.AreEqual(2, measurer.MeasurementCount);
+            // Prefix widths and the line height are cached with the line metrics: no re-measuring.
+            Assert.AreEqual(0, measurer.MeasurementCount);
         }
 
+
+        [TestMethod]
+        public void List_box_refresh_picks_up_in_place_item_edits()
+        {
+            var item = new MutableItem { Name = "before" };
+            var listBox = new ListBox();
+            listBox.Items.Add(item);
+            listBox.UpdateLayout(new Rect(0, 0, 200, 200));
+
+            item.Name = "after";
+            listBox.UpdateLayout(new Rect(0, 0, 200, 200));
+            Assert.AreEqual("before", listBox.ItemButtons[0].Text, "unchanged items are not re-stringified per pass");
+
+            listBox.Refresh();
+            Assert.AreEqual("after", listBox.ItemButtons[0].Text);
+        }
+
+        private sealed class MutableItem
+        {
+            public string Name { get; set; } = "";
+
+            public override string ToString() => Name;
+        }
 
         [TestMethod]
         public void Textbox_accepts_key_pressed_events()

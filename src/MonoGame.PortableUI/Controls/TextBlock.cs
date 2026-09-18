@@ -28,6 +28,15 @@ namespace MonoGame.PortableUI.Controls
         private string? _wrapCacheText;
         private float _wrapCacheWidth = -1f;
         private float _wrapCacheScale = -1f;
+        private readonly List<float> _wrappedLineWidths = new List<float>();
+        // Ellipsis result for the last (text, width, font, scale): trimming re-measures per
+        // removed character, which must not run every frame.
+        private string? _trimCacheText;
+        private SpriteFont? _trimCacheFont;
+        private float _trimCacheWidth = -1f;
+        private float _trimCacheScale = -1f;
+        private string _trimmedText = "";
+        private Vector2 _trimmedSize;
 
         /// <summary>
         ///     Explicit SpriteFont for this block (e.g. a specific size/weight loaded via
@@ -152,15 +161,16 @@ namespace MonoGame.PortableUI.Controls
             {
                 var lines = GetWrappedLines(wrapWidth);
                 float maxLineWidth = 0;
-                foreach (var line in lines)
-                    maxLineWidth = Math.Max(maxLineWidth, MeasureText(line).X);
+                foreach (var lineWidth in _wrappedLineWidths)
+                    maxLineWidth = Math.Max(maxLineWidth, lineWidth);
 
                 var wrappedWidth = Width.IsFixed() ? Width : Math.Min(wrapWidth, maxLineWidth);
                 var wrappedHeight = Height.IsFixed() ? Height : lines.Count * LineHeight;
                 return ApplyConstraints(new Size(wrappedWidth, wrappedHeight)) + Margin;
             }
 
-            var measuredText = MeasureText(Text);
+            // MeasuredText is kept current by every setter that affects it (text, size, font).
+            var measuredText = MeasuredText;
             var width = Width.IsFixed() ? Width : measuredText.X;
             var height = Height.IsFixed() ? Height : 0;
             if (measuredText.Y > height)
@@ -192,6 +202,9 @@ namespace MonoGame.PortableUI.Controls
             }
 
             _wrappedLines = WrapText(_text, availableWidth);
+            _wrappedLineWidths.Clear();
+            foreach (var line in _wrappedLines)
+                _wrappedLineWidths.Add(MeasureText(line).X);
             _wrapCacheText = _text;
             _wrapCacheFont = Font;
             _wrapCacheWidth = availableWidth;
@@ -240,6 +253,26 @@ namespace MonoGame.PortableUI.Controls
             }
 
             return lines;
+        }
+
+        private void GetTrimmedText(float maxWidth, out string text, out Vector2 size)
+        {
+            var scale = FontScale;
+            if (!ReferenceEquals(_trimCacheText, _text)
+                || !ReferenceEquals(_trimCacheFont, Font)
+                || Math.Abs(_trimCacheWidth - maxWidth) >= 0.5f
+                || Math.Abs(_trimCacheScale - scale) >= 0.0001f)
+            {
+                _trimmedText = TrimWithEllipsis(_text, maxWidth);
+                _trimmedSize = ReferenceEquals(_trimmedText, _text) ? MeasuredText : MeasureText(_trimmedText);
+                _trimCacheText = _text;
+                _trimCacheFont = Font;
+                _trimCacheWidth = maxWidth;
+                _trimCacheScale = scale;
+            }
+
+            text = _trimmedText;
+            size = _trimmedSize;
         }
 
         private string TrimWithEllipsis(string text, float maxWidth)
@@ -328,12 +361,10 @@ namespace MonoGame.PortableUI.Controls
                 return;
             }
 
-            var renderText = TextTrimming == TextTrimming.Ellipsis && RenderScale.X > 0
-                ? TrimWithEllipsis(Text, rect.Width / RenderScale.X)
-                : Text;
-            var measured = ReferenceEquals(renderText, Text) || renderText == Text
-                ? MeasuredText
-                : MeasureText(renderText);
+            var renderText = Text;
+            var measured = MeasuredText;
+            if (TextTrimming == TextTrimming.Ellipsis && RenderScale.X > 0)
+                GetTrimmedText(rect.Width / RenderScale.X, out renderText, out measured);
 
             var offset = rect.Offset;
             var measuredText = new Vector2(measured.X * RenderScale.X, measured.Y * RenderScale.Y);
@@ -352,9 +383,10 @@ namespace MonoGame.PortableUI.Controls
             var totalHeight = lines.Count * lineHeight;
             var top = rect.Top + (rect.Height - totalHeight) / 2;
 
-            foreach (var line in lines)
+            for (var i = 0; i < lines.Count; i++)
             {
-                var lineWidth = MeasureText(line).X * RenderScale.X;
+                var line = lines[i];
+                var lineWidth = _wrappedLineWidths[i] * RenderScale.X;
                 var offset = new PointF(rect.Left + AlignmentOffsetX(rect.Width, lineWidth), top);
                 DrawTextRun(spriteBatch, line, offset);
                 top += lineHeight;

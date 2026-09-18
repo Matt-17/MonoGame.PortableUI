@@ -23,6 +23,8 @@ namespace MonoGame.PortableUI.Controls
         // SelectedIndex set while Items is still empty would clamp to -1 and be lost; it is kept
         // here and applied once items arrive (on the next layout pass).
         private int _pendingSelectedIndex = -1;
+        private readonly List<object?> _syncedItems = new List<object?>();
+        private bool _refreshItemTexts;
         private Brush _selectedItemBackgroundBrush = new SolidColorBrush(new Color(20, 126, 133));
         private Color _selectedItemTextColor;
 
@@ -239,6 +241,7 @@ namespace MonoGame.PortableUI.Controls
         /// (adding/removing items is picked up automatically on the next layout pass).</summary>
         public void Refresh()
         {
+            _refreshItemTexts = true;
             EnsureItemButtons();
             InvalidateLayout(true);
         }
@@ -287,13 +290,25 @@ namespace MonoGame.PortableUI.Controls
                 SelectionChanged?.Invoke(this, new SelectionChangedEventArgs(oldIndex, clamped));
             }
 
+            // This runs in every measure and arrange; only items that changed (or all after
+            // Refresh, for in-place edits) pay for ToString().
+            while (_syncedItems.Count > _itemButtons.Count)
+                _syncedItems.RemoveAt(_syncedItems.Count - 1);
             for (var i = 0; i < _itemButtons.Count; i++)
             {
                 var button = _itemButtons[i];
                 button.Tag = i;
                 button.Height = ItemHeight;
-                button.Text = Items[i]?.ToString() ?? "";
+                var item = Items[i];
+                if (i < _syncedItems.Count && ReferenceEquals(_syncedItems[i], item) && !_refreshItemTexts)
+                    continue;
+                button.Text = item?.ToString() ?? "";
+                if (i < _syncedItems.Count)
+                    _syncedItems[i] = item;
+                else
+                    _syncedItems.Add(item);
             }
+            _refreshItemTexts = false;
 
             UpdateItemButtonVisuals();
         }
