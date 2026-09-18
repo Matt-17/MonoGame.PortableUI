@@ -649,7 +649,7 @@ namespace MonoGame.PortableUI.Controls
             return line.Start + closestIndex;
         }
 
-        private int GetLineIndexFromPosition(int position, IReadOnlyList<TextLine> lines)
+        private int GetLineIndexFromPosition(int position, List<TextLine> lines)
         {
             var textPosition = ClampTextPosition(position);
             for (var i = 0; i < lines.Count; i++)
@@ -702,6 +702,9 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        // Reused per visible line so drawing does not allocate a substring each frame.
+        private readonly System.Text.StringBuilder _drawBuffer = new System.Text.StringBuilder();
+
         private void DrawText(SpriteBatch spriteBatch, Rect textRect)
         {
             if (Font == null || Text.Length == 0)
@@ -726,7 +729,8 @@ namespace MonoGame.PortableUI.Controls
                 var offset = new PointF(textRect.Left + (GetLineMetric(line).GetWidth(visibleRange.Start) - _horizontalScrollOffset) * RenderScale.X, lineTop);
                 if (SnapToPixel)
                     offset = offset.ToInts();
-                spriteBatch.DrawString(Font, displayText.Substring(line.Start + visibleRange.Start, visibleRange.Length), offset, Brush.ApplyOpacity(TextColor, RenderOpacity), 0, Vector2.Zero, TextDrawScale, SpriteEffects.None, 0);
+                _drawBuffer.Clear().Append(displayText, line.Start + visibleRange.Start, visibleRange.Length);
+                spriteBatch.DrawString(Font, _drawBuffer, offset, Brush.ApplyOpacity(TextColor, RenderOpacity), 0, Vector2.Zero, TextDrawScale, SpriteEffects.None, 0);
             }
         }
 
@@ -793,10 +797,7 @@ namespace MonoGame.PortableUI.Controls
             return top + lineHeight >= textRect.Top && top <= textRect.Bottom;
         }
 
-        private float GetLineHeight()
-        {
-            return Math.Max(1, MeasureText("|").Y);
-        }
+        private float GetLineHeight() => GetLineMetricsCache().LineHeight;
 
         private string GetDisplayText()
         {
@@ -992,49 +993,72 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        // Read many times per frame (draw, caret, selection, hit-test): validate with cheap field
+        // compares and only build the display string and per-character metrics on a change.
         private LineMetricsCache GetLineMetricsCache()
         {
-            var displayText = GetDisplayText();
-            if (_lineMetricsCache != null
-                && _lineMetricsCache.Text == Text
-                && _lineMetricsCache.DisplayText == displayText
-                && ReferenceEquals(_lineMetricsCache.Font, Font)
-                && ReferenceEquals(_lineMetricsCache.TextMeasurer, TextMeasurer))
+            var cache = _lineMetricsCache;
+            var fontScale = FontScale;
+            if (cache != null
+                && ReferenceEquals(cache.Text, Text)
+                && cache.PasswordChar == PasswordChar
+                && ReferenceEquals(cache.Font, Font)
+                && ReferenceEquals(cache.TextMeasurer, TextMeasurer)
+                && cache.FontScale.Equals(fontScale))
             {
-                return _lineMetricsCache;
+                return cache;
             }
 
+            var displayText = GetDisplayText();
             var lines = GetTextLines(Text);
             var lineMetrics = new LineMetric[lines.Count];
             for (var i = 0; i < lines.Count; i++)
                 lineMetrics[i] = CreateLineMetric(displayText, lines[i]);
 
-            _lineMetricsCache = new LineMetricsCache(Text, displayText, Font, TextMeasurer, lines, lineMetrics);
+            var lineHeight = Math.Max(1, MeasureText("|").Y);
+            _lineMetricsCache = new LineMetricsCache(Text, displayText, PasswordChar, Font, TextMeasurer, fontScale, lineHeight, lines, lineMetrics);
             return _lineMetricsCache;
         }
 
         private LineMetric GetLineMetric(TextLine line)
         {
+            // Lines are stored in text order, so look the metric up by start offset (binary search)
+            // instead of scanning every line for every drawn line (O(lines²) per frame).
             var cache = GetLineMetricsCache();
-            foreach (var lineMetric in cache.LineMetrics)
+            var metrics = cache.LineMetrics;
+            int low = 0, high = metrics.Length - 1;
+            while (low <= high)
             {
-                if (lineMetric.Line.Start == line.Start && lineMetric.Line.Length == line.Length)
-                    return lineMetric;
+                var mid = (low + high) >> 1;
+                var start = metrics[mid].Line.Start;
+                if (start == line.Start)
+                    return metrics[mid].Line.Length == line.Length ? metrics[mid] : CreateLineMetric(cache.DisplayText, line);
+                if (start < line.Start)
+                    low = mid + 1;
+                else
+                    high = mid - 1;
             }
 
             return CreateLineMetric(cache.DisplayText, line);
         }
 
+        private readonly System.Text.StringBuilder _charBuffer = new System.Text.StringBuilder(2);
+
         private LineMetric CreateLineMetric(string displayText, TextLine line)
         {
             var prefixWidths = new float[line.Length + 1];
             for (var i = 0; i < line.Length; i++)
-            {
-                var character = displayText.Substring(line.Start + i, 1);
-                prefixWidths[i + 1] = prefixWidths[i] + MeasureText(character).X;
-            }
+                prefixWidths[i + 1] = prefixWidths[i] + MeasureCharWidth(displayText[line.Start + i]);
 
             return new LineMetric(line, prefixWidths);
+        }
+
+        private float MeasureCharWidth(char character)
+        {
+            // SpriteFont measures a StringBuilder without allocating a one-char string per glyph.
+            if (Font != null)
+                return Font.MeasureString(_charBuffer.Clear().Append(character)).X * FontScale;
+            return TextMeasurer.MeasureString(character.ToString()).X;
         }
 
         private void InvalidateLineMetrics()
@@ -1077,18 +1101,30 @@ namespace MonoGame.PortableUI.Controls
             public LineMetricsCache(
                 string text,
                 string displayText,
+                char? passwordChar,
                 SpriteFont? font,
                 ITextMeasurer textMeasurer,
+                float fontScale,
+                float lineHeight,
                 List<TextLine> lines,
                 LineMetric[] lineMetrics)
             {
                 Text = text;
                 DisplayText = displayText;
+                PasswordChar = passwordChar;
                 Font = font;
                 TextMeasurer = textMeasurer;
+                FontScale = fontScale;
+                LineHeight = lineHeight;
                 Lines = lines;
                 LineMetrics = lineMetrics;
             }
+
+            public char? PasswordChar { get; }
+
+            public float FontScale { get; }
+
+            public float LineHeight { get; }
 
             public string Text { get; }
 
@@ -1098,9 +1134,9 @@ namespace MonoGame.PortableUI.Controls
 
             public ITextMeasurer TextMeasurer { get; }
 
-            public IReadOnlyList<TextLine> Lines { get; }
+            public List<TextLine> Lines { get; }
 
-            public IReadOnlyList<LineMetric> LineMetrics { get; }
+            public LineMetric[] LineMetrics { get; }
         }
 
         private readonly struct LineMetric
