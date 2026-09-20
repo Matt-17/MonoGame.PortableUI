@@ -16,6 +16,23 @@ namespace MonoGame.PortableUI.Media
         // SpriteBatch survive the frame they were drawn in.
         private const int MaxEntries = 256;
 
+        /// <summary>Cache lookup without a factory: callers check this first so the per-frame hit
+        /// path allocates no delegate/closure; only a miss goes through <see cref="GetOrCreate"/>.</summary>
+        public static bool TryGet(GraphicsDevice graphicsDevice, BrushTextureCacheKey key, out Texture2D texture)
+        {
+            lock (SyncRoot)
+            {
+                if (Caches.TryGetValue(graphicsDevice, out var cache) && cache.Textures.TryGetValue(key, out var found))
+                {
+                    texture = found;
+                    return true;
+                }
+            }
+
+            texture = null!;
+            return false;
+        }
+
         public static Texture2D GetOrCreate(GraphicsDevice graphicsDevice, BrushTextureCacheKey key, Func<GraphicsDevice, Texture2D> factory)
         {
             if (graphicsDevice == null)

@@ -16,6 +16,14 @@ namespace MonoGame.PortableUI.Media
         public static Texture2D Get(GraphicsDevice graphicsDevice, bool pointingUp)
         {
             var key = new BrushTextureCacheKey(pointingUp ? "triangle-glyph-up-v1" : "triangle-glyph-down-v1", Width, Height);
+            return BrushTextureCache.TryGet(graphicsDevice, key, out var cached)
+                ? cached
+                : Create(graphicsDevice, key, pointingUp);
+        }
+
+        // Miss path: the factory captures pointingUp, so its closure must not be allocated per draw.
+        private static Texture2D Create(GraphicsDevice graphicsDevice, BrushTextureCacheKey key, bool pointingUp)
+        {
             return BrushTextureCache.GetOrCreate(graphicsDevice, key, device =>
             {
                 var data = new Color[Width * Height];

@@ -43,6 +43,10 @@ namespace MonoGame.PortableUI
         private ToolTipPopup? _toolTip;
         private ToolTipPopup? _dismissingToolTip;
         private readonly List<Control> _visualTreeScratch = new List<Control>();
+        // Per call site so nested snapshots (island inside the post-FX pass) never share a buffer.
+        private RenderTargetBinding[]? _postFxPreviousTargets;
+        private RenderTargetBinding[]? _backdropPreviousTargets;
+        private RenderTargetBinding[]? _islandPreviousTargets;
         private readonly List<MouseButton> _pressedMouseButtonsScratch = new List<MouseButton>(3);
         private Control? _toolTipOwner;
         private string? _toolTipText;
@@ -243,7 +247,7 @@ namespace MonoGame.PortableUI
             RenderTarget2D? uiTarget = null;
             if (usePostFx)
             {
-                previousTargets = RenderTargetHelper.SnapshotRenderTargets(device);
+                previousTargets = RenderTargetHelper.SnapshotRenderTargets(device, ref _postFxPreviousTargets);
                 uiTarget = engine!.PostProcess.EnsureUiTarget((int)Math.Ceiling(ScreenRect.Width), (int)Math.Ceiling(ScreenRect.Height));
                 device.SetRenderTarget(uiTarget);
                 device.Clear(Color.Transparent);
@@ -308,7 +312,7 @@ namespace MonoGame.PortableUI
 
             var backdrop = engine.Backdrop;
             backdrop.BeginFrame();
-            var previousTargets = RenderTargetHelper.SnapshotRenderTargets(device);
+            var previousTargets = RenderTargetHelper.SnapshotRenderTargets(device, ref _backdropPreviousTargets);
             var scene = backdrop.EnsureSceneTarget((int)Math.Ceiling(ScreenRect.Width), (int)Math.Ceiling(ScreenRect.Height));
             device.SetRenderTarget(scene);
             device.Clear(Color.Transparent);
@@ -584,7 +588,7 @@ namespace MonoGame.PortableUI
                 return false;
 
             var device = spriteBatch.GraphicsDevice;
-            var previousTargets = RenderTargetHelper.SnapshotRenderTargets(device);
+            var previousTargets = RenderTargetHelper.SnapshotRenderTargets(device, ref _islandPreviousTargets);
             // Full-frame target so the subtree can keep drawing at absolute screen coordinates.
             var targetWidth = (int)Math.Ceiling(Math.Max(ScreenRect.Right, islandRect.Right));
             var targetHeight = (int)Math.Ceiling(Math.Max(ScreenRect.Bottom, islandRect.Bottom));
@@ -618,9 +622,9 @@ namespace MonoGame.PortableUI
 
         private static CrtBarrelPostEffect? FindEnabledBarrel(IReadOnlyList<PostEffect> effects)
         {
-            foreach (var effect in effects)
+            for (var i = 0; i < effects.Count; i++)
             {
-                if (effect is CrtBarrelPostEffect { Enabled: true } barrel)
+                if (effects[i] is CrtBarrelPostEffect { Enabled: true } barrel)
                     return barrel;
             }
 
@@ -938,8 +942,16 @@ namespace MonoGame.PortableUI
         private List<MouseButton> SnapshotPressedMouseButtons(IReadOnlyCollection<MouseButton> pressedMouseButtons)
         {
             _pressedMouseButtonsScratch.Clear();
-            foreach (var button in pressedMouseButtons)
-                _pressedMouseButtonsScratch.Add(button);
+            if (pressedMouseButtons is List<MouseButton> list)
+            {
+                for (var i = 0; i < list.Count; i++)
+                    _pressedMouseButtonsScratch.Add(list[i]);
+            }
+            else
+            {
+                foreach (var button in pressedMouseButtons)
+                    _pressedMouseButtonsScratch.Add(button);
+            }
             return _pressedMouseButtonsScratch;
         }
 

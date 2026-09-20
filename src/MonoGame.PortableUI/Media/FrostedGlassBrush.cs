@@ -158,7 +158,9 @@ namespace MonoGame.PortableUI.Media
             {
                 var scaleX = backdrop.Width / Math.Max(1f, screenRect.Width);
                 var scaleY = backdrop.Height / Math.Max(1f, screenRect.Height);
-                foreach (var fill in RoundedRectRenderer.GetFillRects(rect, radius))
+                Span<Rect> fills = stackalloc Rect[3];
+                RoundedRectRenderer.FillRects(rect, radius, 0f, fills);
+                foreach (var fill in fills)
                 {
                     if (fill.Width <= 0 || fill.Height <= 0)
                         continue;
@@ -183,7 +185,9 @@ namespace MonoGame.PortableUI.Media
 
             var grain = GetTexture(spriteBatch);
             var grainColor = ApplyOpacity(Color.White, opacity * (drewBackdrop ? 0.55f : 1f));
-            foreach (var fill in RoundedRectRenderer.GetFillRects(rect, radius))
+            Span<Rect> grainFills = stackalloc Rect[3];
+            RoundedRectRenderer.FillRects(rect, radius, 0f, grainFills);
+            foreach (var fill in grainFills)
             {
                 if (fill.Width > 0 && fill.Height > 0)
                     spriteBatch.Draw(grain, fill, grainColor);
@@ -201,7 +205,10 @@ namespace MonoGame.PortableUI.Media
 
         private Texture2D GetTexture(SpriteBatch spriteBatch)
         {
-            return BrushTextureCache.GetOrCreate(spriteBatch.GraphicsDevice, CreateTextureCacheKey(), graphicsDevice =>
+            var key = CreateTextureCacheKey();
+            if (BrushTextureCache.TryGet(spriteBatch.GraphicsDevice, key, out var cached))
+                return cached;
+            return BrushTextureCache.GetOrCreate(spriteBatch.GraphicsDevice, key, graphicsDevice =>
             {
             var noise = new float[TextureSize * TextureSize];
             for (var y = 0; y < TextureSize; y++)

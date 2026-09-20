@@ -21,6 +21,7 @@ namespace MonoGame.PortableUI.Effects
         private readonly GraphicsDevice _graphicsDevice;
         private RenderTarget2D? _uiTarget;
         private BackdropManager? _bloomBlur;
+        private RenderTargetBinding[]? _bloomPreviousTargets;
         private RenderTarget2D? _islandTarget;
         private BasicEffect? _basicEffect;
         private VertexPositionColorTexture[]? _barrelVertices;
@@ -52,10 +53,11 @@ namespace MonoGame.PortableUI.Effects
 
         public int CountEnabled(IReadOnlyList<PostEffect> effects)
         {
+            // Indexed: foreach over the interface would box the enumerator every frame.
             var count = 0;
-            foreach (var effect in effects)
+            for (var i = 0; i < effects.Count; i++)
             {
-                if (effect.Enabled)
+                if (effects[i].Enabled)
                     count++;
             }
 
@@ -140,7 +142,7 @@ namespace MonoGame.PortableUI.Effects
             var bloom = Find<BloomPostEffect>(effects);
             if (bloom != null)
             {
-                var previousTargets = _graphicsDevice.GetRenderTargets();
+                var previousTargets = RenderTargetHelper.SnapshotRenderTargets(_graphicsDevice, ref _bloomPreviousTargets);
                 // Own blur chain: island bloom runs mid-frame, and sharing the backdrop's targets
                 // would overwrite the blurred backdrop that later glass brushes sample.
                 _bloomBlur ??= new BackdropManager(_graphicsDevice);
@@ -186,8 +188,9 @@ namespace MonoGame.PortableUI.Effects
 
             if (!shaderOverlaysApplied)
             {
-                foreach (var effect in effects)
+                for (var effectIndex = 0; effectIndex < effects.Count; effectIndex++)
                 {
+                    var effect = effects[effectIndex];
                     if (!CanApply(effect))
                         continue;
 
@@ -260,9 +263,9 @@ namespace MonoGame.PortableUI.Effects
 
         private static T? Find<T>(IReadOnlyList<PostEffect> effects) where T : PostEffect
         {
-            foreach (var effect in effects)
+            for (var i = 0; i < effects.Count; i++)
             {
-                if (effect is T match && match.Enabled)
+                if (effects[i] is T match && match.Enabled)
                     return match;
             }
 
@@ -394,7 +397,14 @@ namespace MonoGame.PortableUI.Effects
         private Texture2D GetScanlineTexture(ScanlinePostEffect scanlines)
         {
             var spacing = Math.Max(2, (int)Math.Round(scanlines.Spacing));
-            return BrushTextureCache.GetOrCreate(_graphicsDevice, new BrushTextureCacheKey("postfx-scanline", spacing), device =>
+            var key = new BrushTextureCacheKey("postfx-scanline", spacing);
+            return BrushTextureCache.TryGet(_graphicsDevice, key, out var cached) ? cached : CreateScanlineTexture(key, spacing);
+        }
+
+        // Miss path only: the factory closure captures the size.
+        private Texture2D CreateScanlineTexture(BrushTextureCacheKey key, int spacing)
+        {
+            return BrushTextureCache.GetOrCreate(_graphicsDevice, key, device =>
             {
                 var data = new Color[spacing];
                 for (var y = 0; y < spacing; y++)
@@ -409,7 +419,14 @@ namespace MonoGame.PortableUI.Effects
         private Texture2D GetDotMatrixTexture(DotMatrixPostEffect dotMatrix)
         {
             var cell = Math.Max(2, (int)Math.Round(dotMatrix.CellSize));
-            return BrushTextureCache.GetOrCreate(_graphicsDevice, new BrushTextureCacheKey("postfx-dotmatrix", cell), device =>
+            var key = new BrushTextureCacheKey("postfx-dotmatrix", cell);
+            return BrushTextureCache.TryGet(_graphicsDevice, key, out var cached) ? cached : CreateDotMatrixTexture(key, cell);
+        }
+
+        // Miss path only: the factory closure captures the size.
+        private Texture2D CreateDotMatrixTexture(BrushTextureCacheKey key, int cell)
+        {
+            return BrushTextureCache.GetOrCreate(_graphicsDevice, key, device =>
             {
                 var data = new Color[cell * cell];
                 for (var y = 0; y < cell; y++)

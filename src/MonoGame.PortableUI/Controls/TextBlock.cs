@@ -25,6 +25,8 @@ namespace MonoGame.PortableUI.Controls
         private List<string>? _wrappedLines;
         // Two fonts baked at the same size give the same FontScale but different line breaks.
         private SpriteFont? _wrapCacheFont;
+        private SpriteFont? _bakedSizeFont;
+        private int _bakedSize;
         private string? _wrapCacheText;
         private float _wrapCacheWidth = -1f;
         private float _wrapCacheScale = -1f;
@@ -147,8 +149,13 @@ namespace MonoGame.PortableUI.Controls
             {
                 if (Font == null || _textSize <= 0)
                     return 1f;
-                var baked = FontManager.GetBakedSize(Font);
-                return baked > 0 ? (float)_textSize / baked : 1f;
+                // Read many times per frame; the baked size only changes with the font.
+                if (!ReferenceEquals(_bakedSizeFont, Font))
+                {
+                    _bakedSizeFont = Font;
+                    _bakedSize = FontManager.GetBakedSize(Font);
+                }
+                return _bakedSize > 0 ? (float)_textSize / _bakedSize : 1f;
             }
         }
 

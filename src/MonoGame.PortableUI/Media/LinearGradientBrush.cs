@@ -48,10 +48,9 @@ namespace MonoGame.PortableUI.Media
             Texture2D texture;
             if (context.Radius.IsEmpty)
             {
-                texture = BrushTextureCache.GetOrCreate(
-                    spriteBatch.GraphicsDevice,
-                    CreateFastPathCacheKey(),
-                    graphicsDevice => CreateTexture(graphicsDevice, FastPathTextureSize, FastPathTextureSize, new CornerRadius(0)));
+                var fastKey = CreateFastPathCacheKey();
+                if (!BrushTextureCache.TryGet(spriteBatch.GraphicsDevice, fastKey, out texture))
+                    texture = CreateCachedTexture(spriteBatch.GraphicsDevice, fastKey, FastPathTextureSize, FastPathTextureSize, new CornerRadius(0));
             }
             else
             {
@@ -60,12 +59,18 @@ namespace MonoGame.PortableUI.Media
                 var width = Math.Max(1, (int)Math.Ceiling(context.Rect.Width));
                 var height = Math.Max(1, (int)Math.Ceiling(context.Rect.Height));
                 var radius = context.Radius;
-                texture = BrushTextureCache.GetOrCreate(
-                    spriteBatch.GraphicsDevice,
-                    CreateTextureCacheKey(width, height, radius),
-                    graphicsDevice => CreateTexture(graphicsDevice, width, height, radius));
+                var key = CreateTextureCacheKey(width, height, radius);
+                if (!BrushTextureCache.TryGet(spriteBatch.GraphicsDevice, key, out texture))
+                    texture = CreateCachedTexture(spriteBatch.GraphicsDevice, key, width, height, radius);
             }
             spriteBatch.Draw(texture, context.Rect, ApplyOpacity(Color.White, context.Opacity));
+        }
+
+        // Miss path only: the factory closure captures the size, so keeping it out of Draw means
+        // a cache hit allocates nothing.
+        private Texture2D CreateCachedTexture(GraphicsDevice device, BrushTextureCacheKey key, int width, int height, CornerRadius radius)
+        {
+            return BrushTextureCache.GetOrCreate(device, key, graphicsDevice => CreateTexture(graphicsDevice, width, height, radius));
         }
 
         private BrushTextureCacheKey CreateFastPathCacheKey()

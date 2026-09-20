@@ -71,7 +71,10 @@ namespace MonoGame.PortableUI.Media
 
         private Texture2D GetTexture(GraphicsDevice device)
         {
-            return BrushTextureCache.GetOrCreate(device, new BrushTextureCacheKey("pattern-v1", _hash, _patternWidth, _patternHeight), graphicsDevice =>
+            var key = new BrushTextureCacheKey("pattern-v1", _hash, _patternWidth, _patternHeight);
+            if (BrushTextureCache.TryGet(device, key, out var cached))
+                return cached;
+            return BrushTextureCache.GetOrCreate(device, key, graphicsDevice =>
             {
                 var data = new Color[_pixels.Length];
                 for (var i = 0; i < data.Length; i++)

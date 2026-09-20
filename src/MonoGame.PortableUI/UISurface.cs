@@ -13,6 +13,7 @@ namespace MonoGame.PortableUI
         private readonly Game _game;
         private SpriteBatch? _spriteBatch;
         private RenderTarget2D? _target;
+        private RenderTargetBinding[]? _previousTargets;
         private int _width;
         private int _height;
 
@@ -95,7 +96,7 @@ namespace MonoGame.PortableUI
             PostProcessManager.BeginFrame();
 
             // Restore whatever was bound (e.g. the host screen's post-FX target), not just null.
-            var previousTargets = _game.GraphicsDevice.GetRenderTargets();
+            var previousTargets = Effects.RenderTargetHelper.SnapshotRenderTargets(_game.GraphicsDevice, ref _previousTargets);
             _game.GraphicsDevice.SetRenderTarget(target);
             _game.GraphicsDevice.Clear(Color.Transparent);
             Screen.Draw(_spriteBatch);

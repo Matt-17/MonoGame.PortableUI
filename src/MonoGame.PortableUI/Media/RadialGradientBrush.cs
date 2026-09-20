@@ -44,10 +44,10 @@ namespace MonoGame.PortableUI.Media
             if (context.Rect.Width <= 0 || context.Rect.Height <= 0)
                 return;
 
-            var texture = BrushTextureCache.GetOrCreate(
-                spriteBatch.GraphicsDevice,
-                CreateTextureCacheKey(),
-                CreateTexture);
+            // The method-group conversion allocates a delegate, so only build it on a cache miss.
+            var key = CreateTextureCacheKey();
+            if (!BrushTextureCache.TryGet(spriteBatch.GraphicsDevice, key, out var texture))
+                texture = BrushTextureCache.GetOrCreate(spriteBatch.GraphicsDevice, key, CreateTexture);
             spriteBatch.Draw(texture, context.Rect, ApplyOpacity(Color.White, context.Opacity));
         }
 
