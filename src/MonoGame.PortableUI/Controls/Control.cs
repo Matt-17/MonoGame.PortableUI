@@ -582,7 +582,7 @@ namespace MonoGame.PortableUI.Controls
 
         private void ShowContextMenuTouch(object? sender, EventArgs e) { ShowContextMenu(true); }
         private void ShowContextMenuClick(object? sender, EventArgs args) { if (ContextMenu?.ContextMenuType == ContextMenuTypes.OpenAndClick) ShowContextMenu(false); }
-        private void ShowContextMenuDown(object? sender, MouseEventArgs args) { if (args.Buttons.Any(x => x == MouseButton.Right) && ContextMenu?.ContextMenuType == ContextMenuTypes.OpenAndHold) ShowContextMenu(false); }
+        private void ShowContextMenuDown(object? sender, MouseEventArgs args) { if (args.Buttons.Contains(MouseButton.Right) && ContextMenu?.ContextMenuType == ContextMenuTypes.OpenAndHold) ShowContextMenu(false); }
         private void ShowContextMenuLeftClick(object? sender, EventArgs args) { if (ContextMenu?.ContextMenuType == ContextMenuTypes.OpenOnLeftClick) ShowContextMenu(false); }
 
         /// <summary>Opens the assigned <see cref="ContextMenu"/> programmatically (e.g. from a menu button).</summary>
@@ -619,6 +619,10 @@ namespace MonoGame.PortableUI.Controls
         // timers, input, scans). Built-in containers override both members; a third-party control
         // that only overrides GetDescendants still works through the materializing fallback.
         private List<Control>? _fallbackChildren;
+
+        /// <summary>Grid row/column attached data, stored on the control so the grid's per-child
+        /// lookups during layout are a field read instead of a weak-table lookup.</summary>
+        internal object? GridPositionSlot;
         private sbyte _hasCustomDescendants;
         private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, bool> OverridesGetDescendants = new();
 

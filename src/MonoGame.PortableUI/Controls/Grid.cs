@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using MonoGame.PortableUI.Common;
 
 namespace MonoGame.PortableUI.Controls
@@ -25,11 +24,41 @@ namespace MonoGame.PortableUI.Controls
         public RowDefinitionCollection RowDefinitions { get; }
         public ColumnDefinitionCollection ColumnDefinitions { get; }
 
-        private static readonly ConditionalWeakTable<Control, GridPosition> ControlGridPositionDictionary = new ConditionalWeakTable<Control, GridPosition>();
-
         private static GridPosition GetGridPosition(Control control)
         {
-            return ControlGridPositionDictionary.GetValue(control, _ => new GridPosition());
+            return (GridPosition)(control.GridPositionSlot ??= new GridPosition());
+        }
+
+        // Per-pass scratch reused across layouts: auto-track maxima of single-span children (one
+        // pass over the children instead of one per auto track) and the track size/offset buffers.
+        private float[] _autoRowMax = Array.Empty<float>();
+        private float[] _autoColumnMax = Array.Empty<float>();
+        private readonly List<float> _rowSizes = new List<float>();
+        private readonly List<float> _columnSizes = new List<float>();
+        private float[] _rowOffsets = Array.Empty<float>();
+        private float[] _columnOffsets = Array.Empty<float>();
+
+        private void ComputeAutoTrackMaxima()
+        {
+            if (_autoRowMax.Length != RowDefinitions.Count)
+                _autoRowMax = new float[RowDefinitions.Count];
+            else
+                Array.Clear(_autoRowMax);
+            if (_autoColumnMax.Length != ColumnDefinitions.Count)
+                _autoColumnMax = new float[ColumnDefinitions.Count];
+            else
+                Array.Clear(_autoColumnMax);
+
+            for (var i = 0; i < Children.Count; i++)
+            {
+                var child = Children[i];
+                var position = GetGridPosition(child);
+                var size = MeasureChild(child);
+                if (position.RowSpan <= 1 && position.Row >= 0 && position.Row < _autoRowMax.Length && size.Height > _autoRowMax[position.Row])
+                    _autoRowMax[position.Row] = size.Height;
+                if (position.ColumnSpan <= 1 && position.Column >= 0 && position.Column < _autoColumnMax.Length && size.Width > _autoColumnMax[position.Column])
+                    _autoColumnMax[position.Column] = size.Width;
+            }
         }
 
         public static void SetRow(Control control, int row)
@@ -99,9 +128,10 @@ namespace MonoGame.PortableUI.Controls
                 rowOffsets[row + rowSpan] - rowOffsets[row]);
         }
 
-        private static float[] BuildOffsets(List<float> sizes)
+        private static float[] BuildOffsets(List<float> sizes, ref float[] offsets)
         {
-            var offsets = new float[sizes.Count + 1];
+            if (offsets.Length != sizes.Count + 1)
+                offsets = new float[sizes.Count + 1];
             var total = 0f;
             for (var i = 0; i < sizes.Count; i++)
             {
@@ -115,13 +145,17 @@ namespace MonoGame.PortableUI.Controls
 
         private List<float> GetRowHeights(Rect rect)
         {
+            var result = _rowSizes;
+            result.Clear();
             if (RowDefinitions.Count == 0)
-                return new List<float>(1) { rect.Height.IsFixed() ? rect.Height : 0 };
+            {
+                result.Add(rect.Height.IsFixed() ? rect.Height : 0);
+                return result;
+            }
 
             var starRows = 0f;
             var absoluteRows = 0f;
             var rowDefinitions = RowDefinitions;
-            var result = new List<float>(rowDefinitions.Count);
             for (var i = 0; i < rowDefinitions.Count; i++)
             {
                 var height = rowDefinitions[i].Height;
@@ -183,10 +217,12 @@ namespace MonoGame.PortableUI.Controls
         {
             base.UpdateLayout(rect);
             var layoutRect = BoundingRect - Margin - Padding;
-            var rowOffsets = BuildOffsets(GetRowHeights(layoutRect));
-            var columnOffsets = BuildOffsets(GetColumnWidths(layoutRect));
-            foreach (var child in Children)
+            ComputeAutoTrackMaxima();
+            var rowOffsets = BuildOffsets(GetRowHeights(layoutRect), ref _rowOffsets);
+            var columnOffsets = BuildOffsets(GetColumnWidths(layoutRect), ref _columnOffsets);
+            for (var i = 0; i < Children.Count; i++)
             {
+                var child = Children[i];
                 child.UpdateLayout(GetRect(layoutRect, child, rowOffsets, columnOffsets));
             }
         }
@@ -196,6 +232,8 @@ namespace MonoGame.PortableUI.Controls
             if (IsGone)
                 return Size.Empty;
 
+            if (!Width.IsFixed() || !Height.IsFixed())
+                ComputeAutoTrackMaxima();
             var width = Width.IsFixed() ? Width : MeasureContentWidth() + Padding.Horizontal;
             var height = Height.IsFixed() ? Height : MeasureContentHeight() + Padding.Vertical;
             return ApplyConstraints(new Size(width, height)) + Margin;
@@ -245,13 +283,17 @@ namespace MonoGame.PortableUI.Controls
 
         private List<float> GetColumnWidths(Rect rect)
         {
+            var result = _columnSizes;
+            result.Clear();
             if (ColumnDefinitions.Count == 0)
-                return new List<float>(1) { rect.Width.IsFixed() ? rect.Width : 0 };
+            {
+                result.Add(rect.Width.IsFixed() ? rect.Width : 0);
+                return result;
+            }
 
             var starColumns = 0f;
             var absoluteColumns = 0f;
             var columnDefinitions = ColumnDefinitions;
-            var result = new List<float>(columnDefinitions.Count);
             for (var i = 0; i < columnDefinitions.Count; i++)
             {
                 var width = columnDefinitions[i].Width;
@@ -308,35 +350,9 @@ namespace MonoGame.PortableUI.Controls
             return result;
         }
 
-        private float GetAutoRowHeight(int index)
-        {
-            var max = 0f;
-            foreach (var child in Children)
-            {
-                if (GetRow(child) != index || GetRowSpan(child) > 1)
-                    continue;
+        private float GetAutoRowHeight(int index) => index < _autoRowMax.Length ? _autoRowMax[index] : 0;
 
-                var size = MeasureChild(child);
-                if (size.Height > max)
-                    max = size.Height;
-            }
-            return max;
-        }
-
-        private float GetAutoColumnWidth(int index)
-        {
-            var max = 0f;
-            foreach (var child in Children)
-            {
-                if (GetColumn(child) != index || GetColumnSpan(child) > 1)
-                    continue;
-
-                var size = MeasureChild(child);
-                if (size.Width > max)
-                    max = size.Width;
-            }
-            return max;
-        }
+        private float GetAutoColumnWidth(int index) => index < _autoColumnMax.Length ? _autoColumnMax[index] : 0;
 
         private void AddSpanningRowContributions(IList<float> result)
         {

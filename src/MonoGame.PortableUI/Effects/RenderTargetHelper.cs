@@ -32,5 +32,21 @@ namespace MonoGame.PortableUI.Effects
                 ? Array.Empty<RenderTargetBinding>()
                 : graphicsDevice.GetRenderTargets();
         }
+
+        /// <summary>
+        /// Same snapshot, filled into a caller-owned buffer: a bound target (e.g. the letter-box
+        /// scale target, which is bound every frame) no longer allocates a new array per frame.
+        /// Each call site owns its buffer so nested snapshots never overwrite each other.
+        /// </summary>
+        public static RenderTargetBinding[] SnapshotRenderTargets(GraphicsDevice graphicsDevice, ref RenderTargetBinding[]? buffer)
+        {
+            var count = graphicsDevice.RenderTargetCount;
+            if (count == 0)
+                return Array.Empty<RenderTargetBinding>();
+            if (buffer == null || buffer.Length != count)
+                buffer = new RenderTargetBinding[count];
+            graphicsDevice.GetRenderTargets(buffer);
+            return buffer;
+        }
     }
 }

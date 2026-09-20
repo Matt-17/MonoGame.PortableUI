@@ -61,7 +61,10 @@ namespace MonoGame.PortableUI.Media
 
         private Texture2D GetTexture(SpriteBatch spriteBatch)
         {
-            return BrushTextureCache.GetOrCreate(spriteBatch.GraphicsDevice, CreateTextureCacheKey(), graphicsDevice =>
+            var key = CreateTextureCacheKey();
+            if (BrushTextureCache.TryGet(spriteBatch.GraphicsDevice, key, out var cached))
+                return cached;
+            return BrushTextureCache.GetOrCreate(spriteBatch.GraphicsDevice, key, graphicsDevice =>
             {
                 var start = Premultiply(StartColor);
                 var mid = Premultiply(MidColor);
@@ -128,7 +131,16 @@ namespace MonoGame.PortableUI.Media
                 unchecked((int)EndColor.PackedValue),
                 System.HashCode.Combine((int)Direction, width, height),
                 radius.GetHashCode());
-            var texture = BrushTextureCache.GetOrCreate(spriteBatch.GraphicsDevice, key, graphicsDevice =>
+            // Hit path first: the factory lambda below captures locals, and a closure is
+            // allocated at method entry, so it lives in a helper that only runs on a miss.
+            if (!BrushTextureCache.TryGet(spriteBatch.GraphicsDevice, key, out var texture))
+                texture = CreateRoundedTexture(spriteBatch.GraphicsDevice, key, width, height, radius);
+            spriteBatch.Draw(texture, context.Rect, ApplyOpacity(Color.White, context.Opacity));
+        }
+
+        private Texture2D CreateRoundedTexture(GraphicsDevice device, BrushTextureCacheKey key, int width, int height, CornerRadius radius)
+        {
+            return BrushTextureCache.GetOrCreate(device, key, graphicsDevice =>
             {
                 var data = new Color[width * height];
                 for (var y = 0; y < height; y++)
@@ -153,7 +165,6 @@ namespace MonoGame.PortableUI.Media
                 rounded.SetData(data);
                 return rounded;
             });
-            spriteBatch.Draw(texture, context.Rect, ApplyOpacity(Color.White, context.Opacity));
         }
     }
 }

@@ -15,17 +15,31 @@ namespace MonoGame.PortableUI.Media
 
         public static void Draw(SpriteBatch spriteBatch, Rect rect, CornerRadius radius, ShadowStyle shadow, float opacity)
         {
-            foreach (var layer in GetShadowLayers(rect, shadow))
+            // Stack buffer instead of an iterator: shadows are drawn for every shadowed control
+            // every frame.
+            Span<ShadowLayer> layers = stackalloc ShadowLayer[MaxLayers];
+            var count = FillShadowLayers(rect, shadow, layers);
+            for (var i = 0; i < count; i++)
             {
+                var layer = layers[i];
                 var expansion = shadow.Inset ? 0 : Math.Max(0, (layer.Rect.Width - rect.Width) / 2);
                 RoundedRectRenderer.DrawSolid(spriteBatch, layer.Rect, Expand(radius, expansion), Brush.ApplyOpacity(layer.Color, opacity));
             }
         }
 
+        internal const int MaxLayers = 10;
+
         internal static IEnumerable<ShadowLayer> GetShadowLayers(Rect rect, ShadowStyle shadow)
         {
+            var layers = new ShadowLayer[MaxLayers];
+            var count = FillShadowLayers(rect, shadow, layers);
+            return layers.AsSpan(0, count).ToArray();
+        }
+
+        internal static int FillShadowLayers(Rect rect, ShadowStyle shadow, Span<ShadowLayer> layers)
+        {
             if (shadow == null || shadow.Color.A == 0 || shadow.Opacity <= 0)
-                yield break;
+                return 0;
 
             var strength = MathHelper.Clamp(shadow.Opacity, 0, 1);
             var alpha = shadow.Color.A * strength;
@@ -34,26 +48,28 @@ namespace MonoGame.PortableUI.Media
             if (blur <= 0)
             {
                 var flat = new Color(shadow.Color.R, shadow.Color.G, shadow.Color.B, (byte)MathHelper.Clamp(alpha, 0, 255));
-                yield return new ShadowLayer(ApplyShadowRect(rect, shadow.Offset, spread, shadow.Inset), flat);
-                yield break;
+                layers[0] = new ShadowLayer(ApplyShadowRect(rect, shadow.Offset, spread, shadow.Inset), flat);
+                return 1;
             }
 
-            var layers = Math.Max(2, Math.Min(10, (int)Math.Ceiling(blur / 2)));
+            var count = Math.Max(2, Math.Min(MaxLayers, (int)Math.Ceiling(blur / 2)));
             var weightSum = 0f;
-            for (var i = 0; i < layers; i++)
+            for (var i = 0; i < count; i++)
             {
-                var t = i / (float)(layers - 1);
+                var t = i / (float)(count - 1);
                 weightSum += (1 - t) * (1 - t);
             }
 
-            for (var i = 0; i < layers; i++)
+            for (var i = 0; i < count; i++)
             {
-                var t = i / (float)(layers - 1);
+                var t = i / (float)(count - 1);
                 var weight = (1 - t) * (1 - t);
                 var color = new Color(shadow.Color.R, shadow.Color.G, shadow.Color.B, (byte)MathHelper.Clamp(alpha * weight / weightSum, 0, 255));
                 var expansion = spread + blur * t;
-                yield return new ShadowLayer(ApplyShadowRect(rect, shadow.Offset, expansion, shadow.Inset), color);
+                layers[i] = new ShadowLayer(ApplyShadowRect(rect, shadow.Offset, expansion, shadow.Inset), color);
             }
+
+            return count;
         }
 
         private static CornerRadius Expand(CornerRadius radius, float expansion)

@@ -65,10 +65,9 @@ namespace MonoGame.PortableUI.Media
                 var width = Math.Max(1, (int)Math.Ceiling(context.Rect.Width));
                 var height = Math.Max(1, (int)Math.Ceiling(context.Rect.Height));
                 var radius = context.Radius;
-                var rounded = BrushTextureCache.GetOrCreate(
-                    spriteBatch.GraphicsDevice,
-                    CreateRoundedCacheKey(width, height, sourceRect, radius),
-                    graphicsDevice => CreateRoundedTexture(graphicsDevice, width, height, sourceRect, radius));
+                var key = CreateRoundedCacheKey(width, height, sourceRect, radius);
+                if (!BrushTextureCache.TryGet(spriteBatch.GraphicsDevice, key, out var rounded))
+                    rounded = CreateCachedRoundedTexture(spriteBatch.GraphicsDevice, key, width, height, sourceRect, radius);
                 spriteBatch.Draw(rounded, context.Rect, tint);
                 return;
             }
@@ -161,6 +160,12 @@ namespace MonoGame.PortableUI.Media
                 height,
                 Source != null ? GetSourceId(Source) : 0,
                 HashCode.Combine((int)Stretch, radius, source, TintColor));
+        }
+
+        // Miss path only, so the closure over the size/source/radius is not allocated per draw.
+        private Texture2D CreateCachedRoundedTexture(GraphicsDevice device, BrushTextureCacheKey key, int width, int height, Rectangle source, CornerRadius radius)
+        {
+            return BrushTextureCache.GetOrCreate(device, key, graphicsDevice => CreateRoundedTexture(graphicsDevice, width, height, source, radius));
         }
 
         /// <summary>

@@ -224,7 +224,9 @@ namespace MonoGame.PortableUI.Media
             // Overlap the straight fills 1px into the corner regions. On a pill/circle the middle
             // bands would otherwise collapse to zero width/height and only the four corner masks
             // draw, leaving a hairline "+" seam where they meet; the overlap bridges it.
-            foreach (var fillRect in GetFillRects(rect, radius, overlap: 1f))
+            Span<Rect> fills = stackalloc Rect[3];
+            FillRects(rect, radius, 1f, fills);
+            foreach (var fillRect in fills)
             {
                 if (fillRect.Width > 0 && fillRect.Height > 0)
                     spriteBatch.Draw(Primitives.Pixel(spriteBatch), fillRect, color);
@@ -346,6 +348,14 @@ namespace MonoGame.PortableUI.Media
 
         internal static IEnumerable<Rect> GetFillRects(Rect rect, CornerRadius radius, float overlap = 0f)
         {
+            var rects = new Rect[3];
+            FillRects(rect, radius, overlap, rects);
+            return rects;
+        }
+
+        /// <summary>The three straight fills between the corners, written into <paramref name="rects"/> (length 3).</summary>
+        internal static void FillRects(Rect rect, CornerRadius radius, float overlap, Span<Rect> rects)
+        {
             radius = Clamp(radius, rect);
             var left = Math.Max(radius.TopLeft, radius.BottomLeft);
             var right = Math.Max(radius.TopRight, radius.BottomRight);
@@ -359,9 +369,9 @@ namespace MonoGame.PortableUI.Media
             var t = Math.Max(0, top - overlap);
             var b = Math.Max(0, bottom - overlap);
 
-            yield return new Rect(rect.Left + l, rect.Top, Math.Max(0, rect.Width - l - r), rect.Height);
-            yield return new Rect(rect.Left, rect.Top + t, left, Math.Max(0, rect.Height - t - b));
-            yield return new Rect(rect.Right - right, rect.Top + t, right, Math.Max(0, rect.Height - t - b));
+            rects[0] = new Rect(rect.Left + l, rect.Top, Math.Max(0, rect.Width - l - r), rect.Height);
+            rects[1] = new Rect(rect.Left, rect.Top + t, left, Math.Max(0, rect.Height - t - b));
+            rects[2] = new Rect(rect.Right - right, rect.Top + t, right, Math.Max(0, rect.Height - t - b));
         }
 
         private static CornerRadius Clamp(CornerRadius radius, Rect rect)

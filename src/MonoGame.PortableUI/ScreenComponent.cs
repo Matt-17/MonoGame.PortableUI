@@ -9,6 +9,7 @@ namespace MonoGame.PortableUI
         private readonly ScreenEngine _screenEngine;
         private SpriteBatch? _spriteBatch;
         private RenderTarget2D? _scaleTarget;
+        private RenderTargetBinding[]? _previousTargets;
 
         internal ScreenComponent(ScreenEngine screenEngine, Game game) : base(game)
         {
@@ -62,7 +63,7 @@ namespace MonoGame.PortableUI
             var logicalHeight = Math.Max(1, (int)Math.Ceiling(_screenEngine.ScreenRect.Height));
             var target = EnsureScaleTarget(logicalWidth, logicalHeight);
 
-            var previousTargets = Effects.RenderTargetHelper.SnapshotRenderTargets(GraphicsDevice);
+            var previousTargets = Effects.RenderTargetHelper.SnapshotRenderTargets(GraphicsDevice, ref _previousTargets);
             GraphicsDevice.SetRenderTarget(target);
             GraphicsDevice.Clear(Color.Transparent);
             screen.Draw(_spriteBatch);

@@ -481,7 +481,16 @@ namespace MonoGame.PortableUI.Controls
             return offset;
         }
 
-        internal float TotalColumnsWidth => Columns.Sum(column => column.ActualWidth);
+        internal float TotalColumnsWidth
+        {
+            get
+            {
+                var total = 0f;
+                for (var i = 0; i < Columns.Count; i++)
+                    total += Columns[i].ActualWidth;
+                return total;
+            }
+        }
 
         private void EnsureRows()
         {
