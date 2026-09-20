@@ -12,6 +12,8 @@ namespace MonoGame.PortableUI.Input
 
         public static DeviceInputSource Instance { get; } = new DeviceInputSource();
 
+        private readonly List<MouseButton> _pressedButtons = new List<MouseButton>(3);
+
         private DeviceInputSource()
         {
         }
@@ -23,7 +25,9 @@ namespace MonoGame.PortableUI.Input
             get
             {
                 var mouseState = Mouse.GetState();
-                var buttons = new List<MouseButton>(3);
+                // Polled every frame; callers snapshot the contents immediately, so reuse one list.
+                var buttons = _pressedButtons;
+                buttons.Clear();
                 if (mouseState.LeftButton == ButtonState.Pressed)
                     buttons.Add(MouseButton.Left);
                 if (mouseState.RightButton == ButtonState.Pressed)
