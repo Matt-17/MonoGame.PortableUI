@@ -45,18 +45,27 @@ Update/Draw. Each `Screen` is a `FrameworkElement` hosting a private root `Grid`
 - `MeasureLayout() : Size` — bottom-up desired size. `float.NaN` = Auto, `float.PositiveInfinity` =
   unbounded; test with `SizeEx.IsFixed`. Base `Control` returns fixed size (or 0) + constraints + Margin —
   the correct order is `ApplyConstraints(size) + Margin` (Min/Max exclude margin).
+- Measure children through `child.Measure()`, not `child.MeasureLayout()`: it caches the result per
+  layout pass (a pass starts when a root — parent not a `Control` — is arranged) and
+  `InvalidateLayout(true)` drops the cache along the bubble path. Calling `MeasureLayout` directly
+  re-measures the whole subtree once per ancestor.
 - `UpdateLayout(Rect)` — top-down arrange. Sets `BoundingRect` (margin box), `ClippingRect`
   (= BoundingRect − Margin, the content/hit-test box), `ClientRect`.
 - Invalidation: `Control.InvalidateLayout(bool boundsChanged)` bubbles to `Screen`, which marks a dirty
   flag; **one** layout pass runs per frame (start of `Screen.Update`, safety-net flush before `Draw`).
   Explicit `control.UpdateLayout(rect)` is synchronous — tests rely on that. If library code must read
   a fresh `BoundingRect` right after mutating properties, flush via the screen's layout-if-dirty path
-  rather than assuming setters laid out synchronously.
+  rather than assuming setters laid out synchronously. `InvalidateLayout(false)` (visual-only change)
+  does **not** schedule a pass — use it only for state read at draw time.
+- Scrolling shifts the arranged content (`OffsetArrangement`) instead of re-arranging it, as long as
+  nothing inside invalidated; positions must therefore live only in `BoundingRect`/`ClippingRect`.
 
 **Rendering:** immediate-mode traversal in `Screen.Draw`. Each visible control gets a `RenderContext`
 (accumulated transform/opacity/scissor), `GraphicsDevice.ScissorRectangle` is set per control, and
-`OnDraw` runs in its own `SpriteBatch.Begin/End`; `OnDrawOverlay` gets a second batch only for types
-that override it. Offscreen passes: backdrop blur (glass brushes), post-FX (CRT/scanline/etc.), and the
+`OnDraw` runs in its own `SpriteBatch.Begin/End` (skipped for controls without an `OnDraw` override,
+background, border or shadow); `OnDrawOverlay` gets a second batch only for types that override it.
+Translucent rounded fills use a 9-slice of a per-radius mask (`RoundedRectRenderer`), never a
+per-size texture. Offscreen passes: backdrop blur (glass brushes), post-FX (CRT/scanline/etc.), and the
 letter-box scale target. Render targets are pooled (`RenderTargetHelper`) and recreated on device reset.
 
 **Input:** `Screen.Update` polls `IInputSource` (mouse, touch, keyboard) and diffs against the previous
@@ -71,7 +80,8 @@ past the threshold cancels the child's pending click. Hit-testing uses `Clipping
 ## Implementing a control
 
 Override as needed: `MeasureLayout`/`UpdateLayout` (custom layout), `OnDraw`/`OnDrawOverlay` (visuals),
-`GetDescendants` (children), `GetThemeStyle`/`GetThemeBackgroundBrush`/`OnThemeChanged` (theming),
+`GetDescendants` **and** `VisualChildCount`/`GetVisualChild(i)` (children — the per-frame walks use the
+indexed pair; a control overriding only `GetDescendants` falls back to a materialized list), `GetThemeStyle`/`GetThemeBackgroundBrush`/`OnThemeChanged` (theming),
 `GetVisualState`/`ChangeVisualState` (state visuals), `CapturesInputBeforeDescendants` (claim input
 before children, e.g. scrollbar), `ClipsDescendants`. Wire behavior to events (`Click`, `MouseDown`,
 `TouchDown`, `KeyPressed`, …) in the constructor. Interactive drag behaviors must wire **both** mouse
