@@ -9,6 +9,6 @@
     <PackageVersion Include="MonoGame.Framework.Android" Version="3.8.4.1" />
     <PackageVersion Include="MonoGame.Framework.DesktopGL" Version="3.8.4.1" />
     <PackageVersion Include="MSTest" Version="4.2.3" />
-    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0" />
+    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.401" />
   </ItemGroup>
 </Project>
