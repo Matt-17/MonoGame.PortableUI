@@ -31,6 +31,8 @@ namespace MonoGame.PortableUI.Controls
         {
             _position = position;
             _placement = placement;
+            // A container, not a stop: keyboard focus goes to the menu items / list inside it.
+            IsFocusable = false;
             MouseEventHandler onMouseDown = (sender, args) => Screen?.ClearFlyOut();
             TouchEventHandler onTouchDown = (sender, args) => Screen?.ClearFlyOut();
             if (removeOnRelease)

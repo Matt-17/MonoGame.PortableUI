@@ -216,6 +216,91 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void Combo_box_is_fully_operable_by_keyboard()
+        {
+            var combo = new ComboBox { Width = 150, VerticalAlignment = VerticalAlignment.Top, HorizontalAlignment = HorizontalAlignment.Left };
+            combo.Items.AddRange(new object[] { "one", "two", "three" });
+            combo.SelectedIndex = 0;
+            var (game, _, screen, source) = CreateScreen(combo);
+            using var _ = game;
+            combo.Focus();
+
+            PressKey(screen, source, Keys.Enter);
+            Assert.IsTrue(screen.IsFlyOutOpen);
+            Assert.IsInstanceOfType(ScreenEngine.FocusedControl, typeof(ListBox));
+
+            PressKey(screen, source, Keys.Down);
+            PressKey(screen, source, Keys.Enter);
+
+            Assert.AreEqual(1, combo.SelectedIndex);
+            Assert.IsFalse(screen.IsFlyOutOpen);
+            Assert.AreSame(combo, ScreenEngine.FocusedControl);
+        }
+
+        [TestMethod]
+        public void Escape_closes_a_popup_and_returns_focus_to_its_opener()
+        {
+            var combo = new ComboBox { Width = 150, VerticalAlignment = VerticalAlignment.Top, HorizontalAlignment = HorizontalAlignment.Left };
+            combo.Items.AddRange(new object[] { "one", "two" });
+            var (game, _, screen, source) = CreateScreen(combo);
+            using var _ = game;
+            var backRequests = 0;
+            screen.BackRequested += (_, _) => backRequests++;
+            combo.Focus();
+            PressKey(screen, source, Keys.Enter);
+            Assert.IsTrue(screen.IsFlyOutOpen);
+
+            PressKey(screen, source, Keys.Escape);
+            Assert.IsFalse(screen.IsFlyOutOpen);
+            Assert.AreSame(combo, ScreenEngine.FocusedControl);
+            Assert.AreEqual(0, backRequests);
+
+            PressKey(screen, source, Keys.Escape);
+            Assert.AreEqual(1, backRequests);
+        }
+
+        [TestMethod]
+        public void Context_menu_opens_with_the_menu_key_and_runs_the_chosen_item()
+        {
+            var invoked = "";
+            var menu = new ContextMenu();
+            menu.Items.Add(new MenuItem("Copy", () => invoked = "copy"));
+            menu.Items.Add(new MenuItem("Delete", () => invoked = "delete"));
+            var owner = new Button { Text = "Item", Width = 100, Height = 30, ContextMenu = menu, VerticalAlignment = VerticalAlignment.Top };
+            var (game, _, screen, source) = CreateScreen(owner);
+            using var _ = game;
+            owner.Focus();
+
+            PressKey(screen, source, Keys.Apps);
+            Assert.IsTrue(screen.IsFlyOutOpen);
+
+            PressKey(screen, source, Keys.Down);
+            PressKey(screen, source, Keys.Enter);
+
+            Assert.AreEqual("delete", invoked);
+            Assert.IsFalse(screen.IsFlyOutOpen);
+            Assert.AreSame(owner, ScreenEngine.FocusedControl);
+        }
+
+        [TestMethod]
+        public void Page_down_moves_the_list_selection_by_a_visible_page()
+        {
+            var listBox = new ListBox { Height = 100, ItemHeight = 20, VerticalAlignment = VerticalAlignment.Top };
+            for (var i = 0; i < 30; i++)
+                listBox.Items.Add($"Item {i}");
+            var (game, _, screen, source) = CreateScreen(listBox);
+            using var _ = game;
+            listBox.SelectedIndex = 0;
+            listBox.Focus();
+
+            PressKey(screen, source, Keys.PageDown);
+
+            Assert.IsTrue(listBox.SelectedIndex >= 3, $"selection {listBox.SelectedIndex}");
+            PressKey(screen, source, Keys.End);
+            Assert.AreEqual(29, listBox.SelectedIndex);
+        }
+
+        [TestMethod]
         public void Candidates_behind_the_current_control_are_rejected()
         {
             var from = new Rect(100, 100, 50, 20);
