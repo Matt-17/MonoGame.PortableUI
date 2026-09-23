@@ -296,6 +296,13 @@ namespace MonoGame.PortableUI.Controls
         /// </summary>
         protected internal virtual bool ClipsDescendants => false;
 
+        /// <summary>
+        ///     Whether this control uses the given arrow/D-pad direction itself while focused (caret,
+        ///     list selection, slider value). Directions it does not use move focus spatially to the
+        ///     nearest focusable control instead.
+        /// </summary>
+        protected internal virtual bool HandlesDirection(FocusDirection direction) => false;
+
         public Thickness Margin { get; set; }
 
         public Vector2 Scale { get; set; }
