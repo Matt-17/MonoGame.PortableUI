@@ -492,9 +492,27 @@ namespace MonoGame.PortableUI.Controls
             {
                 case KeyboardCommand.CursorUp:
                     SelectedIndex = SelectedIndex < 0 ? 0 : Math.Max(0, SelectedIndex - 1);
+                    ScrollSelectedIntoView();
                     break;
                 case KeyboardCommand.CursorDown:
                     SelectedIndex = SelectedIndex < 0 ? 0 : Math.Min(Items.Count - 1, SelectedIndex + 1);
+                    ScrollSelectedIntoView();
+                    break;
+                case KeyboardCommand.PageUp:
+                    SelectedIndex = Math.Max(0, (SelectedIndex < 0 ? 0 : SelectedIndex) - PageSize);
+                    ScrollSelectedIntoView();
+                    break;
+                case KeyboardCommand.PageDown:
+                    SelectedIndex = Math.Min(Items.Count - 1, (SelectedIndex < 0 ? 0 : SelectedIndex) + PageSize);
+                    ScrollSelectedIntoView();
+                    break;
+                case KeyboardCommand.Home:
+                    SelectedIndex = 0;
+                    ScrollSelectedIntoView();
+                    break;
+                case KeyboardCommand.End:
+                    SelectedIndex = Items.Count - 1;
+                    ScrollSelectedIntoView();
                     break;
                 case KeyboardCommand.Enter:
                     if (SelectedIndex >= 0)
@@ -502,6 +520,9 @@ namespace MonoGame.PortableUI.Controls
                     break;
             }
         }
+
+        // Items per visible page (one item of overlap), for PageUp/PageDown.
+        private int PageSize => Math.Max(1, (int)(_scrollViewer.BoundingRect.Height / Math.Max(1, ItemHeight)) - 1);
 
         private static readonly Brush TransparentHoverBrush = new SolidColorBrush(Color.Transparent);
 

@@ -573,12 +573,27 @@ namespace MonoGame.PortableUI.Controls
                 case KeyboardCommand.CursorDown:
                     MoveSelection(1);
                     break;
+                case KeyboardCommand.PageUp:
+                    MoveSelection(-PageSize);
+                    break;
+                case KeyboardCommand.PageDown:
+                    MoveSelection(PageSize);
+                    break;
+                case KeyboardCommand.Home:
+                    MoveSelection(-Items.Count);
+                    break;
+                case KeyboardCommand.End:
+                    MoveSelection(Items.Count);
+                    break;
                 case KeyboardCommand.Enter:
                     if (SelectedIndex >= 0)
                         InvokeRow(SelectedIndex);
                     break;
             }
         }
+
+        // Rows per visible page (one row of overlap), for PageUp/PageDown.
+        private int PageSize => Math.Max(1, (int)(_scrollViewer.BoundingRect.Height / Math.Max(1, RowHeight)) - 1);
 
         /// <summary>Moves the selection through the rows in display (sort) order.</summary>
         private void MoveSelection(int delta)

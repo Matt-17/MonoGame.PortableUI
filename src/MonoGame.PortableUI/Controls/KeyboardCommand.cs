@@ -14,7 +14,12 @@ namespace MonoGame.PortableUI.Controls
         SelectAll,
         Copy,
         Cut,
-        Paste
+        Paste,
+        Escape,
+        PageUp,
+        PageDown,
+        /// <summary>Context-menu key / Shift+F10 / gamepad Y: open the focused control's ContextMenu.</summary>
+        ContextMenu
     }
 
     [System.Flags]

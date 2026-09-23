@@ -50,12 +50,26 @@ namespace MonoGame.PortableUI.Controls
                 button.MouseUp += (sender, args) => { screen?.ClearFlyOut(); args.Handled = true; };
                 button.TouchUp += (sender, args) => { screen?.ClearFlyOut(); args.Handled = true; };
                 if (ContextMenuType != ContextMenuTypes.OpenAndHold)
-                    button.Click += (s, e) => InvokeMenuItem(item);
+                {
+                    button.Click += (s, e) =>
+                    {
+                        InvokeMenuItem(item);
+                        screen?.ClearFlyOut();
+                    };
+                }
                 else
                 {
                     button.HandleTouchDownEnter = true;
                     button.MouseUp += (sender, args) => InvokeMenuItem(item);
                     button.TouchUp += (sender, args) => InvokeMenuItem(item);
+                    // Keyboard/gamepad activation (Enter/A) has no release gesture.
+                    button.KeyPressed += (sender, args) =>
+                    {
+                        if (args.InputType != InputType.Command || args.Command != KeyboardCommand.Enter)
+                            return;
+                        InvokeMenuItem(item);
+                        screen?.ClearFlyOut();
+                    };
                 }
                 stackPanel.AddChild(button);
             }

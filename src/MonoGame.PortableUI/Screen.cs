@@ -120,6 +120,49 @@ namespace MonoGame.PortableUI
             }
         }
 
+        // True after key/gamepad input, false after pointer input: popups opened in keyboard mode
+        // take focus so arrows/Enter work inside them.
+        private bool _keyboardNavigationActive;
+        private Control? _focusBeforeFlyOut;
+
+        private static Control? FindFirstTabStop(Control root)
+        {
+            if (root.IsGone || !root.IsVisible || !root.IsEnabled)
+                return null;
+            if (root.IsEffectiveTabStop)
+                return root;
+            var count = root.VisualChildCount;
+            for (var i = 0; i < count; i++)
+            {
+                if (FindFirstTabStop(root.GetVisualChild(i)) is { } found)
+                    return found;
+            }
+            return null;
+        }
+
+        /// <summary>Returns focus to the control that had it before the popup opened, when focus
+        /// is now inside the closing popup (or gone).</summary>
+        private void RestoreFocusAfterFlyOut(Control? closingFlyOut = null)
+        {
+            var previous = _focusBeforeFlyOut;
+            _focusBeforeFlyOut = null;
+            var focused = ScreenEngine.FocusedControl;
+            if (focused != null && !(closingFlyOut != null && IsInside(focused, closingFlyOut)) && focused.Screen == this)
+                return;
+            if (previous != null && previous.Screen == this && previous.IsEffectivelyInteractive)
+                previous.Focus();
+        }
+
+        private static bool IsInside(Control control, Control ancestor)
+        {
+            for (FrameworkElement? current = control; current != null; current = current.Parent)
+            {
+                if (ReferenceEquals(current, ancestor))
+                    return true;
+            }
+            return false;
+        }
+
         /// <summary>Whether a popup (flyout, context menu, dropdown) is currently open.</summary>
         public bool IsFlyOutOpen => _flyOut != null;
 
@@ -141,6 +184,8 @@ namespace MonoGame.PortableUI
                     _dismissingContextMenu = null;
                 }
                 var hadFlyOut = _flyOut != null;
+                if (value != null && !hadFlyOut)
+                    _focusBeforeFlyOut = ScreenEngine.FocusedControl;
                 _flyOut = value;
                 if (_flyOut != null)
                 {
@@ -150,10 +195,14 @@ namespace MonoGame.PortableUI
                     _flyOut.NotifyShowing();
                     _flyOut.Parent = this;
                     _flyOut.NotifyShown();
+                    // Keyboard/gamepad users continue inside the popup (menu items, dropdown list).
+                    if (_keyboardNavigationActive && FindFirstTabStop(_flyOut) is { } first)
+                        first.Focus();
                 }
                 else if (hadFlyOut)
                 {
                     ResyncMainTreeHover();
+                    RestoreFocusAfterFlyOut();
                 }
             }
         }
@@ -724,6 +773,8 @@ namespace MonoGame.PortableUI
             // All downstream consumers work in UI space: undo the CRT barrel displacement here.
             var mousePosition = TransformPointerPosition(inputSource.MousePosition);
             var pressedMouseButtons = SnapshotPressedMouseButtons(inputSource.PressedMouseButtons);
+            if (pressedMouseButtons.Count > 0 || inputSource.Touches.Count > 0)
+                _keyboardNavigationActive = false;
             TouchLocation touchState = default(TouchLocation);
             var touchCollection = inputSource.Touches;
             var hasTouch = touchCollection.Count > 0;
@@ -1000,6 +1051,18 @@ namespace MonoGame.PortableUI
                 return;
             }
 
+            // Escape is screen-level like Tab: close the open popup, otherwise request "back".
+            var escapePressed = Array.IndexOf(_pressedKeysBuffer, Keys.Escape, 0, pressedKeyCount) >= 0
+                && Array.IndexOf(_lastPressedKeysBuffer, Keys.Escape, 0, _lastPressedKeyCount) < 0;
+            if (escapePressed && (focusedControl == null || focusedControl.Screen == this))
+            {
+                _keyboardNavigationActive = true;
+                RequestBack();
+                SwapPressedKeyBuffers(pressedKeyCount);
+                _repeatKey = Keys.None;
+                return;
+            }
+
             // Focus is global while several screens can update per frame (UISurfaces): only the
             // screen that owns the focused control may process keys, or every screen would apply
             // the same backspace/arrow once each. Unattached controls keep the legacy routing.
@@ -1069,6 +1132,14 @@ namespace MonoGame.PortableUI
         /// <summary>Arrow commands the focused control does not use itself move focus spatially.</summary>
         private void DispatchCommand(Control focusedControl, KeyboardCommand command, KeyboardModifiers modifiers)
         {
+            _keyboardNavigationActive = true;
+            if (command == KeyboardCommand.ContextMenu)
+            {
+                if (focusedControl.ContextMenu != null)
+                    focusedControl.OpenContextMenu();
+                return;
+            }
+
             if (DirectionOf(command) is { } direction && modifiers == KeyboardModifiers.None
                 && !focusedControl.HandlesDirection(direction))
             {
@@ -1239,8 +1310,14 @@ namespace MonoGame.PortableUI
             if (Pressed(pad, last, Buttons.LeftShoulder) || Pressed(pad, last, Buttons.RightShoulder))
                 FocusNextTabStop(backwards: pad.IsButtonDown(Buttons.LeftShoulder));
 
+            if (pad.Buttons != last.Buttons || pad.DPad != last.DPad)
+                _keyboardNavigationActive = true;
+
             if (Pressed(pad, last, Buttons.A) && ScreenEngine.FocusedControl is { } activate)
                 activate.OnKeyPressed(KeyboardCommand.Enter, KeyboardModifiers.None);
+
+            if (Pressed(pad, last, Buttons.Y) && ScreenEngine.FocusedControl is { ContextMenu: not null } menuOwner)
+                menuOwner.OpenContextMenu();
 
             if (Pressed(pad, last, Buttons.B))
                 RequestBack();
@@ -1433,6 +1510,16 @@ namespace MonoGame.PortableUI
                     return KeyboardCommand.Home;
                 case Keys.End:
                     return KeyboardCommand.End;
+                case Keys.Escape:
+                    return KeyboardCommand.Escape;
+                case Keys.PageUp:
+                    return KeyboardCommand.PageUp;
+                case Keys.PageDown:
+                    return KeyboardCommand.PageDown;
+                case Keys.Apps:
+                    return KeyboardCommand.ContextMenu;
+                case Keys.F10 when (modifiers & KeyboardModifiers.Shift) != 0:
+                    return KeyboardCommand.ContextMenu;
                 default:
                     return null;
             }
@@ -1630,6 +1717,7 @@ namespace MonoGame.PortableUI
             var animationStyle = _activeFlyOutAnimationStyle;
             _flyOut = null;
             ResyncMainTreeHover();
+            RestoreFocusAfterFlyOut(flyOut);
             _activeContextMenu = null;
             _activeFlyOutAnimationStyle = FlyOutAnimationStyle.Popup;
             _dismissingFlyOut = flyOut;
