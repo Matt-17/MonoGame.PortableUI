@@ -64,6 +64,11 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        protected internal override bool HandlesDirection(FocusDirection direction)
+        {
+            return direction is FocusDirection.Left or FocusDirection.Right || IsMultiline;
+        }
+
         public bool IsMultiline
         {
             get { return _isMultiline; }

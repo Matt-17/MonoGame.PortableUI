@@ -60,6 +60,12 @@ namespace MonoGame.PortableUI.Controls
                 ThumbBorderBrush = newTheme.SliderThumbBorderBrush;
         }
 
+        // Horizontal track: Left/Right change the value, Up/Down leave the slider (gamepad-friendly).
+        protected internal override bool HandlesDirection(FocusDirection direction)
+        {
+            return direction is FocusDirection.Left or FocusDirection.Right;
+        }
+
         public float Minimum
         {
             get { return _minimum; }

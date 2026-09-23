@@ -19,6 +19,13 @@ namespace MonoGame.PortableUI.Input
 
         public Microsoft.Xna.Framework.Input.KeyboardState KeyboardState { get; private set; }
 
+        public Microsoft.Xna.Framework.Input.GamePadState GamePad { get; private set; }
+
+        public void SetGamePadState(Microsoft.Xna.Framework.Input.GamePadState gamePadState)
+        {
+            GamePad = gamePadState;
+        }
+
         public void SetKeyboardState(Microsoft.Xna.Framework.Input.KeyboardState keyboardState)
         {
             KeyboardState = keyboardState;
