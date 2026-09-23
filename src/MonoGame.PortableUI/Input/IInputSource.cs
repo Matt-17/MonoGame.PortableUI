@@ -13,5 +13,9 @@ namespace MonoGame.PortableUI.Input
         int ScrollWheelValue { get; }
         TouchCollection Touches { get; }
         KeyboardState KeyboardState { get; }
+
+        /// <summary>First gamepad (D-pad/left stick navigate focus, A activates, B goes back,
+        /// shoulders tab). Defaults to "no gamepad" so existing sources keep compiling.</summary>
+        GamePadState GamePad => default;
     }
 }

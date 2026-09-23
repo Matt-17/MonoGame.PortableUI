@@ -85,6 +85,11 @@ namespace MonoGame.PortableUI.Controls
 
         public List<object> Items { get; }
 
+        protected internal override bool HandlesDirection(FocusDirection direction)
+        {
+            return direction is FocusDirection.Up or FocusDirection.Down;
+        }
+
         public int SelectedIndex
         {
             get { return _selectedIndex; }

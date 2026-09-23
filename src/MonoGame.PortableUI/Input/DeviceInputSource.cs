@@ -43,5 +43,7 @@ namespace MonoGame.PortableUI.Input
         public TouchCollection Touches => TouchPanel.GetState();
 
         public KeyboardState KeyboardState => Keyboard.GetState();
+
+        public GamePadState GamePad => Microsoft.Xna.Framework.Input.GamePad.GetState(Microsoft.Xna.Framework.PlayerIndex.One);
     }
 }

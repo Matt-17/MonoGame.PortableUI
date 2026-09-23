@@ -120,6 +120,9 @@ namespace MonoGame.PortableUI
             }
         }
 
+        /// <summary>Whether a popup (flyout, context menu, dropdown) is currently open.</summary>
+        public bool IsFlyOutOpen => _flyOut != null;
+
         private FlyOut? FlyOut
         {
             get { return _flyOut; }
@@ -766,6 +769,7 @@ namespace MonoGame.PortableUI
                 UpdateTimersForTree(_dismissingToolTip);
 
             HandleKeyboardInput(inputSource);
+            HandleGamePadInput(inputSource);
 
             if (_activeDrag is { } drag)
             {
@@ -1001,6 +1005,9 @@ namespace MonoGame.PortableUI
             // the same backspace/arrow once each. Unattached controls keep the legacy routing.
             if (focusedControl == null || (focusedControl.Screen != null && focusedControl.Screen != this))
             {
+                // With nothing focused an arrow key enters spatial navigation at the first stop.
+                if (focusedControl == null && IsNewlyPressedArrow(pressedKeyCount))
+                    FocusNextTabStop();
                 SwapPressedKeyBuffers(pressedKeyCount);
                 _repeatKey = Keys.None;
                 return;
@@ -1018,7 +1025,7 @@ namespace MonoGame.PortableUI
                 var command = TryGetKeyboardCommand(key, modifiers);
                 if (command.HasValue)
                 {
-                    focusedControl.OnKeyPressed(command.Value, modifiers);
+                    DispatchCommand(focusedControl, command.Value, modifiers);
                     // Typematic: one long pause after the first hit, then fast repeats while held.
                     _repeatKey = key;
                     _nextKeyRepeatTime = ScreenSystem.TotalTime + KeyRepeatInitialDelay;
@@ -1039,12 +1046,271 @@ namespace MonoGame.PortableUI
                 {
                     var command = TryGetKeyboardCommand(_repeatKey, modifiers);
                     if (command.HasValue)
-                        focusedControl.OnKeyPressed(command.Value, modifiers);
+                        DispatchCommand(ScreenEngine.FocusedControl ?? focusedControl, command.Value, modifiers);
                     _nextKeyRepeatTime = ScreenSystem.TotalTime + KeyRepeatInterval;
                 }
             }
 
             SwapPressedKeyBuffers(pressedKeyCount);
+        }
+
+        private bool IsNewlyPressedArrow(int pressedKeyCount)
+        {
+            for (var i = 0; i < pressedKeyCount; i++)
+            {
+                var key = _pressedKeysBuffer[i];
+                if (key is Keys.Left or Keys.Right or Keys.Up or Keys.Down
+                    && Array.IndexOf(_lastPressedKeysBuffer, key, 0, _lastPressedKeyCount) < 0)
+                    return true;
+            }
+            return false;
+        }
+
+        /// <summary>Arrow commands the focused control does not use itself move focus spatially.</summary>
+        private void DispatchCommand(Control focusedControl, KeyboardCommand command, KeyboardModifiers modifiers)
+        {
+            if (DirectionOf(command) is { } direction && modifiers == KeyboardModifiers.None
+                && !focusedControl.HandlesDirection(direction))
+            {
+                MoveFocus(direction);
+                return;
+            }
+
+            focusedControl.OnKeyPressed(command, modifiers);
+        }
+
+        private static FocusDirection? DirectionOf(KeyboardCommand command)
+        {
+            return command switch
+            {
+                KeyboardCommand.CursorLeft => FocusDirection.Left,
+                KeyboardCommand.CursorRight => FocusDirection.Right,
+                KeyboardCommand.CursorUp => FocusDirection.Up,
+                KeyboardCommand.CursorDown => FocusDirection.Down,
+                _ => null
+            };
+        }
+
+        private static KeyboardCommand ToCursorCommand(FocusDirection direction)
+        {
+            return direction switch
+            {
+                FocusDirection.Left => KeyboardCommand.CursorLeft,
+                FocusDirection.Right => KeyboardCommand.CursorRight,
+                FocusDirection.Up => KeyboardCommand.CursorUp,
+                _ => KeyboardCommand.CursorDown
+            };
+        }
+
+        private readonly List<Control> _focusCandidates = new List<Control>();
+
+        /// <summary>
+        ///     Moves focus to the nearest focusable control in <paramref name="direction"/> (arrow
+        ///     keys, D-pad). Candidates must lie beyond the current control in that direction; the
+        ///     score favours small distance along the direction and penalises sideways offset, so
+        ///     focus follows rows and columns. Inside an open popup only its controls are candidates.
+        ///     With nothing focused, the first tab stop is focused. Returns false when nothing moved.
+        /// </summary>
+        public bool MoveFocus(FocusDirection direction)
+        {
+            var current = ScreenEngine.FocusedControl;
+            if (current == null || current.Screen != this)
+            {
+                FocusNextTabStop();
+                return ScreenEngine.FocusedControl != null;
+            }
+
+            _focusCandidates.Clear();
+            VisualTreeHelper.AppendVisualTree(_flyOut ?? (Control)_mainGrid, _focusCandidates, false);
+
+            var from = current.ClippingRect;
+            Control? best = null;
+            var bestScore = float.MaxValue;
+            foreach (var candidate in _focusCandidates)
+            {
+                if (ReferenceEquals(candidate, current) || !candidate.IsEffectiveTabStop || !candidate.IsEffectivelyInteractive)
+                    continue;
+
+                var to = candidate.ClippingRect;
+                if (to.Width <= 0 || to.Height <= 0)
+                    continue;
+
+                if (!TryScoreFocusCandidate(from, to, direction, out var score) || score >= bestScore)
+                    continue;
+                best = candidate;
+                bestScore = score;
+            }
+
+            _focusCandidates.Clear();
+            if (best == null)
+                return false;
+
+            best.Focus();
+            BringIntoView(best);
+            return true;
+        }
+
+        internal static bool TryScoreFocusCandidate(Rect from, Rect to, FocusDirection direction, out float score)
+        {
+            const float sidewaysWeight = 2f;
+            var fromCenterX = from.Left + from.Width / 2;
+            var fromCenterY = from.Top + from.Height / 2;
+            var toCenterX = to.Left + to.Width / 2;
+            var toCenterY = to.Top + to.Height / 2;
+            float primary;
+            float sideways;
+            bool beyond;
+            switch (direction)
+            {
+                case FocusDirection.Right:
+                    beyond = toCenterX > fromCenterX;
+                    primary = to.Left - from.Right;
+                    sideways = Gap(from.Top, from.Bottom, to.Top, to.Bottom);
+                    break;
+                case FocusDirection.Left:
+                    beyond = toCenterX < fromCenterX;
+                    primary = from.Left - to.Right;
+                    sideways = Gap(from.Top, from.Bottom, to.Top, to.Bottom);
+                    break;
+                case FocusDirection.Down:
+                    beyond = toCenterY > fromCenterY;
+                    primary = to.Top - from.Bottom;
+                    sideways = Gap(from.Left, from.Right, to.Left, to.Right);
+                    break;
+                default:
+                    beyond = toCenterY < fromCenterY;
+                    primary = from.Top - to.Bottom;
+                    sideways = Gap(from.Left, from.Right, to.Left, to.Right);
+                    break;
+            }
+
+            score = Math.Max(0, primary) + sidewaysWeight * sideways;
+            return beyond;
+        }
+
+        // Distance between two 1-D ranges (0 when they overlap).
+        private static float Gap(float aStart, float aEnd, float bStart, float bEnd)
+        {
+            if (bEnd < aStart)
+                return aStart - bEnd;
+            if (bStart > aEnd)
+                return bStart - aEnd;
+            return 0;
+        }
+
+        /// <summary>Scrolls every ScrollViewer around <paramref name="control"/> so it is visible.</summary>
+        internal static void BringIntoView(Control control)
+        {
+            for (var parent = control.Parent as Control; parent != null; parent = parent.Parent as Control)
+            {
+                if (parent is ScrollViewer viewer)
+                    viewer.BringIntoView(control);
+            }
+        }
+
+        /// <summary>
+        ///     Raised when the gamepad B button is pressed and no popup consumed it (the game decides
+        ///     what "back" means: close a menu, NavigateBack, ...). Set Handled to mark it consumed.
+        /// </summary>
+        public event EventHandler<System.ComponentModel.HandledEventArgs>? BackRequested;
+
+        private GamePadState _lastGamePad;
+        private FocusDirection? _gamePadRepeatDirection;
+        private TimeSpan _nextGamePadRepeatTime;
+        private const float StickThreshold = 0.5f;
+
+        private void HandleGamePadInput(IInputSource inputSource)
+        {
+            var pad = inputSource.GamePad;
+            var last = _lastGamePad;
+            _lastGamePad = pad;
+            if (!pad.IsConnected)
+            {
+                _gamePadRepeatDirection = null;
+                return;
+            }
+
+            // Same ownership rule as the keyboard: with several screens updating, only the one
+            // holding focus (or any, while nothing is focused) reacts.
+            var focused = DropFocusIfNotInteractive();
+            if (focused != null && focused.Screen != null && focused.Screen != this)
+                return;
+
+            if (Pressed(pad, last, Buttons.LeftShoulder) || Pressed(pad, last, Buttons.RightShoulder))
+                FocusNextTabStop(backwards: pad.IsButtonDown(Buttons.LeftShoulder));
+
+            if (Pressed(pad, last, Buttons.A) && ScreenEngine.FocusedControl is { } activate)
+                activate.OnKeyPressed(KeyboardCommand.Enter, KeyboardModifiers.None);
+
+            if (Pressed(pad, last, Buttons.B))
+                RequestBack();
+
+            var direction = GetPadDirection(pad);
+            if (direction == null)
+            {
+                _gamePadRepeatDirection = null;
+                return;
+            }
+
+            if (direction != _gamePadRepeatDirection)
+            {
+                _gamePadRepeatDirection = direction;
+                _nextGamePadRepeatTime = ScreenSystem.TotalTime + KeyRepeatInitialDelay;
+                NavigateWithPad(direction.Value);
+            }
+            else if (ScreenSystem.TotalTime >= _nextGamePadRepeatTime)
+            {
+                _nextGamePadRepeatTime = ScreenSystem.TotalTime + GamePadRepeatInterval;
+                NavigateWithPad(direction.Value);
+            }
+        }
+
+        private static readonly TimeSpan GamePadRepeatInterval = TimeSpan.FromMilliseconds(120);
+
+        private void NavigateWithPad(FocusDirection direction)
+        {
+            var focused = ScreenEngine.FocusedControl;
+            if (focused != null && focused.Screen == this && focused.HandlesDirection(direction))
+                focused.OnKeyPressed(ToCursorCommand(direction), KeyboardModifiers.None);
+            else
+                MoveFocus(direction);
+        }
+
+        /// <summary>Back action (gamepad B): closes an open popup first, otherwise raises BackRequested.</summary>
+        public void RequestBack()
+        {
+            if (_flyOut != null)
+            {
+                ClearFlyOut();
+                return;
+            }
+
+            BackRequested?.Invoke(this, new System.ComponentModel.HandledEventArgs());
+        }
+
+        private static bool Pressed(GamePadState pad, GamePadState last, Buttons button)
+        {
+            return pad.IsButtonDown(button) && !last.IsButtonDown(button);
+        }
+
+        private static FocusDirection? GetPadDirection(GamePadState pad)
+        {
+            if (pad.DPad.Up == ButtonState.Pressed)
+                return FocusDirection.Up;
+            if (pad.DPad.Down == ButtonState.Pressed)
+                return FocusDirection.Down;
+            if (pad.DPad.Left == ButtonState.Pressed)
+                return FocusDirection.Left;
+            if (pad.DPad.Right == ButtonState.Pressed)
+                return FocusDirection.Right;
+
+            var stick = pad.ThumbSticks.Left;
+            if (Math.Abs(stick.X) < StickThreshold && Math.Abs(stick.Y) < StickThreshold)
+                return null;
+            if (Math.Abs(stick.X) > Math.Abs(stick.Y))
+                return stick.X > 0 ? FocusDirection.Right : FocusDirection.Left;
+            // XNA thumbstick Y points up.
+            return stick.Y > 0 ? FocusDirection.Up : FocusDirection.Down;
         }
 
         /// <summary>Moves keyboard focus to the next (or previous) tab stop on this screen.
@@ -1080,6 +1346,7 @@ namespace MonoGame.PortableUI
                 ? index <= 0 ? ordered.Count - 1 : index - 1
                 : index < 0 || index == ordered.Count - 1 ? 0 : index + 1;
             ordered[next].Focus();
+            BringIntoView(ordered[next]);
         }
 
         private void SwapPressedKeyBuffers(int pressedKeyCount)
