@@ -244,25 +244,187 @@ namespace MonoGame.PortableUI
 
         public void NavigateToScreen<T>(T screen) where T : Screen
         {
-            FocusedControl = null;
-            // The screen being covered must not keep a drag, mouse capture or pressed state alive.
-            ActiveScreen?.OnNavigationFrom(this);
-            screen.ScreenEngine = this;
-            ScreenHistory.Push(screen);
-            screen.InvalidateLayout(true);
+            Push(screen, isOverlay: false, ScreenTransition.None);
         }
 
+        /// <summary>Replaces the visible screen with <paramref name="screen"/>, animated.</summary>
+        public void NavigateToScreen(Screen screen, ScreenTransition transition)
+        {
+            Push(screen, isOverlay: false, transition);
+        }
+
+        /// <summary>
+        ///     Pushes <paramref name="screen"/> on top of the current one without hiding it (pause
+        ///     menu over the HUD, dialogs). The screens below keep being drawn but are frozen: only
+        ///     the top screen updates and receives input. Close it with <see cref="NavigateBack"/>.
+        /// </summary>
+        public void PushOverlay(Screen screen, ScreenTransition transition = ScreenTransition.Fade)
+        {
+            Push(screen, isOverlay: true, transition);
+        }
+
+        /// <summary>Duration of screen transitions.</summary>
+        public TimeSpan TransitionDuration { get; set; } = TimeSpan.FromMilliseconds(250);
+
+        private void Push(Screen screen, bool isOverlay, ScreenTransition transition)
+        {
+            FinishTransition();
+            var previous = ActiveScreen;
+            if (previous != null)
+            {
+                // Remembered so NavigateBack can hand focus back to where the user was.
+                previous.SavedFocus = FocusedControl?.Screen == previous ? FocusedControl : null;
+                // The screen being covered must not keep a drag, mouse capture or pressed state alive.
+                previous.OnNavigationFrom(this);
+                previous.RaiseNavigatedFrom();
+            }
+
+            FocusedControl = null;
+            screen.ScreenEngine = this;
+            screen.IsOverlay = isOverlay;
+            screen.PushTransition = transition;
+            ScreenHistory.Push(screen);
+            screen.InvalidateLayout(true);
+            RebuildVisibleScreens();
+            StartTransition(screen, transition, entering: true);
+            screen.RaiseNavigatedTo();
+        }
+
+        /// <summary>Pops the top screen; by default it leaves with the reverse of its push transition.</summary>
         public void NavigateBack()
         {
             if (ScreenHistory.Count == 0)
                 return;
+            NavigateBack(ScreenHistory.Peek().PushTransition);
+        }
+
+        public void NavigateBack(ScreenTransition transition)
+        {
+            if (ScreenHistory.Count == 0)
+                return;
+            FinishTransition();
             FocusedControl = null;
             var screen = ScreenHistory.Pop();
             screen.OnNavigationFrom(this);
-            screen.ScreenEngine = null;
+            screen.RaiseNavigatedFrom();
+            RebuildVisibleScreens();
+
+            var revealed = ActiveScreen;
             // Resizes only invalidate the active screen, so the revealed one may be stale.
-            ActiveScreen?.InvalidateLayout(true);
+            revealed?.InvalidateLayout(true);
+            if (revealed?.SavedFocus is { } saved)
+            {
+                revealed.SavedFocus = null;
+                if (saved.Screen == revealed && saved.IsEffectivelyInteractive)
+                    FocusedControl = saved;
+            }
+
+            if (transition == ScreenTransition.None)
+                screen.ScreenEngine = null;
+            else
+                StartTransition(screen, transition, entering: false);
+            revealed?.RaiseNavigatedTo();
         }
+
+        // Bottom-to-top list of what is drawn: the top screen and every screen below it down to
+        // (and including) the first non-overlay one. Rebuilt on navigation, read every frame.
+        private readonly List<Screen> _visibleScreens = new List<Screen>();
+
+        internal IReadOnlyList<Screen> VisibleScreens
+        {
+            get
+            {
+                // ScreenHistory is public; resync if it was changed directly.
+                var top = ActiveScreen;
+                if (_visibleScreens.Count == 0 ? top != null : !ReferenceEquals(_visibleScreens[_visibleScreens.Count - 1], top))
+                    RebuildVisibleScreens();
+                return _visibleScreens;
+            }
+        }
+
+        /// <summary>The popped screen while its exit transition plays (drawn on top), else null.</summary>
+        internal Screen? LeavingScreen => _transitionEntering ? null : _transitionScreen;
+
+        private void RebuildVisibleScreens()
+        {
+            _visibleScreens.Clear();
+            foreach (var screen in ScreenHistory)
+            {
+                _visibleScreens.Insert(0, screen);
+                if (!screen.IsOverlay)
+                    break;
+            }
+        }
+
+        private Screen? _transitionScreen;
+        private ScreenTransition _transitionKind;
+        private bool _transitionEntering;
+        private TimeSpan _transitionStart;
+
+        private void StartTransition(Screen screen, ScreenTransition transition, bool entering)
+        {
+            if (transition == ScreenTransition.None || TransitionDuration <= TimeSpan.Zero)
+            {
+                screen.SetTransitionVisual(1, Vector2.Zero);
+                return;
+            }
+
+            _transitionScreen = screen;
+            _transitionKind = transition;
+            _transitionEntering = entering;
+            _transitionStart = ScreenSystem.TotalTime;
+            ApplyTransition(0);
+        }
+
+        private void UpdateTransition()
+        {
+            if (_transitionScreen == null)
+                return;
+
+            var elapsed = (ScreenSystem.TotalTime - _transitionStart).TotalMilliseconds;
+            var progress = (float)Math.Clamp(elapsed / Math.Max(1, TransitionDuration.TotalMilliseconds), 0, 1);
+            if (progress >= 1)
+                FinishTransition();
+            else
+                ApplyTransition(progress);
+        }
+
+        private void ApplyTransition(float progress)
+        {
+            var screen = _transitionScreen!;
+            // Ease-out cubic; leaving plays the same curve backwards.
+            var eased = 1 - (float)Math.Pow(1 - progress, 3);
+            var visible = _transitionEntering ? eased : 1 - eased;
+            var hidden = 1 - visible;
+            switch (_transitionKind)
+            {
+                case ScreenTransition.Fade:
+                    screen.SetTransitionVisual(visible, Vector2.Zero);
+                    break;
+                case ScreenTransition.SlideFromRight:
+                    screen.SetTransitionVisual(1, new Vector2(ScreenRect.Width * hidden, 0));
+                    break;
+                case ScreenTransition.SlideFromBottom:
+                    screen.SetTransitionVisual(1, new Vector2(0, ScreenRect.Height * hidden));
+                    break;
+            }
+        }
+
+        /// <summary>Jumps a running transition to its end (also before starting another one).</summary>
+        private void FinishTransition()
+        {
+            var screen = _transitionScreen;
+            if (screen == null)
+                return;
+
+            _transitionScreen = null;
+            screen.SetTransitionVisual(1, Vector2.Zero);
+            if (!_transitionEntering)
+                screen.ScreenEngine = null;
+        }
+
+        /// <summary>Whether a screen transition is currently animating.</summary>
+        public bool IsTransitioning => _transitionScreen != null;
 
         public void Update(GameTime gameTime)
         {
@@ -270,6 +432,7 @@ namespace MonoGame.PortableUI
             BatchFlushesThisFrame = 0;
             LayoutPassesThisFrame = 0;
             FramesPerSecond = gameTime.ElapsedGameTime.TotalSeconds > 0 ? 1 / gameTime.ElapsedGameTime.TotalSeconds : 0;
+            UpdateTransition();
             ActiveScreen?.Update();
         }
 

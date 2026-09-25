@@ -418,6 +418,49 @@ namespace MonoGame.PortableUI
 
         public IInputSource InputSource { get; set; } = DeviceInputSource.Instance;
 
+        /// <summary>True when pushed with <see cref="ScreenEngine.PushOverlay"/>: the screens below stay visible.</summary>
+        public bool IsOverlay { get; internal set; }
+
+        internal ScreenTransition PushTransition { get; set; }
+
+        /// <summary>Focus to restore when this screen becomes active again after an overlay/navigation.</summary>
+        internal Control? SavedFocus { get; set; }
+
+        /// <summary>Raised after this screen became the active (top) screen.</summary>
+        public event EventHandler? NavigatedTo;
+
+        /// <summary>Raised after this screen stopped being the active screen (covered or popped).</summary>
+        public event EventHandler? NavigatedFrom;
+
+        /// <summary>Called after this screen became the active (top) screen.</summary>
+        protected virtual void OnNavigatedTo()
+        {
+        }
+
+        /// <summary>Called after this screen stopped being the active screen (covered or popped).</summary>
+        protected virtual void OnNavigatedFrom()
+        {
+        }
+
+        internal void RaiseNavigatedTo()
+        {
+            OnNavigatedTo();
+            NavigatedTo?.Invoke(this, EventArgs.Empty);
+        }
+
+        internal void RaiseNavigatedFrom()
+        {
+            OnNavigatedFrom();
+            NavigatedFrom?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>Whole-screen opacity/offset for push/pop transitions (applied to the root).</summary>
+        internal void SetTransitionVisual(float opacity, Vector2 translation)
+        {
+            _mainGrid.Opacity = opacity;
+            _mainGrid.Translation = translation;
+        }
+
         internal void OnNavigationFrom(object? sender)
         {
             CancelDrag();
