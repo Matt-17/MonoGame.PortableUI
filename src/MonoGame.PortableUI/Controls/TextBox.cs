@@ -419,7 +419,8 @@ namespace MonoGame.PortableUI.Controls
                     Paste();
                     break;
                 default:
-                    throw new ArgumentOutOfRangeException();
+                    // Commands a text box has no use for (PageUp/PageDown, ...) are ignored.
+                    break;
             }
         }
 

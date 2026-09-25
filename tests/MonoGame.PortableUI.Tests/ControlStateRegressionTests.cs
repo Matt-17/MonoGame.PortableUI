@@ -333,6 +333,17 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void Textbox_ignores_commands_it_has_no_use_for()
+        {
+            var textBox = new KeyboardBackedTextBox { Text = "abc" };
+
+            textBox.Press(KeyboardCommand.PageDown);
+            textBox.Press(KeyboardCommand.Escape);
+
+            Assert.AreEqual("abc", textBox.Text);
+        }
+
+        [TestMethod]
         public void Textbox_replaces_selection_and_deletes_selection_first()
         {
             var textBox = new KeyboardBackedTextBox { Text = "abcde" };
