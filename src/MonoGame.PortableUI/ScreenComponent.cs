@@ -39,8 +39,7 @@ namespace MonoGame.PortableUI
 
         public override void Draw(GameTime gameTime)
         {
-            var screen = _screenEngine.ActiveScreen;
-            if (_spriteBatch == null || screen == null)
+            if (_spriteBatch == null || _screenEngine.ActiveScreen == null && _screenEngine.LeavingScreen == null)
                 return;
 
             var scale = _screenEngine.RenderScale;
@@ -51,7 +50,7 @@ namespace MonoGame.PortableUI
             // screen straight to the back buffer, exactly as before.
             if (!scaled)
             {
-                screen.Draw(_spriteBatch);
+                DrawScreens(_spriteBatch);
                 return;
             }
 
@@ -66,7 +65,7 @@ namespace MonoGame.PortableUI
             var previousTargets = Effects.RenderTargetHelper.SnapshotRenderTargets(GraphicsDevice, ref _previousTargets);
             GraphicsDevice.SetRenderTarget(target);
             GraphicsDevice.Clear(Color.Transparent);
-            screen.Draw(_spriteBatch);
+            DrawScreens(_spriteBatch);
 
             if (previousTargets.Length == 0)
                 GraphicsDevice.SetRenderTarget(null);
@@ -83,6 +82,16 @@ namespace MonoGame.PortableUI
             _spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.Opaque, SamplerState.LinearClamp);
             _spriteBatch.Draw(target, destination, Color.White);
             _spriteBatch.End();
+        }
+
+        /// <summary>Draws the visible stack bottom to top (overlays over the screens they cover),
+        /// then a screen that is still playing its exit transition.</summary>
+        private void DrawScreens(SpriteBatch spriteBatch)
+        {
+            var screens = _screenEngine.VisibleScreens;
+            for (var i = 0; i < screens.Count; i++)
+                screens[i].Draw(spriteBatch);
+            _screenEngine.LeavingScreen?.Draw(spriteBatch);
         }
 
         private RenderTarget2D EnsureScaleTarget(int width, int height)
