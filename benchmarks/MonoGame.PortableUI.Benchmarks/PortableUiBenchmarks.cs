@@ -17,6 +17,8 @@ namespace MonoGame.PortableUI.Benchmarks
         private Grid _stressGrid = new Grid();
         private ScrollViewer _scrollList = new ScrollViewer();
         private Control _nestedTree = new Border();
+        private WrapPanel _wrapPanel = new WrapPanel();
+        private UniformGrid _uniformGrid = new UniformGrid();
         private float _scrollDirection = 1;
         private Rect _viewport;
 
@@ -30,6 +32,29 @@ namespace MonoGame.PortableUI.Benchmarks
             _scrollList.UpdateLayout(_viewport);
             _nestedTree = CreateNestedTree(depth: 6, fanOut: 3);
             _nestedTree.UpdateLayout(_viewport);
+            _wrapPanel = new WrapPanel { HorizontalSpacing = 4, VerticalSpacing = 4 };
+            _uniformGrid = new UniformGrid { Columns = 20, Spacing = 4 };
+            for (var i = 0; i < 500; i++)
+            {
+                _wrapPanel.AddChild(new FixedSizeControl(new Size(48, 24)));
+                _uniformGrid.AddChild(new FixedSizeControl(new Size(48, 24)));
+            }
+            _wrapPanel.UpdateLayout(_viewport);
+            _uniformGrid.UpdateLayout(_viewport);
+        }
+
+        [Benchmark]
+        public Rect WrapPanelLayout500Controls()
+        {
+            _wrapPanel.UpdateLayout(_viewport);
+            return _wrapPanel.BoundingRect;
+        }
+
+        [Benchmark]
+        public Rect UniformGridLayout500Controls()
+        {
+            _uniformGrid.UpdateLayout(_viewport);
+            return _uniformGrid.BoundingRect;
         }
 
         /// <summary>Deep tree (depth 6, fan-out 3 = 729 leaves): layout cost that grows with depth
