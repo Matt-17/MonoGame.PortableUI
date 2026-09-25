@@ -5,7 +5,22 @@ namespace MonoGame.PortableUI.Controls
 {
     public class StackPanel : Panel
     {
+        private float _spacing;
+
         public Orientation Orientation { get; set; }
+
+        /// <summary>Gap inserted between neighbouring (non-collapsed) children.</summary>
+        public float Spacing
+        {
+            get => _spacing;
+            set
+            {
+                if (_spacing.Equals(value))
+                    return;
+                _spacing = Math.Max(0, value);
+                InvalidateLayout(true);
+            }
+        }
 
         public override Size MeasureLayout()
         {
@@ -16,8 +31,11 @@ namespace MonoGame.PortableUI.Controls
             // main-axis sum and cross-axis max from one MeasureLayout call each.
             float mainSum = 0;
             float crossMax = 0;
+            var visibleChildren = 0;
             foreach (var child in Children)
             {
+                if (!child.IsGone)
+                    visibleChildren++;
                 var childSize = child.Measure();
                 if (Orientation == Orientation.Vertical)
                 {
@@ -30,6 +48,9 @@ namespace MonoGame.PortableUI.Controls
                     crossMax = Math.Max(crossMax, childSize.Height);
                 }
             }
+
+            if (visibleChildren > 1)
+                mainSum += Spacing * (visibleChildren - 1);
 
             var contentWidth = Orientation == Orientation.Vertical ? crossMax : mainSum;
             var contentHeight = Orientation == Orientation.Vertical ? mainSum : crossMax;
@@ -51,9 +72,20 @@ namespace MonoGame.PortableUI.Controls
             else
                 contentRect.Width = Size.Infinity;
 
+            var placed = false;
             foreach (var child in Children)
             {
+                if (placed && !child.IsGone && Spacing > 0)
+                {
+                    if (Orientation == Orientation.Vertical)
+                        contentRect.Top += Spacing;
+                    else
+                        contentRect.Left += Spacing;
+                }
+
                 child.UpdateLayout(contentRect);
+                if (!child.IsGone)
+                    placed = true;
 
                 if (Orientation == Orientation.Vertical)
                     contentRect.Top += child.BoundingRect.Height;
