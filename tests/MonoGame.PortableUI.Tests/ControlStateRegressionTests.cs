@@ -344,6 +344,84 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void Textbox_undo_reverts_typed_words_as_one_step_and_redo_reapplies()
+        {
+            var textBox = new KeyboardBackedTextBox();
+            foreach (var c in "hello")
+                textBox.Press(c);
+            textBox.Press(' ');
+            foreach (var c in "world")
+                textBox.Press(c);
+
+            textBox.Press(KeyboardCommand.Undo);
+            Assert.AreEqual("hello ", textBox.Text);
+            textBox.Press(KeyboardCommand.Undo);
+            Assert.AreEqual("hello", textBox.Text);
+            textBox.Press(KeyboardCommand.Undo);
+            Assert.AreEqual("", textBox.Text);
+            Assert.IsFalse(textBox.CanUndo);
+
+            textBox.Press(KeyboardCommand.Redo);
+            textBox.Press(KeyboardCommand.Redo);
+            Assert.AreEqual("hello ", textBox.Text);
+            Assert.AreEqual(6, textBox.CursorPosition);
+        }
+
+        [TestMethod]
+        public void Textbox_undo_restores_deleted_selection_and_code_assignment_clears_history()
+        {
+            var textBox = new KeyboardBackedTextBox { Text = "keep this" };
+            textBox.Select(4, 5);
+            textBox.Press(KeyboardCommand.Backspace);
+            Assert.AreEqual("keep", textBox.Text);
+
+            textBox.Press(KeyboardCommand.Undo);
+            Assert.AreEqual("keep this", textBox.Text);
+
+            textBox.Text = "reset";
+            Assert.IsFalse(textBox.CanUndo);
+        }
+
+        [TestMethod]
+        public void Textbox_ctrl_arrows_jump_by_word_and_ctrl_backspace_deletes_a_word()
+        {
+            var textBox = new KeyboardBackedTextBox { Text = "one two, three" };
+            textBox.Select(textBox.Text.Length, 0);
+
+            textBox.Press(KeyboardCommand.CursorLeft, KeyboardModifiers.Control);
+            Assert.AreEqual(9, textBox.CursorPosition);
+            textBox.Press(KeyboardCommand.CursorLeft, KeyboardModifiers.Control);
+            Assert.AreEqual(7, textBox.CursorPosition);
+            textBox.Press(KeyboardCommand.CursorLeft, KeyboardModifiers.Control);
+            Assert.AreEqual(4, textBox.CursorPosition);
+
+            textBox.Press(KeyboardCommand.CursorRight, KeyboardModifiers.Control);
+            Assert.AreEqual(7, textBox.CursorPosition);
+
+            textBox.Select(textBox.Text.Length, 0);
+            textBox.Press(KeyboardCommand.Backspace, KeyboardModifiers.Control);
+            Assert.AreEqual("one two, ", textBox.Text);
+        }
+
+        [TestMethod]
+        public void Multiline_textbox_wraps_long_lines_at_word_boundaries()
+        {
+            var textBox = new TextBox
+            {
+                TextMeasurer = new CountingCharacterWidthMeasurer(10, 16),
+                IsMultiline = true,
+                TextWrapping = TextWrapping.Wrap,
+                Width = 100,
+                Height = float.NaN,
+                Padding = new Thickness(0),
+                Text = "hello world again"
+            };
+
+            // 10 px per character, 10 characters per line: "hello " | "world " | "again".
+            Assert.AreEqual(3 * 16, textBox.MeasureLayout().Height, 0.001f);
+        }
+
+        [TestMethod]
         public void Textbox_replaces_selection_and_deletes_selection_first()
         {
             var textBox = new KeyboardBackedTextBox { Text = "abcde" };

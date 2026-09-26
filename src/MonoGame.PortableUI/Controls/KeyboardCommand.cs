@@ -19,7 +19,9 @@ namespace MonoGame.PortableUI.Controls
         PageUp,
         PageDown,
         /// <summary>Context-menu key / Shift+F10 / gamepad Y: open the focused control's ContextMenu.</summary>
-        ContextMenu
+        ContextMenu,
+        Undo,
+        Redo
     }
 
     [System.Flags]
