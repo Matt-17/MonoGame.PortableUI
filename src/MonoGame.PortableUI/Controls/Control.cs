@@ -427,8 +427,6 @@ namespace MonoGame.PortableUI.Controls
 
         internal Control? ThemeOwner { get; set; }
 
-        public BackdropMode BackdropMode { get; set; } = BackdropMode.Layered;
-
         public void SuppressUpdate(bool suppress)
         {
             _suppressUpdate = suppress;
@@ -793,10 +791,25 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        /// <summary>
+        ///     The control style's Focused state may pick the focus visual per control type (e.g. a
+        ///     glow for buttons, a thick ring for text boxes); it applies while
+        ///     <see cref="FocusVisualKind"/> still has the theme-wide value, so an explicit setting wins.
+        /// </summary>
+        internal FocusVisualKind EffectiveFocusVisualKind
+        {
+            get
+            {
+                if (ResolveStyle()?.Focused.FocusVisualKind is { } styled && FocusVisualKind == ResolveTheme().FocusVisualKind)
+                    return styled;
+                return FocusVisualKind;
+            }
+        }
+
         protected internal virtual void OnDrawOverlay(SpriteBatch spriteBatch, Rect rect)
         {
             if (ShowFocusVisual && IsFocused && FocusBorderWidth > 0 && FocusBorderBrush != null)
-                DrawFocusVisual(spriteBatch, rect, FocusBorderWidth, FocusBorderBrush, FocusVisualKind, RenderOpacity);
+                DrawFocusVisual(spriteBatch, rect, FocusBorderWidth, FocusBorderBrush, EffectiveFocusVisualKind, RenderOpacity);
 
             if (!IsEnabled && DisabledOverlayBrush is { } disabledOverlay)
             {

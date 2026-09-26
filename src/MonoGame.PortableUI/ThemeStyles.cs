@@ -11,8 +11,8 @@ namespace MonoGame.PortableUI
     {
         public string FontName { get; set; } = "default";
         public int TextSize { get; set; } = 14;
+        /// <summary>Text size of <see cref="Controls.TextBlock"/>s with <c>IsHeading</c> set.</summary>
         public int HeadingSize { get; set; } = 16;
-        public float HeadingScale { get; set; } = 1.15f;
     }
 
     public sealed class ThemeMetrics
@@ -30,7 +30,6 @@ namespace MonoGame.PortableUI
         private Brush? _borderBrush;
         private Thickness? _borderThickness;
         private CornerRadius? _cornerRadius;
-        private CornerStyle? _cornerStyle;
         private ShadowStyle[]? _shadows;
         private Color? _textColor;
         private FocusVisualKind? _focusVisualKind;
@@ -43,7 +42,6 @@ namespace MonoGame.PortableUI
         public Brush? BorderBrush { get => _borderBrush; set { _borderBrush = value; Version++; } }
         public Thickness? BorderThickness { get => _borderThickness; set { _borderThickness = value; Version++; } }
         public CornerRadius? CornerRadius { get => _cornerRadius; set { _cornerRadius = value; Version++; } }
-        public CornerStyle? CornerStyle { get => _cornerStyle; set { _cornerStyle = value; Version++; } }
         public ShadowStyle[]? Shadows { get => _shadows; set { _shadows = value; Version++; } }
         public Color? TextColor { get => _textColor; set { _textColor = value; Version++; } }
         public FocusVisualKind? FocusVisualKind { get => _focusVisualKind; set { _focusVisualKind = value; Version++; } }
@@ -59,7 +57,6 @@ namespace MonoGame.PortableUI
                 BorderBrush = BorderBrush ?? normal.BorderBrush,
                 BorderThickness = BorderThickness ?? normal.BorderThickness,
                 CornerRadius = CornerRadius ?? normal.CornerRadius,
-                CornerStyle = CornerStyle ?? normal.CornerStyle,
                 Shadows = Shadows ?? normal.Shadows,
                 TextColor = TextColor ?? normal.TextColor,
                 FocusVisualKind = FocusVisualKind ?? normal.FocusVisualKind
@@ -86,6 +83,8 @@ namespace MonoGame.PortableUI
         public StateStyle Focused { get => _focused; set { _focused = value; _slotVersion++; } }
         public StateStyle Disabled { get => _disabled; set { _disabled = value; _slotVersion++; } }
         public StateStyle Checked { get => _checked; set { _checked = value; _slotVersion++; } }
+        /// <summary>Duration of state animations (the button press/release animation); zero turns them off
+        /// (reduced motion).</summary>
         public TimeSpan TransitionDuration { get; set; } = TimeSpan.FromMilliseconds(120);
 
         // Versions only ever increment, so the sum strictly increases on any mutation.

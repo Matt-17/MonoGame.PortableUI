@@ -256,7 +256,7 @@ namespace MonoGame.PortableUI
         /// <summary>
         ///     Pushes <paramref name="screen"/> on top of the current one without hiding it (pause
         ///     menu over the HUD, dialogs). The screens below keep being drawn but are frozen: only
-        ///     the top screen updates and receives input. Close it with <see cref="NavigateBack"/>.
+        ///     the top screen updates and receives input. Close it with <see cref="NavigateBack()"/>.
         /// </summary>
         public void PushOverlay(Screen screen, ScreenTransition transition = ScreenTransition.Fade)
         {

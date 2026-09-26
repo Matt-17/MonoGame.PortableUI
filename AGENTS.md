@@ -76,6 +76,12 @@ past the threshold cancels the child's pending click. Hit-testing uses `Clipping
 `ScreenEngine.FocusedControl` (currently a process-global static — see audit A1); only controls with
 `IsFocusable` take focus on left-mouse-down. Enter/Space activate the focused clickable control.
 `ScreenSystem.TotalTime` is the global clock for animations, timers, caret blink, and double-click.
+Arrow keys and the gamepad (`IInputSource.GamePad`: D-pad/stick, A, B, Y, shoulders) are screen-level:
+a direction the focused control does not claim via `HandlesDirection` moves focus spatially
+(`Screen.MoveFocus`) and scrolls it into view; Escape/B close the open popup or raise
+`Screen.BackRequested`. Popups opened from keyboard/gamepad take focus and return it on close.
+Navigation: `NavigateToScreen` / `PushOverlay` (screens below stay drawn, frozen) with `ScreenTransition`;
+`OnNavigatedTo`/`OnNavigatedFrom` hooks; focus is restored on `NavigateBack`.
 
 ## Implementing a control
 

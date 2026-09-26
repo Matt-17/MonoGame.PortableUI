@@ -138,7 +138,6 @@ public static class ThemeBuilder
                 }
                 if (liquid)
                 {
-                    theme.Panel.Normal.CornerStyle = CornerStyle.Squircle;
                     theme.Panel.Normal.CornerRadius = 20;
                 }
                 return theme;
