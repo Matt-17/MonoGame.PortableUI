@@ -126,6 +126,26 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        private bool _isHeading;
+
+        /// <summary>
+        ///     Marks the block as a heading: its <see cref="TextSize"/> follows the theme's
+        ///     <see cref="Typography.HeadingSize"/> (re-applied on theme switches unless TextSize was
+        ///     changed explicitly afterwards).
+        /// </summary>
+        public bool IsHeading
+        {
+            get => _isHeading;
+            set
+            {
+                if (_isHeading == value)
+                    return;
+                _isHeading = value;
+                var typography = ResolveTheme().Typography;
+                TextSize = value ? typography.HeadingSize : typography.TextSize;
+            }
+        }
+
         public int TextSize
         {
             get { return _textSize; }
@@ -312,8 +332,15 @@ namespace MonoGame.PortableUI.Controls
 
             if (TextColor.Equals(oldTheme.TextColor))
                 TextColor = newTheme.TextColor;
-            if (TextSize == oldTheme.TextSize)
+            if (IsHeading)
+            {
+                if (TextSize == oldTheme.Typography.HeadingSize)
+                    TextSize = newTheme.Typography.HeadingSize;
+            }
+            else if (TextSize == oldTheme.TextSize)
+            {
                 TextSize = newTheme.TextSize;
+            }
 
             var font = TryResolveThemeFont(newTheme);
             if (_fontOverride == null && font != null && !ReferenceEquals(Font, font))

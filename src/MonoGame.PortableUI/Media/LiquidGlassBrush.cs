@@ -18,7 +18,6 @@ namespace MonoGame.PortableUI.Media
         public float EdgeRefractionStrength { get; set; } = 0.018f;
         public float SpecularSweepStrength { get; set; } = 0.28f;
         public float SpecularSweepSpeed { get; set; } = 0.08f;
-        public CornerStyle CornerStyle { get; set; } = CornerStyle.Squircle;
 
         public override void Draw(SpriteBatch spriteBatch, in BrushContext context)
         {

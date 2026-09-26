@@ -98,6 +98,61 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void Heading_text_blocks_follow_the_theme_heading_size()
+        {
+            var themeA = PortableTheme.CreateDefault();
+            themeA.Typography.HeadingSize = 22;
+            var themeB = PortableTheme.CreateDefault();
+            themeB.Typography.HeadingSize = 30;
+            var island = new ThemeIsland { Theme = themeA };
+            var heading = new TextBlock { Text = "Title" };
+            island.Content = heading;
+            heading.RefreshThemeResources();
+
+            heading.IsHeading = true;
+            Assert.AreEqual(22, heading.TextSize);
+
+            island.Theme = themeB;
+            heading.RefreshThemeResources();
+            Assert.AreEqual(30, heading.TextSize);
+        }
+
+        [TestMethod]
+        public void Zero_transition_duration_applies_the_press_state_without_animating()
+        {
+            var theme = PortableTheme.CreateDefault();
+            theme.Button.TransitionDuration = System.TimeSpan.Zero;
+            var island = new ThemeIsland { Theme = theme };
+            var button = new Button { Text = "Go", Width = 100, Height = 40 };
+            island.Content = button;
+            button.RefreshThemeResources();
+            island.UpdateLayout(new Rect(0, 0, 200, 100));
+
+            button.OnTouchDown(new MonoGame.PortableUI.Controls.Events.TouchEventArgs(new PointF(10, 10)));
+
+            Assert.IsTrue(button.Scale.X < 1, "pressed scale is applied immediately");
+        }
+
+        [TestMethod]
+        public void Focused_state_style_picks_the_focus_visual_unless_set_on_the_control()
+        {
+            var theme = PortableTheme.CreateDefault();
+            theme.Button.Focused.FocusVisualKind = FocusVisualKind.Glow;
+            var island = new ThemeIsland { Theme = theme };
+            var styled = new Button();
+            var overridden = new Button { FocusVisualKind = FocusVisualKind.Dotted };
+            var stack = new StackPanel();
+            stack.AddChild(styled);
+            stack.AddChild(overridden);
+            island.Content = stack;
+            styled.RefreshThemeResources();
+            overridden.RefreshThemeResources();
+
+            Assert.AreEqual(FocusVisualKind.Glow, styled.EffectiveFocusVisualKind);
+            Assert.AreEqual(FocusVisualKind.Dotted, overridden.EffectiveFocusVisualKind);
+        }
+
+        [TestMethod]
         public void Theme_switch_preserves_user_overrides()
         {
             var themeA = CreateTheme(Color.Yellow, new SolidColorBrush(Color.Red));

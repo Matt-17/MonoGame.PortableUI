@@ -257,7 +257,10 @@ namespace MonoGame.PortableUI.Controls
                 return;
 
             _isPressedVisualState = isPressed;
-            var duration = TimeSpan.FromMilliseconds(isPressed ? 70 : 90);
+            // The style's transition duration drives the press animation (press a bit faster than
+            // release); zero (reduced-motion themes) jumps straight to the target.
+            var transition = ResolveStyle()?.TransitionDuration ?? TimeSpan.FromMilliseconds(120);
+            var duration = TimeSpan.FromMilliseconds(transition.TotalMilliseconds * (isPressed ? 0.6 : 0.75));
             Vector2 targetScale;
             Vector2 targetTranslation;
 
@@ -276,6 +279,13 @@ namespace MonoGame.PortableUI.Controls
             {
                 targetScale = _pressedScaleOrigin == Vector2.Zero ? Vector2.One : _pressedScaleOrigin;
                 targetTranslation = _pressedTranslationOrigin;
+            }
+
+            if (duration <= TimeSpan.Zero)
+            {
+                Scale = targetScale;
+                Translation = targetTranslation;
+                return;
             }
 
             this.Animate()
