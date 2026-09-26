@@ -1,5 +1,27 @@
 # Changelog
 
+## Unreleased
+
+### Breaking changes
+- Removed `CornerStyle` (enum, `StateStyle.CornerStyle`, `LiquidGlassBrush.CornerStyle`): squircle/cut corners were never rendered.
+- Removed `Control.BackdropMode` and the `BackdropMode` enum: `GrabPass` was not implemented.
+- Removed `Typography.HeadingScale`; use `Typography.HeadingSize` with the new `TextBlock.IsHeading`.
+- `IInputSource` gained `GamePad` (default interface member, existing implementations keep compiling).
+- Arrow keys / D-pad directions a focused control does not use itself (`Control.HandlesDirection`) now move focus spatially; `Slider` keeps only Left/Right.
+- `ListBox` calls `ToString()` only for new or replaced items; call `Refresh()` after editing items in place (as documented).
+
+### Added
+- Gamepad support and spatial focus navigation: D-pad/left stick/arrow keys move focus to the nearest control, A activates, B/Escape close the open popup or raise `Screen.BackRequested`, shoulders step through tab stops, Y / context-menu key / Shift+F10 open a context menu. Focused controls scroll into view.
+- Keyboard and gamepad control of popups: menus and the ComboBox dropdown take focus when opened from the keyboard, Enter activates, focus returns to the opener on close; `ListBox`/`DataGrid` support PageUp/PageDown/Home/End.
+- `ScreenEngine.PushOverlay` (screens below stay visible, frozen), `ScreenTransition` (Fade, SlideFromRight, SlideFromBottom) for push/pop, `Screen.OnNavigatedTo`/`OnNavigatedFrom` hooks and events, focus restored when navigating back.
+- `WrapPanel`, `UniformGrid` and `StackPanel.Spacing`.
+- `TextBox`: undo/redo (Ctrl+Z, Ctrl+Y/Ctrl+Shift+Z), word navigation and deletion (Ctrl+arrows, Ctrl+Backspace/Delete), word wrap for multiline boxes (`TextWrapping.Wrap`).
+- `ControlStyle.TransitionDuration` drives the button press animation (zero = no animation); `StateStyle.FocusVisualKind` of the Focused state selects the focus visual; `TextBlock.IsHeading` uses `Typography.HeadingSize`.
+
+### Changed
+- Large layout/render performance work: per-pass measure cache, scroll shifting instead of re-layout, allocation-free visual-child walks, 9-sliced translucent rounded fills, cached text metrics (Grid layout of 500 controls 414 µs → 26 µs).
+- Many control fixes (fonts without a default character, theme fonts, hit-test order, touch panning in lists, Min/Max constraints, focus on hidden/removed controls, nested scrolling, navigation layout, popup layout, theme switching, RadioButton groups, selection after item removal, DataGrid template cells, TabControl clipping).
+
 ## 0.3.0-alpha.1
 
 - Solution, library and packages moved to **.NET 10**. The NuGet packages now ship `net10.0` and `net10.0-android36.0` assemblies instead of `net8.0`.

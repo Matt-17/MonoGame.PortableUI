@@ -125,7 +125,6 @@ namespace MonoGame.PortableUI.Tests
             Assert.IsTrue(liquid.RequiresBackdrop);
             Assert.IsTrue(liquid.EdgeRefractionStrength > 0);
             Assert.IsTrue(liquid.SpecularSweepStrength > 0);
-            Assert.AreEqual(CornerStyle.Squircle, liquid.CornerStyle);
             Assert.IsTrue(liquid.SaturationBoost > acrylic.SaturationBoost);
         }
 
