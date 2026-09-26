@@ -1530,6 +1530,10 @@ namespace MonoGame.PortableUI
                         return KeyboardCommand.Cut;
                     case Keys.V:
                         return KeyboardCommand.Paste;
+                    case Keys.Z:
+                        return (modifiers & KeyboardModifiers.Shift) != 0 ? KeyboardCommand.Redo : KeyboardCommand.Undo;
+                    case Keys.Y:
+                        return KeyboardCommand.Redo;
                 }
             }
 

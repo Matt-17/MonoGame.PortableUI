@@ -114,6 +114,7 @@ namespace MonoGame.PortableUI.Controls
 
                 var oldText = base.Text;
                 base.Text = normalized;
+                ClearUndoHistory();
                 InvalidateLineMetrics();
                 ClampSelection();
                 ResetDesiredCursorX();
@@ -249,6 +250,7 @@ namespace MonoGame.PortableUI.Controls
             foreach (var lineMetric in cache.LineMetrics)
                 measuredWidth = Math.Max(measuredWidth, lineMetric.Width);
 
+            _measuredLineCount = cache.Lines.Count;
             var measuredHeight = Math.Max(lineHeight, cache.Lines.Count * lineHeight);
             var width = Width.IsFixed() ? Width : measuredWidth + Padding.Horizontal;
             var height = Height.IsFixed() ? Height : measuredHeight + Padding.Vertical;
@@ -261,7 +263,21 @@ namespace MonoGame.PortableUI.Controls
         {
             base.UpdateLayout(rect);
             EnsureCursorVisible();
+
+            // Auto-height wrapping box: the wrap width is only known after arranging, so a changed
+            // soft-line count needs another measure.
+            if (!Height.IsFixed() && GetWrapWidth().IsFixed())
+            {
+                var lineCount = GetLineMetricsCache().Lines.Count;
+                if (lineCount != _measuredLineCount)
+                {
+                    _measuredLineCount = lineCount;
+                    InvalidateLayout(true);
+                }
+            }
         }
+
+        private int _measuredLineCount = -1;
 
         private void OnClick(object? sender, EventArgs eventArgs)
         {
@@ -369,16 +385,34 @@ namespace MonoGame.PortableUI.Controls
             switch (command)
             {
                 case KeyboardCommand.Backspace:
-                    Backspace();
+                    if (control && !HasSelection)
+                        DeleteWordBackward();
+                    else
+                        Backspace();
                     break;
                 case KeyboardCommand.Delete:
-                    Delete();
+                    if (control && !HasSelection)
+                        DeleteWordForward();
+                    else
+                        Delete();
+                    break;
+                case KeyboardCommand.Undo:
+                    Undo();
+                    break;
+                case KeyboardCommand.Redo:
+                    Redo();
                     break;
                 case KeyboardCommand.Enter:
                     if (IsMultiline && !control)
                         InsertText("\n");
                     else
                         EnterPressed?.Invoke(this, EventArgs.Empty);
+                    break;
+                case KeyboardCommand.CursorLeft when control:
+                    MoveCursorTo(PreviousWordStart(CursorPosition), shift);
+                    break;
+                case KeyboardCommand.CursorRight when control:
+                    MoveCursorTo(NextWordStart(CursorPosition), shift);
                     break;
                 case KeyboardCommand.CursorLeft:
                     // Without Shift an existing selection collapses to its edge (standard editors).
@@ -557,6 +591,7 @@ namespace MonoGame.PortableUI.Controls
 
             if (base.Text != newText)
             {
+                RecordUndo(rangeStart, rangeEnd - rangeStart, normalizedReplacement);
                 var oldText = base.Text;
                 base.Text = newText;
                 InvalidateLineMetrics();
@@ -567,6 +602,140 @@ namespace MonoGame.PortableUI.Controls
             _selectionAnchor = _cursorPosition;
             ResetDesiredCursorX();
             EnsureCursorVisible();
+        }
+
+        // ---- Undo / redo -------------------------------------------------------------------
+        // Snapshots of (text, caret, anchor) before each user edit. Consecutive typed characters
+        // merge into one step, like common editors; setting Text in code clears the history.
+
+        private readonly struct EditSnapshot
+        {
+            public EditSnapshot(string text, int cursor, int anchor)
+            {
+                Text = text;
+                Cursor = cursor;
+                Anchor = anchor;
+            }
+
+            public string Text { get; }
+            public int Cursor { get; }
+            public int Anchor { get; }
+        }
+
+        private const int MaxUndoSteps = 100;
+        private readonly List<EditSnapshot> _undoStack = new List<EditSnapshot>();
+        private readonly List<EditSnapshot> _redoStack = new List<EditSnapshot>();
+        private bool _lastEditWasTyping;
+        private int _lastTypingEnd = -1;
+
+        public bool CanUndo => _undoStack.Count > 0;
+
+        public bool CanRedo => _redoStack.Count > 0;
+
+        private void RecordUndo(int start, int removedLength, string inserted)
+        {
+            var isTyping = removedLength == 0 && inserted.Length == 1 && !char.IsWhiteSpace(inserted[0]);
+            var continuesTyping = isTyping && _lastEditWasTyping && start == _lastTypingEnd;
+            if (!continuesTyping)
+            {
+                _undoStack.Add(new EditSnapshot(base.Text, _cursorPosition, _selectionAnchor));
+                if (_undoStack.Count > MaxUndoSteps)
+                    _undoStack.RemoveAt(0);
+            }
+
+            _redoStack.Clear();
+            _lastEditWasTyping = isTyping;
+            _lastTypingEnd = start + inserted.Length;
+        }
+
+        private void ClearUndoHistory()
+        {
+            _undoStack.Clear();
+            _redoStack.Clear();
+            _lastEditWasTyping = false;
+        }
+
+        public void Undo()
+        {
+            if (IsReadOnly || _undoStack.Count == 0)
+                return;
+            _redoStack.Add(new EditSnapshot(base.Text, _cursorPosition, _selectionAnchor));
+            var snapshot = _undoStack[_undoStack.Count - 1];
+            _undoStack.RemoveAt(_undoStack.Count - 1);
+            RestoreSnapshot(snapshot);
+        }
+
+        public void Redo()
+        {
+            if (IsReadOnly || _redoStack.Count == 0)
+                return;
+            _undoStack.Add(new EditSnapshot(base.Text, _cursorPosition, _selectionAnchor));
+            var snapshot = _redoStack[_redoStack.Count - 1];
+            _redoStack.RemoveAt(_redoStack.Count - 1);
+            RestoreSnapshot(snapshot);
+        }
+
+        private void RestoreSnapshot(EditSnapshot snapshot)
+        {
+            var oldText = base.Text;
+            base.Text = snapshot.Text;
+            InvalidateLineMetrics();
+            _cursorPosition = ClampTextPosition(snapshot.Cursor);
+            _selectionAnchor = ClampTextPosition(snapshot.Anchor);
+            _lastEditWasTyping = false;
+            ResetDesiredCursorX();
+            EnsureCursorVisible();
+            if (oldText != snapshot.Text)
+                OnTextChanged(new TextChangedEventArgs(snapshot.Text, oldText));
+        }
+
+        // ---- Word navigation ----------------------------------------------------------------
+
+        private static int CharClass(char c) => char.IsWhiteSpace(c) ? 0 : char.IsLetterOrDigit(c) || c == '_' ? 1 : 2;
+
+        /// <summary>Start of the word left of <paramref name="position"/> (Ctrl+Left).</summary>
+        internal int PreviousWordStart(int position)
+        {
+            var i = ClampTextPosition(position);
+            while (i > 0 && CharClass(Text[i - 1]) == 0)
+                i--;
+            if (i == 0)
+                return 0;
+            var wordClass = CharClass(Text[i - 1]);
+            while (i > 0 && CharClass(Text[i - 1]) == wordClass)
+                i--;
+            return i;
+        }
+
+        /// <summary>Start of the next word right of <paramref name="position"/> (Ctrl+Right).</summary>
+        internal int NextWordStart(int position)
+        {
+            var i = ClampTextPosition(position);
+            if (i < Text.Length && CharClass(Text[i]) != 0)
+            {
+                var wordClass = CharClass(Text[i]);
+                while (i < Text.Length && CharClass(Text[i]) == wordClass)
+                    i++;
+            }
+            while (i < Text.Length && CharClass(Text[i]) == 0 && Text[i] != '\n')
+                i++;
+            return i;
+        }
+
+        private void DeleteWordBackward()
+        {
+            if (IsReadOnly || CursorPosition == 0)
+                return;
+            var start = PreviousWordStart(CursorPosition);
+            ReplaceRange(start, CursorPosition - start, "");
+        }
+
+        private void DeleteWordForward()
+        {
+            if (IsReadOnly || CursorPosition >= Text.Length)
+                return;
+            var end = NextWordStart(CursorPosition);
+            ReplaceRange(CursorPosition, end - CursorPosition, "");
         }
 
         private void MoveCursorTo(int position, bool extendSelection)
@@ -1005,24 +1174,31 @@ namespace MonoGame.PortableUI.Controls
         {
             var cache = _lineMetricsCache;
             var fontScale = FontScale;
+            var wrapWidth = GetWrapWidth();
             if (cache != null
                 && ReferenceEquals(cache.Text, Text)
                 && cache.PasswordChar == PasswordChar
                 && ReferenceEquals(cache.Font, Font)
                 && ReferenceEquals(cache.TextMeasurer, TextMeasurer)
-                && cache.FontScale.Equals(fontScale))
+                && cache.FontScale.Equals(fontScale)
+                && cache.WrapWidth.Equals(wrapWidth))
             {
                 return cache;
             }
 
             var displayText = GetDisplayText();
             var lines = GetTextLines(Text);
+            if (wrapWidth.IsFixed())
+                lines = WrapLines(displayText, lines, wrapWidth);
             var lineMetrics = new LineMetric[lines.Count];
             for (var i = 0; i < lines.Count; i++)
                 lineMetrics[i] = CreateLineMetric(displayText, lines[i]);
 
             var lineHeight = Math.Max(1, MeasureText("|").Y);
-            _lineMetricsCache = new LineMetricsCache(Text, displayText, PasswordChar, Font, TextMeasurer, fontScale, lineHeight, lines, lineMetrics);
+            _lineMetricsCache = new LineMetricsCache(Text, displayText, PasswordChar, Font, TextMeasurer, fontScale, lineHeight, lines, lineMetrics)
+            {
+                WrapWidth = wrapWidth
+            };
             return _lineMetricsCache;
         }
 
@@ -1070,6 +1246,54 @@ namespace MonoGame.PortableUI.Controls
         private void InvalidateLineMetrics()
         {
             _lineMetricsCache = null;
+        }
+
+        /// <summary>Width soft lines wrap at: multiline + <see cref="TextWrapping.Wrap"/> only, from
+        /// the fixed width or else the arranged text area; NaN = no wrapping.</summary>
+        private float GetWrapWidth()
+        {
+            if (!IsMultiline || TextWrapping != TextWrapping.Wrap)
+                return float.NaN;
+            var width = Width.IsFixed() ? Width - Padding.Horizontal : GetTextRect().Width;
+            if (RenderScale.X > 0)
+                width /= RenderScale.X;
+            return width > 0 ? width : float.NaN;
+        }
+
+        /// <summary>Splits hard lines into soft lines no wider than <paramref name="wrapWidth"/>,
+        /// breaking after the last space that fits, or inside a word that is wider than a line.</summary>
+        private List<TextLine> WrapLines(string displayText, List<TextLine> hardLines, float wrapWidth)
+        {
+            var result = new List<TextLine>(hardLines.Count);
+            foreach (var hard in hardLines)
+            {
+                var lineStart = hard.Start;
+                var end = hard.Start + hard.Length;
+                var width = 0f;
+                var lastBreak = -1;
+                for (var i = hard.Start; i < end; i++)
+                {
+                    var charWidth = MeasureCharWidth(displayText[i]);
+                    if (width + charWidth > wrapWidth && i > lineStart)
+                    {
+                        var breakAt = lastBreak > lineStart ? lastBreak : i;
+                        result.Add(new TextLine(lineStart, breakAt - lineStart));
+                        lineStart = breakAt;
+                        lastBreak = -1;
+                        width = 0;
+                        for (var j = lineStart; j < i; j++)
+                            width += MeasureCharWidth(displayText[j]);
+                    }
+
+                    width += charWidth;
+                    if (char.IsWhiteSpace(displayText[i]))
+                        lastBreak = i + 1;
+                }
+
+                result.Add(new TextLine(lineStart, end - lineStart));
+            }
+
+            return result;
         }
 
         private static List<TextLine> GetTextLines(string text)
@@ -1127,6 +1351,8 @@ namespace MonoGame.PortableUI.Controls
             }
 
             public char? PasswordChar { get; }
+
+            public float WrapWidth { get; init; } = float.NaN;
 
             public float FontScale { get; }
 
