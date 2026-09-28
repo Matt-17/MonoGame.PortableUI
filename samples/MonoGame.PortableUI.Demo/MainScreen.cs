@@ -436,6 +436,17 @@ namespace MonoGame.PortableUI.Demo
             };
 
             var controls = PanelStack("Visual FX");
+            // PathShape: one geometry rasterized crisp at two sizes.
+            var star = new PathGeometry(100, 100)
+                .MoveTo(50, 5).LineTo(61, 38).LineTo(95, 38).LineTo(68, 59)
+                .LineTo(79, 92).LineTo(50, 72).LineTo(21, 92).LineTo(32, 59)
+                .LineTo(5, 38).LineTo(39, 38).Close();
+            controls.AddChild(Label("PathShape at two sizes", Palette.MutedText));
+            var shapes = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12 };
+            shapes.AddChild(new PathShape { Geometry = star, Fill = Palette.Secondary, Stroke = Palette.Text, StrokeWidth = 3, Width = 32, Height = 32, VerticalAlignment = VerticalAlignment.Center });
+            shapes.AddChild(new PathShape { Geometry = star, Fill = Palette.Secondary, Stroke = Palette.Text, StrokeWidth = 3, Width = 72, Height = 72 });
+            controls.AddChild(shapes);
+
             var gradient = new LinearGradientBrush(
                 new GradientStop(0, Palette.Primary),
                 new GradientStop(0.55f, Palette.Secondary),
