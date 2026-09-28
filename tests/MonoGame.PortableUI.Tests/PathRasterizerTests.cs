@@ -1,5 +1,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.Xna.Framework;
+using MonoGame.PortableUI.Common;
+using MonoGame.PortableUI.Controls;
 using MonoGame.PortableUI.Media;
 
 namespace MonoGame.PortableUI.Tests
@@ -54,6 +56,29 @@ namespace MonoGame.PortableUI.Tests
 
             Assert.IsTrue(pixels[2 * 10 + 5].A > 0, "top edge is stroked");
             Assert.AreEqual(0, pixels[5 * 10 + 5].A, "inside stays empty");
+        }
+
+        [TestMethod]
+        public void Clip_to_corner_radius_follows_the_inner_edge_of_the_border()
+        {
+            var border = new Border { CornerRadius = new CornerRadius(12), BorderThickness = new Thickness(2) };
+            Assert.IsNull(border.EffectiveClip, "off by default");
+
+            border.ClipToCornerRadius = true;
+            var clip = (RoundedRectClip)border.EffectiveClip!;
+
+            Assert.AreEqual(10, clip.Radius.TopLeft, 0.001f);
+            Assert.AreEqual(2, clip.Inset.Left, 0.001f);
+            Assert.AreEqual(ClipMode.Inside, clip.Mode);
+        }
+
+        [TestMethod]
+        public void An_explicit_clip_wins_over_the_corner_radius_clip()
+        {
+            var shape = new PathClip(new PathGeometry(10, 10).AddEllipse(5, 5, 4, 4), ClipMode.Outside);
+            var border = new Border { CornerRadius = new CornerRadius(12), ClipToCornerRadius = true, Clip = shape };
+
+            Assert.AreSame(shape, border.EffectiveClip);
         }
 
         [TestMethod]

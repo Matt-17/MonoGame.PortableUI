@@ -115,6 +115,19 @@ namespace MonoGame.PortableUI
             }
         }
 
+        private ClipLayerPool? _clipLayers;
+
+        /// <summary>Offscreen layers for non-rectangular clips, bound to <paramref name="device"/>.</summary>
+        internal ClipLayerPool GetClipLayers(Microsoft.Xna.Framework.Graphics.GraphicsDevice device)
+        {
+            if (_clipLayers == null || !ReferenceEquals(_clipLayers.GraphicsDevice, device))
+            {
+                _clipLayers?.Dispose();
+                _clipLayers = new ClipLayerPool(device);
+            }
+            return _clipLayers;
+        }
+
         public bool DebugOverlayEnabled { get; private set; }
 
         public double FramesPerSecond { get; private set; }

@@ -447,6 +447,33 @@ namespace MonoGame.PortableUI.Demo
             shapes.AddChild(new PathShape { Geometry = star, Fill = Palette.Secondary, Stroke = Palette.Text, StrokeWidth = 3, Width = 72, Height = 72 });
             controls.AddChild(shapes);
 
+            // Non-rectangular clipping: rounded rect, path, outside (hole), nested.
+            controls.AddChild(Label("Clipping (round, path, hole, nested)", Palette.MutedText));
+            var clips = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Thickness(0, 4, 0, 8) };
+            Border ClipSample(ClipShape clip) => new Border
+            {
+                Width = 60,
+                Height = 60,
+                Clip = clip,
+                BackgroundBrush = new LinearGradientBrush(
+                    new GradientStop(0, Palette.Primary),
+                    new GradientStop(1, Palette.Secondary)) { AngleDegrees = 45 },
+                Content = new TextBlock { Text = "Clip", TextColor = Palette.Text, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center }
+            };
+            clips.AddChild(ClipSample(new RoundedRectClip(new CornerRadius(18))));
+            clips.AddChild(ClipSample(new PathClip(star)));
+            clips.AddChild(ClipSample(new PathClip(new PathGeometry(60, 60).AddEllipse(30, 30, 16, 16), ClipMode.Outside)));
+            var nested = ClipSample(new RoundedRectClip(new CornerRadius(30)));
+            nested.Content = new Border
+            {
+                Clip = new PathClip(new PathGeometry(60, 60).MoveTo(0, 0).LineTo(60, 0).LineTo(0, 60).Close()),
+                BackgroundBrush = new SolidColorBrush(Palette.Danger),
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch
+            };
+            clips.AddChild(nested);
+            controls.AddChild(clips);
+
             var gradient = new LinearGradientBrush(
                 new GradientStop(0, Palette.Primary),
                 new GradientStop(0.55f, Palette.Secondary),

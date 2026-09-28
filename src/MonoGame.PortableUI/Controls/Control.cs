@@ -297,6 +297,42 @@ namespace MonoGame.PortableUI.Controls
         protected internal virtual bool ClipsDescendants => false;
 
         /// <summary>
+        ///     Non-rectangular clip for this control and everything it contains: a rounded rectangle,
+        ///     a path, inside or outside (<see cref="ClipShape.Mode"/>). Nested clips intersect.
+        ///     Costs an offscreen layer while set, so use it for panels/images, not every label.
+        /// </summary>
+        public ClipShape? Clip { get; set; }
+
+        /// <summary>Clips the content to the inner edge of this control's rounded border
+        /// (<see cref="CornerRadius"/> minus <see cref="BorderThickness"/>).</summary>
+        public bool ClipToCornerRadius { get; set; }
+
+        private RoundedRectClip? _cornerClip;
+
+        internal ClipShape? EffectiveClip
+        {
+            get
+            {
+                if (Clip != null)
+                    return Clip;
+                if (!ClipToCornerRadius)
+                    return null;
+                var radius = CornerRadius;
+                if (radius.IsEmpty)
+                    return null;
+                var border = BorderThickness;
+                _cornerClip ??= new RoundedRectClip();
+                _cornerClip.Inset = border;
+                _cornerClip.Radius = new CornerRadius(
+                    Math.Max(0, radius.TopLeft - Math.Max(border.Left, border.Top)),
+                    Math.Max(0, radius.TopRight - Math.Max(border.Right, border.Top)),
+                    Math.Max(0, radius.BottomRight - Math.Max(border.Right, border.Bottom)),
+                    Math.Max(0, radius.BottomLeft - Math.Max(border.Left, border.Bottom)));
+                return _cornerClip;
+            }
+        }
+
+        /// <summary>
         ///     Whether this control uses the given arrow/D-pad direction itself while focused (caret,
         ///     list selection, slider value). Directions it does not use move focus spatially to the
         ///     nearest focusable control instead.
