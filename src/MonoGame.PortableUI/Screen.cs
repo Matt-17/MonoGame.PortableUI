@@ -627,6 +627,10 @@ namespace MonoGame.PortableUI
             if (control is ThemeIsland island && TryComposeIslandPostFx(spriteBatch, island, parentContext, context))
                 return;
 
+            if (!ReferenceEquals(control, _clipInProgress) && control.EffectiveClip is { } clip
+                && TryDrawClipped(spriteBatch, control, clip, parentContext, context))
+                return;
+
             var oldRect = new Rect(spriteBatch.GraphicsDevice.ScissorRectangle);
             control.SetRenderState(context.Opacity, context.Scale);
             spriteBatch.GraphicsDevice.ScissorRectangle = ToScissorRectangle(context.ScissorRect);
@@ -712,6 +716,89 @@ namespace MonoGame.PortableUI
             var barrel = FindEnabledBarrel(effects);
             if (barrel != null)
                 _distortedIslands.Add((islandRect, MathHelper.Clamp(barrel.Distortion, 0, 0.5f)));
+            return true;
+        }
+
+        private Control? _clipInProgress;
+        private int _clipDepth;
+
+        // dest *= mask alpha (keep inside) / dest *= 1 - mask alpha (keep outside). Premultiplied
+        // content scales correctly in all four channels.
+        private static readonly BlendState ClipInsideBlend = new BlendState
+        {
+            ColorSourceBlend = Blend.Zero,
+            AlphaSourceBlend = Blend.Zero,
+            ColorDestinationBlend = Blend.SourceAlpha,
+            AlphaDestinationBlend = Blend.SourceAlpha
+        };
+
+        private static readonly BlendState ClipOutsideBlend = new BlendState
+        {
+            ColorSourceBlend = Blend.Zero,
+            AlphaSourceBlend = Blend.Zero,
+            ColorDestinationBlend = Blend.InverseSourceAlpha,
+            AlphaDestinationBlend = Blend.InverseSourceAlpha
+        };
+
+        /// <summary>
+        ///     Draws a control with a non-rectangular <see cref="Control.Clip"/>: the subtree goes into
+        ///     an offscreen layer, the shape into a mask, the mask multiplies the layer's alpha, and the
+        ///     result is composited back. Each nesting depth has its own layer pair, so an inner clip is
+        ///     composited into the outer layer and both apply (intersection). Render targets and the
+        ///     scissor are restored before returning.
+        /// </summary>
+        private bool TryDrawClipped(SpriteBatch spriteBatch, Control control, ClipShape clip, RenderContext parentContext, RenderContext context)
+        {
+            var engine = ScreenEngine;
+            if (engine == null || context.RenderRect.Width <= 0 || context.RenderRect.Height <= 0)
+                return false;
+
+            var device = spriteBatch.GraphicsDevice;
+            var width = (int)Math.Ceiling(Math.Max(ScreenRect.Right, context.RenderRect.Right));
+            var height = (int)Math.Ceiling(Math.Max(ScreenRect.Bottom, context.RenderRect.Bottom));
+            var layer = engine.GetClipLayers(device).Get(_clipDepth, width, height);
+            var previousTargets = RenderTargetHelper.SnapshotRenderTargets(device, ref layer.PreviousTargets);
+            var previousScissor = device.ScissorRectangle;
+
+            device.SetRenderTarget(layer.Content);
+            device.Clear(Color.Transparent);
+            var previousClip = _clipInProgress;
+            _clipInProgress = control;
+            _clipDepth++;
+            try
+            {
+                DrawControlBatched(spriteBatch, control, parentContext);
+            }
+            finally
+            {
+                _clipDepth--;
+                _clipInProgress = previousClip;
+            }
+
+            var fullFrame = new Rectangle(0, 0, width, height);
+            device.SetRenderTarget(layer.Mask);
+            device.Clear(Color.Transparent);
+            device.ScissorRectangle = fullFrame;
+            spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.LinearClamp);
+            clip.DrawMask(spriteBatch, context.RenderRect);
+            spriteBatch.End();
+
+            device.SetRenderTarget(layer.Content);
+            spriteBatch.Begin(SpriteSortMode.Deferred, clip.Mode == ClipMode.Inside ? ClipInsideBlend : ClipOutsideBlend, SamplerState.PointClamp);
+            spriteBatch.Draw(layer.Mask!, Vector2.Zero, Color.White);
+            spriteBatch.End();
+
+            if (previousTargets.Length == 0)
+                device.SetRenderTarget(null);
+            else
+                device.SetRenderTargets(previousTargets);
+
+            device.ScissorRectangle = ToScissorRectangle(parentContext.ScissorRect);
+            spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, rasterizerState: ScissorRasterizer);
+            spriteBatch.Draw(layer.Content!, Vector2.Zero, Color.White);
+            spriteBatch.End();
+            device.ScissorRectangle = previousScissor;
+            engine.RecordBatchFlush();
             return true;
         }
 
