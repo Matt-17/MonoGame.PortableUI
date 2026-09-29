@@ -161,6 +161,74 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void Two_axis_viewer_scrolls_both_ways_and_shows_both_bars()
+        {
+            var viewer = new ScrollViewer
+            {
+                ScrollDirections = ScrollDirections.Both,
+                EnableFling = false,
+                EnableRubberBanding = false,
+                Content = new FixedSizeControl(new Size(400, 300))
+            };
+            viewer.UpdateLayout(new Rect(0, 0, 100, 100));
+
+            viewer.OnTouchDown(new TouchEventArgs(new PointF(80, 80)));
+            viewer.OnTouchMove(new TouchEventArgs(new PointF(50, 40)));
+
+            Assert.AreEqual(30, viewer.Offset.X, 0.001f);
+            Assert.AreEqual(40, viewer.Offset.Y, 0.001f);
+            Assert.IsTrue(viewer.Viewport.Width < 100 && viewer.Viewport.Height < 100, "both scrollbars take room");
+
+            viewer.ScrollTo(new PointF(1000, 1000));
+            Assert.AreEqual(viewer.Extent.Width - viewer.Viewport.Width, viewer.Offset.X, 0.001f);
+            Assert.AreEqual(viewer.Extent.Height - viewer.Viewport.Height, viewer.Offset.Y, 0.001f);
+        }
+
+        [TestMethod]
+        public void Horizontal_wheel_scrolls_sideways_and_the_vertical_wheel_scrolls_down()
+        {
+            var viewer = new ScrollViewer
+            {
+                ScrollDirections = ScrollDirections.Both,
+                Content = new FixedSizeControl(new Size(400, 300))
+            };
+            viewer.UpdateLayout(new Rect(0, 0, 100, 100));
+
+            viewer.OnScrollWheelChanged(new ScrollWheelChangedEventArgs(new PointF(10, 10), -120));
+            Assert.AreEqual(0, viewer.Offset.X, 0.001f);
+            Assert.AreEqual(30, viewer.Offset.Y, 0.001f);
+
+            viewer.OnScrollWheelChanged(new ScrollWheelChangedEventArgs(new PointF(10, 10), -120) { IsHorizontal = true });
+            Assert.AreEqual(30, viewer.Offset.X, 0.001f);
+        }
+
+        [TestMethod]
+        public void Bring_into_view_moves_both_axes()
+        {
+            var target = new Border { Width = 20, Height = 20, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(300, 250, 0, 0) };
+            var host = new Grid();
+            host.Children.Add(new FixedSizeControl(new Size(400, 300)));
+            host.Children.Add(target);
+            var viewer = new ScrollViewer { ScrollDirections = ScrollDirections.Both, Content = host, ShowScrollBars = false };
+            viewer.UpdateLayout(new Rect(0, 0, 100, 100));
+
+            viewer.BringIntoView(target);
+
+            Assert.IsTrue(viewer.Offset.X > 0 && viewer.Offset.Y > 0);
+            Assert.IsTrue(target.BoundingRect.Right <= 100.5f && target.BoundingRect.Bottom <= 100.5f);
+        }
+
+        [TestMethod]
+        public void Single_axis_orientation_maps_onto_scroll_directions()
+        {
+            var viewer = new ScrollViewer { ScrollOrientation = Orientation.Horizontal };
+            Assert.AreEqual(ScrollDirections.Horizontal, viewer.ScrollDirections);
+
+            viewer.ScrollDirections = ScrollDirections.Both;
+            Assert.AreEqual(Orientation.Vertical, viewer.ScrollOrientation);
+        }
+
+        [TestMethod]
         public void Scroll_viewer_applies_touch_fling()
         {
             var viewer = CreateViewer(new Size(100, 300));
