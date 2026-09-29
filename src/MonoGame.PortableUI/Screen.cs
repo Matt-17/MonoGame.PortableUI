@@ -508,8 +508,14 @@ namespace MonoGame.PortableUI
 
         internal void ShowFlyOut(PointF position, Control content, bool removeOnRelease, Control? owner = null, FlyOutPlacement placement = FlyOutPlacement.Above)
         {
+            ShowFlyOut(new Rect(position.X, position.Y, 0, 0), content, removeOnRelease, owner, placement);
+        }
+
+        /// <summary>Opens <paramref name="content"/> next to <paramref name="anchor"/>, flipping sides when needed.</summary>
+        internal void ShowFlyOut(Rect anchor, Control content, bool removeOnRelease, Control? owner = null, FlyOutPlacement placement = FlyOutPlacement.Below)
+        {
             ClearToolTip();
-            FlyOut = new FlyOut(position, removeOnRelease, placement)
+            FlyOut = new FlyOut(anchor, removeOnRelease, placement)
             {
                 Content = content,
                 ThemeOwner = owner

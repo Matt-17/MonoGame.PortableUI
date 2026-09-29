@@ -116,9 +116,16 @@ namespace MonoGame.PortableUI.Demo
                     // Static capture: no enter animations.
                     surface.Engine.TransitionDuration = TimeSpan.Zero;
                     surface.Engine.Toasts.AnimationDuration = TimeSpan.Zero;
-                    (screen as MainScreen)?.ShowOverlayForScreenshot(overlay);
                 }
                 surface.Update(gameTime);
+                if (overlay != null)
+                {
+                    // After the first update the selected tab's content is attached and laid out.
+                    (screen as MainScreen)?.ShowOverlayForScreenshot(overlay);
+                    // Let popup open animations finish before capturing.
+                    for (var step = 1; step <= 3; step++)
+                        surface.Update(new GameTime(gameTime.TotalGameTime + TimeSpan.FromSeconds(step), gameTime.ElapsedGameTime));
+                }
                 var target = surface.Draw(gameTime);
                 GraphicsDevice.SetRenderTarget(null);
 

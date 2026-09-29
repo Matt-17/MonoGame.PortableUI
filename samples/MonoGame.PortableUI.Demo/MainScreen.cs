@@ -753,6 +753,8 @@ namespace MonoGame.PortableUI.Demo
             return panel;
         }
 
+        private Control? _menuButton;
+
         internal void ShowOverlayForScreenshot(string overlay)
         {
             switch (overlay.ToLowerInvariant())
@@ -762,6 +764,9 @@ namespace MonoGame.PortableUI.Demo
                     break;
                 case "sheet":
                     OpenDemoModal(ModalPlacement.BottomSheet);
+                    break;
+                case "menu":
+                    _menuButton?.OpenContextMenu();
                     break;
                 case "toast":
                     ScreenEngine!.Toasts.Show("Settings saved");
@@ -850,10 +855,17 @@ namespace MonoGame.PortableUI.Demo
             var menuButton = CommandButton("Menu (left click)", SurfaceAltBrush, SurfaceAltTextColor);
             menuButton.ToolTip = "Opens on left click (also right-click/long-press)";
             var menu = new ContextMenu { BackgroundBrush = SurfaceBrush, ContextMenuType = ContextMenuTypes.OpenOnLeftClick };
-            menu.Items.Add(new MenuItem("Inspect", () => _status.Text = "Inspect command"));
-            menu.Items.Add(new MenuItem("Duplicate", () => _status.Text = "Duplicate command"));
-            menu.Items.Add(new MenuItem("Archive", () => _status.Text = "Archive command"));
+            menu.Items.Add(new MenuItem("Inspect", () => _status.Text = "Inspect command") { ShortcutText = "F2" });
+            menu.Items.Add(new MenuItem("Duplicate", () => _status.Text = "Duplicate command") { ShortcutText = "Ctrl+D" });
+            menu.Items.Add(new MenuItem("Archive", () => _status.Text = "Archive command") { IsEnabled = false });
+            menu.Items.Add(MenuItem.Separator());
+            menu.Items.Add(new MenuItem("Pin to top", () => _status.Text = "Pin toggled") { IsCheckable = true, IsChecked = true });
+            var exportMenu = new MenuItem("Export", null);
+            exportMenu.Items.Add(new MenuItem("As PNG", () => _status.Text = "Export PNG"));
+            exportMenu.Items.Add(new MenuItem("As JSON", () => _status.Text = "Export JSON"));
+            menu.Items.Add(exportMenu);
             menu.ItemInvoked += (sender, args) => _status.Text = $"Menu: {args.Item.Text}";
+            _menuButton = menuButton;
             menuButton.ContextMenu = menu;
             buttonRow.AddChild(menuButton, column: 1);
             panel.AddChild(buttonRow);
