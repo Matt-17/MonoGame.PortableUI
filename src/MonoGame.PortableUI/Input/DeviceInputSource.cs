@@ -40,6 +40,8 @@ namespace MonoGame.PortableUI.Input
 
         public int ScrollWheelValue => Mouse.GetState().ScrollWheelValue;
 
+        public int HorizontalScrollWheelValue => Mouse.GetState().HorizontalScrollWheelValue;
+
         public TouchCollection Touches => TouchPanel.GetState();
 
         public KeyboardState KeyboardState => Keyboard.GetState();

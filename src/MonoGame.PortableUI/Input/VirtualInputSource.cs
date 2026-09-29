@@ -48,6 +48,13 @@ namespace MonoGame.PortableUI.Input
             ScrollWheelValue = value;
         }
 
+        public int HorizontalScrollWheelValue { get; private set; }
+
+        public void SetHorizontalScrollWheelValue(int value)
+        {
+            HorizontalScrollWheelValue = value;
+        }
+
         public void SetTouches(TouchCollection touches)
         {
             Touches = touches;
