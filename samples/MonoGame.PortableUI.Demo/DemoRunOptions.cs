@@ -7,6 +7,8 @@ namespace MonoGame.PortableUI.Demo
         public DemoThemePreset InitialThemePreset { get; init; } = DemoThemeRegistry.Default;
         public string? ScreenshotDirectory { get; init; }
         public string ScreenshotScreen { get; init; } = "controls";
+        /// <summary>Optional overlay in screenshots: modal, sheet or toast.</summary>
+        public string? ScreenshotOverlay { get; init; }
         public bool IsScreenshotMode => !string.IsNullOrWhiteSpace(ScreenshotDirectory);
 
         public static DemoRunOptions Parse(string[]? args)
@@ -15,7 +17,8 @@ namespace MonoGame.PortableUI.Demo
             {
                 InitialThemePreset = DemoThemeRegistry.ResolveStartupTheme(args),
                 ScreenshotDirectory = TryParseValue(args, "--screenshot"),
-                ScreenshotScreen = TryParseValue(args, "--screenshot-screen") ?? "controls"
+                ScreenshotScreen = TryParseValue(args, "--screenshot-screen") ?? "controls",
+                ScreenshotOverlay = TryParseValue(args, "--screenshot-overlay")
             };
         }
 

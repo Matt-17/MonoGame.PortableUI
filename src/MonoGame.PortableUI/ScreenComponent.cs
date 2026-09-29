@@ -86,13 +86,7 @@ namespace MonoGame.PortableUI
 
         /// <summary>Draws the visible stack bottom to top (overlays over the screens they cover),
         /// then a screen that is still playing its exit transition.</summary>
-        private void DrawScreens(SpriteBatch spriteBatch)
-        {
-            var screens = _screenEngine.VisibleScreens;
-            for (var i = 0; i < screens.Count; i++)
-                screens[i].Draw(spriteBatch);
-            _screenEngine.LeavingScreen?.Draw(spriteBatch);
-        }
+        private void DrawScreens(SpriteBatch spriteBatch) => _screenEngine.DrawStack(spriteBatch);
 
         private RenderTarget2D EnsureScaleTarget(int width, int height)
         {
