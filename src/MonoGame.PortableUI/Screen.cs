@@ -38,6 +38,7 @@ namespace MonoGame.PortableUI
         internal PointF LastMousePosition;
         internal PointF LastTouchPosition;
         internal int LastScrollWheelValue;
+        internal int LastHorizontalScrollWheelValue;
         private FlyOut? _flyOut;
         private FlyOut? _dismissingFlyOut;
         private ToolTipPopup? _toolTip;
@@ -1017,11 +1018,22 @@ namespace MonoGame.PortableUI
             HandleMouseButton(GetButtonState(pressedMouseButtons, MouseButton.Middle), ButtonState.Released, MouseButton.Middle, mousePosition, content, (c, a) => c.OnMouseUp(a));
             if (inputSource.ScrollWheelValue != LastScrollWheelValue)
             {
-                var args = new ScrollWheelChangedEventArgs(mousePosition, inputSource.ScrollWheelValue - LastScrollWheelValue);
+                var args = new ScrollWheelChangedEventArgs(mousePosition, inputSource.ScrollWheelValue - LastScrollWheelValue)
+                {
+                    // Shift + wheel scrolls sideways, as in browsers and editors.
+                    IsHorizontal = inputSource.KeyboardState.IsKeyDown(Keys.LeftShift) || inputSource.KeyboardState.IsKeyDown(Keys.RightShift)
+                };
 
                 VisualTreeHelper.IterateVisualTree(content, args, (c, a) => c.ClippingRect.Contains(a.Position), (c, a) => { c.OnScrollWheelChanged(a); }, null);
 
                 LastScrollWheelValue = inputSource.ScrollWheelValue;
+            }
+            if (inputSource.HorizontalScrollWheelValue != LastHorizontalScrollWheelValue)
+            {
+                // Tilt right is positive; the scroll handler treats positive Delta as "towards start".
+                var args = new ScrollWheelChangedEventArgs(mousePosition, LastHorizontalScrollWheelValue - inputSource.HorizontalScrollWheelValue) { IsHorizontal = true };
+                VisualTreeHelper.IterateVisualTree(content, args, (c, a) => c.ClippingRect.Contains(a.Position), (c, a) => { c.OnScrollWheelChanged(a); }, null);
+                LastHorizontalScrollWheelValue = inputSource.HorizontalScrollWheelValue;
             }
 
 

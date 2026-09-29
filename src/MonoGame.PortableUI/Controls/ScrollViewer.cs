@@ -33,7 +33,32 @@ namespace MonoGame.PortableUI.Controls
         // one shared empty instance avoids a per-scroll allocation.
         private static readonly List<MouseButton> EmptyMouseButtons = new List<MouseButton>();
 
-        public Orientation ScrollOrientation { get; set; }
+        private ScrollDirections _directions = ScrollDirections.Vertical;
+        private bool _dragHorizontalThumb;
+
+        /// <summary>Single-axis shorthand for <see cref="ScrollDirections"/> (kept for existing code).</summary>
+        public Orientation ScrollOrientation
+        {
+            get => _directions == ScrollDirections.Horizontal ? Orientation.Horizontal : Orientation.Vertical;
+            set => ScrollDirections = value == Orientation.Horizontal ? ScrollDirections.Horizontal : ScrollDirections.Vertical;
+        }
+
+        /// <summary>Which axes scroll; <see cref="Controls.ScrollDirections.Both"/> pans maps, large images, wide grids.</summary>
+        public ScrollDirections ScrollDirections
+        {
+            get => _directions;
+            set
+            {
+                if (_directions == value)
+                    return;
+                _directions = value;
+                InvalidateLayout(true);
+            }
+        }
+
+        private bool CanScrollX => _directions != ScrollDirections.Vertical;
+
+        private bool CanScrollY => _directions != ScrollDirections.Horizontal;
 
         protected internal override bool ClipsDescendants => true;
 
@@ -98,7 +123,10 @@ namespace MonoGame.PortableUI.Controls
         {
             var delta = -args.Delta / 4f;
             var before = Offset;
-            if (ScrollOrientation == Orientation.Horizontal)
+            // The vertical wheel scrolls Y when possible; horizontal wheel / Shift+wheel, or a
+            // horizontal-only viewer, scroll X.
+            var horizontal = args.IsHorizontal ? CanScrollX : !CanScrollY;
+            if (horizontal)
                 ScrollBy(new PointF(delta, 0), false);
             else
                 ScrollBy(new PointF(0, delta), false);
@@ -110,14 +138,9 @@ namespace MonoGame.PortableUI.Controls
 
         public void ScrollTo(PointF offset)
         {
-            if (ScrollOrientation == Orientation.Horizontal)
-            {
-                Offset = new PointF(Clamp(offset.X, 0, MaxHorizontalOffset), 0);
-            }
-            else
-            {
-                Offset = new PointF(0, Clamp(offset.Y, 0, MaxVerticalOffset));
-            }
+            Offset = new PointF(
+                CanScrollX ? Clamp(offset.X, 0, MaxHorizontalOffset) : 0,
+                CanScrollY ? Clamp(offset.Y, 0, MaxVerticalOffset) : 0);
 
             UpdateContentLayout();
         }
@@ -132,17 +155,11 @@ namespace MonoGame.PortableUI.Controls
             var viewportRect = ContentViewportRect;
             var targetRect = control.BoundingRect;
 
-            if (ScrollOrientation == Orientation.Horizontal)
-            {
-                var offsetX = Offset.X;
-                if (targetRect.Left < viewportRect.Left)
-                    offsetX += targetRect.Left - viewportRect.Left;
-                else if (targetRect.Right > viewportRect.Right)
-                    offsetX += targetRect.Right - viewportRect.Right;
-
-                ScrollTo(new PointF(offsetX, 0));
-                return;
-            }
+            var offsetX = Offset.X;
+            if (targetRect.Left < viewportRect.Left)
+                offsetX += targetRect.Left - viewportRect.Left;
+            else if (targetRect.Right > viewportRect.Right)
+                offsetX += targetRect.Right - viewportRect.Right;
 
             var offsetY = Offset.Y;
             if (targetRect.Top < viewportRect.Top)
@@ -150,7 +167,7 @@ namespace MonoGame.PortableUI.Controls
             else if (targetRect.Bottom > viewportRect.Bottom)
                 offsetY += targetRect.Bottom - viewportRect.Bottom;
 
-            ScrollTo(new PointF(0, offsetY));
+            ScrollTo(new PointF(offsetX, offsetY));
         }
 
         public override void UpdateLayout(Rect rect)
@@ -246,13 +263,9 @@ namespace MonoGame.PortableUI.Controls
         private void ScrollViewerTouchDown(object? sender, TouchEventArgs args)
         {
             // A touch that starts on the scrollbar thumb drags the thumb; anywhere else pans the content.
-            if (TryGetScrollBarThumbRect(out var thumbRect) && GetScrollBarThumbHitRect(thumbRect).Contains(args.Position))
+            if (TryHitScrollBarThumb(args.Position, out var thumbRect, out var horizontal))
             {
-                _isScrollBarDragging = true;
-                _scrollBarDragPointerOffset = ScrollOrientation == Orientation.Horizontal
-                    ? args.Position.X - thumbRect.Left
-                    : args.Position.Y - thumbRect.Top;
-                SetScrollBarThumbHovering(true);
+                BeginThumbDrag(args.Position, thumbRect, horizontal);
                 args.Handled = true;
                 return;
             }
@@ -264,7 +277,7 @@ namespace MonoGame.PortableUI.Controls
         // tunneling pre-pass instead; the bubbling handler above only covers direct calls.
         internal override void OnPreviewTouchDown(TouchEventArgs args)
         {
-            if (TryGetScrollBarThumbRect(out var thumbRect) && GetScrollBarThumbHitRect(thumbRect).Contains(args.Position))
+            if (TryHitScrollBarThumb(args.Position, out _, out _))
                 return;
             BeginTouchPan(args.Position);
         }
@@ -297,18 +310,10 @@ namespace MonoGame.PortableUI.Controls
 
         private void ScrollViewerMouseDown(object? sender, MouseEventArgs args)
         {
-            if (!args.Buttons.Contains(MouseButton.Left) || !TryGetScrollBarThumbRect(out var thumbRect))
+            if (!args.Buttons.Contains(MouseButton.Left) || !TryHitScrollBarThumb(args.Position, out var thumbRect, out var horizontal))
                 return;
 
-            var hitRect = GetScrollBarThumbHitRect(thumbRect);
-            if (!hitRect.Contains(args.Position))
-                return;
-
-            _isScrollBarDragging = true;
-            _scrollBarDragPointerOffset = ScrollOrientation == Orientation.Horizontal
-                ? args.Position.X - thumbRect.Left
-                : args.Position.Y - thumbRect.Top;
-            SetScrollBarThumbHovering(true);
+            BeginThumbDrag(args.Position, thumbRect, horizontal);
             Screen?.CaptureMouse(this);
             args.Handled = true;
         }
@@ -356,10 +361,9 @@ namespace MonoGame.PortableUI.Controls
             var maxHorizontal = MaxHorizontalOffset + (allowOverscroll ? RubberBandLimit : 0);
             var maxVertical = MaxVerticalOffset + (allowOverscroll ? RubberBandLimit : 0);
 
-            if (ScrollOrientation == Orientation.Horizontal)
-                Offset = new PointF(Clamp(Offset.X + delta.X, minOffset, maxHorizontal), 0);
-            else
-                Offset = new PointF(0, Clamp(Offset.Y + delta.Y, minOffset, maxVertical));
+            Offset = new PointF(
+                CanScrollX ? Clamp(Offset.X + delta.X, minOffset, maxHorizontal) : 0,
+                CanScrollY ? Clamp(Offset.Y + delta.Y, minOffset, maxVertical) : 0);
 
             UpdateContentLayout();
         }
@@ -378,12 +382,13 @@ namespace MonoGame.PortableUI.Controls
             }
 
             var measuredContent = Content.Measure();
-            _hasVerticalScrollBar = CanShowScrollBars
-                && ScrollOrientation == Orientation.Vertical
-                && measuredContent.Height > viewportRect.Height;
-            _hasHorizontalScrollBar = CanShowScrollBars
-                && ScrollOrientation == Orientation.Horizontal
-                && measuredContent.Width > viewportRect.Width;
+            _hasVerticalScrollBar = CanShowScrollBars && CanScrollY && measuredContent.Height > viewportRect.Height;
+            _hasHorizontalScrollBar = CanShowScrollBars && CanScrollX && measuredContent.Width > viewportRect.Width;
+            // One bar takes room from the other axis, which can make that one overflow too.
+            if (_hasVerticalScrollBar && !_hasHorizontalScrollBar && CanShowScrollBars && CanScrollX)
+                _hasHorizontalScrollBar = measuredContent.Width > viewportRect.Width - ScrollBarThickness;
+            if (_hasHorizontalScrollBar && !_hasVerticalScrollBar && CanShowScrollBars && CanScrollY)
+                _hasVerticalScrollBar = measuredContent.Height > viewportRect.Height - ScrollBarThickness;
 
             var contentViewportRect = GetContentViewportRect(viewportRect, _hasVerticalScrollBar, _hasHorizontalScrollBar);
             Viewport = new Size(MathHelper.Max(0, contentViewportRect.Width), MathHelper.Max(0, contentViewportRect.Height));
@@ -394,10 +399,9 @@ namespace MonoGame.PortableUI.Controls
 
         private void ClampOffset()
         {
-            if (ScrollOrientation == Orientation.Horizontal)
-                Offset = new PointF(Clamp(Offset.X, 0, MaxHorizontalOffset), 0);
-            else
-                Offset = new PointF(0, Clamp(Offset.Y, 0, MaxVerticalOffset));
+            Offset = new PointF(
+                CanScrollX ? Clamp(Offset.X, 0, MaxHorizontalOffset) : 0,
+                CanScrollY ? Clamp(Offset.Y, 0, MaxVerticalOffset) : 0);
         }
 
         private void UpdateContentLayout()
@@ -409,8 +413,8 @@ namespace MonoGame.PortableUI.Controls
             var contentRect = new Rect(
                 viewportRect.Left - Offset.X,
                 viewportRect.Top - Offset.Y,
-                ScrollOrientation == Orientation.Horizontal ? Extent.Width : viewportRect.Width,
-                ScrollOrientation == Orientation.Vertical ? Extent.Height : viewportRect.Height);
+                CanScrollX ? Extent.Width : viewportRect.Width,
+                CanScrollY ? Extent.Height : viewportRect.Height);
 
             // Scrolling only moves the content: when nothing inside invalidated since the last
             // full arrange and the slot size is unchanged, shift the arranged rects instead of
@@ -504,7 +508,7 @@ namespace MonoGame.PortableUI.Controls
             if (!_hasVerticalScrollBar || !CanShowScrollBars)
                 return false;
 
-            gutterRect = new Rect(viewportRect.Right - ScrollBarThickness, viewportRect.Top, ScrollBarThickness, viewportRect.Height);
+            gutterRect = new Rect(viewportRect.Right - ScrollBarThickness, viewportRect.Top, ScrollBarThickness, Viewport.Height);
             return true;
         }
 
@@ -514,16 +518,36 @@ namespace MonoGame.PortableUI.Controls
             if (!_hasHorizontalScrollBar || !CanShowScrollBars)
                 return false;
 
-            gutterRect = new Rect(viewportRect.Left, viewportRect.Bottom - ScrollBarThickness, viewportRect.Width, ScrollBarThickness);
+            gutterRect = new Rect(viewportRect.Left, viewportRect.Bottom - ScrollBarThickness, Viewport.Width, ScrollBarThickness);
             return true;
         }
 
-        private bool TryGetScrollBarThumbRect(out Rect thumbRect)
+        /// <summary>Which thumb (if any) is under <paramref name="position"/>.</summary>
+        private bool TryHitScrollBarThumb(PointF position, out Rect thumbRect, out bool horizontal)
         {
             var viewportRect = ViewportRect;
-            if (ScrollOrientation == Orientation.Horizontal)
-                return TryGetHorizontalScrollThumbRect(viewportRect, out thumbRect);
-            return TryGetVerticalScrollThumbRect(viewportRect, out thumbRect);
+            if (TryGetVerticalScrollThumbRect(viewportRect, out thumbRect) && GetScrollBarThumbHitRect(thumbRect, false).Contains(position))
+            {
+                horizontal = false;
+                return true;
+            }
+
+            if (TryGetHorizontalScrollThumbRect(viewportRect, out thumbRect) && GetScrollBarThumbHitRect(thumbRect, true).Contains(position))
+            {
+                horizontal = true;
+                return true;
+            }
+
+            horizontal = false;
+            return false;
+        }
+
+        private void BeginThumbDrag(PointF position, Rect thumbRect, bool horizontal)
+        {
+            _isScrollBarDragging = true;
+            _dragHorizontalThumb = horizontal;
+            _scrollBarDragPointerOffset = horizontal ? position.X - thumbRect.Left : position.Y - thumbRect.Top;
+            SetScrollBarThumbHovering(true);
         }
 
         private bool TryGetVerticalScrollThumbRect(Rect viewportRect, out Rect thumbRect)
@@ -552,19 +576,13 @@ namespace MonoGame.PortableUI.Controls
             return true;
         }
 
-        private bool IsScrollBarThumbHit(PointF position)
-        {
-            if (!TryGetScrollBarThumbRect(out var thumbRect))
-                return false;
+        private bool IsScrollBarThumbHit(PointF position) => TryHitScrollBarThumb(position, out _, out _);
 
-            return GetScrollBarThumbHitRect(thumbRect).Contains(position);
-        }
-
-        private Rect GetScrollBarThumbHitRect(Rect thumbRect)
+        private Rect GetScrollBarThumbHitRect(Rect thumbRect, bool horizontal)
         {
             var viewportRect = ViewportRect;
             var hitThickness = MathHelper.Max(ScrollBarThickness, MinimumScrollBarHitThickness);
-            if (ScrollOrientation == Orientation.Horizontal)
+            if (horizontal)
             {
                 var top = MathHelper.Max(viewportRect.Top, viewportRect.Bottom - hitThickness);
                 return new Rect(thumbRect.Left, top, thumbRect.Width, viewportRect.Bottom - top);
@@ -577,25 +595,25 @@ namespace MonoGame.PortableUI.Controls
         private void DragScrollBarTo(PointF position)
         {
             var viewportRect = ViewportRect;
-            if (ScrollOrientation == Orientation.Horizontal)
+            if (_dragHorizontalThumb)
             {
                 if (!TryGetHorizontalScrollThumbRect(viewportRect, out var thumbRect))
                     return;
 
-                var travel = viewportRect.Width - thumbRect.Width;
+                var travel = Viewport.Width - thumbRect.Width;
                 var left = Clamp(position.X - _scrollBarDragPointerOffset, viewportRect.Left, viewportRect.Left + travel);
                 var offset = travel <= 0 || MaxHorizontalOffset <= 0 ? 0 : (left - viewportRect.Left) / travel * MaxHorizontalOffset;
-                ScrollTo(new PointF(offset, 0));
+                ScrollTo(new PointF(offset, Offset.Y));
                 return;
             }
 
             if (!TryGetVerticalScrollThumbRect(viewportRect, out var verticalThumbRect))
                 return;
 
-            var verticalTravel = viewportRect.Height - verticalThumbRect.Height;
+            var verticalTravel = Viewport.Height - verticalThumbRect.Height;
             var top = Clamp(position.Y - _scrollBarDragPointerOffset, viewportRect.Top, viewportRect.Top + verticalTravel);
             var verticalOffset = verticalTravel <= 0 || MaxVerticalOffset <= 0 ? 0 : (top - viewportRect.Top) / verticalTravel * MaxVerticalOffset;
-            ScrollTo(new PointF(0, verticalOffset));
+            ScrollTo(new PointF(Offset.X, verticalOffset));
         }
 
         private void EndScrollBarDrag(PointF position)
