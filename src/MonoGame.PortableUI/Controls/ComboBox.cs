@@ -167,8 +167,8 @@ namespace MonoGame.PortableUI.Controls
             listBox.Height = targetHeight;
 
             var bounds = BoundingRect - Margin;
-            // Dropdown opens below the box: anchor its top-left to the box's bottom-left.
-            Screen.ShowFlyOut(new PointF(bounds.Left, bounds.Bottom), listBox, false, this, FlyOutPlacement.Below);
+            // Dropdown opens below the box, or above it when there is no room below.
+            Screen.ShowFlyOut(bounds, listBox, false, this, FlyOutPlacement.Below);
             listBox.ScrollSelectedIntoView();
         }
 

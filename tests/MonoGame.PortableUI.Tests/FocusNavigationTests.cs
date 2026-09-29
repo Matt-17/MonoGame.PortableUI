@@ -283,6 +283,61 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void Menu_supports_separators_disabled_and_checkable_items_and_submenus()
+        {
+            var log = "";
+            var wrap = new MenuItem("Word wrap", () => log += "wrap;") { IsCheckable = true };
+            var export = new MenuItem("Export", null);
+            export.Items.Add(new MenuItem("PNG", () => log += "png;"));
+            var menu = new ContextMenu();
+            menu.Items.Add(new MenuItem("Disabled", () => log += "disabled;") { IsEnabled = false, ShortcutText = "Ctrl+D" });
+            menu.Items.Add(MenuItem.Separator());
+            menu.Items.Add(wrap);
+            menu.Items.Add(export);
+            var owner = new Button { Text = "Item", Width = 100, Height = 30, ContextMenu = menu, VerticalAlignment = VerticalAlignment.Top };
+            var (game, _, screen, source) = CreateScreen(owner);
+            using var _ = game;
+            owner.Focus();
+
+            PressKey(screen, source, Keys.Apps);
+            // The disabled first row is skipped: focus starts on the first enabled one.
+            Assert.IsInstanceOfType(ScreenEngine.FocusedControl, typeof(Button));
+            PressKey(screen, source, Keys.Enter);
+            Assert.AreEqual("wrap;", log);
+            Assert.IsTrue(wrap.IsChecked);
+
+            PressKey(screen, source, Keys.Apps);
+            PressKey(screen, source, Keys.Down); // Export (separator is not a stop)
+            PressKey(screen, source, Keys.Enter); // drill into Export
+            Assert.IsTrue(screen.IsFlyOutOpen, "a submenu opens in place");
+            PressKey(screen, source, Keys.Down); // from the back row to PNG
+            PressKey(screen, source, Keys.Enter);
+
+            Assert.AreEqual("wrap;png;", log);
+            Assert.IsFalse(screen.IsFlyOutOpen);
+        }
+
+        [TestMethod]
+        public void Popup_placement_flips_when_the_preferred_side_does_not_fit()
+        {
+            var screenRect = new Rect(0, 0, 400, 300);
+            var size = new Size(100, 120);
+
+            var nearBottom = new Rect(10, 250, 80, 30);
+            Assert.AreEqual(250 - 120, FlyOut.PlaceRect(nearBottom, size, FlyOutPlacement.Below, screenRect).Top, 0.001f);
+
+            var nearTop = new Rect(10, 20, 80, 30);
+            Assert.AreEqual(50, FlyOut.PlaceRect(nearTop, size, FlyOutPlacement.Above, screenRect).Top, 0.001f);
+
+            var nearRightEdge = new Rect(350, 50, 40, 30);
+            Assert.AreEqual(250, FlyOut.PlaceRect(nearRightEdge, size, FlyOutPlacement.Right, screenRect).Left, 0.001f);
+
+            var roomy = new Rect(150, 50, 40, 30);
+            Assert.AreEqual(190, FlyOut.PlaceRect(roomy, size, FlyOutPlacement.Right, screenRect).Left, 0.001f);
+            Assert.AreEqual(50, FlyOut.PlaceRect(roomy, size, FlyOutPlacement.Left, screenRect).Left, 0.001f);
+        }
+
+        [TestMethod]
         public void Page_down_moves_the_list_selection_by_a_visible_page()
         {
             var listBox = new ListBox { Height = 100, ItemHeight = 20, VerticalAlignment = VerticalAlignment.Top };
