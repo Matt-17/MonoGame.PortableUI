@@ -430,6 +430,9 @@ namespace MonoGame.PortableUI
 
         public IInputSource InputSource { get; set; } = DeviceInputSource.Instance;
 
+        /// <summary>Layout and animations only, no input (toast layer).</summary>
+        internal bool IgnoresInput { get; set; }
+
         /// <summary>True when pushed with <see cref="ScreenEngine.PushOverlay"/>: the screens below stay visible.</summary>
         public bool IsOverlay { get; internal set; }
 
@@ -960,6 +963,9 @@ namespace MonoGame.PortableUI
                 UpdateTimersForTree(_dismissingFlyOut);
             if (_dismissingToolTip != null)
                 UpdateTimersForTree(_dismissingToolTip);
+
+            if (IgnoresInput)
+                return;
 
             HandleKeyboardInput(inputSource);
             HandleGamePadInput(inputSource);
