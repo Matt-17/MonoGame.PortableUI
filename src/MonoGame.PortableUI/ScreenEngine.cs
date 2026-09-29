@@ -276,6 +276,21 @@ namespace MonoGame.PortableUI
             Push(screen, isOverlay: true, transition);
         }
 
+        /// <summary>True after keyboard/gamepad input, false after pointer input.</summary>
+        public bool KeyboardNavigationActive { get; internal set; }
+
+        /// <summary>
+        ///     Opens <paramref name="content"/> as a modal over the current screen (scrim, input and
+        ///     focus captured, dismissable per <see cref="ModalOptions"/>). Close it with
+        ///     <see cref="ModalScreen.Close"/> or let the user cancel it.
+        /// </summary>
+        public ModalScreen ShowModal(Control content, ModalOptions? options = null)
+        {
+            var modal = new ModalScreen(content, options);
+            PushOverlay(modal, modal.PresentationTransition);
+            return modal;
+        }
+
         /// <summary>Duration of screen transitions.</summary>
         public TimeSpan TransitionDuration { get; set; } = TimeSpan.FromMilliseconds(250);
 

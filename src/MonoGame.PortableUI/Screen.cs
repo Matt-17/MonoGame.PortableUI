@@ -122,7 +122,19 @@ namespace MonoGame.PortableUI
 
         // True after key/gamepad input, false after pointer input: popups opened in keyboard mode
         // take focus so arrows/Enter work inside them.
-        private bool _keyboardNavigationActive;
+        private bool _localKeyboardNavigationActive;
+
+        // Engine-wide so a newly pushed screen (modal, overlay) knows how the user is navigating.
+        private bool _keyboardNavigationActive
+        {
+            get => ScreenEngine?.KeyboardNavigationActive ?? _localKeyboardNavigationActive;
+            set
+            {
+                _localKeyboardNavigationActive = value;
+                if (ScreenEngine != null)
+                    ScreenEngine.KeyboardNavigationActive = value;
+            }
+        }
         private Control? _focusBeforeFlyOut;
 
         private static Control? FindFirstTabStop(Control root)

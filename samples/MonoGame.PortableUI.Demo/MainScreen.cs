@@ -753,6 +753,23 @@ namespace MonoGame.PortableUI.Demo
             return panel;
         }
 
+        private void OpenDemoModal(ModalPlacement placement)
+        {
+            var content = new StackPanel { Spacing = 10 };
+            content.AddChild(Label(placement == ModalPlacement.Center ? "Modal dialog" : "Bottom sheet", Palette.Text, 18));
+            content.AddChild(Label("Input behind is blocked; Esc, B or a tap outside cancels.", Palette.MutedText));
+            var close = CommandButton("Close", Palette.Primary, Palette.SelectionText);
+            content.AddChild(close);
+            var modal = ScreenEngine!.ShowModal(content, new ModalOptions
+            {
+                Placement = placement,
+                SheetHeight = 180,
+                PanelWidth = placement == ModalPlacement.Center ? 360 : float.NaN
+            });
+            close.Click += (_, _) => modal.Close();
+            modal.Closed += (_, args) => _status.Text = args.Cancelled ? "Modal cancelled" : "Modal closed";
+        }
+
         private Control CreateActionPanel()
         {
             var panel = PanelStack("Buttons and menus");
@@ -761,13 +778,13 @@ namespace MonoGame.PortableUI.Demo
             primary.PressedHorizontalInset = 5;
             primary.PressedVerticalInset = 3;
             primary.PressedTranslation = new Vector2(0, 1);
-            primary.ToolTip = "Run the primary demo action";
-            primary.Click += (sender, args) => _status.Text = "Primary action clicked";
+            primary.ToolTip = "Opens a modal dialog";
+            primary.Click += (sender, args) => OpenDemoModal(ModalPlacement.Center);
             panel.AddChild(primary);
 
             var secondary = CommandButton("Secondary action", Palette.Secondary, Palette.SelectionText);
             secondary.ToolTip = "Run the secondary demo action";
-            secondary.Click += (sender, args) => _status.Text = "Secondary action clicked";
+            secondary.Click += (sender, args) => OpenDemoModal(ModalPlacement.BottomSheet);
             panel.AddChild(secondary);
 
             var danger = CommandButton("Danger action", Palette.Danger, Palette.SelectionText);
