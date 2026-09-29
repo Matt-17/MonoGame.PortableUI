@@ -753,11 +753,30 @@ namespace MonoGame.PortableUI.Demo
             return panel;
         }
 
+        internal void ShowOverlayForScreenshot(string overlay)
+        {
+            switch (overlay.ToLowerInvariant())
+            {
+                case "modal":
+                    OpenDemoModal(ModalPlacement.Center);
+                    break;
+                case "sheet":
+                    OpenDemoModal(ModalPlacement.BottomSheet);
+                    break;
+                case "toast":
+                    ScreenEngine!.Toasts.Show("Settings saved");
+                    break;
+            }
+        }
+
         private void OpenDemoModal(ModalPlacement placement)
         {
             var content = new StackPanel { Spacing = 10 };
             content.AddChild(Label(placement == ModalPlacement.Center ? "Modal dialog" : "Bottom sheet", Palette.Text, 18));
-            content.AddChild(Label("Input behind is blocked; Esc, B or a tap outside cancels.", Palette.MutedText));
+            var hint = Label("Input behind is blocked; Esc, B or a tap outside cancels.", Palette.MutedText);
+            hint.TextWrapping = TextWrapping.Wrap;
+            hint.MaxWidth = 320;
+            content.AddChild(hint);
             var close = CommandButton("Close", Palette.Primary, Palette.SelectionText);
             content.AddChild(close);
             var modal = ScreenEngine!.ShowModal(content, new ModalOptions
@@ -786,6 +805,15 @@ namespace MonoGame.PortableUI.Demo
             secondary.ToolTip = "Run the secondary demo action";
             secondary.Click += (sender, args) => OpenDemoModal(ModalPlacement.BottomSheet);
             panel.AddChild(secondary);
+
+            var toasts = CommandButton("Show three toasts", Palette.Info, Palette.SelectionText);
+            toasts.Click += (sender, args) =>
+            {
+                ScreenEngine!.Toasts.Show("First message");
+                ScreenEngine.Toasts.Show("Second message");
+                ScreenEngine.Toasts.Show("Third message, shown longer", ToastDuration.Long);
+            };
+            panel.AddChild(toasts);
 
             var danger = CommandButton("Danger action", Palette.Danger, Palette.SelectionText);
             danger.ToolTip = "Run the destructive demo action";

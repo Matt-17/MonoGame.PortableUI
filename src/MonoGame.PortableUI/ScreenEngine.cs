@@ -276,6 +276,25 @@ namespace MonoGame.PortableUI
             Push(screen, isOverlay: true, transition);
         }
 
+        private ToastService? _toasts;
+
+        /// <summary>Self-dismissing messages shown above every screen (see <see cref="ToastService"/>).</summary>
+        public ToastService Toasts => _toasts ??= new ToastService(this);
+
+        internal ToastService? ToastsIfCreated => _toasts;
+
+        /// <summary>Draws the visible screen stack bottom to top (overlays over what they cover), a
+        /// screen still playing its exit transition, then toasts on top of everything.</summary>
+        internal void DrawStack(Microsoft.Xna.Framework.Graphics.SpriteBatch spriteBatch)
+        {
+            var screens = VisibleScreens;
+            for (var i = 0; i < screens.Count; i++)
+                screens[i].Draw(spriteBatch);
+            LeavingScreen?.Draw(spriteBatch);
+            if (_toasts is { HasContent: true } toasts)
+                toasts.Layer.Draw(spriteBatch);
+        }
+
         /// <summary>True after keyboard/gamepad input, false after pointer input.</summary>
         public bool KeyboardNavigationActive { get; internal set; }
 
@@ -462,6 +481,7 @@ namespace MonoGame.PortableUI
             FramesPerSecond = gameTime.ElapsedGameTime.TotalSeconds > 0 ? 1 / gameTime.ElapsedGameTime.TotalSeconds : 0;
             UpdateTransition();
             ActiveScreen?.Update();
+            _toasts?.Update();
         }
 
         public void ToggleDebugOverlay()

@@ -99,7 +99,8 @@ namespace MonoGame.PortableUI
             var previousTargets = Effects.RenderTargetHelper.SnapshotRenderTargets(_game.GraphicsDevice, ref _previousTargets);
             _game.GraphicsDevice.SetRenderTarget(target);
             _game.GraphicsDevice.Clear(Color.Transparent);
-            Screen.Draw(_spriteBatch);
+            // The whole stack: overlays/modals pushed on this surface's engine and its toasts too.
+            Engine.DrawStack(_spriteBatch);
             if (ShowSoftwareCursor)
                 DrawSoftwareCursor(_spriteBatch);
             if (previousTargets.Length == 0)

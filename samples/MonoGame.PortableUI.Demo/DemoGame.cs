@@ -61,7 +61,7 @@ namespace MonoGame.PortableUI.Demo
             var deleteIcon = Content.Load<Texture2D>("Images/ic_delete");
             if (_runOptions.IsScreenshotMode)
             {
-                SaveThemeScreenshots(_runOptions.ScreenshotDirectory!, _runOptions.ScreenshotScreen, deleteIcon);
+                SaveThemeScreenshots(_runOptions.ScreenshotDirectory!, _runOptions.ScreenshotScreen, deleteIcon, _runOptions.ScreenshotOverlay);
                 Exit();
                 return;
             }
@@ -90,7 +90,7 @@ namespace MonoGame.PortableUI.Demo
             Window.Title = $"MonoGame.PortableUI Demo - {_activeThemePreset.DisplayName}";
         }
 
-        private void SaveThemeScreenshots(string directory, string screenName, Texture2D deleteIcon)
+        private void SaveThemeScreenshots(string directory, string screenName, Texture2D deleteIcon, string? overlay)
         {
             Directory.CreateDirectory(directory);
             var gameTime = new GameTime(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1f / 60));
@@ -111,6 +111,13 @@ namespace MonoGame.PortableUI.Demo
                     InputSource = PortableUI.Input.NullInputSource.Instance
                 };
                 (screen as MainScreen)?.TrySelectTab(screenName);
+                if (overlay != null)
+                {
+                    // Static capture: no enter animations.
+                    surface.Engine.TransitionDuration = TimeSpan.Zero;
+                    surface.Engine.Toasts.AnimationDuration = TimeSpan.Zero;
+                    (screen as MainScreen)?.ShowOverlayForScreenshot(overlay);
+                }
                 surface.Update(gameTime);
                 var target = surface.Draw(gameTime);
                 GraphicsDevice.SetRenderTarget(null);
