@@ -168,14 +168,14 @@ namespace MonoGame.PortableUI.Controls
             get
             {
                 if (Font == null || _textSize <= 0)
-                    return 1f;
+                    return TextScaling.Factor;
                 // Read many times per frame; the baked size only changes with the font.
                 if (!ReferenceEquals(_bakedSizeFont, Font))
                 {
                     _bakedSizeFont = Font;
                     _bakedSize = FontManager.GetBakedSize(Font);
                 }
-                return _bakedSize > 0 ? (float)_textSize / _bakedSize : 1f;
+                return (_bakedSize > 0 ? (float)_textSize / _bakedSize : 1f) * TextScaling.Factor;
             }
         }
 
@@ -380,7 +380,16 @@ namespace MonoGame.PortableUI.Controls
         {
             if (Font != null)
                 return Font.MeasureString(text ?? "") * FontScale;
-            return TextMeasurer.MeasureString(text ?? "");
+            return TextMeasurer.MeasureString(text ?? "") * TextScaling.Factor;
+        }
+
+        /// <summary>Re-measures after <see cref="TextScaling.Factor"/> changed (called by the screen).</summary>
+        internal virtual void OnTextScaleChanged()
+        {
+            _wrappedLines = null;
+            _trimCacheText = null;
+            MeasuredText = MeasureText(Text);
+            InvalidateLayout(true);
         }
 
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
