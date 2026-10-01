@@ -69,6 +69,7 @@ namespace MonoGame.PortableUI
         private static readonly Action<Control, MouseEventArgs> MouseLeaveAction = (c, a) => c.OnMouseLeave(a);
         private bool _inIslandPostFx;
         private long _appliedThemeVersion = -1;
+        private long _appliedTextScaleVersion;
         // Rebuilt every Draw; Update reads the previous frame's entries for pointer inverse mapping.
         private readonly List<(Rect Rect, float Distortion)> _distortedIslands = new List<(Rect, float)>();
         private static readonly ScreenEngineOptions DefaultOptions = new ScreenEngineOptions();
@@ -609,6 +610,18 @@ namespace MonoGame.PortableUI
             DrawControlBatched(spriteBatch, control, RenderContext.Root(scissorRect));
         }
 
+        private static void RefreshTextScaleForTree(Control control)
+        {
+            if (control is TextBlock textBlock)
+                textBlock.OnTextScaleChanged();
+            var count = control.VisualChildCount;
+            for (var i = 0; i < count; i++)
+            {
+                if (control.GetVisualChild(i) is Control child)
+                    RefreshTextScaleForTree(child);
+            }
+        }
+
         private void DrawDebugOverlay(SpriteBatch spriteBatch)
         {
             var engine = ScreenEngine;
@@ -953,6 +966,18 @@ namespace MonoGame.PortableUI
                     RefreshThemeForTree(_flyOut);
                 if (_toolTip != null)
                     RefreshThemeForTree(_toolTip);
+                InvalidateLayout(true);
+            }
+
+            var textScaleVersion = MonoGame.PortableUI.Text.TextScaling.Version;
+            if (_appliedTextScaleVersion != textScaleVersion)
+            {
+                _appliedTextScaleVersion = textScaleVersion;
+                RefreshTextScaleForTree(_mainGrid);
+                if (_flyOut != null)
+                    RefreshTextScaleForTree(_flyOut);
+                if (_toolTip != null)
+                    RefreshTextScaleForTree(_toolTip);
                 InvalidateLayout(true);
             }
 

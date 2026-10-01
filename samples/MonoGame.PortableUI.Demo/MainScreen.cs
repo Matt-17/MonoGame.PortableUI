@@ -6,6 +6,7 @@ using MonoGame.PortableUI.Animation;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
 using MonoGame.PortableUI.Media;
+using MonoGame.PortableUI.Text;
 
 namespace MonoGame.PortableUI.Demo
 {
@@ -630,6 +631,26 @@ namespace MonoGame.PortableUI.Demo
             combo.SelectedIndex = 1;
             combo.SelectionChanged += (sender, args) => _status.Text = $"Density: {combo.SelectedItem}";
             panel.AddChild(combo);
+
+            panel.AddChild(Label("Text size (TextScaling)", Palette.MutedText));
+            var scaleSource = new ComboBox { Margin = new Thickness(0, 6, 0, 6), Height = 38, ToolTip = "Where the text size comes from" };
+            scaleSource.Items.Add("Fixed (1.0)");
+            scaleSource.Items.Add("App setting");
+            scaleSource.Items.Add("System font scale");
+            scaleSource.SelectedIndex = (int)TextScaling.Source;
+            var appScale = new Slider { Minimum = 0.8f, Maximum = 1.6f, Value = TextScaling.AppScale, Margin = new Thickness(0, 0, 0, 14), ToolTip = "App text size, used by the App source" };
+            scaleSource.SelectionChanged += (sender, args) =>
+            {
+                TextScaling.Source = (TextScaleSource)Math.Max(0, scaleSource.SelectedIndex);
+                _status.Text = $"Text scale: {TextScaling.Factor:0.00} ({TextScaling.Source})";
+            };
+            appScale.ValueChanged += (sender, args) =>
+            {
+                TextScaling.AppScale = appScale.Value;
+                _status.Text = $"Text scale: {TextScaling.Factor:0.00} ({TextScaling.Source})";
+            };
+            panel.AddChild(scaleSource);
+            panel.AddChild(appScale);
 
             return panel;
         }

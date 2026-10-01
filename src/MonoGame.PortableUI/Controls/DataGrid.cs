@@ -683,8 +683,8 @@ namespace MonoGame.PortableUI.Controls
         {
             var font = FontManager.DefaultFont;
             if (font != null)
-                return font.MeasureString(text ?? "").X;
-            return (text?.Length ?? 0) * 7f;
+                return font.MeasureString(text ?? "").X * Text.TextScaling.Factor;
+            return (text?.Length ?? 0) * 7f * Text.TextScaling.Factor;
         }
 
         internal static void FillRect(SpriteBatch spriteBatch, Brush? brush, Rect rect, float opacity)

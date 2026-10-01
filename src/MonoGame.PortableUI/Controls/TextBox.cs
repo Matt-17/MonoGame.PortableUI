@@ -1240,7 +1240,13 @@ namespace MonoGame.PortableUI.Controls
             // SpriteFont measures a StringBuilder without allocating a one-char string per glyph.
             if (Font != null)
                 return Font.MeasureString(_charBuffer.Clear().Append(character)).X * FontScale;
-            return TextMeasurer.MeasureString(character.ToString()).X;
+            return TextMeasurer.MeasureString(character.ToString()).X * TextScaling.Factor;
+        }
+
+        internal override void OnTextScaleChanged()
+        {
+            InvalidateLineMetrics();
+            base.OnTextScaleChanged();
         }
 
         private void InvalidateLineMetrics()

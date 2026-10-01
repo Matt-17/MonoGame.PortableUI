@@ -13,6 +13,10 @@ namespace MonoGame.PortableUI.Demo
 
         public static DemoRunOptions Parse(string[]? args)
         {
+            // --text-scale 1.5 sets the app text size (TextScaling.AppScale) before anything is built.
+            if (float.TryParse(TryParseValue(args, "--text-scale"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var textScale))
+                MonoGame.PortableUI.Text.TextScaling.AppScale = textScale;
+
             return new DemoRunOptions
             {
                 InitialThemePreset = DemoThemeRegistry.ResolveStartupTheme(args),
