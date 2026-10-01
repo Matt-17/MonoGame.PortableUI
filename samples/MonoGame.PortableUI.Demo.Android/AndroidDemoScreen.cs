@@ -21,7 +21,7 @@ namespace MonoGame.PortableUI.Demo.Android
         public AndroidDemoScreen()
         {
             BackgroundBrush = Color.White;
-            Content = BuildContent();
+            Content = new SafeAreaPanel(BuildContent());
         }
 
         private Control BuildContent()

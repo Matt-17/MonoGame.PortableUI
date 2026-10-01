@@ -70,6 +70,85 @@ namespace MonoGame.PortableUI
 
         public Rect ScreenRect { get; set; }
 
+        private readonly object _insetLock = new object();
+        private Thickness _pendingSystemInsets;
+        private float _pendingKeyboardInset;
+        private bool _insetsPending;
+        private Thickness _systemInsetPixels;
+        private float _keyboardInsetPixels;
+
+        /// <summary>
+        ///     The part of each screen edge covered by notches, rounded corners, system bars or the
+        ///     on-screen keyboard (bottom), in layout units. Zero on desktop.
+        ///     <see cref="Controls.SafeAreaPanel"/> pads itself by it.
+        /// </summary>
+        public Thickness SafeAreaInsets { get; private set; }
+
+        /// <summary>Height of the on-screen keyboard in layout units (0 when hidden).</summary>
+        public float KeyboardInset { get; private set; }
+
+        /// <summary>Raised on the game thread after <see cref="SafeAreaInsets"/> changed.</summary>
+        public event EventHandler? SafeAreaChanged;
+
+        /// <summary>
+        ///     Reports the system insets (cutouts, status/navigation bars) in window pixels. Safe to call
+        ///     from any thread (e.g. an Android insets listener); applied on the next update.
+        /// </summary>
+        public void SetSystemInsets(Thickness windowPixels)
+        {
+            lock (_insetLock)
+            {
+                _pendingSystemInsets = windowPixels;
+                _pendingKeyboardInset = _insetsPending ? _pendingKeyboardInset : _keyboardInsetPixels;
+                _insetsPending = true;
+            }
+        }
+
+        /// <summary>Reports the on-screen keyboard height in window pixels (0 = hidden). Any thread.</summary>
+        public void SetKeyboardInset(float windowPixels)
+        {
+            lock (_insetLock)
+            {
+                _pendingSystemInsets = _insetsPending ? _pendingSystemInsets : _systemInsetPixels;
+                _pendingKeyboardInset = Math.Max(0, windowPixels);
+                _insetsPending = true;
+            }
+        }
+
+        private void ApplyPendingInsets(bool force)
+        {
+            lock (_insetLock)
+            {
+                if (_insetsPending)
+                {
+                    _systemInsetPixels = _pendingSystemInsets;
+                    _keyboardInsetPixels = _pendingKeyboardInset;
+                    _insetsPending = false;
+                    force = true;
+                }
+            }
+            if (!force)
+                return;
+
+            // Window pixels -> layout units: the letter-box bars already keep the UI clear of
+            // whatever they cover, so only the part reaching into the scaled area counts.
+            var scale = RenderScale > 0 ? RenderScale : 1f;
+            var keyboard = Math.Max(0, _keyboardInsetPixels - RenderOffset.Y) / scale;
+            var insets = new Thickness(
+                Math.Max(0, _systemInsetPixels.Left - RenderOffset.X) / scale,
+                Math.Max(0, _systemInsetPixels.Top - RenderOffset.Y) / scale,
+                Math.Max(0, _systemInsetPixels.Right - RenderOffset.X) / scale,
+                Math.Max(Math.Max(0, _systemInsetPixels.Bottom - RenderOffset.Y) / scale, keyboard));
+
+            if (insets.Equals(SafeAreaInsets) && keyboard == KeyboardInset)
+                return;
+            SafeAreaInsets = insets;
+            KeyboardInset = keyboard;
+            foreach (var screen in ScreenHistory)
+                screen.InvalidateLayout(true);
+            SafeAreaChanged?.Invoke(this, EventArgs.Empty);
+        }
+
         internal ScreenComponent Component { get; }
 
         private BackdropManager? _backdrop;
@@ -249,6 +328,7 @@ namespace MonoGame.PortableUI
             RenderOffset = offset;
             ScreenRect = new Rect(logicalWidth, logicalHeight);
             ActiveScreen?.InvalidateLayout(true);
+            ApplyPendingInsets(force: true);
             return true;
         }
 
@@ -480,6 +560,7 @@ namespace MonoGame.PortableUI
             LayoutPassesThisFrame = 0;
             FramesPerSecond = gameTime.ElapsedGameTime.TotalSeconds > 0 ? 1 / gameTime.ElapsedGameTime.TotalSeconds : 0;
             UpdateTransition();
+            ApplyPendingInsets(force: false);
             ActiveScreen?.Update();
             _toasts?.Update();
         }
