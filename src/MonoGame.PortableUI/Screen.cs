@@ -70,6 +70,7 @@ namespace MonoGame.PortableUI
         private bool _inIslandPostFx;
         private long _appliedThemeVersion = -1;
         private long _appliedTextScaleVersion;
+        private long _appliedLocalizationVersion;
         // Rebuilt every Draw; Update reads the previous frame's entries for pointer inverse mapping.
         private readonly List<(Rect Rect, float Distortion)> _distortedIslands = new List<(Rect, float)>();
         private static readonly ScreenEngineOptions DefaultOptions = new ScreenEngineOptions();
@@ -610,6 +611,22 @@ namespace MonoGame.PortableUI
             DrawControlBatched(spriteBatch, control, RenderContext.Root(scissorRect));
         }
 
+        private static void RefreshLocalizationForTree(Control control)
+        {
+            var binding = control.LocalizationBinding;
+            if (binding != null && binding.AppliedVersion != binding.Localizer.Version)
+            {
+                binding.AppliedVersion = binding.Localizer.Version;
+                binding.Refresh();
+            }
+            var count = control.VisualChildCount;
+            for (var i = 0; i < count; i++)
+            {
+                if (control.GetVisualChild(i) is Control child)
+                    RefreshLocalizationForTree(child);
+            }
+        }
+
         private static void RefreshTextScaleForTree(Control control)
         {
             if (control is TextBlock textBlock)
@@ -979,6 +996,15 @@ namespace MonoGame.PortableUI
                 if (_toolTip != null)
                     RefreshTextScaleForTree(_toolTip);
                 InvalidateLayout(true);
+            }
+
+            var localizationVersion = MonoGame.PortableUI.Localization.Localizer.GlobalVersion;
+            if (_appliedLocalizationVersion != localizationVersion)
+            {
+                _appliedLocalizationVersion = localizationVersion;
+                RefreshLocalizationForTree(_mainGrid);
+                if (_flyOut != null)
+                    RefreshLocalizationForTree(_flyOut);
             }
 
             // One coalesced layout pass per frame, before timers/input read control rects.

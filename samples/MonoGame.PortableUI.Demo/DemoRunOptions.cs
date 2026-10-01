@@ -17,6 +17,11 @@ namespace MonoGame.PortableUI.Demo
             if (float.TryParse(TryParseValue(args, "--text-scale"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var textScale))
                 MonoGame.PortableUI.Text.TextScaling.AppScale = textScale;
 
+            // --language de switches the demo's Localizer before the screens are built.
+            var language = TryParseValue(args, "--language");
+            if (!string.IsNullOrWhiteSpace(language))
+                MonoGame.PortableUI.Localization.Localizer.Default.Language = language;
+
             return new DemoRunOptions
             {
                 InitialThemePreset = DemoThemeRegistry.ResolveStartupTheme(args),

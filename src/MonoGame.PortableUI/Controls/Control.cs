@@ -667,6 +667,9 @@ namespace MonoGame.PortableUI.Controls
         private sbyte _hasCustomDescendants;
         private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, bool> OverridesGetDescendants = new();
 
+        /// <summary>Set by <c>Localize(...)</c>; re-applied by the screen when the language changes.</summary>
+        internal Localization.LocalizationBinding? LocalizationBinding { get; set; }
+
         /// <summary>Number of visual children, in draw order (see <see cref="GetVisualChild"/>).</summary>
         protected internal virtual int VisualChildCount
         {
