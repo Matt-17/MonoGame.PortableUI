@@ -5,6 +5,7 @@ using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI.Animation;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
+using MonoGame.PortableUI.Localization;
 using MonoGame.PortableUI.Media;
 using MonoGame.PortableUI.Text;
 
@@ -652,6 +653,19 @@ namespace MonoGame.PortableUI.Demo
             panel.AddChild(scaleSource);
             panel.AddChild(appScale);
 
+            DemoStrings.EnsureLoaded();
+            panel.AddChild(Label("Language (Localizer)", Palette.MutedText).LocalizedText("language.label"));
+            var language = new ComboBox { Margin = new Thickness(0, 6, 0, 14), Height = 38, ToolTip = "Switches every localized label at runtime" };
+            language.Items.Add("English");
+            language.Items.Add("Deutsch");
+            language.SelectedIndex = Localizer.Default.Language.StartsWith("de", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
+            language.SelectionChanged += (sender, args) =>
+            {
+                Localizer.Default.Language = language.SelectedIndex == 1 ? "de" : "en";
+                _status.Text = Localizer.Default.Format("language.status", language.SelectedItem);
+            };
+            panel.AddChild(language);
+
             return panel;
         }
 
@@ -819,7 +833,8 @@ namespace MonoGame.PortableUI.Demo
         {
             var panel = PanelStack("Buttons and menus");
 
-            var primary = CommandButton("Primary action", Palette.Primary, Palette.SelectionText);
+            DemoStrings.EnsureLoaded();
+            var primary = CommandButton("Primary action", Palette.Primary, Palette.SelectionText).LocalizedText("actions.primary");
             primary.PressedHorizontalInset = 5;
             primary.PressedVerticalInset = 3;
             primary.PressedTranslation = new Vector2(0, 1);
@@ -827,21 +842,22 @@ namespace MonoGame.PortableUI.Demo
             primary.Click += (sender, args) => OpenDemoModal(ModalPlacement.Center);
             panel.AddChild(primary);
 
-            var secondary = CommandButton("Secondary action", Palette.Secondary, Palette.SelectionText);
+            var secondary = CommandButton("Secondary action", Palette.Secondary, Palette.SelectionText).LocalizedText("actions.secondary");
             secondary.ToolTip = "Run the secondary demo action";
             secondary.Click += (sender, args) => OpenDemoModal(ModalPlacement.BottomSheet);
             panel.AddChild(secondary);
 
-            var toasts = CommandButton("Show three toasts", Palette.Info, Palette.SelectionText);
+            var toasts = CommandButton("Show three toasts", Palette.Info, Palette.SelectionText).LocalizedText("actions.toasts");
             toasts.Click += (sender, args) =>
             {
-                ScreenEngine!.Toasts.Show("First message");
-                ScreenEngine.Toasts.Show("Second message");
-                ScreenEngine.Toasts.Show("Third message, shown longer", ToastDuration.Long);
+                var strings = Localizer.Default;
+                ScreenEngine!.Toasts.Show(strings["toast.first"]);
+                ScreenEngine.Toasts.Show(strings["toast.second"]);
+                ScreenEngine.Toasts.Show(strings["toast.third"], ToastDuration.Long);
             };
             panel.AddChild(toasts);
 
-            var danger = CommandButton("Danger action", Palette.Danger, Palette.SelectionText);
+            var danger = CommandButton("Danger action", Palette.Danger, Palette.SelectionText).LocalizedText("actions.danger");
             danger.ToolTip = "Run the destructive demo action";
             danger.Click += (sender, args) => _status.Text = "Danger action clicked";
             panel.AddChild(danger);
