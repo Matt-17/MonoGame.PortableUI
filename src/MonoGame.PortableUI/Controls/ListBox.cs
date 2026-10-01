@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Xna.Framework;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls.Events;
@@ -102,12 +103,130 @@ namespace MonoGame.PortableUI.Controls
 
                 var oldIndex = _selectedIndex;
                 _selectedIndex = clamped;
+                // Setting the index selects exactly that item (in every mode).
+                _selectedIndices.Clear();
+                if (clamped >= 0)
+                    _selectedIndices.Add(clamped);
+                _rangeAnchor = clamped;
                 UpdateItemButtonVisuals();
                 SelectionChanged?.Invoke(this, new SelectionChangedEventArgs(oldIndex, clamped));
             }
         }
 
         public object? SelectedItem => SelectedIndex >= 0 && SelectedIndex < Items.Count ? Items[SelectedIndex] : null;
+
+        private readonly List<int> _selectedIndices = new List<int>();
+        private SelectionMode _selectionMode = SelectionMode.Single;
+        private int _rangeAnchor = -1;
+        private Func<object, Control>? _itemTemplate;
+
+        /// <summary>Single (default), Multiple (click toggles) or Extended (Ctrl/Shift+click).</summary>
+        public SelectionMode SelectionMode
+        {
+            get => _selectionMode;
+            set
+            {
+                if (_selectionMode == value)
+                    return;
+                _selectionMode = value;
+                // Leaving a multi mode keeps only the current item.
+                if (value == SelectionMode.Single)
+                    SetSelection(_selectedIndex >= 0 ? new[] { _selectedIndex } : Array.Empty<int>(), _selectedIndex);
+            }
+        }
+
+        /// <summary>All selected item indices in ascending order (one entry in Single mode).</summary>
+        public IReadOnlyList<int> SelectedIndices => _selectedIndices;
+
+        public IReadOnlyList<object> SelectedItems
+        {
+            get
+            {
+                var items = new List<object>(_selectedIndices.Count);
+                foreach (var index in _selectedIndices)
+                {
+                    if (index < Items.Count)
+                        items.Add(Items[index]);
+                }
+                return items;
+            }
+        }
+
+        /// <summary>
+        ///     Builds the visual for each item instead of its <c>ToString()</c> text (icons, two-line
+        ///     rows, ...). Called again for an item after it was replaced or after <see cref="Refresh"/>.
+        /// </summary>
+        public Func<object, Control>? ItemTemplate
+        {
+            get => _itemTemplate;
+            set
+            {
+                _itemTemplate = value;
+                _refreshItemTexts = true;
+                InvalidateLayout(true);
+            }
+        }
+
+        public bool IsSelected(int index) => _selectedIndices.Contains(index);
+
+        private void SetSelection(IEnumerable<int> indices, int current)
+        {
+            var oldIndex = _selectedIndex;
+            var before = _selectedIndices.ToArray();
+            _selectedIndices.Clear();
+            foreach (var index in indices)
+            {
+                if (index >= 0 && index < Items.Count && !_selectedIndices.Contains(index))
+                    _selectedIndices.Add(index);
+            }
+            _selectedIndices.Sort();
+            _selectedIndex = current >= 0 && current < Items.Count ? current : (_selectedIndices.Count > 0 ? _selectedIndices[0] : -1);
+
+            if (oldIndex == _selectedIndex && before.SequenceEqual(_selectedIndices))
+                return;
+            UpdateItemButtonVisuals();
+            SelectionChanged?.Invoke(this, new SelectionChangedEventArgs(oldIndex, _selectedIndex));
+        }
+
+        /// <summary>Applies a pointer/keyboard selection gesture according to <see cref="SelectionMode"/>.</summary>
+        private void SelectWithGesture(int index, bool toggle, bool range)
+        {
+            if (SelectionMode == SelectionMode.Single || (SelectionMode == SelectionMode.Extended && !toggle && !range))
+            {
+                _rangeAnchor = index;
+                SelectedIndex = index;
+                return;
+            }
+
+            if (range && SelectionMode == SelectionMode.Extended && _rangeAnchor >= 0)
+            {
+                var from = Math.Min(_rangeAnchor, index);
+                var to = Math.Max(_rangeAnchor, index);
+                var indices = new List<int>();
+                for (var i = from; i <= to; i++)
+                    indices.Add(i);
+                SetSelection(indices, index);
+                return;
+            }
+
+            // Multiple mode click, or Extended Ctrl+click: toggle.
+            _rangeAnchor = index;
+            var next = new List<int>(_selectedIndices);
+            if (!next.Remove(index))
+                next.Add(index);
+            SetSelection(next, next.Contains(index) ? index : (next.Count > 0 ? next[next.Count - 1] : -1));
+        }
+
+        private KeyboardModifiers CurrentModifiers()
+        {
+            var keyboard = Screen?.InputSource?.KeyboardState ?? default;
+            var modifiers = KeyboardModifiers.None;
+            if (keyboard.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.LeftShift) || keyboard.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.RightShift))
+                modifiers |= KeyboardModifiers.Shift;
+            if (keyboard.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.LeftControl) || keyboard.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.RightControl))
+                modifiers |= KeyboardModifiers.Control;
+            return modifiers;
+        }
 
         public float ItemHeight
         {
@@ -287,6 +406,7 @@ namespace MonoGame.PortableUI.Controls
             if (_pendingSelectedIndex >= 0 && Items.Count > 0)
                 SelectedIndex = _pendingSelectedIndex;
 
+            _selectedIndices.RemoveAll(index => index >= Items.Count);
             var clamped = ClampIndex(_selectedIndex);
             if (_selectedIndex != clamped)
             {
@@ -307,7 +427,16 @@ namespace MonoGame.PortableUI.Controls
                 var item = Items[i];
                 if (i < _syncedItems.Count && ReferenceEquals(_syncedItems[i], item) && !_refreshItemTexts)
                     continue;
-                button.Text = item?.ToString() ?? "";
+                if (ItemTemplate != null && item != null)
+                {
+                    button.Content = ItemTemplate(item);
+                }
+                else
+                {
+                    if (button.Content is not TextBlock)
+                        button.Content = null;
+                    button.Text = item?.ToString() ?? "";
+                }
                 if (i < _syncedItems.Count)
                     _syncedItems[i] = item;
                 else
@@ -344,6 +473,24 @@ namespace MonoGame.PortableUI.Controls
             if (sender is not Button { Tag: int index })
                 return;
 
+            // Touch/keyboard activation in a multi mode toggles instead of replacing the selection.
+            // The pointer gesture already applied the selection on mouse down.
+            if (_pointerToggled)
+            {
+                _pointerToggled = false;
+                // A plain click in Extended mode still invokes the item; Ctrl/Shift clicks only select.
+                if (SelectionMode == SelectionMode.Extended && _selectedIndices.Count == 1 && SelectedIndex == index)
+                    ItemInvoked?.Invoke(this, new ListBoxItemInvokedEventArgs(index, SelectedItem));
+                return;
+            }
+
+            if (SelectionMode == SelectionMode.Multiple)
+            {
+                if (!_isMouseSelecting)
+                    SelectWithGesture(index, toggle: true, range: false);
+                return;
+            }
+
             SelectItem(index, true);
             InvokeItem(index);
         }
@@ -352,6 +499,16 @@ namespace MonoGame.PortableUI.Controls
         {
             if (!args.Buttons.Contains(MouseButton.Left) || sender is not Button { Tag: int index })
                 return;
+
+            if (SelectionMode != SelectionMode.Single)
+            {
+                _pointerToggled = true;
+                var modifiers = CurrentModifiers();
+                SelectWithGesture(index, (modifiers & KeyboardModifiers.Control) != 0, (modifiers & KeyboardModifiers.Shift) != 0);
+                Focus();
+                args.Handled = true;
+                return;
+            }
 
             BeginMouseSelection(index);
             args.Handled = true;
@@ -483,8 +640,19 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        private bool _pointerToggled;
+
         private void ListBoxKeyPressed(object? sender, KeyEventArgs args)
         {
+            if (args.InputType == InputType.Char && args.Char == ' ' && SelectionMode != SelectionMode.Single)
+            {
+                // The anchor is the current item even after it was toggled off.
+                var current = _rangeAnchor >= 0 && _rangeAnchor < Items.Count ? _rangeAnchor : SelectedIndex;
+                if (current >= 0)
+                    SelectWithGesture(current, toggle: true, range: false);
+                return;
+            }
+
             if (args.InputType != InputType.Command || Items.Count == 0)
                 return;
 
@@ -531,7 +699,7 @@ namespace MonoGame.PortableUI.Controls
             var theme = ResolveTheme();
             for (var i = 0; i < _itemButtons.Count; i++)
             {
-                var selected = i == SelectedIndex;
+                var selected = _selectedIndices.Contains(i);
                 var button = _itemButtons[i];
                 var backgroundBrush = selected ? SelectedItemBackgroundBrush : ItemBackgroundBrush;
                 var textColor = selected ? SelectedItemTextColor : ItemTextColor;

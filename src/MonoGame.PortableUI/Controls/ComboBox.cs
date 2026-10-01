@@ -128,7 +128,7 @@ namespace MonoGame.PortableUI.Controls
                     return;
                 var oldIndex = _selectedIndex;
                 _selectedIndex = clamped;
-                Text = SelectedItem?.ToString() ?? "";
+                UpdateDisplay();
                 SelectionChanged?.Invoke(this, new SelectionChangedEventArgs(oldIndex, clamped));
             }
         }
@@ -143,11 +143,47 @@ namespace MonoGame.PortableUI.Controls
             var clamped = ClampIndex(_selectedIndex);
             if (_selectedIndex != clamped)
                 SelectedIndex = clamped;
-            else if (SelectedItem is { } item && Text != (item.ToString() ?? ""))
-            {
-                Text = item.ToString() ?? "";
-            }
+            else
+                UpdateDisplay();
             return base.MeasureLayout();
+        }
+
+        private Func<object, Control>? _itemTemplate;
+        private object? _templatedItem;
+
+        /// <summary>Visual for items in the dropdown and for the selected item in the closed box
+        /// (instead of <c>ToString()</c>).</summary>
+        public Func<object, Control>? ItemTemplate
+        {
+            get => _itemTemplate;
+            set
+            {
+                _itemTemplate = value;
+                _templatedItem = null;
+                UpdateDisplay();
+                InvalidateLayout(true);
+            }
+        }
+
+        private void UpdateDisplay()
+        {
+            var item = SelectedItem;
+            if (ItemTemplate != null && item != null)
+            {
+                if (!ReferenceEquals(_templatedItem, item) || Content is TextBlock)
+                {
+                    Content = ItemTemplate(item);
+                    _templatedItem = item;
+                }
+                return;
+            }
+
+            _templatedItem = null;
+            if (Content != null && Content is not TextBlock)
+                Content = null;
+            var text = item?.ToString() ?? "";
+            if (Text != text)
+                Text = text;
         }
 
         public object? SelectedItem => SelectedIndex >= 0 && SelectedIndex < Items.Count ? Items[SelectedIndex] : null;
@@ -182,7 +218,8 @@ namespace MonoGame.PortableUI.Controls
                 SelectedItemBackgroundBrush = SelectedItemBackgroundBrush,
                 ItemTextColor = ItemTextColor,
                 SelectedItemTextColor = SelectedItemTextColor,
-                SelectedIndex = ClampIndex(SelectedIndex)
+                SelectedIndex = ClampIndex(SelectedIndex),
+                ItemTemplate = ItemTemplate
             };
 
             foreach (var item in Items)
