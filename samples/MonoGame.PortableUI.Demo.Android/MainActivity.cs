@@ -1,3 +1,4 @@
+using System;
 using Android.App;
 using Android.Content.PM;
 using Android.Content.Res;
@@ -26,6 +27,13 @@ namespace MonoGame.PortableUI.Demo.Android
             base.OnCreate(savedInstanceState);
             TextScaling.Source = TextScaleSource.System;
             AndroidTextScaling.Update(this);
+            if (OperatingSystem.IsAndroidVersionAtLeast(30) && !OperatingSystem.IsAndroidVersionAtLeast(35)) // 35+ is edge to edge by default
+                Window?.SetDecorFitsSystemWindows(false);
+            if (OperatingSystem.IsAndroidVersionAtLeast(28) && Window?.Attributes is { } attributes)
+            {
+                attributes.LayoutInDisplayCutoutMode = LayoutInDisplayCutoutMode.ShortEdges;
+                Window.Attributes = attributes;
+            }
 
             _game = new AndroidDemoGame();
             _view = _game.Services.GetService(typeof(View)) as View;
