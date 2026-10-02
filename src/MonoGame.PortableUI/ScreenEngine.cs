@@ -87,6 +87,41 @@ namespace MonoGame.PortableUI
         /// <summary>Height of the on-screen keyboard in layout units (0 when hidden).</summary>
         public float KeyboardInset { get; private set; }
 
+        private Input.IOnScreenKeyboard? _onScreenKeyboard;
+
+        /// <summary>
+        ///     The platform software keyboard (from <see cref="ScreenEngineOptions.OnScreenKeyboard"/>).
+        ///     Replaceable at runtime, e.g. to register Steam's keyboard once the Steam API is up.
+        /// </summary>
+        public Input.IOnScreenKeyboard OnScreenKeyboard
+        {
+            get => _onScreenKeyboard ??= Attach(Options.OnScreenKeyboard);
+            set
+            {
+                if (ReferenceEquals(_onScreenKeyboard, value))
+                    return;
+                if (_onScreenKeyboard != null)
+                    _onScreenKeyboard.VisibilityChanged -= OnScreenKeyboardVisibilityChanged;
+                _onScreenKeyboard = Attach(value ?? Input.NullOnScreenKeyboard.Instance);
+            }
+        }
+
+        private Input.IOnScreenKeyboard Attach(Input.IOnScreenKeyboard keyboard)
+        {
+            keyboard.VisibilityChanged += OnScreenKeyboardVisibilityChanged;
+            return keyboard;
+        }
+
+        private void OnScreenKeyboardVisibilityChanged(object? sender, Input.OnScreenKeyboardEventArgs args)
+        {
+            // A keyboard that reports no height (floating, or Android where the insets listener
+            // delivers the real IME height) only clears the inset when it hides.
+            if (!args.IsVisible)
+                SetKeyboardInset(0);
+            else if (args.CoveredHeightPixels > 0)
+                SetKeyboardInset(args.CoveredHeightPixels);
+        }
+
         /// <summary>Raised on the game thread after <see cref="SafeAreaInsets"/> changed.</summary>
         public event EventHandler? SafeAreaChanged;
 
@@ -142,10 +177,14 @@ namespace MonoGame.PortableUI
 
             if (insets.Equals(SafeAreaInsets) && keyboard == KeyboardInset)
                 return;
+            var keyboardGrew = keyboard > KeyboardInset;
             SafeAreaInsets = insets;
             KeyboardInset = keyboard;
             foreach (var screen in ScreenHistory)
                 screen.InvalidateLayout(true);
+            // Keep the field being typed into visible above the keyboard.
+            if (keyboardGrew)
+                ActiveScreen?.RequestBringFocusIntoView();
             SafeAreaChanged?.Invoke(this, EventArgs.Empty);
         }
 

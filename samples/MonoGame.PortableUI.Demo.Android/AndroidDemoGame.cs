@@ -50,7 +50,10 @@ namespace MonoGame.PortableUI.Demo.Android
             base.Initialize();
             // Edge-to-edge window: the UI draws under the bars and keeps clear via SafeAreaPanel.
             if (Services.GetService(typeof(global::Android.Views.View)) is global::Android.Views.View view)
+            {
                 AndroidWindowInsets.Attach(view, _engine);
+                _engine.OnScreenKeyboard = new AndroidOnScreenKeyboard(view);
+            }
         }
 
         protected override void LoadContent()
