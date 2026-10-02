@@ -19,6 +19,14 @@ namespace MonoGame.PortableUI
         public Input.IOnScreenKeyboard OnScreenKeyboard { get; set; } = Input.NullOnScreenKeyboard.Instance;
         public bool AddComponentToGame { get; set; } = true;
         public ScreenSizeMode ScreenSizeMode { get; set; } = ScreenSizeMode.Viewport;
+
+        /// <summary>
+        ///     Layout units per pixel divisor, e.g. the Android display density (2.75 on a Pixel 5):
+        ///     the UI is laid out in density-independent units (window / LayoutScale) and drawn at
+        ///     native resolution through the render transform, so it stays sharp. 0 or 1 (default):
+        ///     layout units are pixels. Ignored when <see cref="ReferenceSize"/> is set.
+        /// </summary>
+        public float LayoutScale { get; set; }
         public Effect? Effect { get; set; }
 
         /// <summary>

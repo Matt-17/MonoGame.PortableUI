@@ -151,6 +151,7 @@ namespace MonoGame.PortableUI.Tests
             {
                 Text = "abcd",
                 TextMeasurer = new CharacterWidthMeasurer(10, 16),
+                Padding = new Thickness(4),
                 Width = 200,
                 Height = 30
             };
@@ -569,6 +570,7 @@ namespace MonoGame.PortableUI.Tests
             var textBox = new TextBox
             {
                 IsMultiline = true,
+                Padding = new Thickness(4),
                 Text = "aa\nbbbb",
                 TextMeasurer = new CharacterWidthMeasurer(10, 16),
                 Width = 200,

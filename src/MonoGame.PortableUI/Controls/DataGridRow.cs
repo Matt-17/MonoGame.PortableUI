@@ -116,7 +116,7 @@ namespace MonoGame.PortableUI.Controls
                 return Size.Empty;
 
             var width = _owner.InnerWidth;
-            return ApplyConstraints(new Size(width, _owner.RowHeight)) + Margin;
+            return ApplyConstraints(new Size(width, _owner.EffectiveRowHeight)) + Margin;
         }
 
         public override void UpdateLayout(Rect rect)
@@ -165,13 +165,15 @@ namespace MonoGame.PortableUI.Controls
         private void DrawGridLines(SpriteBatch spriteBatch, Rect rect)
         {
             // Bottom separator between rows.
-            DataGrid.FillRect(spriteBatch, _owner.GridLinesBrush, new Rect(rect.Left, rect.Bottom - 1, rect.Width, 1), RenderOpacity);
+            // rect is in render space: column offsets (layout units) and the 1 px line scale with it.
+            var line = Math.Max(1, ToRender(1));
+            DataGrid.FillRect(spriteBatch, _owner.GridLinesBrush, new Rect(rect.Left, rect.Bottom - line, rect.Width, line), RenderOpacity);
 
             // Vertical separators on each column's trailing edge (skip the last one).
             for (var i = 0; i < _owner.Columns.Count - 1; i++)
             {
-                var x = rect.Left + _owner.ColumnOffset(i) + _owner.Columns[i].ActualWidth;
-                DataGrid.FillRect(spriteBatch, _owner.GridLinesBrush, new Rect(x, rect.Top, 1, rect.Height), RenderOpacity);
+                var x = rect.Left + ToRenderX(_owner.ColumnOffset(i) + _owner.Columns[i].ActualWidth);
+                DataGrid.FillRect(spriteBatch, _owner.GridLinesBrush, new Rect(x, rect.Top, line, rect.Height), RenderOpacity);
             }
         }
 

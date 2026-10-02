@@ -95,10 +95,11 @@ namespace MonoGame.PortableUI.Controls
             if (_anim > 0.001f)
                 OnTrackBrush.Draw(spriteBatch, new BrushContext(rect, radius, RenderOpacity * _anim, spriteBatch.GraphicsDevice));
 
-            var knobSize = rect.Height - KnobInset * 2;
-            var travel = rect.Width - knobSize - KnobInset * 2;
-            var knobX = rect.Left + KnobInset + travel * _anim;
-            var knob = new Rect(knobX, rect.Top + KnobInset, knobSize, knobSize);
+            var inset = ToRender(KnobInset);
+            var knobSize = rect.Height - inset * 2;
+            var travel = rect.Width - knobSize - inset * 2;
+            var knobX = rect.Left + inset + travel * _anim;
+            var knob = new Rect(knobX, rect.Top + inset, knobSize, knobSize);
             KnobBrush.Draw(spriteBatch, new BrushContext(knob, new CornerRadius(knobSize / 2), RenderOpacity, spriteBatch.GraphicsDevice));
         }
 

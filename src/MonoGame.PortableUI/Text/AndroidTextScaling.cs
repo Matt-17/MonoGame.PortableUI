@@ -4,7 +4,8 @@ using Android.Content.Res;
 
 namespace MonoGame.PortableUI.Text
 {
-    /// <summary>Feeds Android's font scale into <see cref="TextScaling.SystemScale"/>.</summary>
+    /// <summary>Feeds Android's font scale into <see cref="TextScaling.SystemScale"/>. Display density belongs in
+    /// <see cref="ScreenEngineOptions.LayoutScale"/> (whole UI in dp), not in the text factor.</summary>
     /// <remarks>
     ///     Call <see cref="Update(Context)"/> in <c>OnCreate</c> and <c>OnResume</c> (the user may change
     ///     the setting while the app is in the background), and <see cref="Update(Configuration)"/> from
@@ -14,8 +15,7 @@ namespace MonoGame.PortableUI.Text
     {
         public static void Update(Context context)
         {
-            var configuration = context.Resources?.Configuration;
-            if (configuration != null)
+            if (context.Resources?.Configuration is { } configuration)
                 Update(configuration);
         }
 

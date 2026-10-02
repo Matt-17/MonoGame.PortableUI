@@ -160,6 +160,19 @@ namespace MonoGame.PortableUI.Controls
         /// </summary>
         internal float InnerWidth { get; private set; }
 
+        // Probe in the cells' default font and size: rows never get shorter than one line of text,
+        // so larger text (TextScaling, density, a dynamic font) does not overlap the next row.
+        private TextBlock? _lineProbe;
+        private const float RowTextPadding = 4;
+
+        private float TextLineHeight => (_lineProbe ??= new TextBlock()).CurrentLineHeight + RowTextPadding;
+
+        /// <summary><see cref="RowHeight"/>, raised to fit one line of cell text.</summary>
+        public float EffectiveRowHeight => Math.Max(RowHeight, TextLineHeight);
+
+        /// <summary><see cref="HeaderHeight"/> (0 stays 0), raised to fit one line of header text.</summary>
+        public float EffectiveHeaderHeight => HeaderHeight <= 0 ? 0 : Math.Max(HeaderHeight, TextLineHeight);
+
         public float RowHeight
         {
             get { return _rowHeight; }
@@ -353,12 +366,12 @@ namespace MonoGame.PortableUI.Controls
                 return Size.Empty;
 
             EnsureRows();
-            var headerRows = ShowColumnHeaders ? HeaderHeight : 0;
+            var headerRows = ShowColumnHeaders ? EffectiveHeaderHeight : 0;
             var naturalWidth = 0f;
             foreach (var column in Columns)
                 naturalWidth += NaturalColumnWidth(column);
             var width = Width.IsFixed() ? Width : naturalWidth;
-            var height = Height.IsFixed() ? Height : headerRows + Items.Count * RowHeight;
+            var height = Height.IsFixed() ? Height : headerRows + Items.Count * EffectiveRowHeight;
             return ApplyConstraints(new Size(width, height)) + Margin;
         }
 
@@ -593,7 +606,7 @@ namespace MonoGame.PortableUI.Controls
         }
 
         // Rows per visible page (one row of overlap), for PageUp/PageDown.
-        private int PageSize => Math.Max(1, (int)(_scrollViewer.BoundingRect.Height / Math.Max(1, RowHeight)) - 1);
+        private int PageSize => Math.Max(1, (int)(_scrollViewer.BoundingRect.Height / Math.Max(1, EffectiveRowHeight)) - 1);
 
         /// <summary>Moves the selection through the rows in display (sort) order.</summary>
         private void MoveSelection(int delta)

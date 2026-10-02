@@ -159,23 +159,25 @@ namespace MonoGame.PortableUI.Controls
         {
             base.OnDraw(spriteBatch, rect);
 
-            var box = GetBoxRect(rect - Padding);
+            var box = GetBoxRect(rect - ToRender(Padding), ToRender(BoxSize));
+            var boxRadius = ToRender(BoxCornerRadius);
+            var boxBorder = ToRender(BoxBorderWidth);
             if (BoxCornerRadius.IsEmpty)
                 BoxBackgroundBrush?.Draw(spriteBatch, box, RenderOpacity);
             else
-                BoxBackgroundBrush?.Draw(spriteBatch, new BrushContext(box, BoxCornerRadius, RenderOpacity, spriteBatch.GraphicsDevice));
+                BoxBackgroundBrush?.Draw(spriteBatch, new BrushContext(box, boxRadius, RenderOpacity, spriteBatch.GraphicsDevice));
 
             if (IsChecked && CheckMarkBrush != null)
-                DrawCheckMark(spriteBatch, box, BoxBorderWidth, CheckMarkBrush, GlyphKind, RenderOpacity);
+                DrawCheckMark(spriteBatch, box, boxBorder, CheckMarkBrush, GlyphKind, RenderOpacity);
 
             if (BoxBorderBrush != null && BoxBorderWidth > 0)
             {
                 // Same convention as Control's chrome: rounded borders need a solid color; other
                 // brushes fall back to the square border.
                 if (!BoxCornerRadius.IsEmpty && BoxBorderBrush is SolidColorBrush solidBorder)
-                    RoundedRectRenderer.DrawBorder(spriteBatch, box, BoxCornerRadius, new Thickness(BoxBorderWidth), Brush.ApplyOpacity(solidBorder.Color, RenderOpacity));
+                    RoundedRectRenderer.DrawBorder(spriteBatch, box, boxRadius, new Thickness(boxBorder), Brush.ApplyOpacity(solidBorder.Color, RenderOpacity));
                 else
-                    BorderRenderer.Draw(spriteBatch, box, BoxBorderWidth, BoxBorderBrush, RenderOpacity);
+                    BorderRenderer.Draw(spriteBatch, box, boxBorder, BoxBorderBrush, RenderOpacity);
             }
         }
 
@@ -196,13 +198,15 @@ namespace MonoGame.PortableUI.Controls
             Checked?.Invoke(this, new CheckedEventArgs { IsChecked = isChecked });
         }
 
-        private Rect GetBoxRect(Rect contentRect)
+        private Rect GetBoxRect(Rect contentRect) => GetBoxRect(contentRect, BoxSize);
+
+        private static Rect GetBoxRect(Rect contentRect, float boxSize)
         {
             return new Rect(
                 contentRect.Left,
-                contentRect.Top + Math.Max(0, (contentRect.Height - BoxSize) / 2),
-                BoxSize,
-                BoxSize);
+                contentRect.Top + Math.Max(0, (contentRect.Height - boxSize) / 2),
+                boxSize,
+                boxSize);
         }
 
         private static void DrawCheckMark(SpriteBatch spriteBatch, Rect rect, float borderWidth, Brush brush, CheckBoxGlyphKind glyphKind, float opacity)
