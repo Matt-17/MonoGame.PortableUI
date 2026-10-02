@@ -5,13 +5,14 @@ using Microsoft.Xna.Framework;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Media;
 
-namespace MonoGame.PortableUI.Themes;
+namespace MonoGame.PortableUI;
 
 /// <summary>
-///     Shared helpers for the theme files in this package. Every theme is one self-contained
-///     file that calls <see cref="CreateDefinition"/> (explicit palette) or <see cref="Catalog"/>
-///     (compact hex palette) and applies its chrome in a <c>styleTheme</c> callback — copy a
-///     theme file into your own project and adjust it from there.
+///     Helpers for writing themes. Lives in the core library so every file of the
+///     MonoGame.PortableUI.Themes catalog is self-contained: copy one theme file (plus its font,
+///     if it uses one) into your project and adjust it — no other file from the catalog is needed.
+///     Each theme calls <see cref="CreateDefinition"/> (explicit palette) or <see cref="Catalog"/>
+///     (compact hex palette) and applies its chrome in a <c>styleTheme</c> callback.
 /// </summary>
 public static class ThemeBuilder
 {

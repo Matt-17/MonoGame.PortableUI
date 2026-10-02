@@ -1,6 +1,6 @@
 # MonoGame.PortableUI.Themes — theme fonts
 
-The theme catalog references ten open-licensed fonts. Fonts cannot ship
+The theme catalog references fourteen open-licensed fonts. Fonts cannot ship
 pre-built from a NuGet package (they must go through your game's content
 pipeline), so this folder gives you everything to build them yourself:
 

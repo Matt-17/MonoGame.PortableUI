@@ -4,6 +4,7 @@
 
 - **Button variants:** `Button.Variant` (Primary/Secondary/Danger) styled by the new `PortableTheme.PrimaryButton`/`SecondaryButton`/`DangerButton` slots, so call-to-action buttons follow the theme instead of a flat fill.
 - **Chrome brushes:** `ChamferBrush` (cut corners, gradients, accent bar), `FrameBrush` (concentric rings, notched pixel corners), chained shadows (`ShadowStyle.Also`), bevel lines scaled under `LayoutScale` (`BrushContext.Scale`).
+- **Copyable themes:** `ThemeBuilder` moved into the core library, so each theme file depends only on MonoGame.PortableUI and can be copied alone (see `Themes/README.md`).
 - **Themes:** Windows 95, XP Luna, Aero, Aqua, E-Ink, Mac 1-bit, Game Boy and Neumorphism reworked to match their originals; five new game UI themes (Sci-Fi HUD, Dark Fantasy RPG, Cozy Casual, Tactical Ops, Phantom Strike) with four new OFL fonts — 42 themes in total.
 - **Fix:** `TextBox` draws its theme's border, corner radius and shadows, not only the fill.
 - **RadioButton** is a classic radio (round ring with a dot, label beside it) styled from the theme's check box values instead of a button face; use `ToggleButton` for a segmented look. Same-named radio groups on different screens/surfaces no longer affect each other.
