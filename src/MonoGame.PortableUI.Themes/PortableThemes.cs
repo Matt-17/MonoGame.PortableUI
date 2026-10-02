@@ -50,7 +50,12 @@ public static class PortableThemes
         LcarsTheme.Create(),
         EInkTheme.Create(),
         NeumorphicTheme.Create(),
-        BrutalistTheme.Create()
+        BrutalistTheme.Create(),
+        SciFiHudTheme.Create(),
+        DarkFantasyTheme.Create(),
+        CozyCasualTheme.Create(),
+        TacticalOpsTheme.Create(),
+        PhantomStrikeTheme.Create()
     };
 
     /// <summary>Distinct theme font families in catalog order (excluding the built-in "default" font).</summary>
