@@ -37,6 +37,8 @@ namespace MonoGame.PortableUI.Media
         public Color OuterDark { get; }
         public bool Sunken { get; set; }
 
+        public override Thickness ContentInset => new Thickness(_singleLine ? 1 : 2);
+
         public BevelBrush AsSunken()
         {
             return _singleLine

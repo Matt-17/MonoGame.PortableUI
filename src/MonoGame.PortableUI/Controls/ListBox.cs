@@ -375,7 +375,9 @@ namespace MonoGame.PortableUI.Controls
             SelectedIndex = ClampIndex(SelectedIndex);
             base.UpdateLayout(rect);
             // Keep the frame visible: items sit inside the themed border instead of covering it.
-            _scrollViewer.UpdateLayout(BoundingRect - Margin - BorderThickness);
+            // Keep rows inside the border and inside any frame the background brush draws itself.
+            var brushInset = BackgroundBrush?.ContentInset ?? default;
+            _scrollViewer.UpdateLayout(BoundingRect - Margin - BorderThickness - brushInset);
         }
 
         public override IEnumerable<Control> GetDescendants()
