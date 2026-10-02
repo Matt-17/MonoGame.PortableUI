@@ -46,6 +46,7 @@ public static class GameBoyTheme
         return ThemeBuilder.CreateDefinition("gameboy", "Game Boy DMG", "silkscreen", ThemeEra.Retro, ThemeBrightness.Light, palette, light,
             styleTheme: theme =>
             {
+                theme.Cursor = CursorStyle.PixelArrow(lightest, ink);
                 FrameBrush Box(Color face, Color frame, float width = 2) => new FrameBrush(face, new FrameRing(frame, width)) { NotchCorners = true };
 
                 ThemeBuilder.Chrome(theme.Button, Box(lightest, ink), null, 0, 0);

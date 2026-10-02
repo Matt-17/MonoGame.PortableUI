@@ -25,6 +25,7 @@ public static class TacticalOpsTheme
             surfaceBrush: new ChamferBrush(new Color(23, 26, 29, 240), new Color(23, 26, 29, 240), ThemeBuilder.Hex("#2A2F34"), 14, 1, ChamferCorners.TopRight),
             styleTheme: theme =>
             {
+                theme.Cursor = CursorStyle.Arrow(ThemeBuilder.Hex("#FFB000"), ThemeBuilder.Hex("#111111"));
                 ChamferBrush Cut(string fill, string border, ChamferCorners corners = ChamferCorners.TopRight | ChamferCorners.BottomLeft) =>
                     new(ThemeBuilder.Hex(fill), ThemeBuilder.Hex(border), 8, 1, corners);
 

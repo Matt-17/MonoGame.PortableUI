@@ -23,6 +23,7 @@ public static class SciFiHudTheme
             surfaceBrush: new ChamferBrush(new Color(14, 30, 44, 235), new Color(8, 18, 27, 235), line, 12, 1),
             styleTheme: theme =>
             {
+                theme.Cursor = CursorStyle.Arrow(ThemeBuilder.Hex("#3FD0FF"), ThemeBuilder.Hex("#03121A"));
                 ChamferBrush Plate(string top, string bottom, string border, float chamfer = 7) =>
                     new(ThemeBuilder.Hex(top), ThemeBuilder.Hex(bottom), ThemeBuilder.Hex(border), chamfer, 1);
 
