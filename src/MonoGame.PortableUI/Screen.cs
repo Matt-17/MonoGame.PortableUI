@@ -71,6 +71,9 @@ namespace MonoGame.PortableUI
         private long _appliedThemeVersion = -1;
         private long _appliedTextScaleVersion;
         private long _appliedLocalizationVersion;
+        private bool _bringFocusIntoView;
+
+        internal void RequestBringFocusIntoView() => _bringFocusIntoView = true;
         // Rebuilt every Draw; Update reads the previous frame's entries for pointer inverse mapping.
         private readonly List<(Rect Rect, float Distortion)> _distortedIslands = new List<(Rect, float)>();
         private static readonly ScreenEngineOptions DefaultOptions = new ScreenEngineOptions();
@@ -1009,6 +1012,16 @@ namespace MonoGame.PortableUI
 
             // One coalesced layout pass per frame, before timers/input read control rects.
             PerformLayoutIfDirty();
+
+            if (_bringFocusIntoView)
+            {
+                _bringFocusIntoView = false;
+                if (ScreenEngine.FocusedControl is { } focused && ReferenceEquals(focused.Screen, this))
+                {
+                    BringIntoView(focused);
+                    PerformLayoutIfDirty();
+                }
+            }
 
             // Timers/animations tick for the whole screen even while a flyout is open — only input
             // routing is restricted to the flyout (`content`), otherwise background tweens freeze.
