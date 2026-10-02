@@ -44,6 +44,7 @@ public static class Mac1BitTheme
         return ThemeBuilder.CreateDefinition("mac1bit", "Mac System 1-bit", "atkinsonhyperlegible", ThemeEra.Desktop, ThemeBrightness.Light, palette, white,
             styleTheme: theme =>
             {
+                theme.Cursor = CursorStyle.Arrow(Color.Black, Color.White);
                 var dither = PatternBrush.Dither(white, black);
                 ThemeBuilder.Chrome(theme.Button, ThemeBuilder.Solid(white), ThemeBuilder.Solid(black), 1, 8);
                 theme.Button.Pressed.Background = ThemeBuilder.Solid(black);

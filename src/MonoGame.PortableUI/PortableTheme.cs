@@ -212,6 +212,12 @@ namespace MonoGame.PortableUI
         public ControlStyle Panel { get; set; } = new ControlStyle();
         public IReadOnlyList<PostEffect> PostEffects { get; set; } = Array.Empty<PostEffect>();
 
+        /// <summary>
+        ///     The software mouse pointer drawn when <see cref="ScreenEngineOptions.ShowSoftwareCursor"/>
+        ///     is on (in-world screens, games that hide the system pointer). Default: white arrow, black outline.
+        /// </summary>
+        public CursorStyle Cursor { get; set; } = CursorStyle.Arrow(Color.White, Color.Black);
+
         /// <summary>Drop shadow applied to buttons; null = no shadow.</summary>
         public ShadowStyle? ButtonShadow { get; set; }
 

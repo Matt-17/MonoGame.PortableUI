@@ -26,6 +26,7 @@ public static class DarkFantasyTheme
                 new FrameRing(ThemeBuilder.Hex("#050403"), 1), new FrameRing(gold, 2), new FrameRing(ThemeBuilder.Hex("#5A4318"), 1), new FrameRing(ThemeBuilder.Hex("#171210"), 2)),
             styleTheme: theme =>
             {
+                theme.Cursor = CursorStyle.Arrow(ThemeBuilder.Hex("#E0BA5C"), ThemeBuilder.Hex("#1A120A"));
                 var leather = ThemeBuilder.Gloss((0, "#4A3A2B"), (0.5f, "#33281E"), (1, "#211A13"));
                 var rim = ThemeBuilder.Solid(ThemeBuilder.Hex("#A8843A"));
                 ThemeBuilder.Chrome(theme.Button, leather, rim, 2, 3);

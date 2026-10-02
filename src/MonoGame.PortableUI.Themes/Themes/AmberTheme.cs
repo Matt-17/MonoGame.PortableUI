@@ -1,6 +1,8 @@
+using MonoGame.PortableUI.Media;
+
 namespace MonoGame.PortableUI.Themes;
 
-/// <summary>Amber Terminal: warm monochrome amber CRT with scanlines, barrel distortion and bloom.</summary>
+/// <summary>Amber Terminal: warm monochrome amber CRT with scanlines and bloom (screen curvature belongs to the display: ScreenEngineOptions.PostEffects).</summary>
 public static class AmberTheme
 {
     public static ThemeDefinition Create()
@@ -10,6 +12,7 @@ public static class AmberTheme
             primary: "#FFB000", secondary: "#805800", selection: "#FFB000", selectionText: "#1A0F00",
             styleTheme: theme =>
             {
+                theme.Cursor = CursorStyle.Arrow(ThemeBuilder.Hex("#FFB000"), ThemeBuilder.Hex("#1A0F00"));
                 ThemeBuilder.Chrome(theme.Button, null, ThemeBuilder.Solid(theme.Palette.Primary), 1, 0);
                 theme.PostEffects = new PostEffect[]
                 {

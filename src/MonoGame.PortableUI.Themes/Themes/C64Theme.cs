@@ -139,7 +139,12 @@ public static class C64Theme
             ToolTipTextColor = White,
 
             ProgressIndicatorForeground = LightBlue,
-            ProgressIndicatorHeight = 48
+            ProgressIndicatorHeight = 48,
+
+            PrimaryButton = ControlStyleBuilder.Variant(Green, Blue, DarkBlue),
+            SecondaryButton = ControlStyleBuilder.Variant(Yellow, Blue, DarkBlue),
+            DangerButton = ControlStyleBuilder.Variant(Red, White, DarkBlue),
+            Cursor = CursorStyle.PixelArrow(LightBlue, DarkBlue)
         };
     }
 }
