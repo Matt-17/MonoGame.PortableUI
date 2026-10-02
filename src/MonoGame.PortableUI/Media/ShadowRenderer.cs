@@ -22,7 +22,9 @@ namespace MonoGame.PortableUI.Media
             // Stack buffer instead of an iterator: shadows are drawn for every shadowed control
             // every frame.
             Span<ShadowLayer> layers = stackalloc ShadowLayer[MaxLayers];
-            var count = FillShadowLayers(rect, shadow, layers, scale);
+            // Each layer is a full translucent fill: Low quality keeps the overdraw to a few.
+            var maxLayers = ScreenEngine.DrawingQuality == RenderQuality.Low ? LowQualityLayers : MaxLayers;
+            var count = FillShadowLayers(rect, shadow, layers, scale, maxLayers);
             for (var i = 0; i < count; i++)
             {
                 var layer = layers[i];
@@ -32,6 +34,7 @@ namespace MonoGame.PortableUI.Media
         }
 
         internal const int MaxLayers = 10;
+        internal const int LowQualityLayers = 3;
 
         internal static IEnumerable<ShadowLayer> GetShadowLayers(Rect rect, ShadowStyle shadow)
         {
@@ -40,7 +43,7 @@ namespace MonoGame.PortableUI.Media
             return layers.AsSpan(0, count).ToArray();
         }
 
-        internal static int FillShadowLayers(Rect rect, ShadowStyle shadow, Span<ShadowLayer> layers, float scale = 1f)
+        internal static int FillShadowLayers(Rect rect, ShadowStyle shadow, Span<ShadowLayer> layers, float scale = 1f, int maxLayers = MaxLayers)
         {
             if (System.Math.Abs(scale - 1f) > 0.0001f)
                 shadow = new ShadowStyle { Color = shadow.Color, Opacity = shadow.Opacity, Offset = shadow.Offset * scale, Blur = shadow.Blur * scale, Spread = shadow.Spread * scale, Inset = shadow.Inset };
@@ -58,7 +61,7 @@ namespace MonoGame.PortableUI.Media
                 return 1;
             }
 
-            var count = Math.Max(2, Math.Min(MaxLayers, (int)Math.Ceiling(blur / 2)));
+            var count = Math.Max(2, Math.Min(Math.Min(maxLayers, MaxLayers), (int)Math.Ceiling(blur / 2)));
             var weightSum = 0f;
             for (var i = 0; i < count; i++)
             {

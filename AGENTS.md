@@ -79,6 +79,12 @@ draw time** must ask for its next frame from `OnDraw`: `ScreenEngine.RequestAnim
 time in update code calls `Control.RequestRedraw()`. Check `FramesDrawn`/`FramesSkipped`, and on Android
 `dumpsys SurfaceFlinger --latency` must show 0 frames on an idle screen.
 
+**Render quality:** `ScreenEngineOptions.RenderQuality` (Auto = Low in Android battery saver, else High)
+resolves to `ScreenEngine.EffectiveRenderQuality` each update. Drawing code reads it through the static
+`ScreenEngine.DrawingQuality` / `AnimatesDecorations` (the engine currently drawing). New expensive or
+perpetually animated visuals must honour it: skip at Low (blur, post FX, heavy overdraw), freeze below
+High (anything that would request a frame forever). Never encode quality in theme files.
+
 **Input:** `Screen.Update` polls `IInputSource` (mouse, touch, keyboard) and diffs against the previous
 state. Routing is **bubbling** (depth-first descendants, then self; `args.Handled` stops it); siblings are
 visited **topmost first** (reverse `GetDescendants` order = reverse draw order). The only tunneling hook is

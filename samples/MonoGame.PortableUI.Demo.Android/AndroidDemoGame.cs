@@ -14,6 +14,7 @@ namespace MonoGame.PortableUI.Demo.Android
     {
         private readonly GraphicsDeviceManager _graphics;
         private ScreenEngine? _engine;
+        private AndroidDemoScreen? _screen;
 
         private readonly System.Action<bool>? _setFullscreen;
 
@@ -70,6 +71,12 @@ namespace MonoGame.PortableUI.Demo.Android
             }
         }
 
+        protected override void Update(GameTime gameTime)
+        {
+            base.Update(gameTime);
+            _screen?.SyncRenderQuality();
+        }
+
         protected override void LoadContent()
         {
             FontManager.LoadFonts(this, "default", "Segoe");
@@ -86,7 +93,8 @@ namespace MonoGame.PortableUI.Demo.Android
             TouchPanel.DisplayHeight = pp.BackBufferHeight;
             TouchPanel.EnabledGestures = GestureType.Tap | GestureType.VerticalDrag | GestureType.HorizontalDrag | GestureType.Flick;
 
-            _engine?.NavigateToScreen(new AndroidDemoScreen(_setFullscreen));
+            _screen = new AndroidDemoScreen(_setFullscreen);
+            _engine?.NavigateToScreen(_screen);
         }
 
         protected override void Draw(GameTime gameTime)
