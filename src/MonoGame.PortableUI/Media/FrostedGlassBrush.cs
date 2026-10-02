@@ -177,6 +177,13 @@ namespace MonoGame.PortableUI.Media
                     spriteBatch.Draw(backdrop, fill, source, Color.White * opacity);
                 }
 
+                // Corner squares: one backdrop strip per pixel row, inset along the arc, so the
+                // frosted body reaches into the rounded corners instead of leaving dark squares.
+                DrawCornerRows(spriteBatch, backdrop, screenRect, scaleX, scaleY, rect, radius.TopLeft, true, true, opacity);
+                DrawCornerRows(spriteBatch, backdrop, screenRect, scaleX, scaleY, rect, radius.TopRight, true, false, opacity);
+                DrawCornerRows(spriteBatch, backdrop, screenRect, scaleX, scaleY, rect, radius.BottomRight, false, false, opacity);
+                DrawCornerRows(spriteBatch, backdrop, screenRect, scaleX, scaleY, rect, radius.BottomLeft, false, true, opacity);
+
                 drewBackdrop = true;
             }
 
@@ -191,6 +198,32 @@ namespace MonoGame.PortableUI.Media
             {
                 if (fill.Width > 0 && fill.Height > 0)
                     spriteBatch.Draw(grain, fill, grainColor);
+            }
+        }
+
+        private static void DrawCornerRows(SpriteBatch spriteBatch, Texture2D backdrop, Rect screenRect, float scaleX, float scaleY, Rect rect, float radius, bool top, bool left, float opacity)
+        {
+            var r = (int)MathF.Ceiling(Math.Min(radius, Math.Min(rect.Width, rect.Height) / 2));
+            for (var i = 0; i < r; i++)
+            {
+                // Distance of this row's centre from the arc centre, and the arc's x there.
+                var dy = r - i - 0.5f;
+                var inset = r - MathF.Sqrt(Math.Max(0, r * r - dy * dy));
+                var width = r - inset;
+                if (width <= 0)
+                    continue;
+                var y = top ? rect.Top + i : rect.Bottom - 1 - i;
+                // One pixel of overlap with the body so no seam shows where they meet.
+                var x = left ? rect.Left + inset : rect.Right - r - 1;
+                var row = new Rect(x, y, width + 1, 1);
+                var source = new Rectangle(
+                    (int)((row.Left - screenRect.Left) * scaleX),
+                    (int)((row.Top - screenRect.Top) * scaleY),
+                    Math.Max(1, (int)Math.Ceiling(row.Width * scaleX)),
+                    Math.Max(1, (int)Math.Ceiling(scaleY)));
+                source = Rectangle.Intersect(source, backdrop.Bounds);
+                if (source.Width > 0 && source.Height > 0)
+                    spriteBatch.Draw(backdrop, row, source, Color.White * opacity);
             }
         }
 
