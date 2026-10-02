@@ -63,24 +63,40 @@ namespace MonoGame.PortableUI.Media
             if (rect.Width <= 0 || rect.Height <= 0)
                 return;
 
+            // Pixel patterns stay crisp only on whole pixels (linear filtering would smear them).
+            Rectangle snapped = rect;
+            rect = new Rect(snapped.X, snapped.Y, snapped.Width, snapped.Height);
+            if (rect.Width <= 0 || rect.Height <= 0)
+                return;
             var texture = GetTexture(spriteBatch.GraphicsDevice);
             var tint = ApplyOpacity(Color.White, opacity);
             foreach (var tile in TileBrush.GetTileSegments(rect, texture.Width, texture.Height, Scale))
                 spriteBatch.Draw(texture, tile.DestinationRect, tile.SourceRectangle, tint);
         }
 
+        // The texture repeats the pattern up to about this size: tiling a 1×2 pinstripe directly
+        // meant one sprite per two pixels (~450k sprites for a full screen).
+        private const int TargetTileSize = 128;
+
         private Texture2D GetTexture(GraphicsDevice device)
         {
-            var key = new BrushTextureCacheKey("pattern-v1", _hash, _patternWidth, _patternHeight);
+            var repeatX = Math.Max(1, TargetTileSize / _patternWidth);
+            var repeatY = Math.Max(1, TargetTileSize / _patternHeight);
+            var width = _patternWidth * repeatX;
+            var height = _patternHeight * repeatY;
+            var key = new BrushTextureCacheKey("pattern-v2", _hash, width, height);
             if (BrushTextureCache.TryGet(device, key, out var cached))
                 return cached;
             return BrushTextureCache.GetOrCreate(device, key, graphicsDevice =>
             {
-                var data = new Color[_pixels.Length];
-                for (var i = 0; i < data.Length; i++)
-                    data[i] = Premultiply(_pixels[i]);
+                var data = new Color[width * height];
+                for (var y = 0; y < height; y++)
+                {
+                    for (var x = 0; x < width; x++)
+                        data[y * width + x] = Premultiply(_pixels[(y % _patternHeight) * _patternWidth + x % _patternWidth]);
+                }
 
-                var texture = new Texture2D(graphicsDevice, _patternWidth, _patternHeight);
+                var texture = new Texture2D(graphicsDevice, width, height);
                 texture.SetData(data);
                 return texture;
             });

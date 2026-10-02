@@ -59,6 +59,13 @@ namespace MonoGame.PortableUI.Demo
             ApplyTheme(_activeThemePreset);
 
             var deleteIcon = Content.Load<Texture2D>("Images/ic_delete");
+            if (_runOptions.BenchmarkFile != null)
+            {
+                BenchmarkThemes(_runOptions.BenchmarkFile, deleteIcon);
+                Exit();
+                return;
+            }
+
             if (_runOptions.IsScreenshotMode)
             {
                 SaveThemeScreenshots(_runOptions.ScreenshotDirectory!, _runOptions.ScreenshotScreen, deleteIcon, _runOptions.ScreenshotOverlay);
@@ -88,6 +95,67 @@ namespace MonoGame.PortableUI.Demo
         private void UpdateWindowTitle()
         {
             Window.Title = $"MonoGame.PortableUI Demo - {_activeThemePreset.DisplayName}";
+        }
+
+        /// <summary>
+        ///     --benchmark-themes out.csv: renders the controls tab of each theme offscreen (1180×760)
+        ///     and reports the mean frame time (CPU + GPU: each frame waits for the GPU) and the
+        ///     real draw calls per frame. Optional --screenshot-themes limits the themes,
+        ///     --screenshot-overlay modal measures with a dialog open.
+        /// </summary>
+        private void BenchmarkThemes(string file, Texture2D deleteIcon)
+        {
+            const int warmup = 20;
+            const int frames = 120;
+            var lines = new List<string> { "theme,ms_per_frame,draw_calls,sprites,batch_flushes" };
+            var probe = new Color[1];
+            foreach (var preset in DemoThemeRegistry.Presets)
+            {
+                if (_runOptions.ScreenshotThemes is { Length: > 0 } only && Array.IndexOf(only, preset.Id) < 0)
+                    continue;
+                ApplyTheme(preset);
+                var screen = new MainScreen(deleteIcon, preset, _ => { });
+                using var surface = new UISurface(this, screen, 1180, 760, preset.CreateTheme())
+                {
+                    ShowSoftwareCursor = false,
+                    InputSource = PortableUI.Input.NullInputSource.Instance
+                };
+                screen.TrySelectTab("controls");
+                var time = TimeSpan.FromSeconds(1);
+                var step = TimeSpan.FromMilliseconds(16);
+                RenderTarget2D? target = null;
+                for (var i = 0; i < warmup; i++)
+                {
+                    time += step;
+                    surface.Update(new GameTime(time, step));
+                    if (i == 1 && _runOptions.ScreenshotOverlay != null)
+                        screen.ShowOverlayForScreenshot(_runOptions.ScreenshotOverlay);
+                    target = surface.Draw(new GameTime(time, step));
+                }
+                target!.GetData(0, new Rectangle(0, 0, 1, 1), probe, 0, 1);
+
+                var before = GraphicsDevice.Metrics;
+                var flushes = 0L;
+                var watch = System.Diagnostics.Stopwatch.StartNew();
+                for (var i = 0; i < frames; i++)
+                {
+                    time += step;
+                    surface.Update(new GameTime(time, step));
+                    target = surface.Draw(new GameTime(time, step));
+                    flushes += surface.Engine.BatchFlushesThisFrame;
+                    // Wait for the GPU so the time covers the actual rendering.
+                    target.GetData(0, new Rectangle(0, 0, 1, 1), probe, 0, 1);
+                }
+                watch.Stop();
+                var after = GraphicsDevice.Metrics;
+                GraphicsDevice.SetRenderTarget(null);
+                var line = string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0},{1:0.00},{2},{3},{4}",
+                    preset.Id, watch.Elapsed.TotalMilliseconds / frames, (after.DrawCount - before.DrawCount) / frames,
+                    (after.SpriteCount - before.SpriteCount) / frames, flushes / frames);
+                lines.Add(line);
+                Console.WriteLine(line);
+            }
+            File.WriteAllLines(file, lines);
         }
 
         private void SaveThemeScreenshots(string directory, string screenName, Texture2D deleteIcon, string? overlay)

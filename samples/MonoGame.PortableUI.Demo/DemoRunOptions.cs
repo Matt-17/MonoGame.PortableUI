@@ -23,6 +23,9 @@ namespace MonoGame.PortableUI.Demo
         /// <summary>--screenshot-tabs 3: press Tab that often before capturing (shows a focus ring).</summary>
         public int ScreenshotTabs { get; init; }
 
+        /// <summary>--benchmark-themes out.csv: frame time and draw calls per theme.</summary>
+        public string? BenchmarkFile { get; init; }
+
         public static DemoRunOptions Parse(string[]? args)
         {
             // --text-scale 1.5 sets the app text size (TextScaling.AppScale) before anything is built.
@@ -40,6 +43,7 @@ namespace MonoGame.PortableUI.Demo
                 ScreenshotDirectory = TryParseValue(args, "--screenshot"),
                 ScreenshotScreen = TryParseValue(args, "--screenshot-screen") ?? "controls",
                 ScreenshotOverlay = TryParseValue(args, "--screenshot-overlay"),
+                BenchmarkFile = TryParseValue(args, "--benchmark-themes"),
                 ScreenshotTabs = int.TryParse(TryParseValue(args, "--screenshot-tabs"), out var tabs) ? tabs : 0,
                 ScreenshotCursor = ParsePoint(TryParseValue(args, "--screenshot-cursor")),
                 ScreenshotThemes = TryParseValue(args, "--screenshot-themes")?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
