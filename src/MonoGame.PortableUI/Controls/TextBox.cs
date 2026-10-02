@@ -483,7 +483,7 @@ namespace MonoGame.PortableUI.Controls
             BackgroundBrush?.Draw(spriteBatch, rect, RenderOpacity);
             var textRect = rect - Padding;
 
-            if (Text.Length == 0 && !string.IsNullOrEmpty(HintText) && Font != null)
+            if (Text.Length == 0 && !string.IsNullOrEmpty(HintText) && HasDrawableFont)
             {
                 var measuredHint = MeasureText(HintText);
                 var scaledHint = new Vector2(measuredHint.X * RenderScale.X, measuredHint.Y * RenderScale.Y);
@@ -492,7 +492,7 @@ namespace MonoGame.PortableUI.Controls
                     offset.Y += (textRect.Height - scaledHint.Y) / 2;
                 if (SnapToPixel)
                     offset = offset.ToInts();
-                spriteBatch.DrawString(Font, HintText, offset, Brush.ApplyOpacity(HintTextColor, RenderOpacity), 0, Vector2.Zero, TextDrawScale, SpriteEffects.None, 0);
+                DrawText(spriteBatch, HintText, offset, Brush.ApplyOpacity(HintTextColor, RenderOpacity));
             }
 
             DrawSelection(spriteBatch, textRect);
@@ -901,7 +901,7 @@ namespace MonoGame.PortableUI.Controls
 
         private void DrawText(SpriteBatch spriteBatch, Rect textRect)
         {
-            if (Font == null || Text.Length == 0)
+            if (!HasDrawableFont || Text.Length == 0)
                 return;
 
             var cache = GetLineMetricsCache();
@@ -924,7 +924,7 @@ namespace MonoGame.PortableUI.Controls
                 if (SnapToPixel)
                     offset = offset.ToInts();
                 _drawBuffer.Clear().Append(displayText, line.Start + visibleRange.Start, visibleRange.Length);
-                spriteBatch.DrawString(Font, _drawBuffer, offset, Brush.ApplyOpacity(TextColor, RenderOpacity), 0, Vector2.Zero, TextDrawScale, SpriteEffects.None, 0);
+                DrawText(spriteBatch, _drawBuffer, offset, Brush.ApplyOpacity(TextColor, RenderOpacity));
             }
         }
 
@@ -1257,6 +1257,8 @@ namespace MonoGame.PortableUI.Controls
         private float MeasureCharWidth(char character)
         {
             // SpriteFont measures a StringBuilder without allocating a one-char string per glyph.
+            if (ActiveDynamicFont is { } dynamicFont)
+                return dynamicFont.MeasureString(_charBuffer.Clear().Append(character), DynamicPixelSize(dynamicFont)).X;
             if (Font != null)
                 return Font.MeasureString(_charBuffer.Clear().Append(character)).X * FontScale;
             return TextMeasurer.MeasureString(character.ToString()).X * TextScaling.Factor;
