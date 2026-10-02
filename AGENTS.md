@@ -109,12 +109,14 @@ overrides survive theme switches). New themed controls get a `ControlStyle` slot
 `PortableTheme.FromPalette` with **palette-derived defaults** — never edit the 37 theme files for a new
 slot. Theme resolution is cached per global `ThemeVersion`.
 
-**Item controls** (`ListBox`, `DataGrid`, `TabControl`) materialize one child per item. The full
-item→child sync runs in the layout pass (`MeasureLayout`/`UpdateLayout`); `GetDescendants()` (called
+**Item controls**: `TabControl` materializes one child per item; `ListBox` and `DataGrid` virtualize by
+default (`IsVirtualizing`) — the internal `VirtualItemsPanel` realizes only the rows in view and recycles
+them on scroll (it overrides `OffsetArrangement`, which scrolling calls instead of a layout pass), with
+one shared row height. Rows carry their item/display index in `Tag`/`Index`; never assume row position
+= item index. The full item→child sync runs in the layout pass (`MeasureLayout`/`UpdateLayout`); `GetDescendants()` (called
 several times per frame) only rebuilds on a count mismatch. After editing items **in place** call
 `Refresh()` — adds/removes are picked up on the next layout pass. `DataGrid` sorting reorders a
-display-order index list (`DisplayedItems`), never the caller's `Items`. There is no virtualization
-yet (audit P7).
+display-order index list (`DisplayedItems`), never the caller's `Items`.
 
 ## Pitfalls
 

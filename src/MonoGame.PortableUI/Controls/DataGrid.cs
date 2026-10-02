@@ -17,13 +17,14 @@ namespace MonoGame.PortableUI.Controls
     /// row selection with keyboard navigation, per-column resize splitters, and custom cell templates.
     ///
     /// Composition mirrors <see cref="ListBox"/>: a non-scrolling header row plus a
-    /// <see cref="ScrollViewer"/> hosting a vertical stack of row controls. Column widths use the same
+    /// <see cref="ScrollViewer"/> hosting the rows; only the rows in view are realized while
+    /// <see cref="IsVirtualizing"/> is on (default). Column widths use the same
     /// Auto/Absolute/star semantics as <see cref="Grid"/>.
     /// </summary>
     public class DataGrid : Control
     {
         private readonly HeaderControl _header;
-        private readonly StackPanel _rowsPanel;
+        private readonly VirtualItemsPanel _rowsPanel;
         private readonly ScrollViewer _scrollViewer;
         private readonly Grid _bodyGrid;
         private readonly ScrollViewer _horizontalScroll;
@@ -57,7 +58,11 @@ namespace MonoGame.PortableUI.Controls
             // outer horizontal ScrollViewer holds a vertical stack of [header, inner vertical ScrollViewer].
             // Vertical scrolling moves only the rows (header stays put); horizontal scrolling moves the
             // whole block, so the header scrolls in sync with the rows.
-            _rowsPanel = new StackPanel { Orientation = Orientation.Vertical };
+            _rowsPanel = new VirtualItemsPanel(
+                () => Items.Count,
+                () => new RowControl(this),
+                (row, displayIndex) => BindRow((RowControl)row, displayIndex),
+                row => row.ResetInputs());
             _scrollViewer = new ScrollViewer
             {
                 Content = _rowsPanel,
@@ -347,8 +352,8 @@ namespace MonoGame.PortableUI.Controls
             var itemIndex = displayIndex >= 0 && displayIndex < _displayOrder.Count ? _displayOrder[displayIndex] : -1;
             SelectedIndex = itemIndex;
             Focus();
-            if (displayIndex >= 0 && displayIndex < _rows.Count)
-                _scrollViewer.BringIntoView(_rows[displayIndex]);
+            if (displayIndex >= 0)
+                _rowsPanel.BringIndexIntoView(_scrollViewer, displayIndex);
             if (invoke)
                 InvokeRow(itemIndex);
         }
@@ -405,7 +410,7 @@ namespace MonoGame.PortableUI.Controls
             // GetDescendants runs several times per frame (draw + input walks); the full row sync
             // belongs to the layout pass. Only a structural mismatch (items added/removed without
             // an invalidation) forces a rebuild here. In-place item edits need Refresh().
-            if (_rows.Count != Items.Count)
+            if (_rowsPanel.NeedsSync)
                 EnsureRows();
             yield return _horizontalScroll;
         }
@@ -414,7 +419,7 @@ namespace MonoGame.PortableUI.Controls
         {
             get
             {
-                if (_rows.Count != Items.Count)
+                if (_rowsPanel.NeedsSync)
                     EnsureRows();
                 return 1;
             }
@@ -510,35 +515,57 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        /// <summary>
+        ///     Only create row controls for the rows in view (default true), so grids with thousands
+        ///     of rows stay cheap. Rows already share one height (<see cref="EffectiveRowHeight"/>).
+        /// </summary>
+        public bool IsVirtualizing
+        {
+            get => _rowsPanel.IsVirtualizing;
+            set
+            {
+                _rowsPanel.IsVirtualizing = value;
+                InvalidateLayout(true);
+            }
+        }
+
+        private void BindRow(RowControl row, int displayIndex)
+        {
+            EnsureDisplayOrder();
+            row.SetItem(Items[_displayOrder[displayIndex]], displayIndex, false);
+            row.ApplyVisualState(_displayOrder[displayIndex] == _selectedIndex);
+        }
+
         private void EnsureRows()
         {
-            _rowsPanel.SuppressUpdate(true);
-            try
-            {
-                while (_rows.Count > Items.Count)
-                {
-                    var last = _rows[_rows.Count - 1];
-                    _rowsPanel.Children.Remove(last);
-                    _rows.RemoveAt(_rows.Count - 1);
-                }
+            EnsureDisplayOrder();
+            _rowsPanel.MinRowHeight = EffectiveRowHeight;
 
-                while (_rows.Count < Items.Count)
-                {
-                    var row = new RowControl(this);
-                    _rows.Add(row);
-                    _rowsPanel.AddChild(row);
-                }
-
-                EnsureDisplayOrder();
-                for (var i = 0; i < _rows.Count; i++)
-                    _rows[i].SetItem(Items[_displayOrder[i]], i, _columnsDirty);
-            }
-            finally
+            // Changed columns: rebuild the cells of the rows already realized; rows realized by
+            // Sync below start without cells and build them on their first bind.
+            if (_columnsDirty)
             {
-                _rowsPanel.SuppressUpdate(false);
+                for (var i = 0; i < _rowsPanel.Realized.Count; i++)
+                {
+                    var displayIndex = _rowsPanel.FirstRealizedIndex + i;
+                    if (displayIndex < _displayOrder.Count)
+                        ((RowControl)_rowsPanel.Realized[i]).SetItem(Items[_displayOrder[displayIndex]], displayIndex, true);
+                }
+                _columnsDirty = false;
             }
 
-            _columnsDirty = false;
+            _rowsPanel.Sync();
+
+            // Realized rows follow the display order (a sort or an edit can change which item a
+            // row shows); SetItem only touches cells when the item changed.
+            _rows.Clear();
+            for (var i = 0; i < _rowsPanel.Realized.Count; i++)
+            {
+                var row = (RowControl)_rowsPanel.Realized[i];
+                var displayIndex = _rowsPanel.FirstRealizedIndex + i;
+                row.SetItem(Items[_displayOrder[displayIndex]], displayIndex, false);
+                _rows.Add(row);
+            }
 
             SyncSelectionToItems();
             UpdateRowVisuals();
@@ -546,26 +573,19 @@ namespace MonoGame.PortableUI.Controls
 
         private void RebuildRows()
         {
-            _rowsPanel.SuppressUpdate(true);
-            try
-            {
-                foreach (var row in _rows)
-                    _rowsPanel.Children.Remove(row);
-                _rows.Clear();
-            }
-            finally
-            {
-                _rowsPanel.SuppressUpdate(false);
-            }
-
+            _rows.Clear();
+            _rowsPanel.Clear();
             EnsureRows();
         }
 
         private void UpdateRowVisuals()
         {
             EnsureDisplayOrder();
-            for (var i = 0; i < _rows.Count && i < _displayOrder.Count; i++)
-                _rows[i].ApplyVisualState(_displayOrder[i] == _selectedIndex);
+            foreach (var row in _rows)
+            {
+                if (row.Index < _displayOrder.Count)
+                    row.ApplyVisualState(_displayOrder[row.Index] == _selectedIndex);
+            }
         }
 
         private int ClampIndex(int value)

@@ -921,7 +921,7 @@ namespace MonoGame.PortableUI.Controls
         /// <summary>Moves an already arranged subtree by <paramref name="delta"/> without re-running
         /// layout (scrolling). Positions live only in the arranged rects, so this is equivalent to
         /// arranging the same subtree in a slot of the same size at a shifted origin.</summary>
-        internal void OffsetArrangement(PointF delta)
+        internal virtual void OffsetArrangement(PointF delta)
         {
             if (IsGone)
                 return;
