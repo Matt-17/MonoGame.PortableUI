@@ -11,8 +11,8 @@ namespace MonoGame.PortableUI.Controls
 {
     public class ListBox : Control
     {
-        private readonly List<Button> _itemButtons;
-        private readonly StackPanel _itemsPanel;
+        private readonly List<Button> _itemButtons = new List<Button>();
+        private readonly VirtualItemsPanel _itemsPanel;
         private readonly ScrollViewer _scrollViewer;
         private Brush _itemBackgroundBrush = new SolidColorBrush(Color.White);
         private Color _itemTextColor;
@@ -24,8 +24,14 @@ namespace MonoGame.PortableUI.Controls
         // SelectedIndex set while Items is still empty would clamp to -1 and be lost; it is kept
         // here and applied once items arrive (on the next layout pass).
         private int _pendingSelectedIndex = -1;
-        private readonly List<object?> _syncedItems = new List<object?>();
         private bool _refreshItemTexts;
+
+        /// <summary>A row button and the item it currently shows (rows are recycled while virtualizing).</summary>
+        private sealed class ItemButton : Button
+        {
+            public object? BoundItem;
+            public bool IsBound;
+        }
         private Brush _selectedItemBackgroundBrush = new SolidColorBrush(new Color(20, 126, 133));
         private Color _selectedItemTextColor;
 
@@ -34,8 +40,7 @@ namespace MonoGame.PortableUI.Controls
             var theme = PortableTheme.ResolveCurrent();
 
             Items = new List<object>();
-            _itemButtons = new List<Button>();
-            _itemsPanel = new StackPanel { Orientation = Orientation.Vertical };
+            _itemsPanel = new VirtualItemsPanel(() => Items.Count, CreateItemButton, BindItemButton, RecycleItemButton);
             _scrollViewer = new ScrollViewer
             {
                 Parent = this,
@@ -237,7 +242,8 @@ namespace MonoGame.PortableUI.Controls
                     return;
 
                 _itemHeight = Math.Max(0, value);
-                foreach (var button in _itemButtons)
+                _itemsPanel.MinRowHeight = _itemHeight;
+                foreach (var button in _itemsPanel.Realized)
                     button.MinHeight = _itemHeight;
                 InvalidateLayout(true);
             }
@@ -249,8 +255,8 @@ namespace MonoGame.PortableUI.Controls
             set
             {
                 _itemPadding = value;
-                foreach (var button in _itemButtons)
-                    button.Padding = _itemPadding;
+                foreach (var row in _itemsPanel.Realized)
+                    ((Button)row).Padding = _itemPadding;
                 InvalidateLayout(true);
             }
         }
@@ -301,6 +307,21 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        /// <summary>
+        ///     Only create controls for the items in view (default true): long lists stay cheap to lay
+        ///     out and draw. Rows then share one height (the larger of <see cref="ItemHeight"/> and the
+        ///     first row's measured height); turn it off for item templates of different heights.
+        /// </summary>
+        public bool IsVirtualizing
+        {
+            get => _itemsPanel.IsVirtualizing;
+            set
+            {
+                _itemsPanel.IsVirtualizing = value;
+                InvalidateLayout(true);
+            }
+        }
+
         public event EventHandler<SelectionChangedEventArgs>? SelectionChanged;
         public event EventHandler<ListBoxItemInvokedEventArgs>? ItemInvoked;
 
@@ -308,8 +329,8 @@ namespace MonoGame.PortableUI.Controls
         public void ScrollSelectedIntoView()
         {
             EnsureItemButtons();
-            if (SelectedIndex >= 0 && SelectedIndex < _itemButtons.Count)
-                _scrollViewer.BringIntoView(_itemButtons[SelectedIndex]);
+            if (SelectedIndex >= 0)
+                ScrollIndexIntoView(SelectedIndex);
         }
 
         public override Size MeasureLayout()
@@ -344,7 +365,7 @@ namespace MonoGame.PortableUI.Controls
             // GetDescendants runs several times per frame (draw + input walks); the full item sync
             // belongs to the layout pass. Only a structural mismatch (items added/removed without
             // an invalidation) forces a rebuild here. In-place item edits need Refresh().
-            if (_itemButtons.Count != Items.Count)
+            if (_itemsPanel.NeedsSync)
                 EnsureItemButtons();
             yield return _scrollViewer;
         }
@@ -353,7 +374,7 @@ namespace MonoGame.PortableUI.Controls
         {
             get
             {
-                if (_itemButtons.Count != Items.Count)
+                if (_itemsPanel.NeedsSync)
                     EnsureItemButtons();
                 return 1;
             }
@@ -381,27 +402,22 @@ namespace MonoGame.PortableUI.Controls
 
         private void EnsureItemButtons()
         {
-            _itemsPanel.SuppressUpdate(true);
-            try
+            _itemsPanel.MinRowHeight = ItemHeight;
+            if (_refreshItemTexts)
             {
-                while (_itemButtons.Count > Items.Count)
-                {
-                    var last = _itemButtons[_itemButtons.Count - 1];
-                    _itemsPanel.Children.Remove(last);
-                    _itemButtons.RemoveAt(_itemButtons.Count - 1);
-                }
+                // ToString()/templates rerun for the rows already realized; rows realized below
+                // are bound fresh anyway.
+                foreach (var row in _itemsPanel.Realized)
+                    ((ItemButton)row).IsBound = false;
+                _refreshItemTexts = false;
+            }
+            _itemsPanel.Sync();
+            for (var i = 0; i < _itemsPanel.Realized.Count; i++)
+                BindItemButton(_itemsPanel.Realized[i], _itemsPanel.FirstRealizedIndex + i);
 
-                while (_itemButtons.Count < Items.Count)
-                {
-                    var button = CreateItemButton(_itemButtons.Count);
-                    _itemButtons.Add(button);
-                    _itemsPanel.AddChild(button);
-                }
-            }
-            finally
-            {
-                _itemsPanel.SuppressUpdate(false);
-            }
+            _itemButtons.Clear();
+            foreach (var row in _itemsPanel.Realized)
+                _itemButtons.Add((Button)row);
 
             if (_pendingSelectedIndex >= 0 && Items.Count > 0)
                 SelectedIndex = _pendingSelectedIndex;
@@ -415,44 +431,44 @@ namespace MonoGame.PortableUI.Controls
                 SelectionChanged?.Invoke(this, new SelectionChangedEventArgs(oldIndex, clamped));
             }
 
-            // This runs in every measure and arrange; only items that changed (or all after
-            // Refresh, for in-place edits) pay for ToString().
-            while (_syncedItems.Count > _itemButtons.Count)
-                _syncedItems.RemoveAt(_syncedItems.Count - 1);
-            for (var i = 0; i < _itemButtons.Count; i++)
-            {
-                var button = _itemButtons[i];
-                button.Tag = i;
-                button.MinHeight = ItemHeight;
-                var item = Items[i];
-                if (i < _syncedItems.Count && ReferenceEquals(_syncedItems[i], item) && !_refreshItemTexts)
-                    continue;
-                if (ItemTemplate != null && item != null)
-                {
-                    button.Content = ItemTemplate(item);
-                }
-                else
-                {
-                    if (button.Content is not TextBlock)
-                        button.Content = null;
-                    button.Text = item?.ToString() ?? "";
-                }
-                if (i < _syncedItems.Count)
-                    _syncedItems[i] = item;
-                else
-                    _syncedItems.Add(item);
-            }
-            _refreshItemTexts = false;
-
             UpdateItemButtonVisuals();
         }
 
-        private Button CreateItemButton(int index)
+        // Runs for every realized row on each sync; only rows whose item changed (or all after
+        // Refresh, for in-place edits) pay for ToString() or the template.
+        private void BindItemButton(Control row, int index)
         {
-            var button = new Button
+            var button = (ItemButton)row;
+            button.Tag = index;
+            button.MinHeight = ItemHeight;
+            var item = Items[index];
+            if (button.IsBound && ReferenceEquals(button.BoundItem, item))
+                return;
+            if (ItemTemplate != null && item != null)
+            {
+                button.Content = ItemTemplate(item);
+            }
+            else
+            {
+                if (button.Content is not TextBlock)
+                    button.Content = null;
+                button.Text = item?.ToString() ?? "";
+            }
+            button.BoundItem = item;
+            button.IsBound = true;
+            ApplyItemVisual(button, index, ResolveTheme());
+        }
+
+        private void RecycleItemButton(Control row)
+        {
+            row.ResetInputs();
+        }
+
+        private Control CreateItemButton()
+        {
+            var button = new ItemButton
             {
                 MinHeight = ItemHeight,
-                Tag = index,
                 TextAlignment = TextAlignment.Left,
                 Padding = ItemPadding,
                 ShowFocusVisual = false,
@@ -593,8 +609,16 @@ namespace MonoGame.PortableUI.Controls
                 return;
 
             SelectedIndex = index;
-            if (bringIntoView && index < _itemButtons.Count)
-                _scrollViewer.BringIntoView(_itemButtons[index]);
+            if (bringIntoView)
+                ScrollIndexIntoView(index);
+        }
+
+        /// <summary>Scrolls item <paramref name="index"/> into view, also when its row is not realized.</summary>
+        public void ScrollIndexIntoView(int index)
+        {
+            if (index < 0 || index >= Items.Count)
+                return;
+            _itemsPanel.BringIndexIntoView(_scrollViewer, index);
         }
 
         private void InvokeItem(int index)
@@ -607,12 +631,12 @@ namespace MonoGame.PortableUI.Controls
         private bool TryGetItemIndexAt(PointF position, out int index)
         {
             EnsureItemButtons();
-            for (var i = 0; i < _itemButtons.Count; i++)
+            foreach (var row in _itemsPanel.Realized)
             {
-                if (!_itemButtons[i].ClippingRect.Contains(position))
+                if (!row.ClippingRect.Contains(position) || row.Tag is not int rowIndex)
                     continue;
 
-                index = i;
+                index = rowIndex;
                 return true;
             }
 
@@ -690,17 +714,24 @@ namespace MonoGame.PortableUI.Controls
         }
 
         // Items per visible page (one item of overlap), for PageUp/PageDown.
-        private int PageSize => Math.Max(1, (int)(_scrollViewer.BoundingRect.Height / Math.Max(1, ItemHeight)) - 1);
+        private int PageSize => Math.Max(1, (int)(_scrollViewer.BoundingRect.Height / Math.Max(1, _itemsPanel.IsVirtualizing ? _itemsPanel.RowHeight : ItemHeight)) - 1);
 
         private static readonly Brush TransparentHoverBrush = new SolidColorBrush(Color.Transparent);
 
         private void UpdateItemButtonVisuals()
         {
             var theme = ResolveTheme();
-            for (var i = 0; i < _itemButtons.Count; i++)
+            foreach (var row in _itemsPanel.Realized)
             {
-                var selected = _selectedIndices.Contains(i);
-                var button = _itemButtons[i];
+                if (row is Button button && button.Tag is int index)
+                    ApplyItemVisual(button, index, theme);
+            }
+        }
+
+        private void ApplyItemVisual(Button button, int index, PortableTheme theme)
+        {
+            {
+                var selected = _selectedIndices.Contains(index);
                 var backgroundBrush = selected ? SelectedItemBackgroundBrush : ItemBackgroundBrush;
                 var textColor = selected ? SelectedItemTextColor : ItemTextColor;
                 if (!ReferenceEquals(button.BackgroundBrush, backgroundBrush))

@@ -238,7 +238,8 @@ namespace MonoGame.PortableUI.Tests
             var listBox = new ListBox
             {
                 Width = 160,
-                Height = 120
+                Height = 120,
+                IsVirtualizing = false // every row materialized, as this test checks
             };
 
             for (var i = 1; i <= 12; i++)
