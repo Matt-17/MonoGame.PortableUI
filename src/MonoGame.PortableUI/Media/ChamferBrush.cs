@@ -49,6 +49,8 @@ namespace MonoGame.PortableUI.Media
         public float BorderThickness { get; }
         public ChamferCorners Corners { get; }
 
+        public override Thickness ContentInset => new Thickness(BorderThickness);
+
         /// <summary>Accent bar color drawn along the left edge inside the frame; null = none.</summary>
         public Color? Accent { get; init; }
 
