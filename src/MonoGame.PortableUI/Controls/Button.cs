@@ -296,10 +296,25 @@ namespace MonoGame.PortableUI.Controls
                 .Start();
         }
 
+        private bool _appliedPressedVisual;
+
+        // The touch pressed look switches on (after the delay) and off (after tap feedback) with
+        // time, not with an input event: re-apply the visual state when it flips.
+        internal override void OnFrameUpdate()
+        {
+            base.OnFrameUpdate();
+            var pressed = IsPressedVisualState();
+            if (pressed != _appliedPressedVisual)
+            {
+                _appliedPressedVisual = pressed;
+                ChangeVisualState();
+            }
+        }
+
         private bool IsPressedVisualState()
         {
             return HoverState == HoverStates.Hovering && MouseButtonStates[MouseButton.Left] == ButtonState.Pressed
-                || TouchState == TouchStates.Touched;
+                || IsTouchPressedVisual;
         }
 
         #endregion

@@ -397,6 +397,12 @@ namespace MonoGame.PortableUI.Controls
 
             var totalColumns = TotalColumnsWidth;
             var horizontalActive = AllowHorizontalScroll && totalColumns > content.Width + 0.5f;
+            // Columns that fit: no horizontal bar and no sideways scrolling at all; it only becomes
+            // possible once the table is wider than its space.
+            _horizontalScroll.ShowScrollBars = horizontalActive;
+            _horizontalScroll.ScrollDirections = horizontalActive ? ScrollDirections.Horizontal : ScrollDirections.None;
+            if (!horizontalActive && _horizontalScroll.Offset.X != 0)
+                _horizontalScroll.ScrollTo(new PointF(0, 0));
             InnerWidth = horizontalActive ? totalColumns : content.Width;
 
             // The inner Grid distributes height (Auto header + star body) and the horizontal

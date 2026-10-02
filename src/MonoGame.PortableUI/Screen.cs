@@ -36,6 +36,8 @@ namespace MonoGame.PortableUI
         private readonly Grid _mainGrid;
 
         internal PointF LastMousePosition;
+        // When a finger last touched: the mouse a touch platform emulates from it must not hover.
+        private TimeSpan? _lastTouchTime;
         internal PointF LastTouchPosition;
         internal int LastScrollWheelValue;
         internal int LastHorizontalScrollWheelValue;
@@ -72,6 +74,10 @@ namespace MonoGame.PortableUI
         private long _appliedTextScaleVersion;
         private long _appliedLocalizationVersion;
         private bool _bringFocusIntoView;
+
+        /// <summary>The scroll viewer that took the current touch drag: once one viewer scrolled, the
+        /// gesture stays with it until the finger lifts (nested viewers never hand over mid-drag).</summary>
+        internal Control? TouchScrollOwner { get; set; }
 
         /// <summary>What a screen reader traverses: the open flyout (it is modal) or the content.</summary>
         internal Control AccessibilityRoot => (Control?)_flyOut ?? _mainGrid;
@@ -623,6 +629,16 @@ namespace MonoGame.PortableUI
             DrawControlBatched(spriteBatch, control, root);
         }
 
+        /// <summary>Ends hover on every control of the tree that still shows it (touch input).</summary>
+        private static void ClearHover(Control control)
+        {
+            if (control.IsMouseHovering)
+                control.OnMouseLeave(new MouseEventArgs(new PointF(-1, -1), new List<MouseButton>()));
+            var count = control.VisualChildCount;
+            for (var i = 0; i < count; i++)
+                ClearHover(control.GetVisualChild(i));
+        }
+
         private static void RefreshLocalizationForTree(Control control)
         {
             var binding = control.LocalizationBinding;
@@ -689,6 +705,9 @@ namespace MonoGame.PortableUI
                 return;
 
             if (control is ThemeIsland island && TryComposeIslandPostFx(spriteBatch, island, parentContext, context))
+                return;
+
+            if (control.OverscrollScale != Vector2.One && TryDrawStretched(spriteBatch, control, parentContext))
                 return;
 
             if (!ReferenceEquals(control, _clipInProgress) && control.EffectiveClip is { } clip
@@ -811,6 +830,64 @@ namespace MonoGame.PortableUI
         ///     composited into the outer layer and both apply (intersection). Render targets and the
         ///     scissor are restored before returning.
         /// </summary>
+        /// <summary>
+        ///     Overscroll stretch: the control's subtree is drawn as usual into an offscreen layer and
+        ///     the finished image is stretched away from the pulled edge (like Android), so text, knobs
+        ///     and radii keep their shape instead of being laid out stretched.
+        /// </summary>
+        private bool TryDrawStretched(SpriteBatch spriteBatch, Control control, RenderContext parentContext)
+        {
+            var engine = ScreenEngine;
+            if (engine == null)
+                return false;
+
+            var device = spriteBatch.GraphicsDevice;
+            var bounds = parentContext.ChildClipRect;
+            // Layer in render (pixel) space: the screen in pixels, or more if the viewport reaches past it.
+            var pixelScale = engine.ScalesNatively ? engine.RenderScale : 1f;
+            var width = (int)Math.Ceiling(Math.Max(ScreenRect.Right * pixelScale, bounds.Right));
+            var height = (int)Math.Ceiling(Math.Max(ScreenRect.Bottom * pixelScale, bounds.Bottom));
+            if (width <= 0 || height <= 0)
+                return false;
+
+            var layer = engine.GetClipLayers(device).Get(_clipDepth, width, height);
+            var previousTargets = RenderTargetHelper.SnapshotRenderTargets(device, ref layer.PreviousTargets);
+            var previousScissor = device.ScissorRectangle;
+
+            var scale = control.OverscrollScale;
+            device.SetRenderTarget(layer.Content);
+            device.Clear(Color.Transparent);
+            control.OverscrollScale = Vector2.One;
+            _clipDepth++;
+            try
+            {
+                DrawControlBatched(spriteBatch, control, parentContext);
+            }
+            finally
+            {
+                _clipDepth--;
+                control.OverscrollScale = scale;
+            }
+
+            if (previousTargets.Length == 0)
+                device.SetRenderTarget(null);
+            else
+                device.SetRenderTargets(previousTargets);
+
+            // Stretch about the pulled edge, in render space, clipped to the viewport.
+            var origin = Vector2.Transform(control.OverscrollOrigin, parentContext.Transform);
+            var stretch = Matrix.CreateTranslation(-origin.X, -origin.Y, 0)
+                * Matrix.CreateScale(scale.X, scale.Y, 1)
+                * Matrix.CreateTranslation(origin.X, origin.Y, 0);
+            device.ScissorRectangle = ToScissorRectangle(bounds);
+            spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.LinearClamp, rasterizerState: ScissorRasterizer, transformMatrix: stretch);
+            spriteBatch.Draw(layer.Content!, Vector2.Zero, Color.White);
+            spriteBatch.End();
+            device.ScissorRectangle = previousScissor;
+            engine.RecordBatchFlush();
+            return true;
+        }
+
         private bool TryDrawClipped(SpriteBatch spriteBatch, Control control, ClipShape clip, RenderContext parentContext, RenderContext context)
         {
             var engine = ScreenEngine;
@@ -902,6 +979,7 @@ namespace MonoGame.PortableUI
 
             public Vector2 Scale { get; }
             public float Opacity { get; }
+            public Matrix Transform => _transform;
             public Rect ScissorRect { get; }
             public Rect ChildClipRect { get; }
             public Rect RenderRect { get; }
@@ -934,14 +1012,17 @@ namespace MonoGame.PortableUI
 
             private static Matrix CreateControlTransform(Control control)
             {
-                if (control.Scale == Vector2.One && control.Translation == Vector2.Zero)
-                    return Matrix.Identity;
+                var transform = Matrix.Identity;
+                if (control.Scale != Vector2.One || control.Translation != Vector2.Zero)
+                {
+                    var rect = control.ClippingRect;
+                    var origin = new Vector2(rect.Left + rect.Width / 2, rect.Top + rect.Height / 2);
+                    transform = Matrix.CreateTranslation(-origin.X, -origin.Y, 0)
+                        * Matrix.CreateScale(control.Scale.X, control.Scale.Y, 1)
+                        * Matrix.CreateTranslation(origin.X + control.Translation.X, origin.Y + control.Translation.Y, 0);
+                }
 
-                var rect = control.ClippingRect;
-                var origin = new Vector2(rect.Left + rect.Width / 2, rect.Top + rect.Height / 2);
-                return Matrix.CreateTranslation(-origin.X, -origin.Y, 0)
-                    * Matrix.CreateScale(control.Scale.X, control.Scale.Y, 1)
-                    * Matrix.CreateTranslation(origin.X + control.Translation.X, origin.Y + control.Translation.Y, 0);
+                return transform;
             }
 
             private static Rect TransformRect(Rect rect, Matrix transform)
@@ -971,10 +1052,12 @@ namespace MonoGame.PortableUI
             // All downstream consumers work in UI space: undo the CRT barrel displacement here.
             var mousePosition = TransformPointerPosition(inputSource.MousePosition);
             var pressedMouseButtons = SnapshotPressedMouseButtons(inputSource.PressedMouseButtons);
-            if (pressedMouseButtons.Count > 0 || inputSource.Touches.Count > 0)
+            // Read touches once per update: TouchPanel.GetState() consumes the press, so a second
+            // read in the same frame would only ever see Moved/Released and taps would be lost.
+            var touchCollection = inputSource.Touches;
+            if (pressedMouseButtons.Count > 0 || touchCollection.Count > 0)
                 _keyboardNavigationActive = false;
             TouchLocation touchState = default(TouchLocation);
-            var touchCollection = inputSource.Touches;
             var hasTouch = touchCollection.Count > 0;
             if (hasTouch)
             {
@@ -1081,13 +1164,23 @@ namespace MonoGame.PortableUI
                 return;
             }
 
+            if (touchCollection.Count > 0)
+                _lastTouchTime = ScreenSystem.TotalTime;
+            // Touch platforms move the mouse to the finger; that pointer must not hover controls
+            // (a tapped button would stay highlighted). A real mouse, used apart from touch, hovers.
+            var pointerIsTouch = !(ScreenEngine?.Options.HoverOnTouch ?? false)
+                && (touchCollection.Count > 0 || (_lastTouchTime is { } touchedAt && (ScreenSystem.TotalTime - touchedAt).TotalMilliseconds < 600));
+            if (pointerIsTouch)
+                ClearHover(content);
+
             if (mousePosition != LastMousePosition)
             {
                 if (!RouteCapturedMouseMove(mousePosition, pressedMouseButtons))
                 {
                     // Copy the scratch snapshot: args may be retained by handlers beyond this frame.
                     var args = new MouseEventArgs(mousePosition, new List<MouseButton>(pressedMouseButtons));
-                    VisualTreeHelper.IterateVisualTree(content, args, _mouseEnterPredicate, MouseEnterAction, _hitTestPredicate);
+                    if (!pointerIsTouch)
+                        VisualTreeHelper.IterateVisualTree(content, args, _mouseEnterPredicate, MouseEnterAction, _hitTestPredicate);
                     VisualTreeHelper.IterateVisualTree(content, args, _mouseMovePredicate, MouseMoveAction, null);
                     VisualTreeHelper.IterateVisualTree(content, args, _mouseLeavePredicate, MouseLeaveAction, _lastPositionPredicate);
                 }
@@ -1132,6 +1225,32 @@ namespace MonoGame.PortableUI
                     );
                 LastTouchPosition = touchPosition;
             }
+            // Touch capture: the scroll viewer that took the drag gets every move and the release,
+            // wherever the finger is, as if the whole screen belonged to it until the finger lifts.
+            if (hasTouch && TouchScrollOwner is { } scrollOwner
+                && (touchState.State == TouchLocationState.Moved || touchState.State == TouchLocationState.Released))
+            {
+                if (!ReferenceEquals(scrollOwner.Screen, this) || !scrollOwner.IsEffectivelyInteractive)
+                {
+                    TouchScrollOwner = null;
+                }
+                else
+                {
+                    var capturedArgs = new TouchEventArgs(touchPosition);
+                    if (touchState.State == TouchLocationState.Released)
+                    {
+                        scrollOwner.OnTouchUp(capturedArgs);
+                        TouchScrollOwner = null;
+                    }
+                    else if (touchPosition != LastTouchPosition)
+                    {
+                        scrollOwner.OnTouchMove(capturedArgs);
+                    }
+                    LastTouchPosition = touchPosition;
+                    return;
+                }
+            }
+
             if (hasTouch && touchState.State == TouchLocationState.Released)
             {
                 var args = new TouchEventArgs(touchPosition);
@@ -1689,6 +1808,14 @@ namespace MonoGame.PortableUI
                 return null;
             }
             return focused;
+        }
+
+        internal void HandleKeyCommand(KeyboardCommand command)
+        {
+            var focusedControl = DropFocusIfNotInteractive();
+            if (focusedControl == null || (focusedControl.Screen != null && focusedControl.Screen != this))
+                return;
+            focusedControl.OnKeyPressed(command, KeyboardModifiers.None);
         }
 
         internal void HandleTextInput(char character)

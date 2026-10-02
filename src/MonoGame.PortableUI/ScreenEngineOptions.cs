@@ -18,6 +18,23 @@ namespace MonoGame.PortableUI
         /// <summary>The platform software keyboard text fields raise (default: none, for desktop).</summary>
         public Input.IOnScreenKeyboard OnScreenKeyboard { get; set; } = Input.NullOnScreenKeyboard.Instance;
         public bool AddComponentToGame { get; set; } = true;
+
+        /// <summary>
+        ///     Show hover visuals for touch input too. Off by default: on phones the pointer that a
+        ///     finger leaves behind would keep the last tapped control looking hovered. A real mouse
+        ///     (also on Android/ChromeOS) always hovers.
+        /// </summary>
+        public bool HoverOnTouch { get; set; }
+
+        /// <summary>
+        ///     How long a finger must rest before it counts as a press (pressed look, list hold-to-select).
+        ///     A drag that starts earlier is a scroll and lights nothing up. Default 200 ms.
+        /// </summary>
+        public TimeSpan TouchPressedDelay { get; set; } = TimeSpan.FromMilliseconds(200);
+
+        /// <summary>Default look of a drag past the end of a scroll viewer (Shift = rubber band,
+        /// Stretch = Android 12+ stretch). A <c>ScrollViewer.OverscrollEffect</c> overrides it.</summary>
+        public Controls.OverscrollEffect OverscrollEffect { get; set; } = Controls.OverscrollEffect.Shift;
         public ScreenSizeMode ScreenSizeMode { get; set; } = ScreenSizeMode.Viewport;
 
         /// <summary>

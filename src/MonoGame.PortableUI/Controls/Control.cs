@@ -243,6 +243,10 @@ namespace MonoGame.PortableUI.Controls
             get { return _minWidth; }
             set
             {
+                // Unchanged values must not invalidate: item controls re-apply them during layout,
+                // and an invalidation there would schedule a new layout pass every frame.
+                if (_minWidth.Equals(value))
+                    return;
                 _minWidth = value;
                 if (MaxWidth.IsFixed() && MaxWidth < _minWidth)
                     _maxWidth = _minWidth;
@@ -255,6 +259,10 @@ namespace MonoGame.PortableUI.Controls
             get { return _maxWidth; }
             set
             {
+                // Unchanged values must not invalidate: item controls re-apply them during layout,
+                // and an invalidation there would schedule a new layout pass every frame.
+                if (_maxWidth.Equals(value))
+                    return;
                 _maxWidth = value;
                 if (_maxWidth.IsFixed() && _maxWidth < MinWidth)
                     _minWidth = _maxWidth;
@@ -267,6 +275,10 @@ namespace MonoGame.PortableUI.Controls
             get { return _minHeight; }
             set
             {
+                // Unchanged values must not invalidate: item controls re-apply them during layout,
+                // and an invalidation there would schedule a new layout pass every frame.
+                if (_minHeight.Equals(value))
+                    return;
                 _minHeight = value;
                 if (MaxHeight.IsFixed() && MaxHeight < _minHeight)
                     _maxHeight = _minHeight;
@@ -279,6 +291,10 @@ namespace MonoGame.PortableUI.Controls
             get { return _maxHeight; }
             set
             {
+                // Unchanged values must not invalidate: item controls re-apply them during layout,
+                // and an invalidation there would schedule a new layout pass every frame.
+                if (_maxHeight.Equals(value))
+                    return;
                 _maxHeight = value;
                 if (_maxHeight.IsFixed() && _maxHeight < MinHeight)
                     _minHeight = _maxHeight;
@@ -348,6 +364,11 @@ namespace MonoGame.PortableUI.Controls
         public double Opacity { get; set; }
 
         protected float RenderOpacity { get; private set; } = 1;
+
+        // Visual-only stretch a parent ScrollViewer applies while over-scrolled (OverscrollEffect.Stretch):
+        // scale about an absolute origin, on top of this control's own Scale/Translation.
+        internal Vector2 OverscrollScale = Vector2.One;
+        internal Vector2 OverscrollOrigin;
 
         protected Vector2 RenderScale { get; private set; } = Vector2.One;
 
@@ -442,6 +463,9 @@ namespace MonoGame.PortableUI.Controls
         protected virtual ShadowStyle? GetThemeShadow(PortableTheme theme) => null;
 
         /// <summary>The state used to pick the StateStyle; interactive controls override this.</summary>
+        /// <summary>Test/inspection hook: the state the control would draw now.</summary>
+        internal ControlVisualState CurrentVisualStateForTests => GetVisualState();
+
         protected virtual ControlVisualState GetVisualState()
         {
             if (!IsEnabled)
@@ -1135,9 +1159,39 @@ namespace MonoGame.PortableUI.Controls
                 OnTouchCancel(args);
         }
 
+        /// <summary>A finger only looks "pressed" after resting this long (<see cref="ScreenEngineOptions.TouchPressedDelay"/>):
+        /// if a scroll viewer starts panning first (the touch was a scroll, not a tap) nothing lights up.</summary>
+        internal TimeSpan TouchPressedDelay => Screen?.ScreenEngine?.Options.TouchPressedDelay ?? DefaultTouchPressedDelay;
+
+        internal static readonly TimeSpan DefaultTouchPressedDelay = TimeSpan.FromMilliseconds(200);
+
+        /// <summary>When the current finger went down on this control.</summary>
+        internal TimeSpan TouchDownTime => _touchDownTime;
+
+        /// <summary>How long a quick tap (released before <see cref="TouchPressedDelay"/>) still shows
+        /// the pressed look, so taps get feedback.</summary>
+        internal static readonly TimeSpan TapFeedbackDuration = TimeSpan.FromMilliseconds(90);
+
+        private TimeSpan _touchDownTime;
+        private TimeSpan _tapFeedbackUntil;
+
+        /// <summary>Whether touch input should currently draw the pressed state (see <see cref="TouchPressedDelay"/>).</summary>
+        protected bool IsTouchPressedVisual
+        {
+            get
+            {
+                var now = ScreenSystem.TotalTime;
+                if (TouchState == TouchStates.Touched)
+                    return now - _touchDownTime >= TouchPressedDelay;
+                return now < _tapFeedbackUntil;
+            }
+        }
+
         internal void OnTouchDown(TouchEventArgs args)
         {
             TouchState = TouchStates.Touched;
+            _touchDownTime = ScreenSystem.TotalTime;
+            _tapFeedbackUntil = TimeSpan.Zero;
             StartToolTipLongPress(args.Position);
             TouchDown?.Invoke(this, args);
             ChangeVisualState();
@@ -1155,6 +1209,9 @@ namespace MonoGame.PortableUI.Controls
             Screen?.ClearToolTip(this);
             if (TouchState == TouchStates.Touched)
             {
+                // A tap shorter than the pressed delay still flashes the pressed look briefly.
+                if (ScreenSystem.TotalTime - _touchDownTime < TouchPressedDelay)
+                    _tapFeedbackUntil = ScreenSystem.TotalTime + TapFeedbackDuration;
                 TouchState = TouchStates.Released;
                 TouchUp?.Invoke(this, args);
                 ChangeVisualState();
@@ -1251,6 +1308,13 @@ namespace MonoGame.PortableUI.Controls
             _toolTipHoverTimer.Update();
             _toolTipLongPressTimer.Update();
             UpdateAnimations();
+            OnFrameUpdate();
+        }
+
+        /// <summary>Runs once per screen update for every control in the tree (physics-style
+        /// animations such as scroll momentum). Keep it cheap; most controls do nothing.</summary>
+        internal virtual void OnFrameUpdate()
+        {
         }
 
         internal void StartAnimation(ControlAnimation animation)

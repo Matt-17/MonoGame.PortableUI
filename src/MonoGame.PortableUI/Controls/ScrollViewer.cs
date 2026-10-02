@@ -14,6 +14,11 @@ namespace MonoGame.PortableUI.Controls
         private const float MinimumScrollBarHitThickness = 12;
         private PointF? _touchPosition;
         private PointF _lastTouchDelta;
+        // Momentum after release, in offset units per second, and the frame clock for it.
+        private PointF _velocity;
+        private TimeSpan _lastMoveTime;
+        private TimeSpan _lastAnimationTime;
+        private bool _animating;
         private Control? _arrangedContent;
         private Rect _arrangedContentRect;
         private bool _contentArrangeValid;
@@ -56,9 +61,9 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
-        private bool CanScrollX => _directions != ScrollDirections.Vertical;
+        private bool CanScrollX => _directions is ScrollDirections.Horizontal or ScrollDirections.Both;
 
-        private bool CanScrollY => _directions != ScrollDirections.Horizontal;
+        private bool CanScrollY => _directions is ScrollDirections.Vertical or ScrollDirections.Both;
 
         protected internal override bool ClipsDescendants => true;
 
@@ -69,7 +74,32 @@ namespace MonoGame.PortableUI.Controls
         public bool ShowScrollBars { get; set; }
         public bool EnableFling { get; set; }
         public bool EnableRubberBanding { get; set; }
+        /// <summary>Scales the release velocity of a fling (6 = the finger's speed).</summary>
         public float FlingMultiplier { get; set; }
+
+        /// <summary>How fast a fling slows down (per second, exponential). Higher stops sooner.</summary>
+        public float FlingDeceleration { get; set; } = 3.5f;
+
+        /// <summary>
+        ///     How a drag past the end looks: <see cref="Controls.OverscrollEffect.Shift"/> (the content
+        ///     moves past the edge) or <see cref="Controls.OverscrollEffect.Stretch"/> (Android 12+: the
+        ///     content stays at the edge and stretches). Both spring back the same way. Null (default)
+        ///     uses <see cref="ScreenEngineOptions.OverscrollEffect"/>.
+        /// </summary>
+        public OverscrollEffect? OverscrollEffect { get; set; }
+
+        private OverscrollEffect EffectiveOverscrollEffect
+            => OverscrollEffect ?? Screen?.ScreenEngine?.Options.OverscrollEffect ?? Controls.OverscrollEffect.Shift;
+
+        /// <summary>How much a full <see cref="RubberBandLimit"/> pull stretches the content (Stretch effect).</summary>
+        public float OverscrollStretchAmount { get; set; } = 0.06f;
+
+        /// <summary>How far the content also glides with a full pull in the Stretch effect (layout units),
+        /// so it does not feel glued to the edge.</summary>
+        public float OverscrollStretchShift { get; set; } = 8f;
+
+        /// <summary>Stiffness of the spring that pulls an over-scrolled (rubber-banded) offset back.</summary>
+        public float RubberBandStiffness { get; set; } = 14f;
         public float RubberBandLimit { get; set; }
         public float ScrollBarThickness { get; set; }
         public Brush? ScrollBarGutterBrush { get; set; }
@@ -138,6 +168,7 @@ namespace MonoGame.PortableUI.Controls
 
         public void ScrollTo(PointF offset)
         {
+            StopAnimation();
             Offset = new PointF(
                 CanScrollX ? Clamp(offset.X, 0, MaxHorizontalOffset) : 0,
                 CanScrollY ? Clamp(offset.Y, 0, MaxVerticalOffset) : 0);
@@ -207,9 +238,18 @@ namespace MonoGame.PortableUI.Controls
             }
 
             _touchPosition = null;
-            if (EnableFling)
+            ReleaseTouchOwnership();
+            // A finger that rested before lifting has no speed left.
+            if (!EnableFling || (ScreenSystem.TotalTime - _lastMoveTime).TotalMilliseconds > 100)
+                _velocity = new PointF();
+            else
+                _velocity = new PointF(_velocity.X * FlingMultiplier / 6f, _velocity.Y * FlingMultiplier / 6f);
+
+            if (_velocity.X != 0 || _velocity.Y != 0 || IsOverscrolled)
             {
-                ScrollBy(new PointF(-_lastTouchDelta.X * FlingMultiplier, -_lastTouchDelta.Y * FlingMultiplier), false);
+                // Coast and/or swing back over the next frames (OnFrameUpdate).
+                _animating = true;
+                _lastAnimationTime = ScreenSystem.TotalTime;
             }
             else
             {
@@ -229,19 +269,55 @@ namespace MonoGame.PortableUI.Controls
 
             if (_touchPosition != null)
             {
-                if (!_isTouchPanning && Distance(args.Position, _touchStartPosition) > TouchPanThreshold)
+                // Another viewer owns this drag (an inner list that scrolled first, or an outer page
+                // that took a direction this one cannot scroll): only follow the finger.
+                var owner = Screen?.TouchScrollOwner;
+                if (owner != null && !ReferenceEquals(owner, this))
                 {
-                    // The finger is panning, not tapping: the pressed child must not click on release.
+                    _touchPosition = args.Position;
+                    _lastTouchDelta = new PointF();
+                    return;
+                }
+
+                if (!_isTouchPanning)
+                {
+                    // Touch slop: until the finger moved past the threshold it may still be a tap,
+                    // so nothing scrolls (and finger jitter cannot claim the gesture).
+                    if (Distance(args.Position, _touchStartPosition) <= TouchPanThreshold)
+                    {
+                        _touchPosition = args.Position;
+                        TrackVelocity(new PointF());
+                        return;
+                    }
+
+                    // Axis decision: the dominant direction picks the viewer. One that cannot scroll
+                    // that way (nothing to scroll, or the wrong orientation) leaves the whole gesture
+                    // to an outer viewer, e.g. a vertical swipe over a data grid header.
+                    var total = args.Position - _touchStartPosition;
+                    var vertical = Math.Abs(total.Y) >= Math.Abs(total.X);
+                    var canScrollThatWay = vertical ? CanScrollY && MaxVerticalOffset > 0 : CanScrollX && MaxHorizontalOffset > 0;
+                    if (!canScrollThatWay)
+                    {
+                        _touchPosition = null;
+                        return;
+                    }
+
+                    // The finger is panning, not tapping: the pressed child must not click on release,
+                    // and this viewer owns the rest of the gesture.
                     _isTouchPanning = true;
                     VisualTreeHelper.CancelDescendantTouches(this, args);
+                    if (Screen is { } panScreen)
+                        panScreen.TouchScrollOwner = this;
+                    owner = this;
                 }
 
                 _lastTouchDelta = args.Position - _touchPosition.Value;
+                TrackVelocity(_lastTouchDelta);
                 var before = Offset;
                 ScrollBy(new PointF(-_lastTouchDelta.X, -_lastTouchDelta.Y), EnableRubberBanding);
                 _touchPosition = args.Position;
-                // Same as the wheel: an outer viewer only pans what this one could not.
-                if (Offset != before)
+                // The owner keeps consuming moves at its limits so an outer viewer never jumps in.
+                if (Offset != before || ReferenceEquals(owner, this))
                     args.Handled = true;
             }
         }
@@ -256,6 +332,8 @@ namespace MonoGame.PortableUI.Controls
             _touchPosition = null;
             _isTouchPanning = false;
             _lastTouchDelta = new PointF();
+            // Leaving the viewer does not end the gesture: it keeps owning the drag, so the viewer
+            // now under the finger does not take over mid-drag. The next touch down resets it.
             ClampOffset();
             UpdateContentLayout();
         }
@@ -282,8 +360,21 @@ namespace MonoGame.PortableUI.Controls
             BeginTouchPan(args.Position);
         }
 
+        private void ReleaseTouchOwnership()
+        {
+            if (Screen is { } screen && ReferenceEquals(screen.TouchScrollOwner, this))
+                screen.TouchScrollOwner = null;
+        }
+
         private void BeginTouchPan(PointF position)
         {
+            // A finger on the content catches a running fling or spring.
+            StopAnimation();
+            _velocity = new PointF();
+            _lastMoveTime = ScreenSystem.TotalTime;
+            // A new finger starts a new gesture: nobody owns it yet.
+            if (Screen is { } screen)
+                screen.TouchScrollOwner = null;
             _touchPosition = position;
             _touchStartPosition = position;
             _isTouchPanning = false;
@@ -355,15 +446,117 @@ namespace MonoGame.PortableUI.Controls
 
         private Rect ContentViewportRect => GetContentViewportRect(ViewportRect, _hasVerticalScrollBar, _hasHorizontalScrollBar);
 
+        private void ApplyStretch(PointF overshoot, Rect viewportRect)
+        {
+            if (Content == null)
+                return;
+            var limit = Math.Max(1, RubberBandLimit);
+            var sx = 1 + Math.Min(1, Math.Abs(overshoot.X) / limit) * OverscrollStretchAmount;
+            var sy = 1 + Math.Min(1, Math.Abs(overshoot.Y) / limit) * OverscrollStretchAmount;
+            // Stretch away from the edge being pulled: pulling down at the top grows downwards.
+            var originX = overshoot.X < 0 ? viewportRect.Left : viewportRect.Right;
+            var originY = overshoot.Y < 0 ? viewportRect.Top : viewportRect.Bottom;
+            Content.OverscrollScale = new Vector2(sx, sy);
+            Content.OverscrollOrigin = new Vector2(originX, originY);
+        }
+
+        private bool IsOverscrolled =>
+            Offset.X < 0 || Offset.Y < 0 || Offset.X > MaxHorizontalOffset || Offset.Y > MaxVerticalOffset;
+
+        private void StopAnimation()
+        {
+            _animating = false;
+        }
+
+        // Smoothed finger speed in offset units per second (content moves against the finger).
+        private void TrackVelocity(PointF fingerDelta)
+        {
+            var now = ScreenSystem.TotalTime;
+            var dt = (float)(now - _lastMoveTime).TotalSeconds;
+            _lastMoveTime = now;
+            if (dt <= 0.0001f)
+                return;
+            dt = Math.Min(dt, 0.1f);
+            var instant = new PointF(-fingerDelta.X / dt, -fingerDelta.Y / dt);
+            _velocity = new PointF(_velocity.X * 0.4f + instant.X * 0.6f, _velocity.Y * 0.4f + instant.Y * 0.6f);
+        }
+
+        internal override void OnFrameUpdate()
+        {
+            if (!_animating)
+                return;
+            if (_touchPosition != null || _isScrollBarDragging)
+            {
+                _animating = false;
+                return;
+            }
+
+            var now = ScreenSystem.TotalTime;
+            var dt = (float)Math.Min(0.05, Math.Max(0, (now - _lastAnimationTime).TotalSeconds));
+            _lastAnimationTime = now;
+            if (dt <= 0)
+                return;
+
+            var vx = _velocity.X;
+            var vy = _velocity.Y;
+            var x = Animate(Offset.X, ref vx, MaxHorizontalOffset, CanScrollX, dt);
+            var y = Animate(Offset.Y, ref vy, MaxVerticalOffset, CanScrollY, dt);
+            _velocity = new PointF(vx, vy);
+            Offset = new PointF(x, y);
+            UpdateContentLayout();
+
+            if (_velocity.X == 0 && _velocity.Y == 0 && !IsOverscrolled)
+                _animating = false;
+        }
+
+        /// <summary>One axis of momentum: coast with exponential braking, brake hard past an edge
+        /// (rubber band), then spring back to the edge once the momentum is spent.</summary>
+        private float Animate(float offset, ref float velocity, float max, bool enabled, float dt)
+        {
+            if (!enabled)
+            {
+                velocity = 0;
+                return 0;
+            }
+
+            var limit = EnableRubberBanding ? RubberBandLimit : 0;
+            var outside = offset < 0 || offset > max;
+            if (velocity != 0)
+            {
+                offset += velocity * dt;
+                velocity *= MathF.Exp(-(outside ? 18f : FlingDeceleration) * dt);
+                if (Math.Abs(velocity) < 12f)
+                    velocity = 0;
+                if (offset < -limit || offset > max + limit)
+                {
+                    offset = Clamp(offset, -limit, max + limit);
+                    velocity = 0;
+                }
+                outside = offset < 0 || offset > max;
+            }
+
+            if (velocity == 0 && outside)
+            {
+                // Damped spring back to the nearest edge.
+                var target = offset < 0 ? 0 : max;
+                offset += (target - offset) * (1 - MathF.Exp(-RubberBandStiffness * dt));
+                if (Math.Abs(target - offset) < 0.5f)
+                    offset = target;
+            }
+
+            return offset;
+        }
+
         private void ScrollBy(PointF delta, bool allowOverscroll)
         {
-            var minOffset = allowOverscroll ? -RubberBandLimit : 0;
-            var maxHorizontal = MaxHorizontalOffset + (allowOverscroll ? RubberBandLimit : 0);
-            var maxVertical = MaxVerticalOffset + (allowOverscroll ? RubberBandLimit : 0);
+            // Rubber banding only on an axis that has something to scroll: content that fits must
+            // not be draggable at all.
+            var bandX = allowOverscroll && MaxHorizontalOffset > 0 ? RubberBandLimit : 0;
+            var bandY = allowOverscroll && MaxVerticalOffset > 0 ? RubberBandLimit : 0;
 
             Offset = new PointF(
-                CanScrollX ? Clamp(Offset.X + delta.X, minOffset, maxHorizontal) : 0,
-                CanScrollY ? Clamp(Offset.Y + delta.Y, minOffset, maxVertical) : 0);
+                CanScrollX ? Clamp(Offset.X + delta.X, -bandX, MaxHorizontalOffset + bandX) : 0,
+                CanScrollY ? Clamp(Offset.Y + delta.Y, -bandY, MaxVerticalOffset + bandY) : 0);
 
             UpdateContentLayout();
         }
@@ -410,9 +603,26 @@ namespace MonoGame.PortableUI.Controls
                 return;
 
             var viewportRect = ContentViewportRect;
+            // Stretch: the content is laid out at the clamped offset and the overshoot is drawn as a
+            // stretch away from the pulled edge instead of a shift.
+            var offset = Offset;
+            if (EffectiveOverscrollEffect == Controls.OverscrollEffect.Stretch)
+            {
+                var clamped = new PointF(Clamp(offset.X, 0, MaxHorizontalOffset), Clamp(offset.Y, 0, MaxVerticalOffset));
+                var overshoot = offset - clamped;
+                ApplyStretch(overshoot, viewportRect);
+                // A little glide on top of the stretch, proportional to the pull.
+                var glide = OverscrollStretchShift / Math.Max(1, RubberBandLimit);
+                offset = new PointF(clamped.X + overshoot.X * glide, clamped.Y + overshoot.Y * glide);
+            }
+            else if (Content.OverscrollScale != Vector2.One)
+            {
+                Content.OverscrollScale = Vector2.One;
+            }
+
             var contentRect = new Rect(
-                viewportRect.Left - Offset.X,
-                viewportRect.Top - Offset.Y,
+                viewportRect.Left - offset.X,
+                viewportRect.Top - offset.Y,
                 CanScrollX ? Extent.Width : viewportRect.Width,
                 CanScrollY ? Extent.Height : viewportRect.Height);
 
@@ -435,6 +645,15 @@ namespace MonoGame.PortableUI.Controls
             }
 
             _arrangedContentRect = contentRect;
+        }
+
+        /// <summary>An outer scroll viewer shifted this one (and its content) without a layout pass:
+        /// the remembered content slot moves too, or the next scroll here would apply the outer
+        /// shift a second time and push the content out of view.</summary>
+        internal override void OffsetArrangement(PointF delta)
+        {
+            base.OffsetArrangement(delta);
+            _arrangedContentRect += delta;
         }
 
         public override void InvalidateLayout(bool boundsChanged)

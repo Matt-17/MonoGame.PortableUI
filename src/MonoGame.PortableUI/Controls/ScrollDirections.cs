@@ -5,6 +5,9 @@ namespace MonoGame.PortableUI.Controls
     {
         Vertical,
         Horizontal,
-        Both
+        Both,
+        /// <summary>No scrolling: the content is laid out within the viewport (e.g. a data grid
+        /// whose columns fit).</summary>
+        None
     }
 }
