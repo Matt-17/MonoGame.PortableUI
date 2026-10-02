@@ -26,6 +26,17 @@ namespace MonoGame.PortableUI.Media
         public Color Face { get; }
         public FrameRing[] Rings { get; }
 
+        public override Thickness ContentInset
+        {
+            get
+            {
+                var width = 0f;
+                foreach (var ring in Rings)
+                    width += ring.Width;
+                return new Thickness(width);
+            }
+        }
+
         /// <summary>Leaves the outer ring's corner pixels out (pixel-art rounded corners).</summary>
         public bool NotchCorners { get; init; }
 

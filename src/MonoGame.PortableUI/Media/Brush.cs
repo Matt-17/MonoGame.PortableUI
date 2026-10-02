@@ -8,6 +8,12 @@ namespace MonoGame.PortableUI.Media
     {
         public virtual bool RequiresBackdrop => false;
 
+        /// <summary>
+        ///     Frame drawn by the brush itself (bevel lines, rings, cut-corner borders), in layout units:
+        ///     containers such as ListBox keep their content inside it, as they do for a border.
+        /// </summary>
+        public virtual Thickness ContentInset => default;
+
         public abstract void Draw(SpriteBatch spriteBatch, Rect rect);
 
         public virtual void Draw(SpriteBatch spriteBatch, Rect rect, float opacity)
