@@ -88,6 +88,23 @@ namespace MonoGame.PortableUI
         private static readonly ScreenEngineOptions DefaultOptions = new ScreenEngineOptions();
         private static readonly RasterizerState ScissorRasterizer = new RasterizerState { ScissorTestEnable = true };
 
+        // The effect the current control batch was begun with, so a shader brush can end the batch,
+        // draw with its own effect and resume it unchanged (see ResumeControlBatch).
+        [ThreadStatic]
+        private static Effect? _controlBatchEffect;
+
+        /// <summary>Begins a control batch exactly like the screen's draw pass does.</summary>
+        internal static void ResumeControlBatch(SpriteBatch spriteBatch)
+        {
+            spriteBatch.Begin(SpriteSortMode.Deferred, rasterizerState: ScissorRasterizer, effect: _controlBatchEffect);
+        }
+
+        /// <summary>Begins a batch for a shader brush with the scissor of the control being drawn.</summary>
+        internal static void BeginEffectBatch(SpriteBatch spriteBatch, Effect effect, SamplerState sampler)
+        {
+            spriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend, sampler, rasterizerState: ScissorRasterizer, effect: effect);
+        }
+
         protected Screen()
         {
             _mainGrid = new Grid
@@ -450,7 +467,7 @@ namespace MonoGame.PortableUI
                 device.SetRenderTarget(null);
             else
                 device.SetRenderTargets(previousTargets);
-            BackdropSource.Set(device, blurred, PixelScreenRect);
+            BackdropSource.Set(device, blurred, PixelScreenRect, scene);
             engine.RecordBatchFlush();
         }
 
@@ -764,6 +781,7 @@ namespace MonoGame.PortableUI
             spriteBatch.GraphicsDevice.ScissorRectangle = ToScissorRectangle(context.ScissorRect);
             if (control.NeedsDrawPass)
             {
+                _controlBatchEffect = ScreenEngine?.Options.Effect;
                 spriteBatch.Begin(SpriteSortMode.Deferred, samplerState: SamplerStateFor(control), rasterizerState: ScissorRasterizer, effect: ScreenEngine?.Options.Effect);
                 control.OnDraw(spriteBatch, context.RenderRect);
                 spriteBatch.End();
