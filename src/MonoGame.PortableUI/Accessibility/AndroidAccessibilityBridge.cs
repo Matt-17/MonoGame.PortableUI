@@ -44,8 +44,11 @@ namespace MonoGame.PortableUI.Accessibility
                 manager.AddTouchExplorationStateChangeListener(new TouchExplorationListener(this));
             }
 
-            _view.SetAccessibilityDelegate(this);
-            _view.SetOnHoverListener(new HoverListener(this));
+            AndroidUiThread.Run(_view, () =>
+            {
+                _view.SetAccessibilityDelegate(this);
+                _view.SetOnHoverListener(new HoverListener(this));
+            });
         }
 
         public bool IsScreenReaderActive => _active;

@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Threading;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using MonoGame.PortableUI.Common;
 
 namespace MonoGame.PortableUI
 {
@@ -158,9 +159,10 @@ namespace MonoGame.PortableUI
                 return;
             }
 
-            // Idle: keep the last frame on screen (no draw, no present) and sleep out the rest of
-            // the idle period in one go. A fixed time step would instead spin in 1 ms sleeps up to
-            // the display rate and then catch up with several updates per tick.
+            // Idle: keep the last frame on screen (no draw, no present) and wait out the rest of the
+            // idle period in one go - cut short by input/WakeUp or the next scheduled frame. A fixed
+            // time step would instead spin in 1 ms sleeps up to the display rate and then catch up
+            // with several updates per tick.
             _screenEngine.RecordFrame(false);
             Game.SuppressDraw();
             if (_hostFixedTimeStep == null)
@@ -169,8 +171,14 @@ namespace MonoGame.PortableUI
                 Game.IsFixedTimeStep = false;
             }
             var remaining = _screenEngine.Options.IdleUpdateInterval - Stopwatch.GetElapsedTime(started);
-            if (remaining.TotalMilliseconds >= 1)
-                Thread.Sleep(remaining);
+            var scheduled = _screenEngine.NextScheduledRedraw;
+            if (scheduled != TimeSpan.MaxValue)
+            {
+                var untilScheduled = scheduled - ScreenSystem.TotalTime;
+                if (untilScheduled < remaining)
+                    remaining = untilScheduled;
+            }
+            _screenEngine.WaitIdle(remaining);
         }
 
         /// <summary>

@@ -17,10 +17,14 @@ namespace MonoGame.PortableUI
     /// </remarks>
     public static class AndroidWindowInsets
     {
+        /// <summary>Safe from the game thread (Game.Initialize): the view work is posted to the UI thread.</summary>
         public static void Attach(View view, ScreenEngine engine)
         {
-            view.SetOnApplyWindowInsetsListener(new Listener(engine));
-            view.RequestApplyInsets();
+            AndroidUiThread.Run(view, () =>
+            {
+                view.SetOnApplyWindowInsetsListener(new Listener(engine));
+                view.RequestApplyInsets();
+            });
         }
 
         private sealed class Listener : Java.Lang.Object, View.IOnApplyWindowInsetsListener

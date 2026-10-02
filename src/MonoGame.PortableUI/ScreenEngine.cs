@@ -176,8 +176,10 @@ namespace MonoGame.PortableUI
         /// </summary>
         public void InvokeOnGameThread(Action action)
         {
-            if (action != null)
-                _gameThreadQueue.Enqueue(action);
+            if (action == null)
+                return;
+            _gameThreadQueue.Enqueue(action);
+            WakeUp();
         }
 
         private void DrainGameThreadQueue()
@@ -688,6 +690,7 @@ namespace MonoGame.PortableUI
         public void Update(GameTime gameTime)
         {
             ScreenSystem.TotalTime = gameTime.TotalGameTime;
+            MarkGameThread();
             BatchFlushesThisFrame = 0;
             LayoutPassesThisFrame = 0;
             FramesPerSecond = gameTime.ElapsedGameTime.TotalSeconds > 0 ? 1 / gameTime.ElapsedGameTime.TotalSeconds : 0;
@@ -763,6 +766,7 @@ namespace MonoGame.PortableUI
                 Game.Components.Remove(Component);
             _backdrop?.Dispose();
             _postProcess?.Dispose();
+            _wake.Dispose();
         }
     }
 }

@@ -58,13 +58,21 @@ namespace MonoGame.PortableUI.Input
                 if (now != _touchesTime)
                 {
                     _touchesTime = now;
+#if ANDROID
+                    _touches = AndroidInputBridge.IsAttached ? AndroidInputBridge.ReadTouches() : TouchPanel.GetState();
+#else
                     _touches = TouchPanel.GetState();
+#endif
                 }
                 return _touches;
             }
         }
 
+#if ANDROID
+        public KeyboardState KeyboardState => AndroidInputBridge.IsAttached ? AndroidInputBridge.KeyboardState : Keyboard.GetState();
+#else
         public KeyboardState KeyboardState => Keyboard.GetState();
+#endif
 
         public GamePadState GamePad => Microsoft.Xna.Framework.Input.GamePad.GetState(Microsoft.Xna.Framework.PlayerIndex.One);
     }
