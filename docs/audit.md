@@ -59,7 +59,7 @@ coalesces N property changes per frame into one layout pass (asserted by
 
 | # | Sev | Finding | Location | Status |
 |---|-----|---------|----------|--------|
-| A1 | med | Global mutable statics tie everything to one primary engine: `ScreenEngine.Instance`, static `FocusedControl`, `ScaleFactor`, `ScreenSystem.TotalTime`, RadioButton group registry. Defeats the existing multi-surface design (`CreateSurfaceEngine`) and hurts testability. | `ScreenEngine.cs:14/57` | **deferred** — needs its own design pass |
+| A1 | med | Global mutable statics tie everything to one primary engine: `ScreenEngine.Instance`, static `FocusedControl`, `ScaleFactor`, `ScreenSystem.TotalTime`, RadioButton group registry. Defeats the existing multi-surface design (`CreateSurfaceEngine`) and hurts testability. | `ScreenEngine.cs:14/57` | **partly fixed** — focus is per engine now (`ScreenEngine.FocusedControl` instance, `ScreenEngine.For(control)`); `Instance`, `ScaleFactor`, `TotalTime`, RadioButton groups remain global |
 | A2 | med | `Screen` is a god class (~1350 lines): input routing, drag & drop, tooltips, flyouts, popup clamping, render orchestration, keyboard show/hide. A `Renderer` and `InputRouter` extraction would sharply reduce coupling. | `Screen.cs` | **deferred** — architecture rewrite |
 | A3 | med | Platform code in the core assembly via `#if ANDROID` (`AndroidClipboardService`, `TextInput` wiring). The `IClipboardService` abstraction is right; concrete impls belong in platform heads. | `AndroidClipboardService.cs`, `ScreenEngine.cs:29` | **deferred** — packaging change |
 | A4 | low | Full sibling-draw batching is prevented by the scissor-per-control design; a real batching renderer is a rewrite. | `Screen.cs:457` | **deferred** |

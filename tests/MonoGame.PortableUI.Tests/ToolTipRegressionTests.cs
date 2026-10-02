@@ -15,7 +15,7 @@ namespace MonoGame.PortableUI.Tests
         [TestInitialize]
         public void ResetState()
         {
-            ScreenEngine.FocusedControl = null;
+            if (ScreenEngine.Instance != null) ScreenEngine.Instance.FocusedControl = null;
             ScreenSystem.TotalTime = TimeSpan.Zero;
         }
 
@@ -113,7 +113,7 @@ namespace MonoGame.PortableUI.Tests
 
             button.IsEnabled = false;
 
-            Assert.IsNull(ScreenEngine.FocusedControl);
+            Assert.IsNull(ScreenEngine.Instance!.FocusedControl);
             Assert.IsFalse(screen.IsToolTipVisibleFor(button));
             Assert.AreEqual(HoverStates.NotHovering, button.CurrentHoverState);
             Assert.AreEqual(TouchStates.Released, button.CurrentTouchState);

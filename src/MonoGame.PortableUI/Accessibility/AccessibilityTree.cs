@@ -71,7 +71,7 @@ namespace MonoGame.PortableUI.Accessibility
                 states |= AccessibilityStates.Disabled;
                 actions = AccessibilityActions.None;
             }
-            if (ReferenceEquals(ScreenEngine.FocusedControl, control))
+            if (ReferenceEquals(ScreenEngine.For(control)?.FocusedControl, control))
                 states |= AccessibilityStates.Focused;
             if (control.IsFocusable && control.IsEnabled)
                 actions |= AccessibilityActions.Focus;

@@ -109,6 +109,10 @@ namespace MonoGame.PortableUI
 
         protected internal ScreenEngine? ScreenEngine { get; set; }
 
+        /// <summary>The engine whose focus this screen routes to: its own, or the default engine for
+        /// a screen that is not hosted yet.</summary>
+        private ScreenEngine? FocusEngine => ScreenEngine ?? MonoGame.PortableUI.ScreenEngine.Instance;
+
         public Control? Content
         {
             get { return _mainGrid.Children.Count > 0 ? _mainGrid.Children[0] : null; }
@@ -167,7 +171,7 @@ namespace MonoGame.PortableUI
         {
             var previous = _focusBeforeFlyOut;
             _focusBeforeFlyOut = null;
-            var focused = ScreenEngine.FocusedControl;
+            var focused = FocusEngine?.FocusedControl;
             if (focused != null && !(closingFlyOut != null && IsInside(focused, closingFlyOut)) && focused.Screen == this)
                 return;
             if (previous != null && previous.Screen == this && previous.IsEffectivelyInteractive)
@@ -206,7 +210,7 @@ namespace MonoGame.PortableUI
                 }
                 var hadFlyOut = _flyOut != null;
                 if (value != null && !hadFlyOut)
-                    _focusBeforeFlyOut = ScreenEngine.FocusedControl;
+                    _focusBeforeFlyOut = FocusEngine?.FocusedControl;
                 _flyOut = value;
                 if (_flyOut != null)
                 {
@@ -1026,7 +1030,7 @@ namespace MonoGame.PortableUI
             if (_bringFocusIntoView)
             {
                 _bringFocusIntoView = false;
-                if (ScreenEngine.FocusedControl is { } focused && ReferenceEquals(focused.Screen, this))
+                if (FocusEngine?.FocusedControl is { } focused && ReferenceEquals(focused.Screen, this))
                 {
                     BringIntoView(focused);
                     PerformLayoutIfDirty();
@@ -1349,7 +1353,7 @@ namespace MonoGame.PortableUI
                 {
                     var command = TryGetKeyboardCommand(_repeatKey, modifiers);
                     if (command.HasValue)
-                        DispatchCommand(ScreenEngine.FocusedControl ?? focusedControl, command.Value, modifiers);
+                        DispatchCommand(FocusEngine?.FocusedControl ?? focusedControl, command.Value, modifiers);
                     _nextKeyRepeatTime = ScreenSystem.TotalTime + KeyRepeatInterval;
                 }
             }
@@ -1424,11 +1428,11 @@ namespace MonoGame.PortableUI
         /// </summary>
         public bool MoveFocus(FocusDirection direction)
         {
-            var current = ScreenEngine.FocusedControl;
+            var current = FocusEngine?.FocusedControl;
             if (current == null || current.Screen != this)
             {
                 FocusNextTabStop();
-                return ScreenEngine.FocusedControl != null;
+                return FocusEngine?.FocusedControl != null;
             }
 
             _focusCandidates.Clear();
@@ -1553,10 +1557,10 @@ namespace MonoGame.PortableUI
             if (pad.Buttons != last.Buttons || pad.DPad != last.DPad)
                 _keyboardNavigationActive = true;
 
-            if (Pressed(pad, last, Buttons.A) && ScreenEngine.FocusedControl is { } activate)
+            if (Pressed(pad, last, Buttons.A) && FocusEngine?.FocusedControl is { } activate)
                 activate.OnKeyPressed(KeyboardCommand.Enter, KeyboardModifiers.None);
 
-            if (Pressed(pad, last, Buttons.Y) && ScreenEngine.FocusedControl is { ContextMenu: not null } menuOwner)
+            if (Pressed(pad, last, Buttons.Y) && FocusEngine?.FocusedControl is { ContextMenu: not null } menuOwner)
                 menuOwner.OpenContextMenu();
 
             if (Pressed(pad, last, Buttons.B))
@@ -1586,7 +1590,7 @@ namespace MonoGame.PortableUI
 
         private void NavigateWithPad(FocusDirection direction)
         {
-            var focused = ScreenEngine.FocusedControl;
+            var focused = FocusEngine?.FocusedControl;
             if (focused != null && focused.Screen == this && focused.HandlesDirection(direction))
                 focused.OnKeyPressed(ToCursorCommand(direction), KeyboardModifiers.None);
             else
@@ -1658,7 +1662,7 @@ namespace MonoGame.PortableUI
                 .Select(entry => entry.control)
                 .ToList();
 
-            var index = ScreenEngine.FocusedControl is { } focused ? ordered.IndexOf(focused) : -1;
+            var index = FocusEngine?.FocusedControl is { } focused ? ordered.IndexOf(focused) : -1;
             var next = backwards
                 ? index <= 0 ? ordered.Count - 1 : index - 1
                 : index < 0 || index == ordered.Count - 1 ? 0 : index + 1;
@@ -1676,12 +1680,12 @@ namespace MonoGame.PortableUI
 
         /// <summary>Hiding, collapsing or disabling an ancestor leaves focus on a control the user
         /// can no longer see; drop it before routing keys so Enter/typing cannot reach it.</summary>
-        private static Control? DropFocusIfNotInteractive()
+        private Control? DropFocusIfNotInteractive()
         {
-            var focused = ScreenEngine.FocusedControl;
+            var focused = FocusEngine?.FocusedControl;
             if (focused != null && !focused.IsEffectivelyInteractive)
             {
-                ScreenEngine.FocusedControl = null;
+                if (FocusEngine != null) FocusEngine.FocusedControl = null;
                 return null;
             }
             return focused;
