@@ -16,6 +16,7 @@ namespace MonoGame.PortableUI
         private RenderTargetBinding[]? _previousTargets;
         private int _width;
         private int _height;
+        private float _layoutScale = 1f;
 
         public UISurface(Game game, Screen screen, int width, int height, PortableTheme? theme = null)
         {
@@ -51,6 +52,28 @@ namespace MonoGame.PortableUI
             get { return Screen.ExternalBackdrop; }
             set { Screen.ExternalBackdrop = value; }
         }
+
+        /// <summary>
+        ///     Pixels per layout unit: the surface is laid out at its width × height but rendered at
+        ///     width × height × LayoutScale (HiDPI, density-independent layouts). Default 1.
+        /// </summary>
+        public float LayoutScale
+        {
+            get => _layoutScale;
+            set
+            {
+                value = value > 0 ? value : 1f;
+                if (_layoutScale.Equals(value))
+                    return;
+                _layoutScale = value;
+                Engine.SetNativeRenderScale(value);
+                _target?.Dispose();
+                _target = null;
+            }
+        }
+
+        private int PixelWidth => Math.Max(1, (int)Math.Ceiling(_width * _layoutScale));
+        private int PixelHeight => Math.Max(1, (int)Math.Ceiling(_height * _layoutScale));
 
         public bool IsInteractive { get; set; } = true;
         public bool HasKeyboardFocus { get; internal set; }
@@ -120,12 +143,12 @@ namespace MonoGame.PortableUI
 
         private RenderTarget2D EnsureTarget()
         {
-            if (_target != null && _target.Width == _width && _target.Height == _height)
+            if (_target != null && _target.Width == PixelWidth && _target.Height == PixelHeight)
                 return _target;
 
             _target?.Dispose();
             // PreserveContents: Screen.Draw may switch to blur/post-FX targets mid-frame and come back.
-            _target = new RenderTarget2D(_game.GraphicsDevice, _width, _height, false, SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.PreserveContents);
+            _target = new RenderTarget2D(_game.GraphicsDevice, PixelWidth, PixelHeight, false, SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.PreserveContents);
             return _target;
         }
 

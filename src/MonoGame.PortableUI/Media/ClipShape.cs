@@ -24,7 +24,10 @@ namespace MonoGame.PortableUI.Media
         public ClipMode Mode { get; set; } = ClipMode.Inside;
 
         /// <summary>Draws the shape's coverage (opaque white where it applies) for <paramref name="bounds"/>.</summary>
-        internal abstract void DrawMask(SpriteBatch spriteBatch, Rect bounds);
+        /// <param name="spriteBatch">Batch drawing into the mask target.</param>
+        /// <param name="bounds">The control's rect in render space.</param>
+        /// <param name="scale">Render scale of the control: layout lengths (radius, inset) scale with it.</param>
+        internal abstract void DrawMask(SpriteBatch spriteBatch, Rect bounds, float scale);
     }
 
     /// <summary>Rounded rectangle covering the control's bounds, optionally inset.</summary>
@@ -45,15 +48,16 @@ namespace MonoGame.PortableUI.Media
         /// <summary>Shrinks the shape inside the bounds (e.g. by a border's thickness).</summary>
         public Thickness Inset { get; set; }
 
-        internal override void DrawMask(SpriteBatch spriteBatch, Rect bounds)
+        internal override void DrawMask(SpriteBatch spriteBatch, Rect bounds, float scale)
         {
-            var rect = bounds - Inset;
+            var rect = bounds - new Thickness(Inset.Left * scale, Inset.Top * scale, Inset.Right * scale, Inset.Bottom * scale);
             if (rect.Width <= 0 || rect.Height <= 0)
                 return;
             if (Radius.IsEmpty)
                 spriteBatch.Draw(Primitives.Pixel(spriteBatch), rect, Color.White);
             else
-                RoundedRectRenderer.DrawSolid(spriteBatch, rect, Radius, Color.White);
+                RoundedRectRenderer.DrawSolid(spriteBatch, rect,
+                    new CornerRadius(Radius.TopLeft * scale, Radius.TopRight * scale, Radius.BottomRight * scale, Radius.BottomLeft * scale), Color.White);
         }
     }
 
@@ -74,7 +78,7 @@ namespace MonoGame.PortableUI.Media
 
         public PathGeometry Geometry { get; }
 
-        internal override void DrawMask(SpriteBatch spriteBatch, Rect bounds)
+        internal override void DrawMask(SpriteBatch spriteBatch, Rect bounds, float scale)
         {
             var width = (int)Math.Ceiling(bounds.Width);
             var height = (int)Math.Ceiling(bounds.Height);

@@ -54,6 +54,21 @@ namespace MonoGame.PortableUI
         /// </summary>
         public PointF RenderOffset { get; private set; }
 
+        /// <summary>
+        ///     Sets the native render scale of a manually sized engine (e.g. a <see cref="UISurface"/>):
+        ///     layout stays in <see cref="ScreenRect"/> units, drawing is scaled by <paramref name="scale"/>.
+        /// </summary>
+        internal void SetNativeRenderScale(float scale)
+        {
+            scale = scale > 0 ? scale : 1f;
+            if (RenderScale == scale)
+                return;
+            RenderScale = scale;
+            RenderOffset = new PointF(0, 0);
+            foreach (var screen in ScreenHistory)
+                screen.InvalidateLayout(true);
+        }
+
         /// <summary>True when <see cref="RenderScale"/> is applied by the draw transform (LayoutScale)
         /// rather than by blitting a reference-size render target.</summary>
         internal bool ScalesNatively => RenderScale != 1 && !(Options.ReferenceSize.X > 0 && Options.ReferenceSize.Y > 0);
