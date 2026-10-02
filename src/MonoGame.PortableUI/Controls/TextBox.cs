@@ -155,6 +155,8 @@ namespace MonoGame.PortableUI.Controls
             ShowFocusVisual = true;
         }
 
+        internal override bool ShowsFocusVisualForPointer => true;
+
         protected override ControlStyle? GetThemeStyle(PortableTheme theme)
         {
             return theme.TextBox;
