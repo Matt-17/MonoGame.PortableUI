@@ -128,6 +128,8 @@ public static class GlassTheme
                 theme.FocusBorderBrush = ThemeBuilder.Solid(new Color(0, 122, 255, 170));
                 theme.ButtonShadow = new ShadowStyle { Color = new Color(40, 50, 90, 26), Offset = new Vector2(0, 2), Blur = 6 };
                 theme.PanelShadow = new ShadowStyle { Color = new Color(40, 50, 90, 46), Offset = new Vector2(0, 12), Blur = 30 };
+                theme.ModalBackgroundBrush = new FrostedGlassBrush(new Color(255, 255, 255, 205), new Color(255, 255, 255, 245), 36, 0.12f);
+                theme.ModalShadow = new ShadowStyle { Color = new Color(30, 40, 80, 70), Offset = new Vector2(0, 18), Blur = 40 };
             });
     }
 
@@ -153,6 +155,14 @@ public sealed class GlassBackdropBrush : Brush
     private readonly RadialGradientBrush _sky = Orb(ThemeBuilder.Hex("#7CC6FF"));
     private readonly RadialGradientBrush _mint = Orb(ThemeBuilder.Hex("#8BE3C9"));
 
+    /// <summary>Lets the orbs drift slowly (the glass then visibly blurs/refracts a living scene). Default on.</summary>
+    public bool Animated { get; set; } = true;
+
+    /// <summary>Drift speed multiplier.</summary>
+    public float Speed { get; set; } = 1f;
+
+    private float _time;
+
     private static RadialGradientBrush Orb(Color color) =>
         new(new GradientStop(0, color), new GradientStop(0.5f, new Color((byte)color.R, (byte)color.G, (byte)color.B, (byte)140)), new GradientStop(1, Color.Transparent));
 
@@ -163,17 +173,22 @@ public sealed class GlassBackdropBrush : Brush
         if (rect.Width <= 0 || rect.Height <= 0)
             return;
         _base.Draw(spriteBatch, rect, opacity);
+        _time = Animated ? (float)MonoGame.PortableUI.Common.ScreenSystem.TotalTime.TotalSeconds * Speed : 0;
+        if (Animated)
+            ScreenEngine.RequestAnimationFrame();
         var size = Math.Max(rect.Width, rect.Height);
-        DrawOrb(spriteBatch, _peach, rect, 0.85f, 0.15f, size * 0.6f, opacity);
-        DrawOrb(spriteBatch, _lilac, rect, 0.1f, 0.35f, size * 0.55f, opacity);
-        DrawOrb(spriteBatch, _sky, rect, 0.55f, 0.9f, size * 0.6f, opacity);
-        DrawOrb(spriteBatch, _mint, rect, 0.95f, 0.85f, size * 0.38f, opacity);
+        DrawOrb(spriteBatch, _peach, rect, 0.85f, 0.15f, size * 0.6f, opacity, 0);
+        DrawOrb(spriteBatch, _lilac, rect, 0.1f, 0.35f, size * 0.55f, opacity, 1);
+        DrawOrb(spriteBatch, _sky, rect, 0.55f, 0.9f, size * 0.6f, opacity, 2);
+        DrawOrb(spriteBatch, _mint, rect, 0.95f, 0.85f, size * 0.38f, opacity, 3);
     }
 
-    private static void DrawOrb(SpriteBatch spriteBatch, Brush orb, Rect rect, float x, float y, float diameter, float opacity)
+    private void DrawOrb(SpriteBatch spriteBatch, Brush orb, Rect rect, float x, float y, float diameter, float opacity, int phase)
     {
-        var cx = rect.Left + rect.Width * x;
-        var cy = rect.Top + rect.Height * y;
+        // Slow Lissajous drift, each orb on its own phase and pace.
+        var t = _time * (0.05f + phase * 0.013f) + phase * 1.9f;
+        var cx = rect.Left + rect.Width * (x + 0.09f * MathF.Sin(t));
+        var cy = rect.Top + rect.Height * (y + 0.07f * MathF.Cos(t * 1.3f));
         orb.Draw(spriteBatch, new Rect(cx - diameter / 2, cy - diameter / 2, diameter, diameter), opacity);
     }
 }

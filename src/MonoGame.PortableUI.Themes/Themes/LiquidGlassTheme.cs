@@ -119,12 +119,16 @@ public static class LiquidGlassTheme
                 theme.FocusBorderBrush = ThemeBuilder.Solid(new Color(100, 210, 255, 200));
                 theme.ButtonShadow = new ShadowStyle { Color = new Color(0, 0, 0, 70), Offset = new Vector2(0, 4), Blur = 10 };
                 theme.PanelShadow = new ShadowStyle { Color = new Color(0, 0, 0, 110), Offset = new Vector2(0, 14), Blur = 30 };
+                // Dialogs: denser, darker glass with a wide refracting rim, so the UI behind reads as
+                // light and colour, not as competing text.
+                theme.ModalBackgroundBrush = new LiquidGlassBrush(new Color(16, 20, 42, 165)) { Frost = 0.95f, Refraction = 18, Bezel = 22, Highlight = 0.7f };
+                theme.ModalShadow = new ShadowStyle { Color = new Color(0, 0, 0, 140), Offset = new Vector2(0, 20), Blur = 40 };
             });
     }
 
     private static void Tinted(ControlStyle style, Color tint, float radius)
     {
-        ThemeBuilder.Chrome(style, new LiquidGlassBrush(tint) { Refraction = 10, Bezel = 12, Frost = 0.3f }, null, 0, radius);
+        ThemeBuilder.Chrome(style, new LiquidGlassBrush(tint) { Refraction = 10, Bezel = 12, Frost = 0.75f }, null, 0, radius);
         style.Normal.TextColor = Color.White;
         style.Disabled.Background = new LiquidGlassBrush(new Color(255, 255, 255, 14)) { Refraction = 6, Bezel = 10 };
         style.Disabled.TextColor = new Color(160, 168, 190);
@@ -144,6 +148,14 @@ public sealed class LiquidWallpaperBrush : Brush
     private readonly RadialGradientBrush _amber = Orb(ThemeBuilder.Hex("#FFB547"));
     private readonly RadialGradientBrush _teal = Orb(ThemeBuilder.Hex("#21D4C4"));
 
+    /// <summary>Lets the orbs drift slowly (the glass then visibly blurs/refracts a living scene). Default on.</summary>
+    public bool Animated { get; set; } = true;
+
+    /// <summary>Drift speed multiplier.</summary>
+    public float Speed { get; set; } = 1f;
+
+    private float _time;
+
     private static RadialGradientBrush Orb(Color color) =>
         new(new GradientStop(0, color), new GradientStop(0.45f, new Color((byte)color.R, (byte)color.G, (byte)color.B, (byte)150)), new GradientStop(1, Color.Transparent));
 
@@ -154,11 +166,14 @@ public sealed class LiquidWallpaperBrush : Brush
         if (rect.Width <= 0 || rect.Height <= 0)
             return;
         _base.Draw(spriteBatch, rect, opacity);
+        _time = Animated ? (float)MonoGame.PortableUI.Common.ScreenSystem.TotalTime.TotalSeconds * Speed : 0;
+        if (Animated)
+            ScreenEngine.RequestAnimationFrame();
         var size = Math.Max(rect.Width, rect.Height);
-        DrawOrb(spriteBatch, _blue, rect, 0.12f, 0.2f, size * 0.62f, opacity);
-        DrawOrb(spriteBatch, _pink, rect, 0.78f, 0.25f, size * 0.55f, opacity);
-        DrawOrb(spriteBatch, _amber, rect, 0.62f, 0.95f, size * 0.5f, opacity);
-        DrawOrb(spriteBatch, _teal, rect, 0.2f, 0.92f, size * 0.42f, opacity);
+        DrawOrb(spriteBatch, _blue, rect, 0.12f, 0.2f, size * 0.62f, opacity, 0);
+        DrawOrb(spriteBatch, _pink, rect, 0.78f, 0.25f, size * 0.55f, opacity, 1);
+        DrawOrb(spriteBatch, _amber, rect, 0.62f, 0.95f, size * 0.5f, opacity, 2);
+        DrawOrb(spriteBatch, _teal, rect, 0.2f, 0.92f, size * 0.42f, opacity, 3);
 
         // Crisp diagonal light lines: refraction bends them visibly at every glass rim.
         var pixel = Primitives.Pixel(spriteBatch);
@@ -170,10 +185,12 @@ public sealed class LiquidWallpaperBrush : Brush
         }
     }
 
-    private static void DrawOrb(SpriteBatch spriteBatch, Brush orb, Rect rect, float x, float y, float diameter, float opacity)
+    private void DrawOrb(SpriteBatch spriteBatch, Brush orb, Rect rect, float x, float y, float diameter, float opacity, int phase)
     {
-        var cx = rect.Left + rect.Width * x;
-        var cy = rect.Top + rect.Height * y;
+        // Slow Lissajous drift, each orb on its own phase and pace.
+        var t = _time * (0.05f + phase * 0.013f) + phase * 1.9f;
+        var cx = rect.Left + rect.Width * (x + 0.09f * MathF.Sin(t));
+        var cy = rect.Top + rect.Height * (y + 0.07f * MathF.Cos(t * 1.3f));
         orb.Draw(spriteBatch, new Rect(cx - diameter / 2, cy - diameter / 2, diameter, diameter), opacity);
     }
 }

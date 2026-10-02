@@ -219,6 +219,15 @@ namespace MonoGame.PortableUI
         /// </summary>
         public CursorStyle Cursor { get; set; } = CursorStyle.ModernArrow(Color.White, Color.Black);
 
+        /// <summary>
+        ///     Background of modal dialogs and sheets; null = the panel/context-menu background.
+        ///     Glass themes give dialogs a denser glass than their cards so text behind stays out of the way.
+        /// </summary>
+        public Brush? ModalBackgroundBrush { get; set; }
+
+        /// <summary>Shadow under modal dialogs (they float above everything); null = none.</summary>
+        public ShadowStyle? ModalShadow { get; set; } = new ShadowStyle { Color = new Color(0, 0, 0, 90), Offset = new Vector2(0, 16), Blur = 32 };
+
         /// <summary>Drop shadow applied to buttons; null = no shadow.</summary>
         public ShadowStyle? ButtonShadow { get; set; }
 

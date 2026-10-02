@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
 using MonoGame.PortableUI.Controls.Events;
@@ -497,8 +498,11 @@ namespace MonoGame.PortableUI
             try
             {
                 var screens = VisibleScreens;
-                for (var i = 0; i < screens.Count; i++)
+                var start = DrawCoveredScreensForGlass(spriteBatch, screens);
+                for (var i = start; i < screens.Count; i++)
                     screens[i].Draw(spriteBatch);
+                for (var i = 0; i < screens.Count; i++)
+                    screens[i].StackBackdrop = null;
                 LeavingScreen?.Draw(spriteBatch);
                 if (_toasts is { HasContent: true } toasts)
                     toasts.Layer.Draw(spriteBatch);
@@ -507,6 +511,58 @@ namespace MonoGame.PortableUI
             {
                 ExitDraw(previous);
             }
+        }
+
+        private RenderTarget2D? _stackBackdropTarget;
+        private RenderTargetBinding[]? _stackPreviousTargets;
+
+        /// <summary>
+        ///     Nested glass: when an overlay (modal, sheet) higher in the stack has glass, the screens
+        ///     below it are rendered into an offscreen picture first, shown as usual, and handed to the
+        ///     overlays as their backdrop — so the overlay's glass blurs/refracts the real UI under it,
+        ///     not just the wallpaper. Returns the index of the first screen still to draw.
+        /// </summary>
+        private int DrawCoveredScreensForGlass(Microsoft.Xna.Framework.Graphics.SpriteBatch spriteBatch, IReadOnlyList<Screen> screens)
+        {
+            var first = -1;
+            for (var i = 1; i < screens.Count; i++)
+            {
+                if (screens[i].IsOverlay && screens[i].RequiresBackdropNow)
+                {
+                    first = i;
+                    break;
+                }
+            }
+            if (first < 0 || EffectiveRenderQuality == RenderQuality.Low)
+                return 0;
+
+            var device = spriteBatch.GraphicsDevice;
+            var width = device.Viewport.Width;
+            var height = device.Viewport.Height;
+            if (_stackBackdropTarget == null || _stackBackdropTarget.IsDisposed || _stackBackdropTarget.Width != width || _stackBackdropTarget.Height != height)
+            {
+                _stackBackdropTarget?.Dispose();
+                _stackBackdropTarget = new RenderTarget2D(device, Math.Max(1, width), Math.Max(1, height), false, SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.PreserveContents);
+            }
+
+            var previousTargets = Effects.RenderTargetHelper.SnapshotRenderTargets(device, ref _stackPreviousTargets);
+            device.SetRenderTarget(_stackBackdropTarget);
+            device.Clear(Color.Transparent);
+            for (var i = 0; i < first; i++)
+                screens[i].Draw(spriteBatch);
+            if (previousTargets.Length == 0)
+                device.SetRenderTarget(null);
+            else
+                device.SetRenderTargets(previousTargets);
+
+            spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend);
+            spriteBatch.Draw(_stackBackdropTarget, new Rectangle(0, 0, width, height), Color.White);
+            spriteBatch.End();
+            RecordBatchFlush();
+
+            for (var i = first; i < screens.Count; i++)
+                screens[i].StackBackdrop = _stackBackdropTarget;
+            return first;
         }
 
         /// <summary>True after keyboard/gamepad input, false after pointer input.</summary>
@@ -766,6 +822,7 @@ namespace MonoGame.PortableUI
                 Game.Components.Remove(Component);
             _backdrop?.Dispose();
             _postProcess?.Dispose();
+            _stackBackdropTarget?.Dispose();
             _wake.Dispose();
         }
     }
