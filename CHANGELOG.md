@@ -16,6 +16,20 @@
 - `ScreenEngine.PushOverlay` (screens below stay visible, frozen), `ScreenTransition` (Fade, SlideFromRight, SlideFromBottom) for push/pop, `Screen.OnNavigatedTo`/`OnNavigatedFrom` hooks and events, focus restored when navigating back.
 - `WrapPanel`, `UniformGrid` and `StackPanel.Spacing`.
 - `TextBox`: undo/redo (Ctrl+Z, Ctrl+Y/Ctrl+Shift+Z), word navigation and deletion (Ctrl+arrows, Ctrl+Backspace/Delete), word wrap for multiline boxes (`TextWrapping.Wrap`).
+- `PathGeometry` (lines, curves, arcs, rounded rects, ellipses) with a CPU rasterizer and the `PathShape` control.
+- Non-rectangular clipping: `Control.Clip` with `RoundedRectClip`/`PathClip`, inside or outside, nestable; `Control.ClipToCornerRadius`.
+- Modal layer: `ScreenEngine.ShowModal(content, options)` with scrim, focus capture, Back/Escape handling, centred panel or bottom sheet.
+- Toasts: `ScreenEngine.Toasts.Show(...)` with a queue, durations, overflow policy and edge placement; overlays, modals and toasts now also draw on a `UISurface`.
+- `ScrollViewer.ScrollDirections` for two-axis scrolling; horizontal wheel and Shift+wheel (`IInputSource.HorizontalScrollWheelValue`).
+- Menus: separators, icons, shortcut text, disabled and checkable items, drill-down submenus; `FlyOutPlacement.Right/Left/Auto` with flipping at the screen edge.
+- `ListBox.SelectionMode` (Single, Multiple, Extended with Ctrl/Shift), `SelectedIndices`/`SelectedItems`, and `ItemTemplate` for `ListBox` and `ComboBox`.
+- `TextScaling`: one app-wide text size factor from a fixed value, the app's setting or the OS font scale (Android hook `AndroidTextScaling`), clamped; layout is measured at the scaled size.
+- Localization: `Localizer` with JSON catalogues, region → language → fallback lookup, culture-aware `Format`, visible placeholders for missing keys and a live language switch (`control.Localize(...)`, `LocalizedText(key)`).
+- Safe areas: `ScreenEngine.SafeAreaInsets`/`KeyboardInset`/`SafeAreaChanged`, the `SafeAreaPanel` control and `AndroidWindowInsets` for cutouts, system bars and the IME.
+- On-screen keyboard bridge: `IOnScreenKeyboard` with `TextInputPurpose` (`TextBox.InputPurpose`), `AndroidOnScreenKeyboard`, and `DelegateOnScreenKeyboard` as an SDK-free hook for Steam's keyboard; the focused field scrolls above the keyboard.
+- Font backends: `UIFont` abstraction (`TextBlock.DynamicFont`, `FontManager.DefaultDynamicFont`, `SpriteFontUIFont`) and the new optional package **MonoGame.PortableUI.FontStashSharp** (`FontStashUIFont`) for runtime-rasterized TTF/OTF text at any size and with any character.
+- Accessibility: platform-neutral `AccessibilityTree` (roles, labels, values, states, actions, reading order from the focus order, `Control.Accessibility` overrides, live regions), `ScreenEngine.AccessibilityBridge` that only works while a screen reader is active, and `AndroidAccessibilityBridge` for TalkBack.
+- `ScreenEngine.InvokeOnGameThread` for platform callbacks.
 - `ControlStyle.TransitionDuration` drives the button press animation (zero = no animation); `StateStyle.FocusVisualKind` of the Focused state selects the focus visual; `TextBlock.IsHeading` uses `Typography.HeadingSize`.
 
 ### Changed
