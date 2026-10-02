@@ -1326,9 +1326,22 @@ namespace MonoGame.PortableUI.Controls
             _longPressTimer.Update();
             _toolTipHoverTimer.Update();
             _toolTipLongPressTimer.Update();
-            UpdateAnimations();
+            if (_animations.Count > 0)
+            {
+                UpdateAnimations();
+                // Tweens write render state directly; also draws the frame a tween finished on.
+                RequestRedraw();
+            }
             OnFrameUpdate();
         }
+
+        /// <summary>
+        ///     Asks the engine showing this control to draw the next frame
+        ///     (<see cref="PortableUI.RenderMode.OnDemand"/>). Property setters do this already through
+        ///     <see cref="InvalidateLayout"/>; call it for state a custom control changes on its own
+        ///     in update code. While drawing, use <see cref="ScreenEngine.RequestAnimationFrame"/>.
+        /// </summary>
+        public void RequestRedraw() => ScreenEngine.For(this)?.RequestRedraw();
 
         /// <summary>Runs once per screen update for every control in the tree (physics-style
         /// animations such as scroll momentum). Keep it cheap; most controls do nothing.</summary>

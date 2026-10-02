@@ -30,6 +30,7 @@ namespace MonoGame.PortableUI.Media
         {
             if (SpecularSweepStrength <= 0 || SpecularSweepSpeed <= 0 || rect.Width <= 0 || rect.Height <= 0)
                 return;
+            ScreenEngine.RequestAnimationFrame();
 
             var phase = timeSeconds * SpecularSweepSpeed % 1f;
             if (phase < 0)

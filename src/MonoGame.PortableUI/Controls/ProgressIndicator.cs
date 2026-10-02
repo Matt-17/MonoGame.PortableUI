@@ -64,6 +64,7 @@ namespace MonoGame.PortableUI.Controls
 
             foreach (var i in _drawOrder)
                 DrawRectangle(spriteBatch, rect, i, MaxValue);
+            ScreenEngine.RequestAnimationFrame();
         }
 
         private void DrawRectangle(SpriteBatch spriteBatch, Rect rect, int i, int maxValue)
