@@ -6,6 +6,7 @@ No XAML — trees are built in C#. Known open issues and deferred work live in `
 ## Repository layout
 
 - `src/MonoGame.PortableUI` — the library (controls, layout, input, media/brushes, theming core).
+- `src/MonoGame.PortableUI.FontStashSharp` — optional FontStashSharp font backend (`FontStashUIFont`).
 - `src/MonoGame.PortableUI.Themes` — theme catalog add-on (`PortableThemes.All`, 37 themes, one file each under `Themes/`).
 - `samples/MonoGame.PortableUI.Demo` — DesktopGL demo; `samples/MonoGame.PortableUI.Demo.Android` — Android host.
 - `tests/MonoGame.PortableUI.Tests` — MSTest suite (headless, no graphics device needed for most tests).
@@ -82,6 +83,14 @@ a direction the focused control does not claim via `HandlesDirection` moves focu
 `Screen.BackRequested`. Popups opened from keyboard/gamepad take focus and return it on close.
 Navigation: `NavigateToScreen` / `PushOverlay` (screens below stay drawn, frozen) with `ScreenTransition`;
 `OnNavigatedTo`/`OnNavigatedFrom` hooks; focus is restored on `NavigateBack`.
+
+**App-wide services** (all on `ScreenEngine` unless noted; screens pick changes up on their next update via
+version counters, never by rebuilding): `TextScaling` (static, text size factor), `Localizer.Default`
+(static, string catalogues; bind with `control.Localize(...)`), `FontManager.DefaultDynamicFont` (UIFont
+backend), `SafeAreaInsets` (+ `SafeAreaPanel`), `OnScreenKeyboard`, `AccessibilityBridge`, `Toasts`,
+`ShowModal`. Platform hooks for Android live in the core's `#if ANDROID` files (`AndroidWindowInsets`,
+`AndroidOnScreenKeyboard`, `AndroidTextScaling`, `AndroidAccessibilityBridge`); they are compiled but not
+device-tested. There is no iOS head. Platform callbacks must go through `InvokeOnGameThread`.
 
 ## Implementing a control
 
