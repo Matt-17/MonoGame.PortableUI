@@ -33,6 +33,7 @@ jobs:
         run: |
           dotnet pack src/MonoGame.PortableUI/MonoGame.PortableUI.csproj --configuration Release --no-build --output artifacts/packages
           dotnet pack src/MonoGame.PortableUI.Themes/MonoGame.PortableUI.Themes.csproj --configuration Release --no-build --output artifacts/packages
+          dotnet pack src/MonoGame.PortableUI.FontStashSharp/MonoGame.PortableUI.FontStashSharp.csproj --configuration Release --no-build --output artifacts/packages
 
       - name: Validate package
         shell: pwsh

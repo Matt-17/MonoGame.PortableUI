@@ -10,6 +10,10 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\MonoGame.PortableUI\MonoGame.PortableUI.csproj" />
     <ProjectReference Include="..\..\src\MonoGame.PortableUI.Themes\MonoGame.PortableUI.Themes.csproj" />
+    <ProjectReference Include="..\..\src\MonoGame.PortableUI.FontStashSharp\MonoGame.PortableUI.FontStashSharp.csproj" />
     <ProjectReference Include="..\..\samples\MonoGame.PortableUI.Demo\MonoGame.PortableUI.Demo.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\samples\MonoGame.PortableUI.Demo\Content\Fonts\AtkinsonHyperlegible-Regular.ttf" Link="Fonts\AtkinsonHyperlegible-Regular.ttf" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

@@ -47,7 +47,7 @@ namespace MonoGame.PortableUI
                     _engine.SetSystemInsets(new Thickness(insets.SystemWindowInsetLeft, insets.SystemWindowInsetTop, insets.SystemWindowInsetRight, insets.SystemWindowInsetBottom));
 #pragma warning restore CA1422
                 }
-                return view.OnApplyWindowInsets(insets);
+                return view.OnApplyWindowInsets(insets) ?? insets;
             }
         }
     }

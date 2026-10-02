@@ -989,7 +989,8 @@ namespace MonoGame.PortableUI
                 InvalidateLayout(true);
             }
 
-            var textScaleVersion = MonoGame.PortableUI.Text.TextScaling.Version;
+            // A dynamic-font switch re-measures text exactly like a text scale change.
+            var textScaleVersion = MonoGame.PortableUI.Text.TextScaling.Version + FontManager.DynamicFontVersion;
             if (_appliedTextScaleVersion != textScaleVersion)
             {
                 _appliedTextScaleVersion = textScaleVersion;

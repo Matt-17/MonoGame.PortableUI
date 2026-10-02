@@ -12,6 +12,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\MonoGame.PortableUI\MonoGame.PortableUI.csproj" />
     <ProjectReference Include="..\..\src\MonoGame.PortableUI.Themes\MonoGame.PortableUI.Themes.csproj" />
+    <ProjectReference Include="..\..\src\MonoGame.PortableUI.FontStashSharp\MonoGame.PortableUI.FontStashSharp.csproj" />
     <MonoGameContentReference Include="Content\Content.mgcb" />
   </ItemGroup>
 

@@ -32,6 +32,28 @@ namespace MonoGame.PortableUI
         private static bool CanProbeContentRoot { get; set; }
 
         private static SpriteFont? _defaultFont;
+        private static Text.UIFont? _defaultDynamicFont;
+        private static long _dynamicFontVersion;
+
+        /// <summary>
+        ///     A runtime-rasterizing font (e.g. FontStashSharp) every text control uses instead of its
+        ///     SpriteFont, unless it has its own <c>FontOverride</c> or <c>DynamicFont</c>.
+        ///     Null (the default) keeps the SpriteFont path. Running screens pick a change up on their
+        ///     next update.
+        /// </summary>
+        public static Text.UIFont? DefaultDynamicFont
+        {
+            get => _defaultDynamicFont;
+            set
+            {
+                if (ReferenceEquals(_defaultDynamicFont, value))
+                    return;
+                _defaultDynamicFont = value;
+                System.Threading.Interlocked.Increment(ref _dynamicFontVersion);
+            }
+        }
+
+        internal static long DynamicFontVersion => System.Threading.Interlocked.Read(ref _dynamicFontVersion);
 
         public static SpriteFont? DefaultFont
         {

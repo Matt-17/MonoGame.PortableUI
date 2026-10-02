@@ -61,6 +61,52 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        private UIFont? _dynamicFont;
+
+        /// <summary>
+        ///     Runtime-rasterizing font for this block (e.g. FontStashSharp): any size, any character.
+        ///     Wins over <see cref="FontOverride"/> and <see cref="FontManager.DefaultDynamicFont"/>.
+        /// </summary>
+        public UIFont? DynamicFont
+        {
+            get => _dynamicFont;
+            set
+            {
+                if (ReferenceEquals(_dynamicFont, value))
+                    return;
+                _dynamicFont = value;
+                OnTextScaleChanged();
+            }
+        }
+
+        /// <summary>The dynamic font in effect, or null for the SpriteFont path.</summary>
+        protected UIFont? ActiveDynamicFont => _dynamicFont ?? (_fontOverride == null ? FontManager.DefaultDynamicFont : null);
+
+        /// <summary>Pixel size text is measured and drawn at with a dynamic font.</summary>
+        protected float DynamicPixelSize(UIFont font) => (_textSize > 0 ? _textSize : font.DefaultSize) * TextScaling.Factor;
+
+        /// <summary>True when there is some font to draw with.</summary>
+        protected bool HasDrawableFont => Font != null || ActiveDynamicFont != null;
+
+        /// <summary>Draws a run of text with the active backend at the block's size and render scale.</summary>
+        protected void DrawText(SpriteBatch spriteBatch, string text, Vector2 position, Color color)
+        {
+            var dynamicFont = ActiveDynamicFont;
+            if (dynamicFont != null)
+                dynamicFont.DrawString(spriteBatch, text, position, color, DynamicPixelSize(dynamicFont), RenderScale);
+            else if (Font != null)
+                spriteBatch.DrawString(Font, text, position, color, 0, Vector2.Zero, RenderScale * FontScale, SpriteEffects.None, 0);
+        }
+
+        protected void DrawText(SpriteBatch spriteBatch, System.Text.StringBuilder text, Vector2 position, Color color)
+        {
+            var dynamicFont = ActiveDynamicFont;
+            if (dynamicFont != null)
+                dynamicFont.DrawString(spriteBatch, text, position, color, DynamicPixelSize(dynamicFont), RenderScale);
+            else if (Font != null)
+                spriteBatch.DrawString(Font, text, position, color, 0, Vector2.Zero, RenderScale * FontScale, SpriteEffects.None, 0);
+        }
+
         public TextAlignment TextAlignment
         {
             get { return _textAlignment; }
@@ -212,9 +258,11 @@ namespace MonoGame.PortableUI.Controls
             return wrapWidth.IsFixed() && wrapWidth > 0;
         }
 
-        private float LineHeight => Font != null
-            ? Font.LineSpacing * FontScale
-            : MeasureText("Ag").Y;
+        private float LineHeight => ActiveDynamicFont is { } dynamicFont
+            ? dynamicFont.GetLineHeight(DynamicPixelSize(dynamicFont))
+            : Font != null
+                ? Font.LineSpacing * FontScale
+                : MeasureText("Ag").Y;
 
         private IReadOnlyList<string> GetWrappedLines(float availableWidth)
         {
@@ -378,6 +426,8 @@ namespace MonoGame.PortableUI.Controls
 
         protected Vector2 MeasureText(string text)
         {
+            if (ActiveDynamicFont is { } dynamicFont)
+                return dynamicFont.MeasureString(text ?? "", DynamicPixelSize(dynamicFont));
             if (Font != null)
                 return Font.MeasureString(text ?? "") * FontScale;
             return TextMeasurer.MeasureString(text ?? "") * TextScaling.Factor;
@@ -395,7 +445,7 @@ namespace MonoGame.PortableUI.Controls
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
             base.OnDraw(spriteBatch, rect);
-            if (Font == null)
+            if (!HasDrawableFont)
                 return;
 
             if (TextWrapping == TextWrapping.Wrap)
@@ -453,12 +503,9 @@ namespace MonoGame.PortableUI.Controls
 
         private void DrawTextRun(SpriteBatch spriteBatch, string text, PointF offset)
         {
-            if (Font == null || text.Length == 0)
+            if (!HasDrawableFont || text.Length == 0)
                 return;
 
-            // MeasuredText already includes FontScale; the draw scale must apply it on top of the
-            // control-transform RenderScale so glyphs render at the requested TextSize.
-            var drawScale = RenderScale * FontScale;
             if (SnapToPixel)
                 offset = offset.ToInts();
 
@@ -481,11 +528,11 @@ namespace MonoGame.PortableUI.Controls
                     var pos = offset + ShadowOffset * RenderScale + d;
                     if (SnapToPixel)
                         pos = pos.ToInts();
-                    spriteBatch.DrawString(Font, text, pos, shadow, 0, Vector2.Zero, drawScale, SpriteEffects.None, 0);
+                    DrawText(spriteBatch, text, pos, shadow);
                 }
             }
 
-            spriteBatch.DrawString(Font, text, offset, Brush.ApplyOpacity(TextColor, RenderOpacity), 0, Vector2.Zero, drawScale, SpriteEffects.None, 0);
+            DrawText(spriteBatch, text, offset, Brush.ApplyOpacity(TextColor, RenderOpacity));
         }
     }
 }
