@@ -819,17 +819,24 @@ namespace MonoGame.PortableUI.Controls
             var border = ToRender(BorderThickness);
             var scale = Math.Min(RenderScale.X, RenderScale.Y);
 
-            if (Shadow != null && !Shadow.Inset)
-                ShadowRenderer.Draw(spriteBatch, rect, radius, Shadow, RenderOpacity, scale);
+            var shadow = Shadow;
+            for (var s = shadow; s != null; s = s.Also)
+            {
+                if (!s.Inset)
+                    ShadowRenderer.Draw(spriteBatch, rect, radius, s, RenderOpacity, scale);
+            }
 
             if (BackgroundBrush != null)
             {
-                var context = new BrushContext(rect, radius, RenderOpacity, spriteBatch.GraphicsDevice, (float)ScreenSystem.TotalTime.TotalSeconds);
+                var context = new BrushContext(rect, radius, RenderOpacity, spriteBatch.GraphicsDevice, (float)ScreenSystem.TotalTime.TotalSeconds, null, ToRender(1f));
                 BackgroundBrush.Draw(spriteBatch, in context);
             }
 
-            if (Shadow != null && Shadow.Inset)
-                ShadowRenderer.Draw(spriteBatch, rect, radius, Shadow, RenderOpacity, scale);
+            for (var s = shadow; s != null; s = s.Also)
+            {
+                if (s.Inset)
+                    ShadowRenderer.Draw(spriteBatch, rect, radius, s, RenderOpacity, scale);
+            }
 
             if (BorderBevelLight is { } bevelLight && BorderBevelDark is { } bevelDark && HasBorder(BorderThickness) && !CornerRadius.IsEmpty)
             {
@@ -916,7 +923,7 @@ namespace MonoGame.PortableUI.Controls
             {
                 // Carry the corner radius so the dim overlay follows the control's rounded shape;
                 // the plain (rect, opacity) overload draws a square that spills past the corners.
-                var context = new BrushContext(rect, CornerRadius, RenderOpacity, spriteBatch.GraphicsDevice, (float)ScreenSystem.TotalTime.TotalSeconds);
+                var context = new BrushContext(rect, CornerRadius, RenderOpacity, spriteBatch.GraphicsDevice, (float)ScreenSystem.TotalTime.TotalSeconds, null, ToRender(1f));
                 disabledOverlay.Draw(spriteBatch, in context);
             }
         }

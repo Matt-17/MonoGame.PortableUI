@@ -1,3 +1,4 @@
+using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI.Common;
@@ -48,33 +49,39 @@ namespace MonoGame.PortableUI.Media
             Draw(spriteBatch, rect, 1);
         }
 
-        public override void Draw(SpriteBatch spriteBatch, Rect rect, float opacity)
+        public override void Draw(SpriteBatch spriteBatch, Rect rect, float opacity) => Draw(spriteBatch, rect, opacity, 1);
+
+        public override void Draw(SpriteBatch spriteBatch, in BrushContext context) => Draw(spriteBatch, context.Rect, context.Opacity, context.Scale);
+
+        private void Draw(SpriteBatch spriteBatch, Rect rect, float opacity, float scale)
         {
             if (rect.Width <= 0 || rect.Height <= 0)
                 return;
+            // Bevel lines are one layout pixel: whole render pixels under LayoutScale/HiDPI.
+            var line = MathF.Max(1, MathF.Round(scale));
 
             var face = ApplyOpacity(Face, opacity);
             var topLeftOuter = ApplyOpacity(Sunken ? OuterDark : OuterLight, opacity);
             var bottomRightOuter = ApplyOpacity(Sunken ? OuterLight : OuterDark, opacity);
 
             spriteBatch.Draw(Primitives.Pixel(spriteBatch), rect, face);
-            DrawFrame(spriteBatch, rect, topLeftOuter, bottomRightOuter);
+            DrawFrame(spriteBatch, rect, topLeftOuter, bottomRightOuter, line);
 
-            if (!_singleLine && rect.Width > 4 && rect.Height > 4)
+            if (!_singleLine && rect.Width > 4 * line && rect.Height > 4 * line)
             {
-                var inner = new Rect(rect.Left + 1, rect.Top + 1, rect.Width - 2, rect.Height - 2);
+                var inner = new Rect(rect.Left + line, rect.Top + line, rect.Width - 2 * line, rect.Height - 2 * line);
                 var topLeftInner = ApplyOpacity(Sunken ? InnerDark : InnerLight, opacity);
                 var bottomRightInner = ApplyOpacity(Sunken ? InnerLight : InnerDark, opacity);
-                DrawFrame(spriteBatch, inner, topLeftInner, bottomRightInner);
+                DrawFrame(spriteBatch, inner, topLeftInner, bottomRightInner, line);
             }
         }
 
-        private static void DrawFrame(SpriteBatch spriteBatch, Rect rect, Color topLeft, Color bottomRight)
+        private static void DrawFrame(SpriteBatch spriteBatch, Rect rect, Color topLeft, Color bottomRight, float line)
         {
-            spriteBatch.Draw(Primitives.Pixel(spriteBatch), new Rect(rect.Left, rect.Top, rect.Width, 1), topLeft);
-            spriteBatch.Draw(Primitives.Pixel(spriteBatch), new Rect(rect.Left, rect.Top, 1, rect.Height), topLeft);
-            spriteBatch.Draw(Primitives.Pixel(spriteBatch), new Rect(rect.Left, rect.Bottom - 1, rect.Width, 1), bottomRight);
-            spriteBatch.Draw(Primitives.Pixel(spriteBatch), new Rect(rect.Right - 1, rect.Top, 1, rect.Height), bottomRight);
+            spriteBatch.Draw(Primitives.Pixel(spriteBatch), new Rect(rect.Left, rect.Top, rect.Width, line), topLeft);
+            spriteBatch.Draw(Primitives.Pixel(spriteBatch), new Rect(rect.Left, rect.Top, line, rect.Height), topLeft);
+            spriteBatch.Draw(Primitives.Pixel(spriteBatch), new Rect(rect.Left, rect.Bottom - line, rect.Width, line), bottomRight);
+            spriteBatch.Draw(Primitives.Pixel(spriteBatch), new Rect(rect.Right - line, rect.Top, line, rect.Height), bottomRight);
         }
     }
 }

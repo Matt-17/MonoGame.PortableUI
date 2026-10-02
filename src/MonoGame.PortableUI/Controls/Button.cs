@@ -21,6 +21,8 @@ namespace MonoGame.PortableUI.Controls
         private Color? _disabledTextColor;
         private TextAlignment _textAlignment;
         private bool _isPressedVisualState;
+        private ButtonVariant _variant;
+        private bool _textColorFromTheme;
         private Vector2 _pressedScaleOrigin;
         private Vector2 _pressedTranslationOrigin;
 
@@ -36,6 +38,7 @@ namespace MonoGame.PortableUI.Controls
             HoverColor = theme.ButtonHoverBrush;
             PressedColor = theme.ButtonPressedBrush;
             TextColor = theme.ButtonTextColor;
+            _textColorFromTheme = true;
             HoverTextColor = theme.ButtonHoverTextColor;
             PressedTextColor = theme.ButtonPressedTextColor;
             DisabledTextColor = theme.DisabledTextColor;
@@ -47,9 +50,34 @@ namespace MonoGame.PortableUI.Controls
         /// <summary>Internal chrome buttons (list items, tab headers, menu entries) opt out.</summary>
         internal bool UseThemeStyle { get; set; } = true;
 
+        /// <summary>
+        ///     The button's role. Primary/Secondary/Danger take chrome and text color from the theme's
+        ///     matching slot (<see cref="PortableTheme.PrimaryButton"/> …) unless set explicitly.
+        /// </summary>
+        public ButtonVariant Variant
+        {
+            get => _variant;
+            set
+            {
+                if (_variant == value)
+                    return;
+                _variant = value;
+                ChangeVisualState();
+                InvalidateLayout(false);
+            }
+        }
+
         protected override ControlStyle? GetThemeStyle(PortableTheme theme)
         {
-            return UseThemeStyle ? theme.Button : null;
+            if (!UseThemeStyle)
+                return null;
+            return _variant switch
+            {
+                ButtonVariant.Primary => theme.PrimaryButton,
+                ButtonVariant.Secondary => theme.SecondaryButton,
+                ButtonVariant.Danger => theme.DangerButton,
+                _ => theme.Button
+            };
         }
 
         protected override Media.Brush? GetThemeBackgroundBrush(PortableTheme theme)
@@ -90,7 +118,10 @@ namespace MonoGame.PortableUI.Controls
             if (ReferenceEquals(PressedColor, oldTheme.ButtonPressedBrush))
                 PressedColor = newTheme.ButtonPressedBrush;
             if (TextColor.Equals(oldTheme.ButtonTextColor))
+            {
                 TextColor = newTheme.ButtonTextColor;
+                _textColorFromTheme = true;
+            }
             if (Nullable.Equals(HoverTextColor, oldTheme.ButtonHoverTextColor))
                 HoverTextColor = newTheme.ButtonHoverTextColor;
             if (Nullable.Equals(PressedTextColor, oldTheme.ButtonPressedTextColor))
@@ -102,11 +133,12 @@ namespace MonoGame.PortableUI.Controls
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
             base.OnDraw(spriteBatch, rect);
-            var context = new BrushContext(rect, CornerRadius, RenderOpacity, spriteBatch.GraphicsDevice, (float)ScreenSystem.TotalTime.TotalSeconds);
+            var context = new BrushContext(rect, CornerRadius, RenderOpacity, spriteBatch.GraphicsDevice, (float)ScreenSystem.TotalTime.TotalSeconds, null, ToRender(1f));
+            var theme = _variant != ButtonVariant.Standard ? ResolveTheme() : null;
             if (IsPressedVisualState())
-                DrawStateOverlay(spriteBatch, PressedColor, in context);
+                DrawStateOverlay(spriteBatch, theme != null && ReferenceEquals(PressedColor, theme.ButtonPressedBrush) ? theme.VariantButtonPressedBrush : PressedColor, in context);
             else if (HoverState == HoverStates.Hovering)
-                DrawStateOverlay(spriteBatch, HoverColor, in context);
+                DrawStateOverlay(spriteBatch, theme != null && ReferenceEquals(HoverColor, theme.ButtonHoverBrush) ? theme.VariantButtonHoverBrush : HoverColor, in context);
         }
 
         private void DrawStateOverlay(SpriteBatch spriteBatch, Brush brush, in BrushContext context)
@@ -176,6 +208,7 @@ namespace MonoGame.PortableUI.Controls
             set
             {
                 _textColor = value;
+                _textColorFromTheme = false;
                 ChangeVisualState();
                 InvalidateLayout(false);
             }
@@ -242,6 +275,16 @@ namespace MonoGame.PortableUI.Controls
                 return;
 
             var color = TextColor;
+            if (_variant != ButtonVariant.Standard && _textColorFromTheme)
+            {
+                // Variant faces are colored: the slot's per-state text color wins over the
+                // standard button's hover/pressed snapshots, which are meant for a neutral face.
+                color = ResolveStateStyle()?.TextColor ?? color;
+                if (!IsEnabled && DisabledTextColor != null)
+                    color = (Color)DisabledTextColor;
+                textBlock.TextColor = color;
+                return;
+            }
             if (!IsEnabled && DisabledTextColor != null)
                 color = (Color)DisabledTextColor;
             else if (HoverState == HoverStates.Hovering && HoverTextColor != null)

@@ -69,7 +69,7 @@ namespace MonoGame.PortableUI.Demo
                 Margin = new Thickness(12, 0, 12, 10)
             });
 
-            var back = CommandButton("Navigate back", SurfaceAltBrush, Palette.Text);
+            var back = new TextButton("Navigate back");
             back.Height = 48;
             back.Margin = new Thickness(12, 8, 12, 12);
             back.Click += (sender, args) =>

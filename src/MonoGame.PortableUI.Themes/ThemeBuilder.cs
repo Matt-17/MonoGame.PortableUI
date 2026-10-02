@@ -74,7 +74,8 @@ public static class ThemeBuilder
         Action<PortableTheme>? styleTheme = null,
         bool reducedMotion = false,
         bool glass = false,
-        bool liquid = false)
+        bool liquid = false,
+        string? danger = null)
     {
         var backgroundColor = Hex(background);
         var surfaceColor = Hex(surface);
@@ -95,7 +96,7 @@ public static class ThemeBuilder
             Primary = primaryColor,
             Secondary = secondaryColor,
             Warning = secondaryColor,
-            Danger = Mix(secondaryColor, Color.Red, 0.45f),
+            Danger = danger != null ? Hex(danger) : Mix(secondaryColor, Color.Red, 0.45f),
             Info = primaryColor,
             Selection = selectionColor,
             SelectionText = selectionTextColor,
@@ -166,6 +167,29 @@ public static class ThemeBuilder
         theme.Button.Pressed.Background = raised.AsSunken();
         theme.ButtonBackgroundBrush = raised;
         theme.Button.InvalidateResolvedCache();
+    }
+
+    /// <summary>
+    ///     Styles the Primary/Secondary/Danger button slots: <paramref name="style"/> gets each slot and
+    ///     its palette color (Primary, Secondary, Danger).
+    /// </summary>
+    public static void Variants(PortableTheme theme, Action<ControlStyle, Color> style)
+    {
+        style(theme.PrimaryButton, theme.Palette.Primary);
+        style(theme.SecondaryButton, theme.Palette.Secondary);
+        style(theme.DangerButton, theme.Palette.Danger);
+        theme.PrimaryButton.InvalidateResolvedCache();
+        theme.SecondaryButton.InvalidateResolvedCache();
+        theme.DangerButton.InvalidateResolvedCache();
+    }
+
+    /// <summary>A vertical gradient from explicit (position, hex) stops; equal positions make a hard gloss edge.</summary>
+    public static LinearGradientBrush Gloss(params (float Position, string Color)[] stops)
+    {
+        var gradientStops = new GradientStop[stops.Length];
+        for (var i = 0; i < stops.Length; i++)
+            gradientStops[i] = new GradientStop(stops[i].Position, Hex(stops[i].Color));
+        return new LinearGradientBrush(gradientStops);
     }
 
     public static Color Hex(string value)

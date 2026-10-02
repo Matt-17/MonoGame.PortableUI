@@ -17,6 +17,12 @@ namespace MonoGame.PortableUI.Media
 
         public bool Inset { get; set; }
 
+        /// <summary>
+        ///     A further shadow drawn with this one (chain for several): e.g. neumorphism's light
+        ///     top-left plus dark bottom-right pair.
+        /// </summary>
+        public ShadowStyle? Also { get; set; }
+
         public static ShadowStyle Level1()
         {
             return new ShadowStyle { Color = new Color(0, 0, 0, 70), Offset = new Vector2(0, 2), Blur = 4 };
