@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 0.3.0-alpha.2
+
+First beta: Android-ready (dp layout, edge to edge, safe areas, soft keyboard, TalkBack bridge, touch scrolling with fling and overscroll), virtualized lists and grids, per-engine focus, modals, toasts, menus, localization, text scaling and an optional FontStashSharp package.
+
+### Known limitations
+- Glass (backdrop) blur radii are not scaled by `LayoutScale` yet, so blurred surfaces look slightly sharper on high-density screens.
+- The Android soft keyboard ignores `TextInputPurpose` (MonoGame owns the input connection); TalkBack is not device-tested; there is no iOS head.
+- Virtualized lists use one row height for all rows (`IsVirtualizing = false` for variable heights).
+
 ### Breaking changes
 - `ScreenEngine.FocusedControl` is an instance property: every engine (window, `UISurface`, player) has its own focus. Use `engine.FocusedControl` or `ScreenEngine.For(control)`.
 - Removed `CornerStyle` (enum, `StateStyle.CornerStyle`, `LiquidGlassBrush.CornerStyle`): squircle/cut corners were never rendered.
