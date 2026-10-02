@@ -311,9 +311,12 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        /// <summary>Draws the pressed look regardless of input (a list's touch hold highlight).</summary>
+        internal bool ForcePressedVisual { get; set; }
+
         private bool IsPressedVisualState()
         {
-            return HoverState == HoverStates.Hovering && MouseButtonStates[MouseButton.Left] == ButtonState.Pressed
+            return ForcePressedVisual || HoverState == HoverStates.Hovering && MouseButtonStates[MouseButton.Left] == ButtonState.Pressed
                 || IsTouchPressedVisual;
         }
 
