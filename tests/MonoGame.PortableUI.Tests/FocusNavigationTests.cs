@@ -19,7 +19,7 @@ namespace MonoGame.PortableUI.Tests
         public void Reset()
         {
             ScreenSystem.TotalTime = TimeSpan.Zero;
-            ScreenEngine.FocusedControl = null;
+            if (ScreenEngine.Instance != null) ScreenEngine.Instance.FocusedControl = null;
         }
 
         private static (Game Game, ScreenEngine Engine, TestScreen Screen, VirtualInputSource Source) CreateScreen(Control content)
@@ -90,17 +90,17 @@ namespace MonoGame.PortableUI.Tests
             buttons[0, 0].Focus();
 
             PressKey(screen, source, Keys.Right);
-            Assert.AreSame(buttons[0, 1], ScreenEngine.FocusedControl);
+            Assert.AreSame(buttons[0, 1], ScreenEngine.Instance!.FocusedControl);
 
             PressKey(screen, source, Keys.Down);
-            Assert.AreSame(buttons[1, 1], ScreenEngine.FocusedControl);
+            Assert.AreSame(buttons[1, 1], ScreenEngine.Instance!.FocusedControl);
 
             PressKey(screen, source, Keys.Left);
-            Assert.AreSame(buttons[1, 0], ScreenEngine.FocusedControl);
+            Assert.AreSame(buttons[1, 0], ScreenEngine.Instance!.FocusedControl);
 
             // Nothing further left: focus stays.
             PressKey(screen, source, Keys.Left);
-            Assert.AreSame(buttons[1, 0], ScreenEngine.FocusedControl);
+            Assert.AreSame(buttons[1, 0], ScreenEngine.Instance!.FocusedControl);
         }
 
         [TestMethod]
@@ -112,7 +112,7 @@ namespace MonoGame.PortableUI.Tests
 
             PressKey(screen, source, Keys.Down);
 
-            Assert.IsNotNull(ScreenEngine.FocusedControl);
+            Assert.IsNotNull(ScreenEngine.Instance!.FocusedControl);
         }
 
         [TestMethod]
@@ -130,11 +130,11 @@ namespace MonoGame.PortableUI.Tests
             listBox.Focus();
 
             PressKey(screen, source, Keys.Down);
-            Assert.AreSame(listBox, ScreenEngine.FocusedControl);
+            Assert.AreSame(listBox, ScreenEngine.Instance!.FocusedControl);
             Assert.AreEqual(1, listBox.SelectedIndex);
 
             PressKey(screen, source, Keys.Right);
-            Assert.AreSame(button, ScreenEngine.FocusedControl);
+            Assert.AreSame(button, ScreenEngine.Instance!.FocusedControl);
         }
 
         [TestMethod]
@@ -150,7 +150,7 @@ namespace MonoGame.PortableUI.Tests
             buttons[0, 0].Focus();
 
             PressPad(screen, source, Buttons.DPadDown);
-            Assert.AreSame(buttons[1, 0], ScreenEngine.FocusedControl);
+            Assert.AreSame(buttons[1, 0], ScreenEngine.Instance!.FocusedControl);
 
             PressPad(screen, source, Buttons.A);
             Assert.AreEqual(1, clicks);
@@ -185,11 +185,11 @@ namespace MonoGame.PortableUI.Tests
             buttons[0, 0].Focus();
 
             PressPad(screen, source, Buttons.RightShoulder);
-            var afterNext = ScreenEngine.FocusedControl;
+            var afterNext = ScreenEngine.Instance!.FocusedControl;
             Assert.AreNotSame(buttons[0, 0], afterNext);
 
             PressPad(screen, source, Buttons.LeftShoulder);
-            Assert.AreSame(buttons[0, 0], ScreenEngine.FocusedControl);
+            Assert.AreSame(buttons[0, 0], ScreenEngine.Instance!.FocusedControl);
         }
 
         [TestMethod]
@@ -210,7 +210,7 @@ namespace MonoGame.PortableUI.Tests
             PressKey(screen, source, Keys.Down);
             PressKey(screen, source, Keys.Down);
 
-            Assert.AreSame(items[4], ScreenEngine.FocusedControl);
+            Assert.AreSame(items[4], ScreenEngine.Instance!.FocusedControl);
             Assert.IsTrue(viewer.Offset.Y > 0, $"expected the viewer to scroll, offset {viewer.Offset.Y}");
             Assert.IsTrue(items[4].BoundingRect.Bottom <= viewer.BoundingRect.Bottom + 0.5f);
         }
@@ -227,14 +227,14 @@ namespace MonoGame.PortableUI.Tests
 
             PressKey(screen, source, Keys.Enter);
             Assert.IsTrue(screen.IsFlyOutOpen);
-            Assert.IsInstanceOfType(ScreenEngine.FocusedControl, typeof(ListBox));
+            Assert.IsInstanceOfType(ScreenEngine.Instance!.FocusedControl, typeof(ListBox));
 
             PressKey(screen, source, Keys.Down);
             PressKey(screen, source, Keys.Enter);
 
             Assert.AreEqual(1, combo.SelectedIndex);
             Assert.IsFalse(screen.IsFlyOutOpen);
-            Assert.AreSame(combo, ScreenEngine.FocusedControl);
+            Assert.AreSame(combo, ScreenEngine.Instance!.FocusedControl);
         }
 
         [TestMethod]
@@ -252,7 +252,7 @@ namespace MonoGame.PortableUI.Tests
 
             PressKey(screen, source, Keys.Escape);
             Assert.IsFalse(screen.IsFlyOutOpen);
-            Assert.AreSame(combo, ScreenEngine.FocusedControl);
+            Assert.AreSame(combo, ScreenEngine.Instance!.FocusedControl);
             Assert.AreEqual(0, backRequests);
 
             PressKey(screen, source, Keys.Escape);
@@ -279,7 +279,7 @@ namespace MonoGame.PortableUI.Tests
 
             Assert.AreEqual("delete", invoked);
             Assert.IsFalse(screen.IsFlyOutOpen);
-            Assert.AreSame(owner, ScreenEngine.FocusedControl);
+            Assert.AreSame(owner, ScreenEngine.Instance!.FocusedControl);
         }
 
         [TestMethod]
@@ -301,7 +301,7 @@ namespace MonoGame.PortableUI.Tests
 
             PressKey(screen, source, Keys.Apps);
             // The disabled first row is skipped: focus starts on the first enabled one.
-            Assert.IsInstanceOfType(ScreenEngine.FocusedControl, typeof(Button));
+            Assert.IsInstanceOfType(ScreenEngine.Instance!.FocusedControl, typeof(Button));
             PressKey(screen, source, Keys.Enter);
             Assert.AreEqual("wrap;", log);
             Assert.IsTrue(wrap.IsChecked);

@@ -129,8 +129,8 @@ namespace MonoGame.PortableUI.Controls
 
         private void UnsetParent(Control item)
         {
-            if (ScreenEngine.FocusedControl == item)
-                ScreenEngine.FocusedControl = null;
+            if (ScreenEngine.For(item) is { } engine && engine.FocusedControl == item)
+                engine.FocusedControl = null;
             item.Parent = null;
         }
 

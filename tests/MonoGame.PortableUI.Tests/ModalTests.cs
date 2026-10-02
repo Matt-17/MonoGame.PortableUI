@@ -20,7 +20,7 @@ namespace MonoGame.PortableUI.Tests
         public void Reset()
         {
             ScreenSystem.TotalTime = TimeSpan.Zero;
-            ScreenEngine.FocusedControl = null;
+            if (ScreenEngine.Instance != null) ScreenEngine.Instance.FocusedControl = null;
         }
 
         private static (ScreenEngine Engine, TestScreen Screen, VirtualInputSource Source, Button Background) Setup(Game game)
@@ -136,11 +136,11 @@ namespace MonoGame.PortableUI.Tests
             stack.AddChild(second);
             Open(engine, source, stack);
 
-            Assert.AreSame(first, ScreenEngine.FocusedControl);
+            Assert.AreSame(first, ScreenEngine.Instance!.FocusedControl);
             for (var i = 0; i < 4; i++)
             {
                 Press(engine, source, Keys.Tab);
-                Assert.IsTrue(ReferenceEquals(ScreenEngine.FocusedControl, first) || ReferenceEquals(ScreenEngine.FocusedControl, second),
+                Assert.IsTrue(ReferenceEquals(ScreenEngine.Instance!.FocusedControl, first) || ReferenceEquals(ScreenEngine.Instance!.FocusedControl, second),
                     "Tab must cycle inside the modal");
             }
         }

@@ -11,8 +11,8 @@ namespace MonoGame.PortableUI.Controls
             set
             {
                 _isVisible = value;
-                if (!_isVisible && this is Control control && MonoGame.PortableUI.ScreenEngine.FocusedControl == control)
-                    MonoGame.PortableUI.ScreenEngine.FocusedControl = null;
+                if (!_isVisible && this is Control control && MonoGame.PortableUI.ScreenEngine.For(control) is { } engine && engine.FocusedControl == control)
+                    engine.FocusedControl = null;
                 InvalidateLayout(false);
             }
         }
@@ -23,8 +23,8 @@ namespace MonoGame.PortableUI.Controls
             set
             {
                 _isGone = value;
-                if (_isGone && this is Control control && MonoGame.PortableUI.ScreenEngine.FocusedControl == control)
-                    MonoGame.PortableUI.ScreenEngine.FocusedControl = null;
+                if (_isGone && this is Control control && MonoGame.PortableUI.ScreenEngine.For(control) is { } engine && engine.FocusedControl == control)
+                    engine.FocusedControl = null;
                 InvalidateLayout(true);
             }
         }

@@ -32,7 +32,7 @@ namespace MonoGame.PortableUI.Demo
 
         private void RebuildContent()
         {
-            ScreenEngine.FocusedControl = null;
+            if (ScreenEngine != null) ScreenEngine.FocusedControl = null;
             BackgroundBrush = ScreenBackgroundBrush;
             Content = CreateLayout();
         }

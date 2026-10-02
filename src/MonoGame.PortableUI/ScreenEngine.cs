@@ -11,7 +11,7 @@ namespace MonoGame.PortableUI
     public class ScreenEngine : IDisposable
     {
         public Game Game { get; set; }
-        private static Control? _focusedControl;
+        private Control? _focusedControl;
         private readonly Dictionary<string, IKeyboard> _keyboards;
 
         //probably better if it's internal. making it public for a small hack
@@ -58,7 +58,11 @@ namespace MonoGame.PortableUI
         /// rather than by blitting a reference-size render target.</summary>
         internal bool ScalesNatively => RenderScale != 1 && !(Options.ReferenceSize.X > 0 && Options.ReferenceSize.Y > 0);
 
-        public static Control? FocusedControl
+        /// <summary>
+        ///     The control with keyboard/gamepad focus in this engine. Each engine (a window, a
+        ///     <see cref="UISurface"/>, one player's computer in a game) has its own focus.
+        /// </summary>
+        public Control? FocusedControl
         {
             get { return _focusedControl; }
             set
@@ -71,6 +75,10 @@ namespace MonoGame.PortableUI
                 _focusedControl?.OnGotFocus(new GotFocusEventArgs(oldElement));
             }
         }
+
+        /// <summary>The engine that owns <paramref name="control"/>'s focus: the one hosting its screen,
+        /// or <see cref="Instance"/> for a control that is not attached to a screen yet.</summary>
+        public static ScreenEngine? For(Control? control) => control?.Screen?.ScreenEngine ?? Instance;
 
         public Rect ScreenRect { get; set; }
 
@@ -331,9 +339,6 @@ namespace MonoGame.PortableUI
 
         public static ScreenEngine Initialize(Game game, ScreenEngineOptions options)
         {
-            // A fresh Initialize means a new Game/activity: drop any focus captured by a previous
-            // engine instance so a disposed control from the old activity is never left focused.
-            _focusedControl = null;
             Instance = new ScreenEngine(game, options ?? new ScreenEngineOptions());
             return Instance;
         }

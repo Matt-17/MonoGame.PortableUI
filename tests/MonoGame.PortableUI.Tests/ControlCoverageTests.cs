@@ -183,7 +183,7 @@ namespace MonoGame.PortableUI.Tests
         [TestInitialize]
         public void ResetState()
         {
-            ScreenEngine.FocusedControl = null;
+            if (ScreenEngine.Instance != null) ScreenEngine.Instance.FocusedControl = null;
             ScreenSystem.TotalTime = TimeSpan.Zero;
         }
 
@@ -259,7 +259,7 @@ namespace MonoGame.PortableUI.Tests
             toggle.OnMouseUp(new MouseEventArgs(new PointF(10, 10), MouseButton.Left));
 
             Assert.IsTrue(toggle.IsOn);
-            Assert.AreSame(toggle, ScreenEngine.FocusedControl);
+            Assert.AreSame(toggle, ScreenEngine.Instance!.FocusedControl);
         }
 
         [TestMethod]
@@ -772,7 +772,7 @@ namespace MonoGame.PortableUI.Tests
         public void ResetState()
         {
             ScreenSystem.TotalTime = TimeSpan.Zero;
-            ScreenEngine.FocusedControl = null;
+            if (ScreenEngine.Instance != null) ScreenEngine.Instance.FocusedControl = null;
         }
 
         [TestMethod]
