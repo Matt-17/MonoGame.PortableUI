@@ -30,7 +30,10 @@ namespace MonoGame.PortableUI
             _view = gameView ?? throw new ArgumentNullException(nameof(gameView));
             _engine = engine;
             if (engine != null)
+            {
                 _view.KeyPress += OnKeyPress;
+                AndroidInputBridge.EditingKeysRoutedAsCommands = true;
+            }
         }
 
         // Printable characters become text input; control keys (backspace, arrows, enter) are left

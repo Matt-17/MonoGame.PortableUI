@@ -57,6 +57,8 @@ namespace MonoGame.PortableUI.Demo.Android
                 LayoutScale = global::Android.App.Application.Context.Resources?.DisplayMetrics?.Density ?? 1f,
                 // App-style: draw only when the UI changes, so the phone idles while nothing moves.
                 RenderMode = RenderMode.OnDemand,
+                // Touch and keys wake the loop at once (AndroidInputBridge), so idle polling can be slow.
+                IdleUpdateInterval = System.TimeSpan.FromMilliseconds(250),
                 Theme = PortableThemes.Default.CreateTheme()
             });
             base.Initialize();
@@ -66,6 +68,7 @@ namespace MonoGame.PortableUI.Demo.Android
                 // Back buffer = the view's real size (edge to edge it covers the system bars).
                 AndroidSurfaceSize.Follow(view, _graphics, _engine);
                 AndroidWindowInsets.Attach(view, _engine);
+                AndroidInputBridge.Attach(view, _engine);
                 _engine.OnScreenKeyboard = new AndroidOnScreenKeyboard(view, _engine);
                 _engine.AccessibilityBridge = new MonoGame.PortableUI.Accessibility.AndroidAccessibilityBridge(view, _engine);
             }

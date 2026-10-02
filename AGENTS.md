@@ -71,7 +71,8 @@ letter-box scale target. Render targets are pooled (`RenderTargetHelper`) and re
 
 **Render on demand:** `ScreenEngineOptions.RenderMode = OnDemand` (the Android demo uses it) draws only
 when a frame was requested and otherwise calls `Game.SuppressDraw()` and sleeps out
-`IdleUpdateInterval` (updates keep polling input/timers at ~30 Hz). Requests come from
+`IdleUpdateInterval` in one wait that `ScreenEngine.WakeUp()` (input bridge, cross-thread `RequestRedraw`,
+`InvokeOnGameThread`) or the next `RequestRedrawAt` cuts short. Requests come from
 `Screen.InvalidateLayout` (any property change), input activity (+250 ms grace), running animations,
 transitions, `InvokeOnGameThread`, insets/viewport changes. A visual that changes with time **only at
 draw time** must ask for its next frame from `OnDraw`: `ScreenEngine.RequestAnimationFrame()` (or
@@ -158,5 +159,11 @@ display-order index list (`DisplayedItems`), never the caller's `Items`.
   `SafeAreaPanel`; use `ScreenEngineOptions.LayoutScale = density` for dp layout. Screenshot via
   `adb shell screenrecord` (screencap doesn't capture the GL surface).
 - **`Rect.Contains`** is inclusive on Left/Top, exclusive on Right/Bottom.
+- **Android game loop off the UI thread:** with MonoGame's default `RenderOnUIThread = true` every loop
+  iteration is marshalled to the UI thread (~1.8 ms CPU each) and an idle sleep blocks the UI looper, so
+  idle costs ~7 % CPU. The demo sets `RenderOnUIThread = false` + `AndroidInputBridge.Attach(view,
+  engine)` + a 250 ms idle interval: ~0.5 %. In that mode MonoGame's `TouchPanel`/`Keyboard` are unsafe
+  (unsynchronized, touch listener set from the wrong thread) - PortableUI reads the bridge instead - and
+  any view access from game code must go through `AndroidUiThread.Run`/`view.Post`.
 - **Verification loop:** run the test suite, then the demo `--screenshot` sweep and diff PNGs against a
   baseline before/after visual changes; run `*Layout*` benchmarks for layout-path changes.
