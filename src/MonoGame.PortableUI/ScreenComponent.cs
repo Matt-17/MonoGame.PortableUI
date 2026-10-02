@@ -48,7 +48,7 @@ namespace MonoGame.PortableUI
 
             // No scaling/letter-boxing (reference resolution unset, or window == reference): draw the
             // screen straight to the back buffer, exactly as before.
-            if (!scaled)
+            if (!scaled || _screenEngine.ScalesNatively)
             {
                 DrawScreens(_spriteBatch);
                 return;

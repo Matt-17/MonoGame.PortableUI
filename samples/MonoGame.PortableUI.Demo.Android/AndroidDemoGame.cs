@@ -15,11 +15,14 @@ namespace MonoGame.PortableUI.Demo.Android
         private readonly GraphicsDeviceManager _graphics;
         private ScreenEngine? _engine;
 
-        public AndroidDemoGame()
+        private readonly System.Action<bool>? _setFullscreen;
+
+        public AndroidDemoGame(System.Action<bool>? setFullscreen = null)
         {
+            _setFullscreen = setFullscreen;
             _graphics = new GraphicsDeviceManager(this)
             {
-                IsFullScreen = true,
+                IsFullScreen = false, // system bars stay visible; the window draws under them (edge to edge)
                 SupportedOrientations = DisplayOrientation.Portrait
             };
 
@@ -45,12 +48,16 @@ namespace MonoGame.PortableUI.Demo.Android
             _engine = ScreenEngine.Initialize(this, new ScreenEngineOptions
             {
                 ClipboardService = new AndroidClipboardService(),
+                // Lay out in dp and draw at native resolution: touch targets get their Android size.
+                LayoutScale = global::Android.App.Application.Context.Resources?.DisplayMetrics?.Density ?? 1f,
                 Theme = PortableThemes.Default.CreateTheme()
             });
             base.Initialize();
             // Edge-to-edge window: the UI draws under the bars and keeps clear via SafeAreaPanel.
             if (Services.GetService(typeof(global::Android.Views.View)) is global::Android.Views.View view)
             {
+                // Back buffer = the view's real size (edge to edge it covers the system bars).
+                AndroidSurfaceSize.Follow(view, _graphics, _engine);
                 AndroidWindowInsets.Attach(view, _engine);
                 _engine.OnScreenKeyboard = new AndroidOnScreenKeyboard(view);
                 _engine.AccessibilityBridge = new MonoGame.PortableUI.Accessibility.AndroidAccessibilityBridge(view, _engine);
@@ -61,6 +68,9 @@ namespace MonoGame.PortableUI.Demo.Android
         {
             FontManager.LoadFonts(this, "default", "Segoe");
             FontManager.DefaultFont = FontManager.GetFontOrDefault("default");
+            // Text is scaled by the display density (TextScaling.DensityScale); a runtime-rasterized
+            // font keeps it sharp where the 14 pt SpriteFont would be stretched.
+            FontManager.DefaultDynamicFont = DemoFonts.Selawik;
 
             // Route real Android touch coordinates into the library. Without configuring the display
             // size the TouchPanel reports untransformed device pixels; matching the back buffer keeps
@@ -70,7 +80,7 @@ namespace MonoGame.PortableUI.Demo.Android
             TouchPanel.DisplayHeight = pp.BackBufferHeight;
             TouchPanel.EnabledGestures = GestureType.Tap | GestureType.VerticalDrag | GestureType.HorizontalDrag | GestureType.Flick;
 
-            _engine?.NavigateToScreen(new AndroidDemoScreen());
+            _engine?.NavigateToScreen(new AndroidDemoScreen(_setFullscreen));
         }
 
         protected override void Draw(GameTime gameTime)

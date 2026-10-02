@@ -613,8 +613,10 @@ namespace MonoGame.PortableUI
             if (scissorRect.Width <= 0 || scissorRect.Height <= 0)
                 scissorRect = GetOverlayScissor(control);
 
-            spriteBatch.GraphicsDevice.ScissorRectangle = ToScissorRectangle(scissorRect);
-            DrawControlBatched(spriteBatch, control, RenderContext.Root(scissorRect));
+            var nativeScale = ScreenEngine is { ScalesNatively: true } engine ? engine.RenderScale : 1f;
+            var root = RenderContext.Root(scissorRect, nativeScale);
+            spriteBatch.GraphicsDevice.ScissorRectangle = ToScissorRectangle(root.ScissorRect);
+            DrawControlBatched(spriteBatch, control, root);
         }
 
         private static void RefreshLocalizationForTree(Control control)
@@ -900,9 +902,13 @@ namespace MonoGame.PortableUI
             public Rect ChildClipRect { get; }
             public Rect RenderRect { get; }
 
-            public static RenderContext Root(Rect scissorRect)
+            public static RenderContext Root(Rect scissorRect, float scale = 1f)
             {
-                return new RenderContext(Matrix.Identity, Vector2.One, 1, scissorRect, scissorRect, scissorRect);
+                if (Math.Abs(scale - 1f) < 0.0001f)
+                    return new RenderContext(Matrix.Identity, Vector2.One, 1, scissorRect, scissorRect, scissorRect);
+                // LayoutScale: layout space -> pixels, applied to every control's render rect and scale.
+                var pixels = new Rect(scissorRect.Left * scale, scissorRect.Top * scale, scissorRect.Width * scale, scissorRect.Height * scale);
+                return new RenderContext(Matrix.CreateScale(scale, scale, 1), new Vector2(scale, scale), 1, pixels, pixels, pixels);
             }
 
             public RenderContext ForControl(Control control)

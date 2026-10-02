@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Breaking changes
+- `ScreenEngine.FocusedControl` is an instance property: every engine (window, `UISurface`, player) has its own focus. Use `engine.FocusedControl` or `ScreenEngine.For(control)`.
 - Removed `CornerStyle` (enum, `StateStyle.CornerStyle`, `LiquidGlassBrush.CornerStyle`): squircle/cut corners were never rendered.
 - Removed `Control.BackdropMode` and the `BackdropMode` enum: `GrabPass` was not implemented.
 - Removed `Typography.HeadingScale`; use `Typography.HeadingSize` with the new `TextBlock.IsHeading`.
@@ -30,9 +31,15 @@
 - Font backends: `UIFont` abstraction (`TextBlock.DynamicFont`, `FontManager.DefaultDynamicFont`, `SpriteFontUIFont`) and the new optional package **MonoGame.PortableUI.FontStashSharp** (`FontStashUIFont`) for runtime-rasterized TTF/OTF text at any size and with any character.
 - Accessibility: platform-neutral `AccessibilityTree` (roles, labels, values, states, actions, reading order from the focus order, `Control.Accessibility` overrides, live regions), `ScreenEngine.AccessibilityBridge` that only works while a screen reader is active, and `AndroidAccessibilityBridge` for TalkBack.
 - `ScreenEngine.InvokeOnGameThread` for platform callbacks.
+- Virtualized `ListBox` and `DataGrid` (`IsVirtualizing`, on by default): only the rows in view get controls, recycled while scrolling; `ListBox.ScrollIndexIntoView`.
+- `ScreenEngineOptions.LayoutScale`: lay out in density-independent units and draw at native resolution (Android: the display density); rows and single-line text boxes grow to fit scaled text.
+- `ScreenEngine.HandleKeyCommand` and IME text routing in `AndroidOnScreenKeyboard`.
+- `AndroidSurfaceSize.Follow`: keeps the back buffer equal to the game view, which makes edge-to-edge windows work (verified on Android 14 and 16).
 - `ControlStyle.TransitionDuration` drives the button press animation (zero = no animation); `StateStyle.FocusVisualKind` of the Focused state selects the focus visual; `TextBlock.IsHeading` uses `Typography.HeadingSize`.
 
 ### Changed
+- Default `TextBox` padding is 10/4 (was 4).
+- Fixed: taps were lost because the touch state was read twice per frame (introduced with keyboard/gamepad popup control).
 - Large layout/render performance work: per-pass measure cache, scroll shifting instead of re-layout, allocation-free visual-child walks, 9-sliced translucent rounded fills, cached text metrics (Grid layout of 500 controls 414 µs → 26 µs).
 - Many control fixes (fonts without a default character, theme fonts, hit-test order, touch panning in lists, Min/Max constraints, focus on hidden/removed controls, nested scrolling, navigation layout, popup layout, theme switching, RadioButton groups, selection after item removal, DataGrid template cells, TabControl clipping).
 
