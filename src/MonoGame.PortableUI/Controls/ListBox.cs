@@ -30,7 +30,7 @@ namespace MonoGame.PortableUI.Controls
         // rows instead of scrolling.
         private ItemButton? _holdCandidate;
         private bool _isTouchSelecting;
-        private int _touchSelectStartIndex = -1;
+        private int _touchHighlightIndex = -1;
 
         /// <summary>A row button and the item it currently shows (rows are recycled while virtualizing).</summary>
         private sealed class ItemButton : Button
@@ -334,8 +334,9 @@ namespace MonoGame.PortableUI.Controls
 
         /// <summary>
         ///     Touch: resting a finger on a row for <see cref="ScreenEngineOptions.TouchPressedDelay"/>
-        ///     turns the drag into a selector (the row under the finger is selected, the list scrolls at
-        ///     its ends) instead of scrolling. Default true.
+        ///     turns the drag into a selector instead of a scroll: the row under the finger is highlighted
+        ///     (pressed), releasing on a row selects and activates it, releasing outside the list changes
+        ///     nothing. Default true.
         /// </summary>
         public bool TouchHoldSelects { get; set; } = true;
 
@@ -457,6 +458,7 @@ namespace MonoGame.PortableUI.Controls
         {
             var button = (ItemButton)row;
             button.Tag = index;
+            button.ForcePressedVisual = index == _touchHighlightIndex;
             button.MinHeight = ItemHeight;
             var item = Items[index];
             if (button.IsBound && ReferenceEquals(button.BoundItem, item))
@@ -480,6 +482,8 @@ namespace MonoGame.PortableUI.Controls
         {
             if (ReferenceEquals(row, _holdCandidate))
                 _holdCandidate = null;
+            if (row is Button recycled)
+                recycled.ForcePressedVisual = false;
             row.ResetInputs();
         }
 
@@ -505,12 +509,23 @@ namespace MonoGame.PortableUI.Controls
                 return;
             screen.TouchScrollOwner = this;
             _isTouchSelecting = true;
-            _touchSelectStartIndex = index;
             // The row must not click on release; the list decides what the release means.
             var rect = candidate.ClippingRect;
             candidate.CancelPendingTouch(new TouchEventArgs(new PointF(rect.Left + rect.Width / 2, rect.Top + rect.Height / 2)));
-            SelectItem(index, false);
-            Focus();
+            SetTouchHighlight(index);
+        }
+
+        /// <summary>Shows the pressed look on one row (or none, -1) while a touch hold is active.</summary>
+        private void SetTouchHighlight(int index)
+        {
+            if (_touchHighlightIndex == index)
+                return;
+            _touchHighlightIndex = index;
+            foreach (var row in _itemsPanel.Realized)
+            {
+                if (row is Button button)
+                    button.ForcePressedVisual = button.Tag is int rowIndex && rowIndex == index;
+            }
         }
 
         private void ListBoxTouchMove(object? sender, TouchEventArgs args)
@@ -519,20 +534,9 @@ namespace MonoGame.PortableUI.Controls
                 return;
             args.Handled = true;
 
+            // Inside the list the row under the finger is highlighted; outside nothing is.
             var viewport = _scrollViewer.ClippingRect;
-            if (args.Position.Y < viewport.Top)
-            {
-                // Above the list: walk up one row per move, scrolling it into view.
-                SelectItem(Math.Max(0, SelectedIndex - 1), true);
-                return;
-            }
-            if (args.Position.Y >= viewport.Bottom)
-            {
-                SelectItem(Math.Min(Items.Count - 1, SelectedIndex + 1), true);
-                return;
-            }
-            if (TryGetItemIndexAt(new PointF(viewport.Left + 1, args.Position.Y), out var index))
-                SelectItem(index, true);
+            SetTouchHighlight(viewport.Contains(args.Position) && TryGetItemIndexAt(args.Position, out var index) ? index : -1);
         }
 
         private void ListBoxTouchUp(object? sender, TouchEventArgs args)
@@ -541,11 +545,14 @@ namespace MonoGame.PortableUI.Controls
                 return;
             args.Handled = true;
             _isTouchSelecting = false;
-            var start = _touchSelectStartIndex;
-            _touchSelectStartIndex = -1;
-            // Like a mouse drag: releasing on the row it started on activates it.
-            if (start >= 0 && SelectedIndex == start)
-                InvokeItem(start);
+            var target = _scrollViewer.ClippingRect.Contains(args.Position) && TryGetItemIndexAt(args.Position, out var index) ? index : -1;
+            SetTouchHighlight(-1);
+            // Released on a row: that is the tap. Released outside the list: nothing changes.
+            if (target >= 0)
+            {
+                Focus();
+                InvokeItem(target);
+            }
         }
 
         private Control CreateItemButton()

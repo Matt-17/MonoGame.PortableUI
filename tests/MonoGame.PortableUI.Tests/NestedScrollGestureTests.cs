@@ -261,7 +261,7 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
-        public void Holding_a_row_then_moving_selects_rows_instead_of_scrolling()
+        public void Holding_a_row_highlights_rows_and_only_the_release_selects()
         {
             using var game = new Game();
             var page = CreatePage(game);
@@ -273,18 +273,42 @@ namespace MonoGame.PortableUI.Tests
 
             Touch(page, TouchLocationState.Pressed, start);
             for (var i = 0; i < 15; i++) // rest ~240 ms (16 ms frames)
-                Touch(page, TouchLocationState.Moved, start + new Vector2(0, i % 2)); // tiny jitter below the slop
-            Assert.AreEqual(2, page.List.SelectedIndex, "holding selects the row");
+                Touch(page, TouchLocationState.Moved, start + new Vector2(0, i % 2)); // jitter below the slop
+            Assert.AreEqual(-1, page.List.SelectedIndex, "holding does not select yet");
+            Assert.AreEqual(ControlVisualState.Pressed, page.List.ItemButtons[2].CurrentVisualStateForTests, "the held row looks pressed");
 
-            var rowHeight = row2.Height;
-            Touch(page, TouchLocationState.Moved, start + new Vector2(0, rowHeight * 2));
-            Assert.AreEqual(4, page.List.SelectedIndex, "moving selects the row under the finger");
-            Assert.AreEqual(0, listViewer.Offset.Y, "and does not scroll the list");
+            Touch(page, TouchLocationState.Moved, start + new Vector2(0, row2.Height * 2));
+            Assert.AreEqual(ControlVisualState.Pressed, page.List.ItemButtons[4].CurrentVisualStateForTests, "the highlight follows the finger");
+            Assert.AreNotEqual(ControlVisualState.Pressed, page.List.ItemButtons[2].CurrentVisualStateForTests);
+            Assert.AreEqual(0, listViewer.Offset.Y, "the list does not scroll");
             Assert.AreEqual(0, page.Outer.Offset.Y, "nor the page");
 
-            Touch(page, TouchLocationState.Moved, start);
-            Touch(page, TouchLocationState.Released, start);
-            Assert.AreEqual(2, invoked, "releasing on the start row activates it");
+            Touch(page, TouchLocationState.Released, start + new Vector2(0, row2.Height * 2));
+            Assert.AreEqual(4, page.List.SelectedIndex, "releasing on a row selects it");
+            Assert.AreEqual(4, invoked, "and activates it");
+        }
+
+        [TestMethod]
+        public void Releasing_a_hold_outside_the_list_changes_nothing()
+        {
+            using var game = new Game();
+            var page = CreatePage(game);
+            page.List.SelectedIndex = 1;
+            var row2 = page.List.ItemButtons[2].ClippingRect;
+            var start = new Vector2(100, row2.Top + row2.Height / 2);
+            var invoked = -1;
+            page.List.ItemInvoked += (s, e) => invoked = e.Index;
+
+            Touch(page, TouchLocationState.Pressed, start);
+            for (var i = 0; i < 15; i++)
+                Touch(page, TouchLocationState.Moved, start + new Vector2(0, i % 2));
+            var outside = new Vector2(100, page.List.ClippingRect.Top - 30);
+            Touch(page, TouchLocationState.Moved, outside);
+            Assert.IsTrue(page.List.ItemButtons.All(b => b.CurrentVisualStateForTests != ControlVisualState.Pressed), "no row highlighted outside the list");
+            Touch(page, TouchLocationState.Released, outside);
+
+            Assert.AreEqual(1, page.List.SelectedIndex, "selection unchanged");
+            Assert.AreEqual(-1, invoked, "nothing activated");
         }
 
         [TestMethod]

@@ -116,5 +116,34 @@ namespace MonoGame.PortableUI.Tests
             }
             Assert.AreEqual(1f, content.OverscrollScale.Y, "relaxes back");
         }
+
+        [TestMethod]
+        public void Auto_hide_scroll_bars_fade_out_when_idle_and_return_when_scrolling()
+        {
+            ScreenSystem.TotalTime = TimeSpan.FromSeconds(100);
+            var viewer = new ScrollViewer { Content = new Border { Height = 300 }, ScrollBarVisibility = ScrollBarVisibility.AutoHide };
+            viewer.UpdateLayout(new Rect(0, 0, 100, 100));
+            Assert.AreEqual(1f, viewer.ScrollBarOpacity, "shown at first");
+
+            ScreenSystem.TotalTime += TimeSpan.FromSeconds(2);
+            Assert.AreEqual(0f, viewer.ScrollBarOpacity, "faded out after the idle delay");
+
+            viewer.ScrollTo(new PointF(0, 50));
+            Assert.AreEqual(1f, viewer.ScrollBarOpacity, "back while scrolling");
+        }
+
+        [TestMethod]
+        public void Only_always_visible_bars_take_space_from_the_content()
+        {
+            var visibleContent = new Border { Height = 300 };
+            var visible = new ScrollViewer { Content = visibleContent, ScrollBarVisibility = ScrollBarVisibility.Visible };
+            visible.UpdateLayout(new Rect(0, 0, 100, 100));
+            var overlayContent = new Border { Height = 300 };
+            var overlay = new ScrollViewer { Content = overlayContent, ScrollBarVisibility = ScrollBarVisibility.AutoHide };
+            overlay.UpdateLayout(new Rect(0, 0, 100, 100));
+
+            Assert.IsTrue(visibleContent.ClippingRect.Width < 100, "a visible bar takes its width");
+            Assert.AreEqual(100, overlayContent.ClippingRect.Width, "an auto-hiding bar is drawn over the content");
+        }
     }
 }
