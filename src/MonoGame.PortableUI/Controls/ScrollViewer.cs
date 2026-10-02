@@ -30,6 +30,10 @@ namespace MonoGame.PortableUI.Controls
         private bool _isScrollBarDragging;
         private bool _isScrollBarThumbHovering;
         private bool _hasHorizontalScrollBar;
+        // AutoHide: when the content last moved (or the bar was hovered/dragged), and the offset seen then.
+        private TimeSpan _lastScrollActivity = ScreenSystem.TotalTime;
+        private PointF _activityOffset;
+        private const double ScrollBarFadeMilliseconds = 300;
         private bool _hasVerticalScrollBar;
         private float _scrollBarDragPointerOffset;
         private readonly List<Control> _visualTreeScratch = new List<Control>();
@@ -692,6 +696,9 @@ namespace MonoGame.PortableUI.Controls
         {
             if (!CanShowScrollBars)
                 return;
+            var opacity = RenderOpacity * ScrollBarOpacity;
+            if (opacity <= 0)
+                return;
 
             var layout = ClippingRect;
             var scaleX = layout.Width > 0 ? renderRect.Width / layout.Width : 1f;
@@ -703,13 +710,15 @@ namespace MonoGame.PortableUI.Controls
                 r.Height * scaleY);
             var viewportRect = ViewportRect;
 
-            if (ScrollBarGutterBrush != null)
+            // The gutter (track) only belongs to bars with their own space; an overlay bar that
+            // fades in over the content shows just the thumb, like mobile platforms.
+            if (ScrollBarGutterBrush != null && EffectiveScrollBarVisibility == Controls.ScrollBarVisibility.Visible)
             {
                 if (TryGetVerticalScrollGutterRect(viewportRect, out var verticalGutterRect))
-                    ScrollBarGutterBrush.Draw(spriteBatch, ToRender(verticalGutterRect), RenderOpacity);
+                    ScrollBarGutterBrush.Draw(spriteBatch, ToRender(verticalGutterRect), opacity);
 
                 if (TryGetHorizontalScrollGutterRect(viewportRect, out var horizontalGutterRect))
-                    ScrollBarGutterBrush.Draw(spriteBatch, ToRender(horizontalGutterRect), RenderOpacity);
+                    ScrollBarGutterBrush.Draw(spriteBatch, ToRender(horizontalGutterRect), opacity);
             }
 
             var scrollBarBrush = CurrentScrollBarBrush;
@@ -717,13 +726,44 @@ namespace MonoGame.PortableUI.Controls
                 return;
 
             if (TryGetVerticalScrollThumbRect(viewportRect, out var verticalThumbRect))
-                scrollBarBrush.Draw(spriteBatch, ToRender(verticalThumbRect), RenderOpacity);
+                scrollBarBrush.Draw(spriteBatch, ToRender(verticalThumbRect), opacity);
 
             if (TryGetHorizontalScrollThumbRect(viewportRect, out var horizontalThumbRect))
-                scrollBarBrush.Draw(spriteBatch, ToRender(horizontalThumbRect), RenderOpacity);
+                scrollBarBrush.Draw(spriteBatch, ToRender(horizontalThumbRect), opacity);
         }
 
-        private bool CanShowScrollBars => ShowScrollBars && ScrollBarBrush != null && ScrollBarThickness > 0;
+        private bool CanShowScrollBars => ShowScrollBars && ScrollBarBrush != null && ScrollBarThickness > 0
+            && EffectiveScrollBarVisibility != Controls.ScrollBarVisibility.Hidden;
+
+        /// <summary>
+        ///     Visible (always, own space), AutoHide (fades out when idle, drawn over the content) or
+        ///     Hidden. Null (default) uses <see cref="ScreenEngineOptions.ScrollBarVisibility"/>.
+        /// </summary>
+        public ScrollBarVisibility? ScrollBarVisibility { get; set; }
+
+        private ScrollBarVisibility EffectiveScrollBarVisibility
+            => ScrollBarVisibility ?? Screen?.ScreenEngine?.Options.ScrollBarVisibility ?? Controls.ScrollBarVisibility.Visible;
+
+        /// <summary>Current scroll bar opacity (1 = fully shown); AutoHide fades it out when idle.</summary>
+        internal float ScrollBarOpacity
+        {
+            get
+            {
+                if (EffectiveScrollBarVisibility != Controls.ScrollBarVisibility.AutoHide)
+                    return 1f;
+                var now = ScreenSystem.TotalTime;
+                if (Offset != _activityOffset || _isScrollBarDragging || _isScrollBarThumbHovering || _touchPosition != null && _isTouchPanning)
+                {
+                    _activityOffset = Offset;
+                    _lastScrollActivity = now;
+                }
+                var delay = Screen?.ScreenEngine?.Options.ScrollBarAutoHideDelay ?? TimeSpan.FromSeconds(0.75);
+                var idle = (now - _lastScrollActivity - delay).TotalMilliseconds;
+                if (idle <= 0)
+                    return 1f;
+                return (float)Math.Max(0, 1 - idle / ScrollBarFadeMilliseconds);
+            }
+        }
 
         internal Brush? CurrentScrollBarBrush
         {
@@ -760,6 +800,14 @@ namespace MonoGame.PortableUI.Controls
         /// <summary>Which thumb (if any) is under <paramref name="position"/>.</summary>
         private bool TryHitScrollBarThumb(PointF position, out Rect thumbRect, out bool horizontal)
         {
+            // A faded-out (AutoHide) bar cannot be grabbed: a finger there scrolls the content.
+            if (ScrollBarOpacity <= 0)
+            {
+                thumbRect = Rect.Empty;
+                horizontal = false;
+                return false;
+            }
+
             var viewportRect = ViewportRect;
             if (TryGetVerticalScrollThumbRect(viewportRect, out thumbRect) && GetScrollBarThumbHitRect(thumbRect, false).Contains(position))
             {
@@ -874,6 +922,9 @@ namespace MonoGame.PortableUI.Controls
 
         private Rect GetContentViewportRect(Rect viewportRect, bool hasVerticalScrollBar, bool hasHorizontalScrollBar)
         {
+            // Only always-visible bars take space; auto-hiding ones are drawn over the content.
+            if (EffectiveScrollBarVisibility != Controls.ScrollBarVisibility.Visible)
+                return viewportRect;
             if (hasVerticalScrollBar)
                 viewportRect.Width = MathHelper.Max(0, viewportRect.Width - ScrollBarThickness);
             if (hasHorizontalScrollBar)

@@ -50,6 +50,8 @@ namespace MonoGame.PortableUI.Demo.Android
                 ClipboardService = new AndroidClipboardService(),
                 // Android 12+ look: lists stretch at their ends instead of moving past them.
                 OverscrollEffect = MonoGame.PortableUI.Controls.OverscrollEffect.Stretch,
+                // Mobile style: scroll bars appear while scrolling and fade out shortly after.
+                ScrollBarVisibility = MonoGame.PortableUI.Controls.ScrollBarVisibility.AutoHide,
                 // Lay out in dp and draw at native resolution: touch targets get their Android size.
                 LayoutScale = global::Android.App.Application.Context.Resources?.DisplayMetrics?.Density ?? 1f,
                 Theme = PortableThemes.Default.CreateTheme()
