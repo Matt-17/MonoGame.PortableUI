@@ -53,6 +53,7 @@ namespace MonoGame.PortableUI.Demo.Android
             {
                 AndroidWindowInsets.Attach(view, _engine);
                 _engine.OnScreenKeyboard = new AndroidOnScreenKeyboard(view);
+                _engine.AccessibilityBridge = new MonoGame.PortableUI.Accessibility.AndroidAccessibilityBridge(view, _engine);
             }
         }
 

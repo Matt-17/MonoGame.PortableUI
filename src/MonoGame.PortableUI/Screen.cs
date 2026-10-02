@@ -73,6 +73,9 @@ namespace MonoGame.PortableUI
         private long _appliedLocalizationVersion;
         private bool _bringFocusIntoView;
 
+        /// <summary>What a screen reader traverses: the open flyout (it is modal) or the content.</summary>
+        internal Control AccessibilityRoot => (Control?)_flyOut ?? _mainGrid;
+
         internal void RequestBringFocusIntoView() => _bringFocusIntoView = true;
         // Rebuilt every Draw; Update reads the previous frame's entries for pointer inverse mapping.
         private readonly List<(Rect Rect, float Distortion)> _distortedIslands = new List<(Rect, float)>();
