@@ -26,11 +26,19 @@ namespace MonoGame.PortableUI.Controls
         private int _pendingSelectedIndex = -1;
         private bool _refreshItemTexts;
 
+        // Touch hold-to-select: the finger rests on a row for TouchPressedDelay, then moving it selects
+        // rows instead of scrolling.
+        private ItemButton? _holdCandidate;
+        private bool _isTouchSelecting;
+        private int _touchSelectStartIndex = -1;
+
         /// <summary>A row button and the item it currently shows (rows are recycled while virtualizing).</summary>
         private sealed class ItemButton : Button
         {
             public object? BoundItem;
             public bool IsBound;
+
+            public bool IsTouched => TouchState == TouchStates.Touched;
         }
         private Brush _selectedItemBackgroundBrush = new SolidColorBrush(new Color(20, 126, 133));
         private Color _selectedItemTextColor;
@@ -57,6 +65,8 @@ namespace MonoGame.PortableUI.Controls
             ShowFocusVisual = false;
             KeyPressed += ListBoxKeyPressed;
             MouseMove += ListBoxMouseMove;
+            TouchMove += ListBoxTouchMove;
+            TouchUp += ListBoxTouchUp;
             MouseUp += ListBoxMouseUp;
         }
 
@@ -322,6 +332,13 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        /// <summary>
+        ///     Touch: resting a finger on a row for <see cref="ScreenEngineOptions.TouchPressedDelay"/>
+        ///     turns the drag into a selector (the row under the finger is selected, the list scrolls at
+        ///     its ends) instead of scrolling. Default true.
+        /// </summary>
+        public bool TouchHoldSelects { get; set; } = true;
+
         public event EventHandler<SelectionChangedEventArgs>? SelectionChanged;
         public event EventHandler<ListBoxItemInvokedEventArgs>? ItemInvoked;
 
@@ -461,7 +478,74 @@ namespace MonoGame.PortableUI.Controls
 
         private void RecycleItemButton(Control row)
         {
+            if (ReferenceEquals(row, _holdCandidate))
+                _holdCandidate = null;
             row.ResetInputs();
+        }
+
+        internal override void OnFrameUpdate()
+        {
+            base.OnFrameUpdate();
+            var candidate = _holdCandidate;
+            if (candidate == null || _isTouchSelecting)
+                return;
+
+            // The finger left, or a scroll viewer started panning (it cancels the row's touch).
+            if (!candidate.IsTouched || !TouchHoldSelects || candidate.Tag is not int index)
+            {
+                _holdCandidate = null;
+                return;
+            }
+            if (ScreenSystem.TotalTime - candidate.TouchDownTime < candidate.TouchPressedDelay)
+                return;
+
+            // The finger rested: take the gesture away from the scroll viewers and select instead.
+            _holdCandidate = null;
+            if (Screen is not { } screen || (screen.TouchScrollOwner != null && !ReferenceEquals(screen.TouchScrollOwner, this)))
+                return;
+            screen.TouchScrollOwner = this;
+            _isTouchSelecting = true;
+            _touchSelectStartIndex = index;
+            // The row must not click on release; the list decides what the release means.
+            var rect = candidate.ClippingRect;
+            candidate.CancelPendingTouch(new TouchEventArgs(new PointF(rect.Left + rect.Width / 2, rect.Top + rect.Height / 2)));
+            SelectItem(index, false);
+            Focus();
+        }
+
+        private void ListBoxTouchMove(object? sender, TouchEventArgs args)
+        {
+            if (!_isTouchSelecting)
+                return;
+            args.Handled = true;
+
+            var viewport = _scrollViewer.ClippingRect;
+            if (args.Position.Y < viewport.Top)
+            {
+                // Above the list: walk up one row per move, scrolling it into view.
+                SelectItem(Math.Max(0, SelectedIndex - 1), true);
+                return;
+            }
+            if (args.Position.Y >= viewport.Bottom)
+            {
+                SelectItem(Math.Min(Items.Count - 1, SelectedIndex + 1), true);
+                return;
+            }
+            if (TryGetItemIndexAt(new PointF(viewport.Left + 1, args.Position.Y), out var index))
+                SelectItem(index, true);
+        }
+
+        private void ListBoxTouchUp(object? sender, TouchEventArgs args)
+        {
+            if (!_isTouchSelecting)
+                return;
+            args.Handled = true;
+            _isTouchSelecting = false;
+            var start = _touchSelectStartIndex;
+            _touchSelectStartIndex = -1;
+            // Like a mouse drag: releasing on the row it started on activates it.
+            if (start >= 0 && SelectedIndex == start)
+                InvokeItem(start);
         }
 
         private Control CreateItemButton()
@@ -478,6 +562,7 @@ namespace MonoGame.PortableUI.Controls
                 UseThemeStyle = false
             };
             button.MouseDown += ItemButtonMouseDown;
+            button.TouchDown += (sender, args) => _holdCandidate = sender as ItemButton;
             button.MouseEnter += ItemButtonMouseEnter;
             button.MouseUp += ItemButtonMouseUp;
             button.Click += ItemButtonClick;
