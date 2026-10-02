@@ -99,6 +99,29 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void Same_named_radio_groups_in_separate_trees_are_independent()
+        {
+            StackPanel Build(out RadioButton a, out RadioButton b)
+            {
+                var panel = new StackPanel();
+                a = new RadioButton { RadioGroup = "audit-group-trees" };
+                b = new RadioButton { RadioGroup = "audit-group-trees" };
+                panel.AddChild(a);
+                panel.AddChild(b);
+                return panel;
+            }
+
+            Build(out var firstA, out var firstB);
+            Build(out var secondA, out var secondB);
+
+            Assert.IsTrue(firstA.IsChecked && !firstB.IsChecked, "first screen selects its first option");
+            Assert.IsTrue(secondA.IsChecked && !secondB.IsChecked, "a second screen gets its own selection");
+
+            secondB.OnClick();
+            Assert.IsTrue(firstA.IsChecked, "selecting on one screen leaves the other alone");
+        }
+
+        [TestMethod]
         public void Reattaching_a_radio_group_keeps_a_single_selection()
         {
             var panel = new StackPanel();
