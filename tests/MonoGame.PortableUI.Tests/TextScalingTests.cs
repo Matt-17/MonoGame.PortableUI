@@ -58,7 +58,7 @@ namespace MonoGame.PortableUI.Tests
             }
         }
 
-        [DataTestMethod]
+        [TestMethod]
         [DataRow(1f)]
         [DataRow(1.5f)]
         [DataRow(2f)]

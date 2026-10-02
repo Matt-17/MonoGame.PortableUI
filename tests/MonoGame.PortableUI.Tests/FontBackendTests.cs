@@ -49,7 +49,7 @@ namespace MonoGame.PortableUI.Tests
             return new SpriteFont(null!, bounds, cropping, characters, lineHeight, 0, kerning, '?');
         }
 
-        [DataTestMethod]
+        [TestMethod]
         [DataRow(12f)]
         [DataRow(20f)]
         [DataRow(48f)]
