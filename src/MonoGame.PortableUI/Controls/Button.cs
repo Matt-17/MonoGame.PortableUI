@@ -358,6 +358,7 @@ namespace MonoGame.PortableUI.Controls
             {
                 _appliedPressedVisual = pressed;
                 ChangeVisualState();
+                RequestRedraw();
             }
         }
 

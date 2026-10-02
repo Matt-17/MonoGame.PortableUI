@@ -1,4 +1,6 @@
 using System;
+using System.Diagnostics;
+using System.Threading;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
@@ -10,6 +12,10 @@ namespace MonoGame.PortableUI
         private SpriteBatch? _spriteBatch;
         private RenderTarget2D? _scaleTarget;
         private RenderTargetBinding[]? _previousTargets;
+        private bool? _hostFixedTimeStep;
+        private bool _drawPending;
+        private int _viewportWidth;
+        private int _viewportHeight;
 
         internal ScreenComponent(ScreenEngine screenEngine, Game game) : base(game)
         {
@@ -23,7 +29,12 @@ namespace MonoGame.PortableUI
             base.Initialize();
             ApplyViewportSize();
             _spriteBatch = new SpriteBatch(GraphicsDevice);
+            // The frame on screen may be gone after these (Android recreates the surface on resume).
+            Game.Activated += OnFrameLost;
+            GraphicsDevice.DeviceReset += OnFrameLost;
         }
+
+        private void OnFrameLost(object? sender, EventArgs args) => _screenEngine.RequestRedrawFor(ScreenEngine.RedrawGrace);
 
         protected override void LoadContent()
         {
@@ -37,8 +48,22 @@ namespace MonoGame.PortableUI
             base.UnloadContent();
         }
 
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                Game.Activated -= OnFrameLost;
+                if (GraphicsDevice != null)
+                    GraphicsDevice.DeviceReset -= OnFrameLost;
+                RestoreHostTimeStep();
+            }
+            base.Dispose(disposing);
+        }
+
         public override void Draw(GameTime gameTime)
         {
+            _drawPending = false;
+            _screenEngine.RecordFrame(true);
             if (_spriteBatch == null || _screenEngine.ActiveScreen == null && _screenEngine.LeavingScreen == null)
                 return;
 
@@ -110,13 +135,58 @@ namespace MonoGame.PortableUI
 
         public override void Update(GameTime gameTime)
         {
+            var started = Stopwatch.GetTimestamp();
             ApplyViewportSize();
             _screenEngine.Update(gameTime);
+
+            if (_screenEngine.Options.RenderMode != RenderMode.OnDemand)
+            {
+                RestoreHostTimeStep();
+                return;
+            }
+
+            // A fixed time step catching up runs several updates before one draw: a frame requested
+            // in an earlier update of this tick must not be suppressed by a later one.
+            if (_drawPending || _screenEngine.ConsumeRedrawRequest())
+            {
+                _drawPending = true;
+                RestoreHostTimeStep();
+                return;
+            }
+
+            // Idle: keep the last frame on screen (no draw, no present) and sleep out the rest of
+            // the idle period in one go. A fixed time step would instead spin in 1 ms sleeps up to
+            // the display rate and then catch up with several updates per tick.
+            _screenEngine.RecordFrame(false);
+            Game.SuppressDraw();
+            if (_hostFixedTimeStep == null)
+            {
+                _hostFixedTimeStep = Game.IsFixedTimeStep;
+                Game.IsFixedTimeStep = false;
+            }
+            var remaining = _screenEngine.Options.IdleUpdateInterval - Stopwatch.GetElapsedTime(started);
+            if (remaining.TotalMilliseconds >= 1)
+                Thread.Sleep(remaining);
+        }
+
+        /// <summary>Hands the game loop its own time step back once frames are drawn again.</summary>
+        private void RestoreHostTimeStep()
+        {
+            if (_hostFixedTimeStep is not { } fixedTimeStep)
+                return;
+            _hostFixedTimeStep = null;
+            Game.IsFixedTimeStep = fixedTimeStep;
         }
 
         private void ApplyViewportSize()
         {
             var viewport = GraphicsDevice.Viewport;
+            if (viewport.Width != _viewportWidth || viewport.Height != _viewportHeight)
+            {
+                _viewportWidth = viewport.Width;
+                _viewportHeight = viewport.Height;
+                _screenEngine.RequestRedraw();
+            }
             _screenEngine.ApplyViewportSize(viewport.Width, viewport.Height);
         }
     }

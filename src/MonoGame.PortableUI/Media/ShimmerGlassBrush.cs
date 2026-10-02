@@ -59,6 +59,7 @@ namespace MonoGame.PortableUI.Media
         {
             if (SweepStrength <= 0f || opacity <= 0f)
                 return;
+            ScreenEngine.RequestAnimationFrame();
 
             var inset = Math.Max(Math.Max(radius.TopLeft, radius.TopRight), Math.Max(radius.BottomLeft, radius.BottomRight));
             var top = rect.Top + inset;

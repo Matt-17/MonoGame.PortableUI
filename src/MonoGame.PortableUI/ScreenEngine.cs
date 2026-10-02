@@ -8,7 +8,7 @@ using MonoGame.PortableUI.Effects;
 
 namespace MonoGame.PortableUI
 {
-    public class ScreenEngine : IDisposable
+    public partial class ScreenEngine : IDisposable
     {
         public Game Game { get; set; }
         private Control? _focusedControl;
@@ -183,7 +183,10 @@ namespace MonoGame.PortableUI
         private void DrainGameThreadQueue()
         {
             while (_gameThreadQueue.TryDequeue(out var action))
+            {
                 action();
+                RequestRedraw();
+            }
         }
 
         private void UpdateAccessibility()
@@ -253,6 +256,7 @@ namespace MonoGame.PortableUI
 
             if (insets.Equals(SafeAreaInsets) && keyboard == KeyboardInset)
                 return;
+            RequestRedraw();
             var keyboardGrew = keyboard > KeyboardInset;
             SafeAreaInsets = insets;
             KeyboardInset = keyboard;
@@ -487,12 +491,20 @@ namespace MonoGame.PortableUI
         /// screen still playing its exit transition, then toasts on top of everything.</summary>
         internal void DrawStack(Microsoft.Xna.Framework.Graphics.SpriteBatch spriteBatch)
         {
-            var screens = VisibleScreens;
-            for (var i = 0; i < screens.Count; i++)
-                screens[i].Draw(spriteBatch);
-            LeavingScreen?.Draw(spriteBatch);
-            if (_toasts is { HasContent: true } toasts)
-                toasts.Layer.Draw(spriteBatch);
+            var previous = EnterDraw();
+            try
+            {
+                var screens = VisibleScreens;
+                for (var i = 0; i < screens.Count; i++)
+                    screens[i].Draw(spriteBatch);
+                LeavingScreen?.Draw(spriteBatch);
+                if (_toasts is { HasContent: true } toasts)
+                    toasts.Layer.Draw(spriteBatch);
+            }
+            finally
+            {
+                ExitDraw(previous);
+            }
         }
 
         /// <summary>True after keyboard/gamepad input, false after pointer input.</summary>
@@ -705,6 +717,7 @@ namespace MonoGame.PortableUI
 #if !ANDROID
         private void GameWindowTextInput(object? sender, TextInputEventArgs args)
         {
+            NoteInputActivity();
             ActiveScreen?.HandleTextInput(args.Character);
         }
 #endif
@@ -715,6 +728,7 @@ namespace MonoGame.PortableUI
         /// </summary>
         public void HandleTextInput(char character)
         {
+            NoteInputActivity();
             ActiveScreen?.HandleTextInput(character);
         }
 
@@ -724,6 +738,7 @@ namespace MonoGame.PortableUI
         /// </summary>
         public void HandleKeyCommand(KeyboardCommand command)
         {
+            NoteInputActivity();
             ActiveScreen?.HandleKeyCommand(command);
         }
 

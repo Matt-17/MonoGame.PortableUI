@@ -209,6 +209,8 @@ namespace MonoGame.PortableUI.Effects
                             RecordApplied(vignette);
                             break;
                         case FilmGrainPostEffect grain:
+                            // Fresh noise every frame.
+                            ScreenEngine.RequestAnimationFrame();
                             DrawTiledOverlay(spriteBatch, GetGrainTexture(), screenRect, grain.Strength, randomOffset: true);
                             RecordApplied(grain);
                             break;
@@ -228,6 +230,8 @@ namespace MonoGame.PortableUI.Effects
             var grain = Find<FilmGrainPostEffect>(effects);
 
             _grainSeed = unchecked(_grainSeed * 1103515245 + 12345);
+            if (grain != null)
+                ScreenEngine.RequestAnimationFrame();
             postFx.Parameters["TexelSize"]?.SetValue(new Vector2(1f / ui.Width, 1f / ui.Height));
             postFx.Parameters["SourceSize"]?.SetValue(new Vector2(source.Width, source.Height));
             postFx.Parameters["ScanlineStrength"]?.SetValue(scanlines == null ? 0 : MathHelper.Clamp(scanlines.Strength, 0, 1));
