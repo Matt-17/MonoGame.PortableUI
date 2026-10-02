@@ -443,7 +443,7 @@ namespace MonoGame.PortableUI
         {
             var device = spriteBatch.GraphicsDevice;
             BackdropSource.Clear(device);
-            var external = ExternalBackdrop;
+            var external = ExternalBackdrop ?? StackBackdrop;
             if (external != null && external.IsDisposed)
                 external = null;
             // Low quality skips the blur pass; glass brushes then draw their tint fallback.
@@ -486,6 +486,12 @@ namespace MonoGame.PortableUI
             engine.EffectiveRenderQuality != RenderQuality.Low
             && control is ThemeIsland { IsVisible: true, Theme.PostEffects: { Count: > 0 } effects }
             && engine.PostProcess.CountEnabled(effects) > 0;
+
+        /// <summary>True when something on this screen (glass) samples the backdrop.</summary>
+        internal bool RequiresBackdropNow => ScreenRect.Width > 0 && ScreenRect.Height > 0 && TreeRequiresBackdrop();
+
+        /// <summary>The picture of the screens below, handed in by the engine for overlays with glass.</summary>
+        internal Texture2D? StackBackdrop { get; set; }
 
         private bool TreeRequiresBackdrop()
         {
