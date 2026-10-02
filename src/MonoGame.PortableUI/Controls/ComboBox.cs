@@ -103,13 +103,14 @@ namespace MonoGame.PortableUI.Controls
 
         private void DrawDropDownGlyph(SpriteBatch spriteBatch, Rect rect)
         {
-            var width = GlyphSize;
+            // rect is in render space (LayoutScale, popup zoom): scale the layout-unit glyph metrics.
+            var width = ToRender(GlyphSize);
             if (width <= 0 || rect.Width < width * 2)
                 return;
 
             var height = width * 0.6f;
             var glyphRect = new Rect(
-                rect.Right - width - 10,
+                rect.Right - width - ToRenderX(10),
                 rect.Top + (rect.Height - height) / 2,
                 width,
                 height);

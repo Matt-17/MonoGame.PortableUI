@@ -108,7 +108,8 @@ namespace MonoGame.PortableUI.Demo
                 using var surface = new UISurface(this, screen, 1180, 760, preset.CreateTheme())
                 {
                     ShowSoftwareCursor = false,
-                    InputSource = PortableUI.Input.NullInputSource.Instance
+                    InputSource = PortableUI.Input.NullInputSource.Instance,
+                    LayoutScale = _runOptions.LayoutScale
                 };
                 (screen as MainScreen)?.TrySelectTab(screenName);
                 if (overlay != null)

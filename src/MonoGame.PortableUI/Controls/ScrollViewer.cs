@@ -610,7 +610,9 @@ namespace MonoGame.PortableUI.Controls
             // Stretch: the content is laid out at the clamped offset and the overshoot is drawn as a
             // stretch away from the pulled edge instead of a shift.
             var offset = Offset;
-            if (EffectiveOverscrollEffect == Controls.OverscrollEffect.Stretch)
+            // Only an over-scrolled offset needs the (inherited) effect: plain scroll steps skip the lookup.
+            var overscrolled = offset.X < 0 || offset.Y < 0 || offset.X > MaxHorizontalOffset || offset.Y > MaxVerticalOffset;
+            if (overscrolled && EffectiveOverscrollEffect == Controls.OverscrollEffect.Stretch)
             {
                 var clamped = new PointF(Clamp(offset.X, 0, MaxHorizontalOffset), Clamp(offset.Y, 0, MaxVerticalOffset));
                 var overshoot = offset - clamped;
