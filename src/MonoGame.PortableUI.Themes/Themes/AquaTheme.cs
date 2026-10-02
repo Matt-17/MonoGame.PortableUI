@@ -16,6 +16,8 @@ public static class AquaTheme
             backgroundBrush: PatternBrush.Pinstripes(ThemeBuilder.Hex("#F2F2F2"), ThemeBuilder.Hex("#E4E4E4"), 2),
             styleTheme: theme =>
             {
+                // XP, Aqua and Aero already had smooth pointers.
+                theme.Cursor = CursorStyle.ModernArrow(Color.White, Color.Black);
                 // Aqua gel: a bright upper half with a hard highlight edge, darker core, glowing bottom.
                 var white = ThemeBuilder.Gloss((0, "#FFFFFF"), (0.5f, "#F3F3F3"), (0.5f, "#E2E2E2"), (1, "#FDFDFD"));
                 var blue = ThemeBuilder.Gloss((0, "#D6EBFF"), (0.12f, "#94CBFF"), (0.5f, "#4A9BF0"), (0.5f, "#2479E0"), (0.85f, "#5BB0FA"), (1, "#A8DBFF"));

@@ -46,6 +46,7 @@ public static class ThemeBuilder
             {
                 var theme = PortableTheme.FromPalette(palette);
                 theme.Typography.FontName = fontName;
+                theme.Cursor = DefaultCursor(era, palette);
                 styleTheme?.Invoke(theme);
                 return theme;
             },
@@ -134,6 +135,7 @@ public static class ThemeBuilder
             {
                 var theme = PortableTheme.FromPalette(palette);
                 theme.Typography.FontName = fontName;
+                theme.Cursor = DefaultCursor(era, palette);
                 styleTheme?.Invoke(theme);
                 if (reducedMotion)
                 {
@@ -193,6 +195,22 @@ public static class ThemeBuilder
         for (var i = 0; i < stops.Length; i++)
             gradientStops[i] = new GradientStop(stops[i].Position, Hex(stops[i].Color));
         return new LinearGradientBrush(gradientStops);
+    }
+
+    /// <summary>
+    ///     The pointer that fits an era: chunky pixel arrows for 8-bit machines, the 1-bit arrow for
+    ///     classic desktops and terminals, the fine anti-aliased arrow for everything modern.
+    ///     Applied before <c>styleTheme</c>, so a theme can still set its own.
+    /// </summary>
+    public static CursorStyle DefaultCursor(ThemeEra era, ThemePalette palette)
+    {
+        return era switch
+        {
+            ThemeEra.Retro => CursorStyle.PixelArrow(Color.White, Color.Black),
+            ThemeEra.Terminal => CursorStyle.Arrow(palette.Text, palette.Background),
+            ThemeEra.Desktop => CursorStyle.Arrow(Color.White, Color.Black),
+            _ => CursorStyle.ModernArrow(Color.White, Color.Black)
+        };
     }
 
     public static Color Hex(string value)
