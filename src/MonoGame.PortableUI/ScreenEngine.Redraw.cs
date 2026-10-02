@@ -85,6 +85,32 @@ namespace MonoGame.PortableUI
                 FramesSkipped++;
         }
 
+        /// <summary>The quality level in effect (<see cref="ScreenEngineOptions.RenderQuality"/> with Auto
+        /// resolved), refreshed every update.</summary>
+        public RenderQuality EffectiveRenderQuality { get; private set; } = RenderQuality.High;
+
+        /// <summary>Frames per second drawing is capped at (0 = no cap): <see cref="ScreenEngineOptions.MaxFrameRate"/>,
+        /// or 30 at <see cref="RenderQuality.Low"/>.</summary>
+        public int EffectiveMaxFrameRate
+            => Options.MaxFrameRate > 0 ? Options.MaxFrameRate : EffectiveRenderQuality == RenderQuality.Low ? 30 : 0;
+
+        /// <summary>Quality of the engine currently drawing (High outside a draw), for brushes and effects.</summary>
+        internal static RenderQuality DrawingQuality => _drawingEngine?.EffectiveRenderQuality ?? RenderQuality.High;
+
+        /// <summary>Whether decorations that never rest (glass sweeps, film-grain noise) animate.</summary>
+        internal static bool AnimatesDecorations => DrawingQuality == RenderQuality.High;
+
+        internal void UpdateRenderQuality()
+        {
+            var quality = Options.RenderQuality;
+            if (quality == RenderQuality.Auto)
+                quality = PlatformPowerState.IsPowerSaveMode ? RenderQuality.Low : RenderQuality.High;
+            if (quality == EffectiveRenderQuality)
+                return;
+            EffectiveRenderQuality = quality;
+            RequestRedraw();
+        }
+
         /// <summary>Marks this engine as the one drawing, for <see cref="RequestAnimationFrame"/>.</summary>
         private ScreenEngine? EnterDraw()
         {

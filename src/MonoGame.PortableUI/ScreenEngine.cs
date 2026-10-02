@@ -692,6 +692,7 @@ namespace MonoGame.PortableUI
             LayoutPassesThisFrame = 0;
             FramesPerSecond = gameTime.ElapsedGameTime.TotalSeconds > 0 ? 1 / gameTime.ElapsedGameTime.TotalSeconds : 0;
             DrainGameThreadQueue();
+            UpdateRenderQuality();
             UpdateTransition();
             ApplyPendingInsets(force: false);
             ActiveScreen?.Update();

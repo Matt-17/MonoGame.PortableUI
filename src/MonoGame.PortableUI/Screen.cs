@@ -429,7 +429,9 @@ namespace MonoGame.PortableUI
             var external = ExternalBackdrop;
             if (external != null && external.IsDisposed)
                 external = null;
-            if (engine == null || (BackgroundBrush == null && external == null) || ScreenRect.Width <= 0 || ScreenRect.Height <= 0 || !TreeRequiresBackdrop())
+            // Low quality skips the blur pass; glass brushes then draw their tint fallback.
+            if (engine == null || engine.EffectiveRenderQuality == RenderQuality.Low
+                || (BackgroundBrush == null && external == null) || ScreenRect.Width <= 0 || ScreenRect.Height <= 0 || !TreeRequiresBackdrop())
                 return;
 
             var backdrop = engine.Backdrop;
@@ -464,7 +466,8 @@ namespace MonoGame.PortableUI
         }
 
         private static readonly Func<Control, ScreenEngine, bool> IsPostFxIsland = static (control, engine) =>
-            control is ThemeIsland { IsVisible: true, Theme.PostEffects: { Count: > 0 } effects }
+            engine.EffectiveRenderQuality != RenderQuality.Low
+            && control is ThemeIsland { IsVisible: true, Theme.PostEffects: { Count: > 0 } effects }
             && engine.PostProcess.CountEnabled(effects) > 0;
 
         private bool TreeRequiresBackdrop()
@@ -804,7 +807,8 @@ namespace MonoGame.PortableUI
 
             var engine = ScreenEngine;
             var effects = island.Theme?.PostEffects;
-            if (engine == null || effects is not { Count: > 0 } || engine.PostProcess.CountEnabled(effects) == 0)
+            if (engine == null || engine.EffectiveRenderQuality == RenderQuality.Low
+                || effects is not { Count: > 0 } || engine.PostProcess.CountEnabled(effects) == 0)
                 return false;
 
             var islandRect = context.RenderRect;
@@ -996,7 +1000,9 @@ namespace MonoGame.PortableUI
         internal IReadOnlyList<PostEffect>? GetScreenPostEffects()
         {
             var options = ScreenEngine?.Options;
-            var themeEffects = options?.Theme?.PostEffects;
+            // Low quality drops the theme's look effects; display effects (an in-world monitor's
+            // curvature, which input mapping follows) belong to the screen and stay.
+            var themeEffects = ScreenEngine?.EffectiveRenderQuality == RenderQuality.Low ? null : options?.Theme?.PostEffects;
             var displayEffects = options?.PostEffects;
             if (displayEffects is not { Count: > 0 })
                 return themeEffects;
