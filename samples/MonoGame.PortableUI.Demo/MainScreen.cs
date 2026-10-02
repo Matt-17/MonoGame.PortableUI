@@ -476,6 +476,16 @@ namespace MonoGame.PortableUI.Demo
             clips.AddChild(nested);
             controls.AddChild(clips);
 
+            // Same text through both font backends; FontStashSharp rasterizes at the requested size.
+            controls.AddChild(Label("SpriteFont vs FontStashSharp (24 px)", Palette.MutedText));
+            controls.AddChild(new TextBlock { Text = "Sharp 24 px: Zoë", TextSize = 24, TextColor = Palette.Text });
+            var stashFont = DemoFonts.Atkinson;
+            if (stashFont != null)
+            {
+                controls.AddChild(new TextBlock { Text = "Sharp 24 px: Zoë", TextSize = 24, TextColor = Palette.Text, DynamicFont = stashFont });
+                controls.AddChild(new TextBlock { Text = "Łódź · Ж · ½ · naïve", TextSize = 18, TextColor = Palette.MutedText, DynamicFont = stashFont, Margin = new Thickness(0, 0, 0, 8) });
+            }
+
             var gradient = new LinearGradientBrush(
                 new GradientStop(0, Palette.Primary),
                 new GradientStop(0.55f, Palette.Secondary),
