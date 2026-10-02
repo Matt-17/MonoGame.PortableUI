@@ -332,7 +332,7 @@ namespace MonoGame.PortableUI
             _distortedIslands.Clear();
             PrepareBackdrop(spriteBatch, engine);
 
-            var postEffects = theme?.PostEffects;
+            var postEffects = GetScreenPostEffects();
             // Island post-FX switches render targets mid-frame; the backbuffer discards its
             // contents on re-bind, so when FX islands exist the whole UI must render into a
             // PreserveContents target even without screen-level effects.
@@ -960,6 +960,35 @@ namespace MonoGame.PortableUI
             return true;
         }
 
+        private IReadOnlyList<PostEffect>? _combinedEffectsTheme;
+        private IReadOnlyList<PostEffect>? _combinedEffectsDisplay;
+        private IReadOnlyList<PostEffect>? _combinedEffects;
+
+        /// <summary>
+        ///     Theme effects followed by the engine's display effects (monitor curvature etc.); the
+        ///     combined list is cached until either list is replaced, so this does not allocate per frame.
+        /// </summary>
+        internal IReadOnlyList<PostEffect>? GetScreenPostEffects()
+        {
+            var options = ScreenEngine?.Options;
+            var themeEffects = options?.Theme?.PostEffects;
+            var displayEffects = options?.PostEffects;
+            if (displayEffects is not { Count: > 0 })
+                return themeEffects;
+            if (themeEffects is not { Count: > 0 })
+                return displayEffects;
+            if (!ReferenceEquals(themeEffects, _combinedEffectsTheme) || !ReferenceEquals(displayEffects, _combinedEffectsDisplay))
+            {
+                var combined = new List<PostEffect>(themeEffects.Count + displayEffects.Count);
+                combined.AddRange(themeEffects);
+                combined.AddRange(displayEffects);
+                _combinedEffects = combined;
+                _combinedEffectsTheme = themeEffects;
+                _combinedEffectsDisplay = displayEffects;
+            }
+            return _combinedEffects;
+        }
+
         private static CrtBarrelPostEffect? FindEnabledBarrel(IReadOnlyList<PostEffect> effects)
         {
             for (var i = 0; i < effects.Count; i++)
@@ -1363,7 +1392,7 @@ namespace MonoGame.PortableUI
 
         private float GetActiveBarrelDistortion()
         {
-            var effects = ScreenEngine?.Options.Theme?.PostEffects;
+            var effects = GetScreenPostEffects();
             if (effects == null)
                 return 0;
 

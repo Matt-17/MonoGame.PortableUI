@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI.Common;
 
@@ -69,6 +70,14 @@ namespace MonoGame.PortableUI
         /// the one behind each <see cref="UISurface"/>).
         /// </summary>
         internal ScreenEngine? Owner { get; set; }
+
+        /// <summary>
+        ///     Display effects that belong to the screen this UI is shown on, not to its look — e.g.
+        ///     the curvature (<see cref="CrtBarrelPostEffect"/>) and scanlines of an in-world CRT
+        ///     monitor. They run after the theme's <see cref="PortableTheme.PostEffects"/> and stay when
+        ///     the theme changes. Pointer input is mapped through a barrel here as well.
+        /// </summary>
+        public IReadOnlyList<PostEffect> PostEffects { get; set; } = Array.Empty<PostEffect>();
 
         public PortableTheme Theme
         {
