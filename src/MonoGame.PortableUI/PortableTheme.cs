@@ -30,8 +30,9 @@ namespace MonoGame.PortableUI
                 TextColor = palette.Text,
                 TextSize = 14,
                 PixelSnapping = true,
-                FocusBorderBrush = Solid(palette.Primary),
-                FocusBorderWidth = 2,
+                // Subtle by default: a thin, slightly translucent ring a little outside the control.
+                FocusBorderBrush = Solid(new Color((int)palette.Primary.R, (int)palette.Primary.G, (int)palette.Primary.B, 190)),
+                FocusBorderWidth = 1.5f,
                 FocusVisualKind = FocusVisualKind.Rectangle,
                 DisabledOverlayBrush = Solid(new Color(0, 0, 0, 70)),
                 DisabledTextColor = palette.DisabledText,

@@ -48,7 +48,9 @@ namespace MonoGame.PortableUI.Controls
 
         private void ApplyLabelPadding()
         {
-            Padding = new Thickness(BoxSize + BoxSpacing, 0, 0, 0);
+            // The text line reserves room for descenders below the glyphs, so a centred line reads
+            // low next to the ring; a little bottom padding lifts the label to the ring's centre.
+            Padding = new Thickness(BoxSize + BoxSpacing, 0, 0, 3);
         }
 
         protected override ControlStyle? GetThemeStyle(PortableTheme theme) => null;

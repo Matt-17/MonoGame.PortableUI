@@ -904,7 +904,7 @@ namespace MonoGame.PortableUI.Controls
                 if (GetDrawOverrides().Overlay)
                     return true;
 
-                if (ShowFocusVisual && IsFocused && FocusBorderWidth > 0 && FocusBorderBrush != null)
+                if (IsFocusVisualShown)
                     return true;
 
                 return !IsEnabled && DisabledOverlayBrush != null;
@@ -926,9 +926,23 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        /// <summary>
+        ///     Text entry keeps its focus ring after a click (it shows where typing goes); other
+        ///     controls show it only while the user navigates with keyboard or gamepad.
+        /// </summary>
+        internal virtual bool ShowsFocusVisualForPointer => false;
+
+        /// <summary>
+        ///     The focus ring is drawn for keyboard/gamepad navigation only (like CSS :focus-visible):
+        ///     clicking or tapping a button must not leave an outline behind.
+        /// </summary>
+        internal bool IsFocusVisualShown =>
+            ShowFocusVisual && IsFocused && FocusBorderWidth > 0 && FocusBorderBrush != null
+            && (ShowsFocusVisualForPointer || ScreenEngine.For(this)?.KeyboardNavigationActive != false);
+
         protected internal virtual void OnDrawOverlay(SpriteBatch spriteBatch, Rect rect)
         {
-            if (ShowFocusVisual && IsFocused && FocusBorderWidth > 0 && FocusBorderBrush != null)
+            if (IsFocusVisualShown)
                 DrawFocusVisual(spriteBatch, rect, FocusBorderWidth, FocusBorderBrush, EffectiveFocusVisualKind, RenderOpacity);
 
             if (!IsEnabled && DisabledOverlayBrush is { } disabledOverlay)
@@ -1459,8 +1473,18 @@ namespace MonoGame.PortableUI.Controls
 
         private void DrawFocusVisual(SpriteBatch spriteBatch, Rect rect, float width, Brush brush, FocusVisualKind kind, float opacity)
         {
+            // Layout lengths in render space (LayoutScale); the plain ring sits a small gap outside
+            // the control so it reads as focus rather than as a heavier border.
+            width = Math.Max(1, ToRender(width));
+            var radius = ToRender(CornerRadius);
+            if (kind == FocusVisualKind.Rectangle)
+            {
+                var gap = ToRender(2);
+                rect += new Thickness(gap);
+                if (!radius.IsEmpty)
+                    radius = new CornerRadius(radius.TopLeft + gap, radius.TopRight + gap, radius.BottomRight + gap, radius.BottomLeft + gap);
+            }
             // Rounded controls get a focus ring that follows their corner radius.
-            var radius = CornerRadius;
             if (!radius.IsEmpty && brush is SolidColorBrush solidBrush && kind != FocusVisualKind.Dotted)
             {
                 var color = Media.Brush.ApplyOpacity(solidBrush.Color, opacity);
