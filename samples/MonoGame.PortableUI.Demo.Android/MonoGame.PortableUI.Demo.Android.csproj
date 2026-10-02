@@ -14,6 +14,38 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
+  <!--
+    APK size (Release APK 12.8 MB -> 4.4 MB, measured with the Pixel 5 build; see docs/android-size.md).
+    Profiled AOT stays on: without it the APK is 0.9 MB smaller but cold start ~45 % slower.
+  -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <!-- Phones only. x86_64 is for emulators on Intel/AMD hosts; Debug builds keep it. An .aab
+         ships one ABI per device anyway. -->
+    <RuntimeIdentifiers>android-arm64</RuntimeIdentifiers>
+    <!-- No HTTP in the demo: AndroidMessageHandler would root System.Net.Http, crypto and ASN.1. -->
+    <UseNativeHttpHandler>false</UseNativeHttpHandler>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Trim FontStashSharp's unused BMFont loader (it pulls in System.Private.Xml). MonoGame.Framework
+         stays untrimmed: its content readers are created by reflection. -->
+    <TrimmableAssembly Include="Cyotek.Drawing.BitmapFont" />
+    <TrimmableAssembly Include="FontStashSharp.Base" />
+    <TrimmableAssembly Include="FontStashSharp.MonoGame" />
+  </ItemGroup>
+  <!-- Native libraries nothing in the demo calls: zlib and Android crypto glue (only needed by the
+       HTTP/compression/crypto APIs trimmed away above) and OpenAL (MonoGame audio). An app that plays
+       sound, uses HttpClient, DeflateStream or crypto must keep them. -->
+  <Target Name="DropUnusedRuntimeNatives" AfterTargets="ResolveRuntimePackAssets">
+    <ItemGroup>
+      <RuntimePackAsset Remove="@(RuntimePackAsset)" Condition="'%(Filename)' == 'libSystem.IO.Compression.Native' or '%(Filename)' == 'libSystem.Security.Cryptography.Native.Android'" />
+    </ItemGroup>
+  </Target>
+  <Target Name="DropOpenAL" AfterTargets="ResolvePackageAssets">
+    <ItemGroup>
+      <NativeCopyLocalItems Remove="@(NativeCopyLocalItems)" Condition="'%(Filename)' == 'libopenal'" />
+    </ItemGroup>
+  </Target>
+
   <ItemGroup>
     <PackageReference Include="MonoGame.Framework.Android" />
     <PackageReference Include="MonoGame.Content.Builder.Task" />
