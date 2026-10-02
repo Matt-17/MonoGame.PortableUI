@@ -128,9 +128,13 @@ namespace MonoGame.PortableUI.Tests
             button.RefreshThemeResources();
             island.UpdateLayout(new Rect(0, 0, 200, 100));
 
+            ScreenSystem.TotalTime = System.TimeSpan.FromSeconds(50);
             button.OnTouchDown(new MonoGame.PortableUI.Controls.Events.TouchEventArgs(new PointF(10, 10)));
+            Assert.AreEqual(1f, button.Scale.X, "a finger is not 'pressed' before the touch pressed delay (it may be a scroll)");
 
-            Assert.IsTrue(button.Scale.X < 1, "pressed scale is applied immediately");
+            ScreenSystem.TotalTime += System.TimeSpan.FromMilliseconds(220); // past the 200 ms default
+            button.OnFrameUpdate();
+            Assert.IsTrue(button.Scale.X < 1, "pressed scale is applied immediately once the finger rests");
         }
 
         [TestMethod]

@@ -21,6 +21,7 @@ namespace MonoGame.PortableUI.Controls
         private readonly Action<Control>? _recycle;
         private int _first;
         private bool _virtualizing = true;
+        private bool _realizing;
 
         /// <summary>Rows realized before the first layout tells the panel its viewport.</summary>
         internal const int InitialRealizeCount = 40;
@@ -256,15 +257,25 @@ namespace MonoGame.PortableUI.Controls
             }
 
             _realized.Clear();
-            for (var index = from; index < to; index++)
+            // Virtualizing rows get a fixed slot from ArrangeRows right after this, so rebinding a
+            // recycled row (new text) must not schedule a layout pass for the whole screen.
+            _realizing = _virtualizing;
+            try
             {
-                if (!kept.TryGetValue(index, out var row))
+                for (var index = from; index < to; index++)
                 {
-                    row = _pool.Count > 0 ? _pool.Pop() : _create();
-                    row.Parent = this;
-                    _bind(row, index);
+                    if (!kept.TryGetValue(index, out var row))
+                    {
+                        row = _pool.Count > 0 ? _pool.Pop() : _create();
+                        row.Parent = this;
+                        _bind(row, index);
+                    }
+                    _realized.Add(row);
                 }
-                _realized.Add(row);
+            }
+            finally
+            {
+                _realizing = false;
             }
 
             _first = from;
@@ -276,6 +287,13 @@ namespace MonoGame.PortableUI.Controls
             _recycle?.Invoke(row);
             row.Parent = null;
             _pool.Push(row);
+        }
+
+        public override void InvalidateLayout(bool boundsChanged)
+        {
+            if (_realizing)
+                return;
+            base.InvalidateLayout(boundsChanged);
         }
 
         public override IEnumerable<Control> GetDescendants() => _realized;

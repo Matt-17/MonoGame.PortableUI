@@ -703,6 +703,15 @@ namespace MonoGame.PortableUI
             ActiveScreen?.HandleTextInput(character);
         }
 
+        /// <summary>
+        /// Routes an editing command (Backspace, Delete, Enter, ...) from a platform keyboard into the
+        /// focused control, for soft keyboards whose key presses are too short for polled keyboard state.
+        /// </summary>
+        public void HandleKeyCommand(KeyboardCommand command)
+        {
+            ActiveScreen?.HandleKeyCommand(command);
+        }
+
         private bool _disposed;
 
         /// <summary>

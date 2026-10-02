@@ -48,6 +48,8 @@ namespace MonoGame.PortableUI.Demo.Android
             _engine = ScreenEngine.Initialize(this, new ScreenEngineOptions
             {
                 ClipboardService = new AndroidClipboardService(),
+                // Android 12+ look: lists stretch at their ends instead of moving past them.
+                OverscrollEffect = MonoGame.PortableUI.Controls.OverscrollEffect.Stretch,
                 // Lay out in dp and draw at native resolution: touch targets get their Android size.
                 LayoutScale = global::Android.App.Application.Context.Resources?.DisplayMetrics?.Density ?? 1f,
                 Theme = PortableThemes.Default.CreateTheme()
@@ -59,7 +61,7 @@ namespace MonoGame.PortableUI.Demo.Android
                 // Back buffer = the view's real size (edge to edge it covers the system bars).
                 AndroidSurfaceSize.Follow(view, _graphics, _engine);
                 AndroidWindowInsets.Attach(view, _engine);
-                _engine.OnScreenKeyboard = new AndroidOnScreenKeyboard(view);
+                _engine.OnScreenKeyboard = new AndroidOnScreenKeyboard(view, _engine);
                 _engine.AccessibilityBridge = new MonoGame.PortableUI.Accessibility.AndroidAccessibilityBridge(view, _engine);
             }
         }

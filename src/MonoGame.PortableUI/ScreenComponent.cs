@@ -42,6 +42,13 @@ namespace MonoGame.PortableUI
             if (_spriteBatch == null || _screenEngine.ActiveScreen == null && _screenEngine.LeavingScreen == null)
                 return;
 
+            // Offscreen passes (clip shapes, overscroll stretch, blur) switch render targets mid-frame.
+            // With the default DiscardContents MonoGame clears the back buffer when switching back,
+            // wiping everything drawn before the pass (seen on Android as black areas).
+            var presentation = GraphicsDevice.PresentationParameters;
+            if (presentation.RenderTargetUsage != RenderTargetUsage.PreserveContents)
+                presentation.RenderTargetUsage = RenderTargetUsage.PreserveContents;
+
             var scale = _screenEngine.RenderScale;
             var offset = _screenEngine.RenderOffset;
             var scaled = Math.Abs(scale - 1f) > 0.0001f || offset.X != 0 || offset.Y != 0;

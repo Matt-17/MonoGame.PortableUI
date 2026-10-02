@@ -34,10 +34,17 @@
 - Virtualized `ListBox` and `DataGrid` (`IsVirtualizing`, on by default): only the rows in view get controls, recycled while scrolling; `ListBox.ScrollIndexIntoView`.
 - `ScreenEngineOptions.LayoutScale`: lay out in density-independent units and draw at native resolution (Android: the display density); rows and single-line text boxes grow to fit scaled text.
 - `ScreenEngine.HandleKeyCommand` and IME text routing in `AndroidOnScreenKeyboard`.
+- Touch scrolling: touch capture (the viewer that took a drag keeps it until the finger lifts), touch slop and axis-locked hand-off between nested viewers, animated fling from the finger's velocity and an animated rubber-band spring (`FlingDeceleration`, `RubberBandStiffness`).
+- `OverscrollEffect.Stretch` (Android 12+ stretch) besides the rubber band, per viewer or via `ScreenEngineOptions.OverscrollEffect`; `ScrollDirections.None`.
+- `ScreenEngineOptions.HoverOnTouch` (off by default): touch no longer leaves controls looking hovered.
+- Touch press feedback like Android: a finger only looks pressed after resting 100 ms (a drag that becomes a scroll never lights the row up); quick taps still flash briefly.
+- `AndroidSurfaceSize.Follow`: keeps the back buffer equal to the game view, which makes edge-to-edge windows work (verified on Android 14 and 16).
 - `ControlStyle.TransitionDuration` drives the button press animation (zero = no animation); `StateStyle.FocusVisualKind` of the Focused state selects the focus visual; `TextBlock.IsHeading` uses `Typography.HeadingSize`.
 
 ### Changed
 - Default `TextBox` padding is 10/4 (was 4).
+- Fixed: nested scroll viewers drifted (the inner one re-applied the outer scroll), which emptied lists after scrolling the page; unchanged Min/Max sizes no longer trigger a layout pass every frame.
+- Data grids whose columns fit no longer scroll sideways.
 - Fixed: taps were lost because the touch state was read twice per frame (introduced with keyboard/gamepad popup control).
 - Large layout/render performance work: per-pass measure cache, scroll shifting instead of re-layout, allocation-free visual-child walks, 9-sliced translucent rounded fills, cached text metrics (Grid layout of 500 controls 414 µs → 26 µs).
 - Many control fixes (fonts without a default character, theme fonts, hit-test order, touch panning in lists, Min/Max constraints, focus on hidden/removed controls, nested scrolling, navigation layout, popup layout, theme switching, RadioButton groups, selection after item removal, DataGrid template cells, TabControl clipping).

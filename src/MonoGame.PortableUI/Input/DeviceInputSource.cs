@@ -42,7 +42,27 @@ namespace MonoGame.PortableUI.Input
 
         public int HorizontalScrollWheelValue => Mouse.GetState().HorizontalScrollWheelValue;
 
-        public TouchCollection Touches => TouchPanel.GetState();
+        private TouchCollection _touches;
+        private System.TimeSpan _touchesTime = System.TimeSpan.MinValue;
+
+        /// <summary>
+        ///     The touch state for the current frame. <c>TouchPanel.GetState()</c> consumes
+        ///     pressed events, so it is read once per frame (keyed by <see cref="ScreenSystem.TotalTime"/>)
+        ///     and shared by every screen and surface that polls during that frame.
+        /// </summary>
+        public TouchCollection Touches
+        {
+            get
+            {
+                var now = ScreenSystem.TotalTime;
+                if (now != _touchesTime)
+                {
+                    _touchesTime = now;
+                    _touches = TouchPanel.GetState();
+                }
+                return _touches;
+            }
+        }
 
         public KeyboardState KeyboardState => Keyboard.GetState();
 

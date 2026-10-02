@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -234,11 +235,55 @@ namespace MonoGame.PortableUI.Tests
             var viewer = CreateViewer(new Size(100, 300));
             viewer.UpdateLayout(new Rect(0, 0, 100, 100));
 
+            ScreenSystem.TotalTime = TimeSpan.FromSeconds(10);
             viewer.OnTouchDown(new TouchEventArgs(new PointF(0, 50)));
-            viewer.OnTouchMove(new TouchEventArgs(new PointF(0, 0)));
-            viewer.OnTouchUp(new TouchEventArgs(new PointF(0, 0)));
+            ScreenSystem.TotalTime += TimeSpan.FromMilliseconds(16);
+            viewer.OnTouchMove(new TouchEventArgs(new PointF(0, 30)));
+            ScreenSystem.TotalTime += TimeSpan.FromMilliseconds(16);
+            viewer.OnTouchMove(new TouchEventArgs(new PointF(0, 10)));
+            viewer.OnTouchUp(new TouchEventArgs(new PointF(0, 10)));
+            var atRelease = viewer.Offset.Y;
 
-            Assert.AreEqual(200, viewer.Offset.Y);
+            // Momentum: the content keeps moving over the next frames, slows down, ends in range.
+            var previous = atRelease;
+            var advancedAfterRelease = false;
+            for (var frame = 0; frame < 180; frame++)
+            {
+                ScreenSystem.TotalTime += TimeSpan.FromMilliseconds(16);
+                viewer.OnFrameUpdate();
+                if (viewer.Offset.Y > previous + 0.01f)
+                    advancedAfterRelease = true;
+                previous = viewer.Offset.Y;
+            }
+
+            Assert.IsTrue(advancedAfterRelease, "the fling coasts after the finger lifts");
+            Assert.AreEqual(200, viewer.Offset.Y, 0.5f, "a fast flick runs to the end and settles there");
+        }
+
+        [TestMethod]
+        public void Rubber_band_swings_back_over_several_frames()
+        {
+            var viewer = CreateViewer(new Size(100, 300));
+            viewer.UpdateLayout(new Rect(0, 0, 100, 100));
+            ScreenSystem.TotalTime = TimeSpan.FromSeconds(20);
+
+            viewer.OnTouchDown(new TouchEventArgs(new PointF(0, 0)));
+            ScreenSystem.TotalTime += TimeSpan.FromMilliseconds(16);
+            viewer.OnTouchMove(new TouchEventArgs(new PointF(0, 30))); // pull past the top
+            ScreenSystem.TotalTime += TimeSpan.FromMilliseconds(300); // finger rests: no fling
+            viewer.OnTouchUp(new TouchEventArgs(new PointF(0, 30)));
+            Assert.IsTrue(viewer.Offset.Y < 0, "still over-scrolled right after release");
+
+            ScreenSystem.TotalTime += TimeSpan.FromMilliseconds(16);
+            viewer.OnFrameUpdate();
+            Assert.IsTrue(viewer.Offset.Y < 0 && viewer.Offset.Y > -30, $"one frame later it is on its way back ({viewer.Offset.Y})");
+
+            for (var frame = 0; frame < 60; frame++)
+            {
+                ScreenSystem.TotalTime += TimeSpan.FromMilliseconds(16);
+                viewer.OnFrameUpdate();
+            }
+            Assert.AreEqual(0, viewer.Offset.Y, "settles exactly at the edge");
         }
 
         [TestMethod]
