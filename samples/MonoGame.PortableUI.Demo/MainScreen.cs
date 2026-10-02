@@ -1463,21 +1463,12 @@ namespace MonoGame.PortableUI.Demo
             return (Math.Max(la, lb) + 0.05) / (Math.Min(la, lb) + 0.05);
         }
 
-        private Border FieldFrame(TextBox textBox, float height, Thickness margin)
+        private static Control FieldFrame(TextBox textBox, float height, Thickness margin)
         {
-            textBox.Margin = 0;
-            textBox.Height = Size.Auto;
-
-            return new Border
-            {
-                Height = height,
-                Margin = margin,
-                BackgroundBrush = FieldFrameBrush,
-                BorderColor = Palette.FieldBorder,
-                BorderWidth = new Thickness(IsGlassTheme ? 2 : 1),
-                Padding = new Thickness(2),
-                Content = textBox
-            };
+            // Frame, fill and inset look come from the theme's TextBox slot.
+            textBox.Margin = margin;
+            textBox.Height = height;
+            return textBox;
         }
 
         private Border InfoTile(string title, string detail, Color accent)

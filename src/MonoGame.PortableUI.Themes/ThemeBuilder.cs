@@ -75,7 +75,9 @@ public static class ThemeBuilder
         bool reducedMotion = false,
         bool glass = false,
         bool liquid = false,
-        string? danger = null)
+        string? danger = null,
+        Brush? backgroundBrush = null,
+        Brush? surfaceBrush = null)
     {
         var backgroundColor = Hex(background);
         var surfaceColor = Hex(surface);
@@ -106,8 +108,8 @@ public static class ThemeBuilder
             FieldBorder = primaryColor,
             DisabledSurface = Mix(surfaceColor, backgroundColor, 0.5f),
             DisabledText = Mix(textColor, backgroundColor, 0.45f),
-            BackgroundBrush = glass ? new GradientBrush(backgroundColor, Mix(primaryColor, backgroundColor, 0.78f), GradientDirection.DiagonalDown) : null,
-            SurfaceBrush = liquid ? new LiquidGlassBrush() : glass ? new AcrylicBrush(new Color((byte)surfaceColor.R, (byte)surfaceColor.G, (byte)surfaceColor.B, (byte)150)) : null,
+            BackgroundBrush = backgroundBrush ?? (glass ? new GradientBrush(backgroundColor, Mix(primaryColor, backgroundColor, 0.78f), GradientDirection.DiagonalDown) : null),
+            SurfaceBrush = surfaceBrush ?? (liquid ? new LiquidGlassBrush() : glass ? new AcrylicBrush(new Color((byte)surfaceColor.R, (byte)surfaceColor.G, (byte)surfaceColor.B, (byte)150)) : null),
             SurfaceAltBrush = glass ? new AcrylicBrush(new Color((byte)surfaceAltColor.R, (byte)surfaceAltColor.G, (byte)surfaceAltColor.B, (byte)168)) : null,
             SelectionBrush = new LinearGradientBrush(new GradientStop(0, selectionColor), new GradientStop(1, primaryColor)) { AngleDegrees = 0 },
             FieldFrameBrush = glass ? new AcrylicBrush(new Color((byte)surfaceAltColor.R, (byte)surfaceAltColor.G, (byte)surfaceAltColor.B, (byte)160)) : null
