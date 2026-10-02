@@ -5,6 +5,7 @@ using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls.Events;
 using MonoGame.PortableUI.Controls.Input;
+using MonoGame.PortableUI.Input;
 using MonoGame.PortableUI.Media;
 using MonoGame.PortableUI.Text;
 
@@ -99,6 +100,9 @@ namespace MonoGame.PortableUI.Controls
         public event EventHandler? EnterPressed;
 
         public string? InputScope { get; set; }
+
+        /// <summary>Tells the platform keyboard what is typed here (digits, e-mail, ...).</summary>
+        public TextInputPurpose InputPurpose { get; set; }
 
         public new string Text
         {
@@ -332,6 +336,19 @@ namespace MonoGame.PortableUI.Controls
             base.OnGotFocus(args);
             ScreenEngine.Instance?.RequestKeyboard(InputScope);
             AttachKeyboard(ScreenEngine.Instance?.CurrentKeyboard);
+            if (!IsReadOnly && (Screen?.ScreenEngine ?? ScreenEngine.Instance) is { } engine)
+            {
+                engine.OnScreenKeyboard.Show(new OnScreenKeyboardRequest
+                {
+                    Purpose = PasswordChar != default ? TextInputPurpose.Password : InputPurpose,
+                    Text = PasswordChar != default ? "" : Text,
+                    Hint = HintText,
+                    IsMultiline = IsMultiline,
+                    MaxLength = MaxLength,
+                    FieldBounds = ClippingRect,
+                    Commit = text => Text = text
+                });
+            }
         }
 
         protected internal override void OnLostFocus(LostFocusEventArgs args)
@@ -339,6 +356,8 @@ namespace MonoGame.PortableUI.Controls
             base.OnLostFocus(args);
             DetachKeyboard();
             ScreenEngine.Instance?.HideKeyboard();
+            // Focus moving to another text field shows the keyboard again right away.
+            (Screen?.ScreenEngine ?? ScreenEngine.Instance)?.OnScreenKeyboard.Hide();
             _isPointerSelecting = false;
         }
 

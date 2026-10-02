@@ -14,6 +14,9 @@ namespace MonoGame.PortableUI
         public PointF ToolTipOffset { get; set; } = new PointF(12, 18);
         public float ToolTipScreenPadding { get; set; } = 8;
         public IClipboardService ClipboardService { get; set; } = NullClipboardService.Instance;
+
+        /// <summary>The platform software keyboard text fields raise (default: none, for desktop).</summary>
+        public Input.IOnScreenKeyboard OnScreenKeyboard { get; set; } = Input.NullOnScreenKeyboard.Instance;
         public bool AddComponentToGame { get; set; } = true;
         public ScreenSizeMode ScreenSizeMode { get; set; } = ScreenSizeMode.Viewport;
         public Effect? Effect { get; set; }
