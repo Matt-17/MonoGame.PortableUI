@@ -51,6 +51,12 @@ namespace MonoGame.PortableUI.Tests
             Update(engine);
         }
 
+        private static void Tick(ScreenEngine engine)
+        {
+            ScreenSystem.TotalTime += TimeSpan.FromMilliseconds(16);
+            Update(engine);
+        }
+
         private static void Press(ScreenEngine engine, VirtualInputSource source, Keys key)
         {
             source.SetKeyboardState(new KeyboardState(key));
@@ -84,6 +90,38 @@ namespace MonoGame.PortableUI.Tests
             Assert.IsNotNull(closed);
             Assert.IsTrue(closed.Cancelled);
             Assert.IsFalse(modal.IsOpen);
+        }
+
+        [TestMethod]
+        public void The_scrim_tap_that_closes_a_modal_does_not_click_the_screen_below()
+        {
+            using var game = new Game();
+            var (engine, screen, source, background) = Setup(game);
+            screen.InputSource = source;
+            engine.TransitionDuration = TimeSpan.FromMilliseconds(250);
+            var behindClicks = 0;
+            background.Click += (_, _) => behindClicks++;
+            var modal = Open(engine, source, new Border { Width = 100, Height = 60 });
+
+            for (var i = 0; i < 30; i++)
+                Tick(engine);
+
+            // The press lands on the scrim right over the button below and closes the modal (with
+            // its exit animation); the release then happens on the revealed screen.
+            var at = new PointF(20, 10);
+            source.SetPointer(at, leftDown: true);
+            Tick(engine);
+            for (var i = 0; i < 5; i++)
+                Tick(engine);
+            source.SetPointer(at);
+            for (var i = 0; i < 30; i++)
+                Tick(engine);
+
+            Assert.IsFalse(modal.IsOpen);
+            Assert.AreEqual(0, behindClicks, "the dismissing tap must not fall through to the button below");
+
+            Click(engine, source, new PointF(20, 10));
+            Assert.AreEqual(1, behindClicks, "the next real click works");
         }
 
         [TestMethod]
