@@ -2,9 +2,15 @@
 
 ## Unreleased
 
+- **Button variants:** `Button.Variant` (Primary/Secondary/Danger) styled by the new `PortableTheme.PrimaryButton`/`SecondaryButton`/`DangerButton` slots, so call-to-action buttons follow the theme instead of a flat fill.
+- **Chrome brushes:** `ChamferBrush` (cut corners, gradients, accent bar), `FrameBrush` (concentric rings, notched pixel corners), chained shadows (`ShadowStyle.Also`), bevel lines scaled under `LayoutScale` (`BrushContext.Scale`).
+- **Themes:** Windows 95, XP Luna, Aero, Aqua, E-Ink, Mac 1-bit, Game Boy and Neumorphism reworked to match their originals; five new game UI themes (Sci-Fi HUD, Dark Fantasy RPG, Cozy Casual, Tactical Ops, Phantom Strike) with four new OFL fonts — 42 themes in total.
+- **Fix:** `TextBox` draws its theme's border, corner radius and shadows, not only the fill.
+- **Demo:** controls follow the theme instead of demo-set colors; `--screenshot-themes id,id` renders a subset.
+
 ## 0.3.0-alpha.2
 
-First beta: Android-ready (dp layout, edge to edge, safe areas, soft keyboard, TalkBack bridge, touch scrolling with fling and overscroll), virtualized lists and grids, per-engine focus, modals, toasts, menus, localization, text scaling and an optional FontStashSharp package.
+Android-ready (dp layout, edge to edge, safe areas, soft keyboard, TalkBack bridge, touch scrolling with fling and overscroll), virtualized lists and grids, per-engine focus, modals, toasts, menus, localization, text scaling and an optional FontStashSharp package.
 
 ### Known limitations
 - Glass (backdrop) blur radii are not scaled by `LayoutScale` yet, so blurred surfaces look slightly sharper on high-density screens.

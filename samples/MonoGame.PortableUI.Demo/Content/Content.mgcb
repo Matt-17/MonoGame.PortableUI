@@ -85,6 +85,30 @@
 /processorParam:TextureFormat=Compressed
 /build:Fonts\orbitron-regular-14.spritefont
 
+#begin Fonts\cinzel-regular-14.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:TextureFormat=Compressed
+/build:Fonts\cinzel-regular-14.spritefont
+
+#begin Fonts\fredoka-regular-14.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:TextureFormat=Compressed
+/build:Fonts\fredoka-regular-14.spritefont
+
+#begin Fonts\barlowcondensed-regular-14.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:TextureFormat=Compressed
+/build:Fonts\barlowcondensed-regular-14.spritefont
+
+#begin Fonts\anton-regular-14.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:TextureFormat=Compressed
+/build:Fonts\anton-regular-14.spritefont
+
 #begin Images/ic_delete.png
 /importer:TextureImporter
 /processor:TextureProcessor
