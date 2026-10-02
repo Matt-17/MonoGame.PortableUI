@@ -123,8 +123,8 @@ namespace MonoGame.PortableUI.Tests
 
             Assert.IsTrue(acrylic.RequiresBackdrop);
             Assert.IsTrue(liquid.RequiresBackdrop);
-            Assert.IsTrue(liquid.EdgeRefractionStrength > 0);
-            Assert.IsTrue(liquid.SpecularSweepStrength > 0);
+            Assert.IsTrue(liquid.Refraction > 0);
+            Assert.IsTrue(liquid.Highlight > 0 && liquid.Frost < 0.5f, "clear, lit glass");
             Assert.IsTrue(liquid.SaturationBoost > acrylic.SaturationBoost);
         }
 

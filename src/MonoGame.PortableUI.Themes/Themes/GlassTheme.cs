@@ -1,3 +1,5 @@
+using System;
+
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
@@ -6,151 +8,172 @@ using MonoGame.PortableUI.Media;
 
 namespace MonoGame.PortableUI.Themes;
 
-/// <summary>Frosted glass: translucent frosted panes over a night backdrop with soft light bands.</summary>
+/// <summary>
+///     Frosted glass, light: milky white panes with a heavy blur over a bright pastel wallpaper,
+///     dark crisp text, a clear blue accent, rounded cards on soft shadows — the airy look of
+///     current mobile and desktop systems.
+/// </summary>
 public static class GlassTheme
 {
     public static ThemeDefinition Create()
     {
-        var night = new Color(9, 14, 28);
-        var cyan = new Color(97, 242, 226, 214);
-        // Smoked frost: a heavy blur under a dark tint keeps white text readable over any backdrop,
-        // the light sheen and grain keep it reading as glass.
-        var pane = new FrostedGlassBrush(new Color(14, 22, 38, 168), new Color(255, 255, 255, 150), 28, 0.3f);
-        var paneAlt = new FrostedGlassBrush(new Color(44, 60, 82, 150), new Color(255, 255, 255, 170), 24, 0.3f);
-        var field = new FrostedGlassBrush(new Color(6, 10, 20, 150), new Color(255, 255, 255, 110), 20, 0.2f);
+        var ink = ThemeBuilder.Hex("#1C1C1E");
+        var blue = ThemeBuilder.Hex("#007AFF");
+        // Milky frost: strong blur, white tint, a bright sheen on the top edge, fine grain.
+        var pane = new FrostedGlassBrush(new Color(255, 255, 255, 150), new Color(255, 255, 255, 230), 30, 0.18f);
+        var paneAlt = new FrostedGlassBrush(new Color(255, 255, 255, 185), new Color(255, 255, 255, 240), 26, 0.14f);
+        var field = new FrostedGlassBrush(new Color(255, 255, 255, 205), new Color(255, 255, 255, 200), 20, 0.1f);
         var palette = new ThemePalette
         {
-            Background = night,
-            Surface = new Color(14, 22, 38, 168),
-            SurfaceAlt = new Color(44, 60, 82, 150),
-            Text = new Color(238, 250, 255),
-            HeadingText = Color.White,
-            MutedText = new Color(179, 211, 222),
-            Primary = cyan,
-            Secondary = new Color(255, 144, 116, 214),
-            Warning = new Color(255, 211, 124, 214),
-            Danger = new Color(255, 86, 128, 218),
-            Info = new Color(136, 148, 255, 214),
-            Selection = cyan,
-            SelectionText = new Color(7, 20, 29),
-            TabText = new Color(238, 250, 255),
-            SelectedTabText = new Color(7, 20, 29),
-            FieldFrame = new Color(6, 10, 20, 150),
-            FieldBorder = new Color(255, 255, 255, 146),
-            DisabledSurface = new Color(20, 29, 41, 164),
-            DisabledText = new Color(142, 163, 174),
+            Background = ThemeBuilder.Hex("#EEF0F8"),
+            Surface = new Color(255, 255, 255, 150),
+            SurfaceAlt = new Color(255, 255, 255, 185),
+            Text = ink,
+            HeadingText = ink,
+            MutedText = ThemeBuilder.Hex("#55556A"),
+            Primary = blue,
+            Secondary = ThemeBuilder.Hex("#5856D6"),
+            Warning = ThemeBuilder.Hex("#FF9500"),
+            Danger = ThemeBuilder.Hex("#FF3B30"),
+            Info = ThemeBuilder.Hex("#32ADE6"),
+            Selection = blue,
+            SelectionText = Color.White,
+            TabText = ThemeBuilder.Hex("#3A3A48"),
+            SelectedTabText = ink,
+            FieldFrame = new Color(255, 255, 255, 205),
+            FieldBorder = new Color(0, 0, 0, 28),
+            DisabledSurface = new Color(255, 255, 255, 90),
+            DisabledText = ThemeBuilder.Hex("#9A9AAA"),
             BackgroundBrush = new GlassBackdropBrush(),
             SurfaceBrush = pane,
             SurfaceAltBrush = paneAlt,
-            SelectionBrush = new GradientBrush(cyan, new Color(255, 211, 124, 192), GradientDirection.Horizontal),
+            SelectionBrush = ThemeBuilder.Solid(blue),
             FieldFrameBrush = field
         };
 
-        return ThemeBuilder.CreateDefinition("glass", "Frosted Glass", "atkinsonhyperlegible", ThemeEra.Glass, ThemeBrightness.Dark, palette, night,
+        return ThemeBuilder.CreateDefinition("glass", "Frosted Glass", "roboto", ThemeEra.Glass, ThemeBrightness.Light, palette, palette.Background,
             styleTheme: theme =>
             {
-                theme.TextBoxBackgroundBrush = field;
+                const float radius = 12;
+                var hairline = ThemeBuilder.Solid(new Color(255, 255, 255, 170));
+                ThemeBuilder.Chrome(theme.Button, paneAlt, hairline, 1, radius);
                 theme.ButtonBackgroundBrush = paneAlt;
-                theme.ButtonHoverBrush = new FrostedGlassBrush(new Color(97, 242, 226, 82), new Color(255, 255, 255, 216), 18, 0.38f);
-                theme.ButtonPressedBrush = new FrostedGlassBrush(new Color(255, 144, 116, 118), new Color(255, 255, 255, 190), 12, 0.26f);
-                theme.ToolTipBackgroundBrush = new FrostedGlassBrush(new Color(9, 14, 28, 228), new Color(255, 255, 255, 120), 10, 0.14f);
+                theme.ButtonTextColor = ink;
+                theme.ButtonHoverTextColor = ink;
+                theme.ButtonPressedTextColor = ink;
+                theme.ButtonHoverBrush = ThemeBuilder.Solid(new Color(255, 255, 255, 90));
+                theme.ButtonPressedBrush = ThemeBuilder.Solid(new Color(0, 0, 0, 22));
+                theme.Button.InvalidateResolvedCache();
+
+                // Call-to-action buttons are solid colour with a soft top light, like filled system buttons.
+                Filled(theme.PrimaryButton, "#2B8CFF", "#0066E0", radius);
+                Filled(theme.SecondaryButton, "#7472E8", "#4B49C8", radius);
+                Filled(theme.DangerButton, "#FF5A50", "#E5251B", radius);
+                theme.VariantButtonHoverBrush = ThemeBuilder.Solid(new Color(255, 255, 255, 40));
+                theme.VariantButtonPressedBrush = ThemeBuilder.Solid(new Color(0, 0, 0, 40));
+
+                // Cards: rounded, with a hairline light edge.
+                ThemeBuilder.Chrome(theme.Panel, null, null, 0, 22);
+
+                var fieldBorder = ThemeBuilder.Solid(new Color(0, 0, 0, 26));
+                foreach (var style in new[] { theme.TextBox, theme.ListBox })
+                    ThemeBuilder.Chrome(style, field, fieldBorder, 1, 10);
+                ThemeBuilder.Chrome(theme.ComboBox, paneAlt, hairline, 1, radius);
+                theme.TextBoxBackgroundBrush = field;
+                theme.TextBoxTextColor = ink;
+                theme.TextBoxHintTextColor = ThemeBuilder.Hex("#8E8E9A");
+                theme.TextBoxCursorBrush = ThemeBuilder.Solid(blue);
+                theme.TextBoxSelectionBrush = ThemeBuilder.Solid(new Color(0, 122, 255, 70));
+                theme.ListBoxBackgroundBrush = field;
+                theme.ListBoxItemBackgroundBrush = ThemeBuilder.Solid(Color.Transparent);
+                theme.ListBoxItemTextColor = ink;
+                theme.ListBoxSelectedItemBackgroundBrush = ThemeBuilder.Solid(blue);
+                theme.ListBoxSelectedItemTextColor = Color.White;
+                theme.ComboBoxDropDownBackgroundBrush = new FrostedGlassBrush(new Color(255, 255, 255, 220), new Color(255, 255, 255, 240), 24, 0.1f);
+                theme.ComboBoxGlyphColor = ThemeBuilder.Hex("#3A3A48");
+                theme.ContextMenuBackgroundBrush = theme.ComboBoxDropDownBackgroundBrush;
+
+                // Tabs as a segmented control: frosted strip, the selected segment bright white.
+                theme.TabHeaderBackgroundBrush = new FrostedGlassBrush(new Color(255, 255, 255, 110), new Color(255, 255, 255, 200), 24, 0.12f);
+                theme.TabSelectedHeaderBackgroundBrush = ThemeBuilder.Solid(new Color(255, 255, 255, 240));
+                theme.TabHeaderTextColor = ThemeBuilder.Hex("#3A3A48");
+                theme.TabSelectedHeaderTextColor = ink;
+
+                theme.ProgressBarBackgroundBrush = ThemeBuilder.Solid(new Color(0, 0, 0, 22));
+                theme.ProgressBarFillBrush = new LinearGradientBrush(new GradientStop(0, blue), new GradientStop(1, ThemeBuilder.Hex("#5AC8FA"))) { AngleDegrees = 0 };
+                theme.SliderTrackBrush = ThemeBuilder.Solid(new Color(0, 0, 0, 30));
+                theme.SliderFillBrush = ThemeBuilder.Solid(blue);
+                theme.SliderThumbBrush = ThemeBuilder.Solid(Color.White);
+                theme.SliderThumbBorderBrush = ThemeBuilder.Solid(new Color(0, 0, 0, 40));
+                theme.ScrollBarGutterBrush = ThemeBuilder.Solid(Color.Transparent);
+                theme.ScrollBarBrush = ThemeBuilder.Solid(new Color(0, 0, 0, 70));
+                theme.ScrollBarHoverBrush = ThemeBuilder.Solid(new Color(0, 0, 0, 110));
+                theme.CheckBoxBoxBackgroundBrush = ThemeBuilder.Solid(new Color(255, 255, 255, 220));
+                theme.CheckBoxBoxBorderBrush = ThemeBuilder.Solid(new Color(0, 0, 0, 70));
+                theme.CheckBoxBoxBorderWidth = 1;
+                theme.CheckBoxCheckMarkBrush = ThemeBuilder.Solid(blue);
+                theme.CheckBoxTextColor = ink;
+                theme.RadioButtonDotBrush = ThemeBuilder.Solid(blue);
+                theme.ToggleSwitchOffTrackBrush = ThemeBuilder.Solid(new Color(120, 120, 128, 70));
+                theme.ToggleSwitchOnTrackBrush = ThemeBuilder.Solid(ThemeBuilder.Hex("#34C759"));
+                theme.ToggleSwitchKnobBrush = ThemeBuilder.Solid(Color.White);
+                theme.DataGridHeaderBackgroundBrush = ThemeBuilder.Solid(new Color(255, 255, 255, 150));
+                theme.DataGridHeaderTextColor = ThemeBuilder.Hex("#3A3A48");
+                theme.DataGridAlternateRowBackgroundBrush = ThemeBuilder.Solid(new Color(255, 255, 255, 70));
+                theme.DataGridGridLinesBrush = ThemeBuilder.Solid(new Color(0, 0, 0, 18));
+                theme.ToolTipBackgroundBrush = new FrostedGlassBrush(new Color(40, 40, 46, 225), new Color(255, 255, 255, 60), 12, 0.08f);
+                theme.ToolTipBorderBrush = null;
                 theme.ToolTipTextColor = Color.White;
-                ThemeBuilder.Chrome(theme.Button, null, ThemeBuilder.Solid(new Color(255, 255, 255, 96)), 1, 10);
-                // Colored actions: tinted glass with the same rounded light edge as the panes.
-                ThemeBuilder.Variants(theme, (style, color) =>
-                {
-                    ThemeBuilder.Chrome(style, new FrostedGlassBrush(new Color((byte)color.R, (byte)color.G, (byte)color.B, (byte)200), new Color(255, 255, 255, 200), 16, 0.2f), ThemeBuilder.Solid(new Color(255, 255, 255, 140)), 1, 10);
-                    style.Disabled.Background = new FrostedGlassBrush(new Color(20, 29, 41, 164), new Color(255, 255, 255, 90), 16, 0.2f);
-                });
-                theme.PanelShadow = new ShadowStyle { Color = new Color(0, 0, 0, 110), Offset = new Vector2(0, 10), Blur = 18 };
+                theme.ProgressIndicatorForeground = blue;
+                theme.FocusBorderBrush = ThemeBuilder.Solid(new Color(0, 122, 255, 170));
+                theme.ButtonShadow = new ShadowStyle { Color = new Color(40, 50, 90, 26), Offset = new Vector2(0, 2), Blur = 6 };
+                theme.PanelShadow = new ShadowStyle { Color = new Color(40, 50, 90, 46), Offset = new Vector2(0, 12), Blur = 30 };
             });
+    }
+
+    private static void Filled(ControlStyle style, string top, string bottom, float radius)
+    {
+        ThemeBuilder.Chrome(style, ThemeBuilder.Gloss((0, top), (1, bottom)), null, 0, radius);
+        style.Normal.TextColor = Color.White;
+        style.Disabled.Background = ThemeBuilder.Solid(new Color(255, 255, 255, 110));
+        style.Disabled.TextColor = ThemeBuilder.Hex("#9A9AAA");
+        style.InvalidateResolvedCache();
     }
 }
 
 /// <summary>
-///     The night backdrop the frosted panes blur over: base gradient, soft diagonal light
-///     bands, faint underlay "cards" and a subtle grid — content for the glass to refract.
+///     The bright wallpaper the frosted panes blur: a soft pastel gradient with large colour orbs,
+///     so the frost picks up gentle colour shifts as panes move across it.
 /// </summary>
 public sealed class GlassBackdropBrush : Brush
 {
-    private readonly GradientBrush _baseGradient = new GradientBrush(
-        new Color(9, 14, 28),
-        new Color(42, 61, 78),
-        GradientDirection.DiagonalDown);
+    private readonly GradientBrush _base = new(ThemeBuilder.Hex("#F4EEFF"), ThemeBuilder.Hex("#E6F2FF"), GradientDirection.DiagonalDown);
+    private readonly RadialGradientBrush _peach = Orb(ThemeBuilder.Hex("#FFB199"));
+    private readonly RadialGradientBrush _lilac = Orb(ThemeBuilder.Hex("#B69CFF"));
+    private readonly RadialGradientBrush _sky = Orb(ThemeBuilder.Hex("#7CC6FF"));
+    private readonly RadialGradientBrush _mint = Orb(ThemeBuilder.Hex("#8BE3C9"));
 
-    public override void Draw(SpriteBatch spriteBatch, Rect rect)
-    {
-        Draw(spriteBatch, rect, 1);
-    }
+    private static RadialGradientBrush Orb(Color color) =>
+        new(new GradientStop(0, color), new GradientStop(0.5f, new Color((byte)color.R, (byte)color.G, (byte)color.B, (byte)140)), new GradientStop(1, Color.Transparent));
+
+    public override void Draw(SpriteBatch spriteBatch, Rect rect) => Draw(spriteBatch, rect, 1);
 
     public override void Draw(SpriteBatch spriteBatch, Rect rect, float opacity)
     {
         if (rect.Width <= 0 || rect.Height <= 0)
             return;
-
-        _baseGradient.Draw(spriteBatch, rect, opacity);
-        DrawSoftBand(spriteBatch, rect, 0.18f, 0.16f, rect.Width * 0.75f, 72, -0.32f, new Color(84, 237, 218, 128), opacity);
-        DrawSoftBand(spriteBatch, rect, 0.72f, 0.18f, rect.Width * 0.7f, 64, 0.28f, new Color(255, 149, 118, 116), opacity);
-        DrawSoftBand(spriteBatch, rect, 0.54f, 0.64f, rect.Width * 0.9f, 92, -0.24f, new Color(118, 131, 255, 98), opacity);
-        DrawSoftBand(spriteBatch, rect, 0.22f, 0.86f, rect.Width * 0.65f, 58, 0.2f, new Color(255, 217, 128, 82), opacity);
-        DrawUnderlayCards(spriteBatch, rect, opacity);
-        DrawGrid(spriteBatch, rect, opacity);
+        _base.Draw(spriteBatch, rect, opacity);
+        var size = Math.Max(rect.Width, rect.Height);
+        DrawOrb(spriteBatch, _peach, rect, 0.85f, 0.15f, size * 0.6f, opacity);
+        DrawOrb(spriteBatch, _lilac, rect, 0.1f, 0.35f, size * 0.55f, opacity);
+        DrawOrb(spriteBatch, _sky, rect, 0.55f, 0.9f, size * 0.6f, opacity);
+        DrawOrb(spriteBatch, _mint, rect, 0.95f, 0.85f, size * 0.38f, opacity);
     }
 
-    private static void DrawSoftBand(SpriteBatch spriteBatch, Rect rect, float x, float y, float width, float height, float rotation, Color color, float opacity)
+    private static void DrawOrb(SpriteBatch spriteBatch, Brush orb, Rect rect, float x, float y, float diameter, float opacity)
     {
-        for (var i = -3; i <= 3; i++)
-        {
-            var alphaScale = 1f - System.Math.Abs(i) * 0.18f;
-            var bandColor = new Color(color.R, color.G, color.B, (byte)(color.A * alphaScale));
-            DrawRotatedRect(spriteBatch, rect, x, y + i * 0.01f, width, height + System.Math.Abs(i) * 16, rotation, bandColor, opacity);
-        }
-    }
-
-    private static void DrawUnderlayCards(SpriteBatch spriteBatch, Rect rect, float opacity)
-    {
-        DrawRect(spriteBatch, rect.Left + rect.Width * 0.05f, rect.Top + rect.Height * 0.2f, 250, 46, new Color(255, 255, 255, 35), opacity);
-        DrawRect(spriteBatch, rect.Left + rect.Width * 0.08f, rect.Top + rect.Height * 0.29f, 165, 18, new Color(84, 237, 218, 84), opacity);
-        DrawRect(spriteBatch, rect.Left + rect.Width * 0.08f, rect.Top + rect.Height * 0.34f, 220, 18, new Color(255, 255, 255, 28), opacity);
-
-        DrawRect(spriteBatch, rect.Left + rect.Width * 0.72f, rect.Top + rect.Height * 0.2f, 210, 42, new Color(255, 149, 118, 70), opacity);
-        DrawRect(spriteBatch, rect.Left + rect.Width * 0.76f, rect.Top + rect.Height * 0.28f, 150, 18, new Color(255, 255, 255, 30), opacity);
-        DrawRect(spriteBatch, rect.Left + rect.Width * 0.78f, rect.Top + rect.Height * 0.34f, 92, 18, new Color(118, 131, 255, 60), opacity);
-
-        DrawRect(spriteBatch, rect.Left + rect.Width * 0.38f, rect.Top + rect.Height * 0.77f, 300, 38, new Color(255, 255, 255, 28), opacity);
-        DrawRect(spriteBatch, rect.Left + rect.Width * 0.42f, rect.Top + rect.Height * 0.84f, 190, 16, new Color(84, 237, 218, 58), opacity);
-    }
-
-    private static void DrawGrid(SpriteBatch spriteBatch, Rect rect, float opacity)
-    {
-        const int spacing = 44;
-        var verticalColor = new Color(255, 255, 255, 18);
-        var horizontalColor = new Color(255, 255, 255, 12);
-
-        for (var x = rect.Left; x < rect.Right; x += spacing)
-            DrawRect(spriteBatch, x, rect.Top, 1, rect.Height, verticalColor, opacity);
-
-        for (var y = rect.Top; y < rect.Bottom; y += spacing)
-            DrawRect(spriteBatch, rect.Left, y, rect.Width, 1, horizontalColor, opacity);
-    }
-
-    private static void DrawRotatedRect(SpriteBatch spriteBatch, Rect rect, float x, float y, float width, float height, float rotation, Color color, float opacity)
-    {
-        var position = new Vector2(rect.Left + rect.Width * x, rect.Top + rect.Height * y);
-        spriteBatch.Draw(
-            Primitives.Pixel(spriteBatch),
-            position,
-            null,
-            ApplyOpacity(color, opacity),
-            rotation,
-            new Vector2(0.5f, 0.5f),
-            new Vector2(width, height),
-            SpriteEffects.None,
-            0);
-    }
-
-    private static void DrawRect(SpriteBatch spriteBatch, float left, float top, float width, float height, Color color, float opacity)
-    {
-        spriteBatch.Draw(Primitives.Pixel(spriteBatch), new Rect(left, top, width, height), ApplyOpacity(color, opacity));
+        var cx = rect.Left + rect.Width * x;
+        var cy = rect.Top + rect.Height * y;
+        orb.Draw(spriteBatch, new Rect(cx - diameter / 2, cy - diameter / 2, diameter, diameter), opacity);
     }
 }

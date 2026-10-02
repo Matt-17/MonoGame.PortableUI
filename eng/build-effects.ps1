@@ -10,7 +10,7 @@ $compiled = Join-Path $root "src/MonoGame.PortableUI/Effects/compiled"
 dotnet tool restore
 New-Item -ItemType Directory -Force -Path $compiled | Out-Null
 
-foreach ($name in @("Primitives", "Blur", "PostFx")) {
+foreach ($name in @("Primitives", "Blur", "PostFx", "LiquidGlass")) {
     $input = Join-Path $source "$name.fx"
     $output = Join-Path $compiled "$name.ogl.mgfxo"
     dotnet mgfxc $input $output /Profile:OpenGL

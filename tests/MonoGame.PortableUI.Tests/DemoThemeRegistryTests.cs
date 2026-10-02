@@ -131,8 +131,7 @@ namespace MonoGame.PortableUI.Tests
             AssertFrosted(preset.Palette.SurfaceAltBrush);
             AssertFrosted(preset.Palette.FieldFrameBrush);
             AssertFrosted(theme.ButtonBackgroundBrush);
-            AssertFrosted(theme.ButtonHoverBrush);
-            AssertFrosted(theme.ButtonPressedBrush);
+            // Hover/pressed are light overlays on the frosted face, not glass of their own.
             AssertFrosted(theme.TextBoxBackgroundBrush);
             Assert.IsTrue(((FrostedGlassBrush)preset.Palette.SurfaceBrush!).TintColor.A < byte.MaxValue);
         }

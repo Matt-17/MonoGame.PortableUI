@@ -31,7 +31,6 @@ namespace MonoGame.PortableUI.Demo
         private Brush SurfaceAltBrush => Palette.SurfaceAltBrush ?? Palette.SurfaceAlt;
         private Brush SelectionBrush => Palette.SelectionBrush ?? Palette.Selection;
         private Brush FieldFrameBrush => Palette.FieldFrameBrush ?? Palette.FieldFrame;
-        private bool IsGlassTheme => string.Equals(_themePreset.Id, "glass", StringComparison.OrdinalIgnoreCase);
 
         public MainScreen(Texture2D deleteIcon, DemoThemePreset themePreset, Action<DemoThemePreset> applyTheme)
         {
@@ -198,13 +197,10 @@ namespace MonoGame.PortableUI.Demo
         {
             var tabs = new TabControl
             {
-                BackgroundBrush = IsGlassTheme ? null : SurfaceBrush,
+                // Glass cards float over the wallpaper; no pane behind the tab content.
+                BackgroundBrush = SurfaceBrush.RequiresBackdrop ? null : SurfaceBrush,
                 HeaderHeight = 38
             };
-            // Header chrome comes from the theme; glass themes only get a translucent strip.
-            if (IsGlassTheme)
-                tabs.HeaderBackground = new SolidColorBrush(new Color(255, 255, 255, 26));
-
             tabs.Items.Add(new TabItem { Header = "Gallery", Content = CreateGalleryTab() });
             tabs.Items.Add(new TabItem { Header = "Inspector", Content = CreateInspectorTab() });
             tabs.Items.Add(new TabItem { Header = "Controls", Content = CreateControlsTab() });
@@ -1411,20 +1407,18 @@ namespace MonoGame.PortableUI.Demo
 
         private StackPanel PanelStack(string title)
         {
-            var panel = IsGlassTheme
-                ? new GlassStackPanel
-                {
-                    BorderBrush = new SolidColorBrush(new Color(255, 255, 255, 116)),
-                    HighlightBrush = new SolidColorBrush(new Color(255, 255, 255, 150))
-                }
-                : new StackPanel();
+            // Plain card: background, corners and shadow all come from the theme.
+            var panel = new StackPanel();
 
             panel.Orientation = Orientation.Vertical;
             panel.Margin = new Thickness(0, 0, 12, 0);
             panel.Padding = new Thickness(14, 10, 14, 14);
-            panel.VerticalAlignment = IsGlassTheme ? VerticalAlignment.Top : VerticalAlignment.Stretch;
+            panel.VerticalAlignment = VerticalAlignment.Stretch;
             panel.BackgroundBrush = SurfaceBrush;
             panel.Shadow = CurrentTheme?.PanelShadow;
+            // Card corners come from the theme's Panel slot (liquid/frosted cards are rounded).
+            if (CurrentTheme?.Panel.Normal.CornerRadius is { IsEmpty: false } radius)
+                panel.CornerRadius = radius;
             panel.AddChild(Label(title, Palette.HeadingText, 17, new Thickness(0, 0, 0, 8)));
             return panel;
         }
