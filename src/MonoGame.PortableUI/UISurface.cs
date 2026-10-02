@@ -180,7 +180,22 @@ namespace MonoGame.PortableUI
             var distortion = BarrelDistortion();
             if (distortion > 0)
                 surfacePoint = PostProcessManager.InverseBarrel(surfacePoint, rect, distortion);
-            return rect.Contains(surfacePoint);
+            // Half a pixel of slack: a point exactly on the edge survives the barrel round trip.
+            return surfacePoint.X > -0.5f && surfacePoint.Y > -0.5f && surfacePoint.X < _width + 0.5f && surfacePoint.Y < _height + 0.5f;
+        }
+
+        /// <summary>The UI point under a point of the (curved) picture — undoes a CRT barrel.</summary>
+        public PointF MapDisplayToUi(PointF surfacePoint)
+        {
+            var distortion = BarrelDistortion();
+            return distortion > 0 ? PostProcessManager.InverseBarrel(surfacePoint, new Rect(0, 0, _width, _height), distortion) : surfacePoint;
+        }
+
+        /// <summary>Where a UI point appears on the (curved) picture — applies a CRT barrel.</summary>
+        public PointF MapUiToDisplay(PointF uiPoint)
+        {
+            var distortion = BarrelDistortion();
+            return distortion > 0 ? PostProcessManager.ForwardBarrel(uiPoint, new Rect(0, 0, _width, _height), distortion) : uiPoint;
         }
 
         private float BarrelDistortion()

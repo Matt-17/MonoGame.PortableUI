@@ -20,6 +20,9 @@ namespace MonoGame.PortableUI
         private readonly UISurface _surface;
         private readonly VirtualInputSource _input;
         private bool _releaseKeyWasDown;
+        // The pointer lives in UI space, where the picture is a plain rectangle: moving up along
+        // the left edge runs straight along the edge, and the CRT curve only bends how it is shown.
+        private PointF _uiPosition;
 
         public SurfacePointerCapture(UISurface surface, VirtualInputSource input)
         {
@@ -30,7 +33,7 @@ namespace MonoGame.PortableUI
         /// <summary>True while the pointer belongs to the surface.</summary>
         public bool IsCaptured { get; private set; }
 
-        /// <summary>The captured pointer, in surface units.</summary>
+        /// <summary>The captured pointer as shown on the (curved) picture, in surface units.</summary>
         public PointF Position { get; private set; }
 
         /// <summary>Surface units per pixel of mouse movement (1 = one pixel moves one surface pixel).</summary>
@@ -47,7 +50,8 @@ namespace MonoGame.PortableUI
         /// <summary>Takes the pointer at <paramref name="position"/> (surface units, e.g. where the user clicked).</summary>
         public void Capture(PointF position)
         {
-            Position = Clamp(position, position);
+            _uiPosition = ClampToUi(_surface.MapDisplayToUi(position));
+            Position = _surface.MapUiToDisplay(_uiPosition);
             IsCaptured = true;
             // The release key may still be held from before; it must be pressed anew.
             _releaseKeyWasDown = true;
@@ -86,44 +90,19 @@ namespace MonoGame.PortableUI
                 return false;
             }
 
-            var target = new PointF(Position.X + mouseDelta.X * Sensitivity, Position.Y + mouseDelta.Y * Sensitivity);
-            Position = Clamp(target, Position);
+            _uiPosition = ClampToUi(new PointF(_uiPosition.X + mouseDelta.X * Sensitivity, _uiPosition.Y + mouseDelta.Y * Sensitivity));
+            Position = _surface.MapUiToDisplay(_uiPosition);
             _input.SetPointer(Position, leftDown, rightDown, middleDown);
             return true;
         }
 
-        /// <summary>
-        ///     Keeps the pointer on the picture: if <paramref name="target"/> is off it, slide along each
-        ///     axis, then fall back to the furthest point on the way from <paramref name="from"/>.
-        /// </summary>
-        private PointF Clamp(PointF target, PointF from)
+        /// <summary>Keeps the pointer inside the UI rectangle (= on the picture once shown).</summary>
+        private PointF ClampToUi(PointF point)
         {
-            if (_surface.IsPointOnDisplay(target))
-                return target;
-            var alongX = new PointF(target.X, from.Y);
-            if (_surface.IsPointOnDisplay(alongX))
-                return alongX;
-            var alongY = new PointF(from.X, target.Y);
-            if (_surface.IsPointOnDisplay(alongY))
-                return alongY;
-            if (!_surface.IsPointOnDisplay(from))
-                return Centre();
-
-            // Binary search between the last valid point and the target.
-            var low = 0f;
-            var high = 1f;
-            for (var i = 0; i < 12; i++)
-            {
-                var mid = (low + high) / 2;
-                var probe = new PointF(from.X + (target.X - from.X) * mid, from.Y + (target.Y - from.Y) * mid);
-                if (_surface.IsPointOnDisplay(probe))
-                    low = mid;
-                else
-                    high = mid;
-            }
-            return new PointF(from.X + (target.X - from.X) * low, from.Y + (target.Y - from.Y) * low);
+            var rect = _surface.Engine.ScreenRect;
+            return new PointF(
+                MathHelper.Clamp(point.X, rect.Left, rect.Right - 1),
+                MathHelper.Clamp(point.Y, rect.Top, rect.Bottom - 1));
         }
-
-        private PointF Centre() => new(_surface.Engine.ScreenRect.Width / 2, _surface.Engine.ScreenRect.Height / 2);
     }
 }

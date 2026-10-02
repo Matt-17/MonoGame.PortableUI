@@ -29,7 +29,9 @@ namespace MonoGame.PortableUI.Tests
             Assert.IsTrue(surface.ShowSoftwareCursor);
 
             Assert.IsTrue(capture.Update(new Vector2(5, -5), false, false, false, new KeyboardState()));
-            Assert.AreEqual(new PointF(205, 145), capture.Position, "5 px of mouse = 5 surface px");
+            var ui = surface.MapDisplayToUi(capture.Position);
+            Assert.AreEqual(205, ui.X, 0.01f, "5 px of mouse = 5 UI px");
+            Assert.AreEqual(145, ui.Y, 0.01f);
             Assert.AreEqual(capture.Position, input.MousePosition);
 
             for (var i = 0; i < 50; i++)
@@ -41,6 +43,30 @@ namespace MonoGame.PortableUI.Tests
             Assert.IsFalse(capture.IsCaptured);
             Assert.AreEqual(1, released);
             Assert.IsFalse(surface.ShowSoftwareCursor);
+        }
+
+        [TestMethod]
+        public void Moving_up_along_the_curved_left_edge_follows_the_edge_instead_of_sticking()
+        {
+            using var game = new Game();
+            using var surface = new UISurface(game, new EmptyScreen(), 400, 300);
+            surface.PostEffects = new PostEffect[] { new CrtBarrelPostEffect { Distortion = 0.1f } };
+            var capture = new SurfacePointerCapture(surface, new VirtualInputSource());
+            capture.Capture(new PointF(200, 150));
+
+            for (var i = 0; i < 30; i++)
+                capture.Update(new Vector2(-40, 0), false, false, false, new KeyboardState());
+            var atEdge = capture.Position;
+
+            var previousY = atEdge.Y;
+            for (var i = 0; i < 10; i++)
+            {
+                capture.Update(new Vector2(0, -10), false, false, false, new KeyboardState());
+                Assert.IsTrue(capture.Position.Y < previousY, "keeps moving up");
+                Assert.IsTrue(surface.IsPointOnDisplay(capture.Position), "on the picture");
+                Assert.AreEqual(0, surface.MapDisplayToUi(capture.Position).X, 0.5f, "still on the left edge of the UI");
+                previousY = capture.Position.Y;
+            }
         }
 
         [TestMethod]
