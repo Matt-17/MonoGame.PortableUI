@@ -244,6 +244,9 @@ namespace MonoGame.PortableUI
             return new Dictionary<string, ControlStyle>(StringComparer.OrdinalIgnoreCase)
             {
                 ["Button"] = button,
+                ["PrimaryButton"] = Variant(palette.Primary, palette.SelectionText, palette.DisabledSurface),
+                ["SecondaryButton"] = Variant(palette.Secondary, palette.SelectionText, palette.DisabledSurface),
+                ["DangerButton"] = Variant(palette.Danger, palette.SelectionText, palette.DisabledSurface),
                 ["TextBox"] = field,
                 ["CheckBox"] = field,
                 ["RadioButton"] = field,
@@ -294,6 +297,41 @@ namespace MonoGame.PortableUI
                     TextColor = paletteOrDefaultDisabledText(text)
                 }
             };
+        }
+
+        /// <summary>A filled call-to-action style: <paramref name="fill"/> face and border, readable text.</summary>
+        public static ControlStyle Variant(Color fill, Color preferredText, Color disabledFill)
+        {
+            var style = CreateControlStyle(Solid(fill), Solid(fill), ReadableOn(fill, preferredText), Solid(fill), ReadableOn(fill, preferredText));
+            style.Normal.BorderThickness = new Thickness(0);
+            style.Disabled.Background = Solid(disabledFill);
+            style.Disabled.BorderBrush = Solid(disabledFill);
+            return style;
+        }
+
+        /// <summary><paramref name="preferred"/> when it reads on <paramref name="background"/>, else black or white.</summary>
+        public static Color ReadableOn(Color background, Color preferred)
+        {
+            if (Contrast(preferred, background) >= 3)
+                return preferred;
+            return Contrast(Color.Black, background) >= Contrast(Color.White, background) ? Color.Black : Color.White;
+        }
+
+        private static double Contrast(Color a, Color b)
+        {
+            var la = Luminance(a);
+            var lb = Luminance(b);
+            return (Math.Max(la, lb) + 0.05) / (Math.Min(la, lb) + 0.05);
+        }
+
+        private static double Luminance(Color c)
+        {
+            static double Channel(byte v)
+            {
+                var x = v / 255.0;
+                return x <= 0.03928 ? x / 12.92 : Math.Pow((x + 0.055) / 1.055, 2.4);
+            }
+            return 0.2126 * Channel(c.R) + 0.7152 * Channel(c.G) + 0.0722 * Channel(c.B);
         }
 
         private static Color paletteOrDefaultDisabledText(Color text)

@@ -143,13 +143,13 @@ namespace MonoGame.PortableUI.Demo
                 Orientation = Orientation.Vertical
             };
 
-            var next = CommandButton("Second screen", Palette.Primary, Palette.SelectionText);
+            var next = VariantButton("Second screen", ButtonVariant.Primary);
             next.Height = 30;
             next.ToolTip = "Navigate to the secondary demo screen";
             next.Click += (sender, args) => ScreenEngine?.NavigateToScreen(new SecondScreen(_themePreset, _applyTheme));
             navigation.AddChild(next);
 
-            var worldSpace = CommandButton("World space demo", Palette.Secondary, Palette.SelectionText);
+            var worldSpace = VariantButton("World space demo", ButtonVariant.Secondary);
             worldSpace.Height = 30;
             worldSpace.ToolTip = "Interactive UISurface on a 3D quad (raycast input)";
             worldSpace.Click += (sender, args) =>
@@ -170,10 +170,6 @@ namespace MonoGame.PortableUI.Demo
                 Margin = new Thickness(0, 0, 12, 0),
                 Height = 42,
                 DropDownMaxHeight = 440,
-                BackgroundBrush = SurfaceAltBrush,
-                TextColor = Palette.Text,
-                HoverTextColor = Palette.Text,
-                PressedTextColor = Palette.SelectionText,
                 ToolTip = "Switch demo theme"
             };
 
@@ -200,12 +196,11 @@ namespace MonoGame.PortableUI.Demo
             var tabs = new TabControl
             {
                 BackgroundBrush = IsGlassTheme ? null : SurfaceBrush,
-                HeaderHeight = 38,
-                HeaderBackground = IsGlassTheme ? new SolidColorBrush(new Color(255, 255, 255, 26)) : SurfaceBrush,
-                SelectedHeaderBackground = SelectionBrush,
-                HeaderTextColor = Palette.TabText,
-                SelectedHeaderTextColor = Palette.SelectedTabText
+                HeaderHeight = 38
             };
+            // Header chrome comes from the theme; glass themes only get a translucent strip.
+            if (IsGlassTheme)
+                tabs.HeaderBackground = new SolidColorBrush(new Color(255, 255, 255, 26));
 
             tabs.Items.Add(new TabItem { Header = "Gallery", Content = CreateGalleryTab() });
             tabs.Items.Add(new TabItem { Header = "Inspector", Content = CreateInspectorTab() });
@@ -392,7 +387,7 @@ namespace MonoGame.PortableUI.Demo
             _inspectorCode = Label("", Palette.Text, 13, new Thickness(0, 8, 0, 8));
             editor.AddChild(_inspectorCode);
 
-            var export = CommandButton("Copy C# theme color", Palette.Primary, Palette.SelectionText);
+            var export = VariantButton("Copy C# theme color", ButtonVariant.Primary);
             export.Click += (sender, args) =>
             {
                 var code = CreateInspectorColorCode();
@@ -689,10 +684,6 @@ namespace MonoGame.PortableUI.Demo
                 Height = 132,
                 Margin = new Thickness(0, 6, 0, 10),
                 ItemHeight = 30,
-                ItemBackgroundBrush = SurfaceBrush,
-                SelectedItemBackgroundBrush = SelectionBrush,
-                ItemTextColor = Palette.Text,
-                SelectedItemTextColor = Palette.SelectionText,
                 ToolTip = "Scroll and select a list item"
             };
 
@@ -709,18 +700,12 @@ namespace MonoGame.PortableUI.Demo
             {
                 Value = 42,
                 Margin = new Thickness(0, 6, 0, 8),
-                BackgroundBrush = FieldFrameBrush,
-                FillBrush = SelectionBrush,
                 ToolTip = "Determinate progress value"
             };
             var slider = new Slider
             {
                 Value = 42,
                 Margin = new Thickness(0, 0, 0, 10),
-                TrackBrush = FieldFrameBrush,
-                FillBrush = SelectionBrush,
-                ThumbBrush = SurfaceAltBrush,
-                ThumbBorderBrush = Palette.Primary,
                 ToolTip = "Drag or use arrow keys to update progress"
             };
             slider.ValueChanged += (sender, args) =>
@@ -746,8 +731,6 @@ namespace MonoGame.PortableUI.Demo
             _liveProgress = new ProgressBar
             {
                 Margin = new Thickness(0, 4, 0, 6),
-                BackgroundBrush = FieldFrameBrush,
-                FillBrush = SelectionBrush,
                 ToolTip = "Real value animated by the demo loop"
             };
             panel.AddChild(_liveProgress);
@@ -755,8 +738,6 @@ namespace MonoGame.PortableUI.Demo
             {
                 IsIndeterminate = true,
                 Margin = new Thickness(0, 0, 0, 8),
-                BackgroundBrush = FieldFrameBrush,
-                FillBrush = SelectionBrush,
                 ToolTip = "Indeterminate marquee"
             });
 
@@ -827,7 +808,7 @@ namespace MonoGame.PortableUI.Demo
             hint.TextWrapping = TextWrapping.Wrap;
             hint.MaxWidth = 320;
             content.AddChild(hint);
-            var close = CommandButton("Close", Palette.Primary, Palette.SelectionText);
+            var close = VariantButton("Close", ButtonVariant.Primary);
             content.AddChild(close);
             var modal = ScreenEngine!.ShowModal(content, new ModalOptions
             {
@@ -844,7 +825,7 @@ namespace MonoGame.PortableUI.Demo
             var panel = PanelStack("Buttons and menus");
 
             DemoStrings.EnsureLoaded();
-            var primary = CommandButton("Primary action", Palette.Primary, Palette.SelectionText).LocalizedText("actions.primary");
+            var primary = VariantButton("Primary action", ButtonVariant.Primary).LocalizedText("actions.primary");
             primary.PressedHorizontalInset = 5;
             primary.PressedVerticalInset = 3;
             primary.PressedTranslation = new Vector2(0, 1);
@@ -852,12 +833,12 @@ namespace MonoGame.PortableUI.Demo
             primary.Click += (sender, args) => OpenDemoModal(ModalPlacement.Center);
             panel.AddChild(primary);
 
-            var secondary = CommandButton("Secondary action", Palette.Secondary, Palette.SelectionText).LocalizedText("actions.secondary");
+            var secondary = VariantButton("Secondary action", ButtonVariant.Secondary).LocalizedText("actions.secondary");
             secondary.ToolTip = "Run the secondary demo action";
             secondary.Click += (sender, args) => OpenDemoModal(ModalPlacement.BottomSheet);
             panel.AddChild(secondary);
 
-            var toasts = CommandButton("Show three toasts", Palette.Info, Palette.SelectionText).LocalizedText("actions.toasts");
+            var toasts = VariantButton("Show three toasts", ButtonVariant.Primary).LocalizedText("actions.toasts");
             toasts.Click += (sender, args) =>
             {
                 var strings = Localizer.Default;
@@ -867,12 +848,12 @@ namespace MonoGame.PortableUI.Demo
             };
             panel.AddChild(toasts);
 
-            var danger = CommandButton("Danger action", Palette.Danger, Palette.SelectionText).LocalizedText("actions.danger");
+            var danger = VariantButton("Danger action", ButtonVariant.Danger).LocalizedText("actions.danger");
             danger.ToolTip = "Run the destructive demo action";
             danger.Click += (sender, args) => _status.Text = "Danger action clicked";
             panel.AddChild(danger);
 
-            var disabled = CommandButton("Disabled action", Palette.DisabledSurface, Palette.DisabledText);
+            var disabled = VariantButton("Disabled action", ButtonVariant.Primary);
             disabled.IsEnabled = false;
             panel.AddChild(disabled);
 
@@ -892,16 +873,15 @@ namespace MonoGame.PortableUI.Demo
                 Width = 46,
                 Height = 38,
                 Margin = new Thickness(0, 0, 8, 8),
-                BackgroundBrush = SurfaceAltBrush,
                 TintColor = Palette.Text,
                 ToolTip = "Delete the current demo item"
             };
             imageButton.Click += (sender, args) => _status.Text = "ImageButton clicked";
             buttonRow.AddChild(imageButton);
 
-            var menuButton = CommandButton("Menu (left click)", SurfaceAltBrush, SurfaceAltTextColor);
+            var menuButton = ThemedButton("Menu (left click)");
             menuButton.ToolTip = "Opens on left click (also right-click/long-press)";
-            var menu = new ContextMenu { BackgroundBrush = SurfaceBrush, ContextMenuType = ContextMenuTypes.OpenOnLeftClick };
+            var menu = new ContextMenu { ContextMenuType = ContextMenuTypes.OpenOnLeftClick };
             menu.Items.Add(new MenuItem("Inspect", () => _status.Text = "Inspect command") { ShortcutText = "F2" });
             menu.Items.Add(new MenuItem("Duplicate", () => _status.Text = "Duplicate command") { ShortcutText = "Ctrl+D" });
             menu.Items.Add(new MenuItem("Archive", () => _status.Text = "Archive command") { IsEnabled = false });
@@ -923,9 +903,6 @@ namespace MonoGame.PortableUI.Demo
                 Text = "Enable layout guides",
                 Margin = new Thickness(0, 0, 0, 8),
                 Height = 34,
-                TextColor = Palette.Text,
-                BoxBorderBrush = Palette.Primary,
-                CheckMarkBrush = Palette.Selection,
                 ToolTip = "Toggle a checkbox state"
             };
             checkBox.Checked += (sender, args) => _status.Text = args.IsChecked ? "Layout guides on" : "Layout guides off";
@@ -936,10 +913,6 @@ namespace MonoGame.PortableUI.Demo
                 Text = "Toggle preview mode",
                 Margin = new Thickness(0, 0, 0, 10),
                 Height = 38,
-                BackgroundBrush = SurfaceAltBrush,
-                TextColor = SurfaceAltTextColor,
-                ToggleBrush = SelectionBrush,
-                ToggleTextColor = Palette.SelectionText,
                 ToolTip = "Toggle the preview mode state"
             };
             toggle.Checked += (sender, args) => _status.Text = args.IsChecked ? "Preview mode on" : "Preview mode off";
@@ -1231,14 +1204,6 @@ namespace MonoGame.PortableUI.Demo
 
             var grid = new DataGrid
             {
-                BackgroundBrush = SurfaceBrush,
-                HeaderBackgroundBrush = SurfaceAltBrush,
-                HeaderTextColor = Palette.HeadingText,
-                RowBackgroundBrush = SurfaceBrush,
-                AlternateRowBackgroundBrush = SurfaceAltBrush,
-                SelectedRowBackgroundBrush = Palette.Selection,
-                RowTextColor = Palette.Text,
-                SelectedRowTextColor = Palette.SelectionText,
                 RowHeight = 30,
                 HeaderHeight = 34
             };
@@ -1541,6 +1506,22 @@ namespace MonoGame.PortableUI.Demo
             };
         }
 
+        private static TextButton ThemedButton(string text)
+        {
+            return new TextButton(text) { Height = 38, Margin = new Thickness(0, 0, 0, 8) };
+        }
+
+        private static TextButton VariantButton(string text, ButtonVariant variant)
+        {
+            // Chrome, text and hover/pressed looks come from the theme's variant slot.
+            return new TextButton(text)
+            {
+                Height = 38,
+                Margin = new Thickness(0, 0, 0, 8),
+                Variant = variant
+            };
+        }
+
         private TextButton CommandButton(string text, Brush background, Color foreground)
         {
             return new TextButton(text)
@@ -1584,11 +1565,7 @@ namespace MonoGame.PortableUI.Demo
                 Minimum = minimum,
                 Maximum = maximum,
                 Value = value,
-                Margin = new Thickness(0, 4, 0, 10),
-                TrackBrush = FieldFrameBrush,
-                FillBrush = SelectionBrush,
-                ThumbBrush = SurfaceAltBrush,
-                ThumbBorderBrush = Palette.Primary
+                Margin = new Thickness(0, 4, 0, 10)
             };
             slider.ValueChanged += (sender, args) => changed(args.NewValue);
             return slider;
@@ -1596,7 +1573,7 @@ namespace MonoGame.PortableUI.Demo
 
         private TextButton MotionButton(string label, Control target, Easing easing)
         {
-            var button = CommandButton(label, SurfaceAltBrush, SurfaceAltTextColor);
+            var button = ThemedButton(label);
             button.Click += (sender, args) =>
             {
                 target.Translation = Vector2.Zero;
