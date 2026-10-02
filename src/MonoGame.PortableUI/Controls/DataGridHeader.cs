@@ -76,7 +76,7 @@ namespace MonoGame.PortableUI.Controls
         {
             if (IsGone || !_owner.ShowColumnHeaders)
                 return Size.Empty;
-            return ApplyConstraints(new Size(_owner.InnerWidth, _owner.HeaderHeight)) + Margin;
+            return ApplyConstraints(new Size(_owner.InnerWidth, _owner.EffectiveHeaderHeight)) + Margin;
         }
 
         public override void UpdateLayout(Rect rect)
@@ -122,11 +122,13 @@ namespace MonoGame.PortableUI.Controls
 
             if (_owner.ShowGridLines)
             {
-                DataGrid.FillRect(spriteBatch, _owner.GridLinesBrush, new Rect(rect.Left, rect.Bottom - 1, rect.Width, 1), RenderOpacity);
+                // rect is in render space: column offsets (layout units) and the 1 px line scale with it.
+                var line = Math.Max(1, ToRender(1));
+                DataGrid.FillRect(spriteBatch, _owner.GridLinesBrush, new Rect(rect.Left, rect.Bottom - line, rect.Width, line), RenderOpacity);
                 for (var i = 0; i < _owner.Columns.Count - 1; i++)
                 {
-                    var x = rect.Left + _owner.ColumnOffset(i) + _owner.Columns[i].ActualWidth;
-                    DataGrid.FillRect(spriteBatch, _owner.GridLinesBrush, new Rect(x, rect.Top, 1, rect.Height), RenderOpacity);
+                    var x = rect.Left + ToRenderX(_owner.ColumnOffset(i) + _owner.Columns[i].ActualWidth);
+                    DataGrid.FillRect(spriteBatch, _owner.GridLinesBrush, new Rect(x, rect.Top, line, rect.Height), RenderOpacity);
                 }
             }
 
@@ -140,12 +142,14 @@ namespace MonoGame.PortableUI.Controls
                 return;
 
             const float pad = DataGrid.CellHorizontalPadding;
-            var columnRight = rect.Left + _owner.ColumnOffset(sortIndex) + _owner.Columns[sortIndex].ActualWidth;
+            var columnRight = rect.Left + ToRenderX(_owner.ColumnOffset(sortIndex) + _owner.Columns[sortIndex].ActualWidth);
+            var glyphWidth = ToRender(GlyphWidth);
+            var glyphHeight = ToRender(GlyphHeight);
             var glyphRect = new Rect(
-                columnRight - pad - GlyphWidth,
-                rect.Top + (rect.Height - GlyphHeight) / 2,
-                GlyphWidth,
-                GlyphHeight);
+                columnRight - ToRenderX(pad) - glyphWidth,
+                rect.Top + (rect.Height - glyphHeight) / 2,
+                glyphWidth,
+                glyphHeight);
             var color = Brush.ApplyOpacity(_owner.HeaderTextColor, RenderOpacity);
             var texture = TriangleGlyph.Get(spriteBatch.GraphicsDevice, pointingUp: _owner.SortAscending);
             spriteBatch.Draw(texture, glyphRect, color);

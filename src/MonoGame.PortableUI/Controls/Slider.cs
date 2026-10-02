@@ -154,21 +154,24 @@ namespace MonoGame.PortableUI.Controls
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
             base.OnDraw(spriteBatch, rect);
-            var track = GetTrackRect(rect);
-            DrawChrome(spriteBatch, TrackBrush, track, TrackCornerRadius);
+            var scale = Math.Min(RenderScale.X, RenderScale.Y);
+            var track = GetTrackRect(rect, scale);
+            DrawChrome(spriteBatch, TrackBrush, track, ToRender(TrackCornerRadius));
 
             var fill = track;
-            fill.Width = Math.Max(0, GetThumbCenterX(rect) - track.Left);
-            DrawChrome(spriteBatch, FillBrush, fill, TrackCornerRadius);
+            fill.Width = Math.Max(0, GetThumbCenterX(rect, scale) - track.Left);
+            DrawChrome(spriteBatch, FillBrush, fill, ToRender(TrackCornerRadius));
 
-            var thumb = GetThumbRect(rect);
-            DrawChrome(spriteBatch, ThumbBrush, thumb, ThumbCornerRadius);
+            var thumb = GetThumbRect(rect, scale);
+            var thumbRadius = ToRender(ThumbCornerRadius);
+            DrawChrome(spriteBatch, ThumbBrush, thumb, thumbRadius);
             if (ThumbBorderBrush != null && ThumbBorderWidth > 0)
             {
+                var thumbBorder = ToRender(ThumbBorderWidth);
                 if (!ThumbCornerRadius.IsEmpty && ThumbBorderBrush is SolidColorBrush solidBorder)
-                    RoundedRectRenderer.DrawBorder(spriteBatch, thumb, ThumbCornerRadius, new Thickness(ThumbBorderWidth), Brush.ApplyOpacity(solidBorder.Color, RenderOpacity));
+                    RoundedRectRenderer.DrawBorder(spriteBatch, thumb, thumbRadius, new Thickness(thumbBorder), Brush.ApplyOpacity(solidBorder.Color, RenderOpacity));
                 else
-                    BorderRenderer.Draw(spriteBatch, thumb, ThumbBorderWidth, ThumbBorderBrush, RenderOpacity);
+                    BorderRenderer.Draw(spriteBatch, thumb, thumbBorder, ThumbBorderBrush, RenderOpacity);
             }
         }
 
@@ -183,23 +186,27 @@ namespace MonoGame.PortableUI.Controls
                 brush.Draw(spriteBatch, new BrushContext(rect, radius, RenderOpacity, spriteBatch.GraphicsDevice));
         }
 
-        internal Rect GetTrackRect(Rect rect)
+        // scale: the render scale when rect is a draw rect (1 for layout space).
+        internal Rect GetTrackRect(Rect rect, float scale = 1f)
         {
-            var trackWidth = Math.Max(0, rect.Width - ThumbSize);
+            var thumbSize = ThumbSize * scale;
+            var trackHeight = TrackHeight * scale;
+            var trackWidth = Math.Max(0, rect.Width - thumbSize);
             return new Rect(
-                rect.Left + ThumbSize / 2,
-                rect.Top + (rect.Height - TrackHeight) / 2,
+                rect.Left + thumbSize / 2,
+                rect.Top + (rect.Height - trackHeight) / 2,
                 trackWidth,
-                TrackHeight);
+                trackHeight);
         }
 
-        internal Rect GetThumbRect(Rect rect)
+        internal Rect GetThumbRect(Rect rect, float scale = 1f)
         {
+            var thumbSize = ThumbSize * scale;
             return new Rect(
-                GetThumbCenterX(rect) - ThumbSize / 2,
-                rect.Top + (rect.Height - ThumbSize) / 2,
-                ThumbSize,
-                ThumbSize);
+                GetThumbCenterX(rect, scale) - thumbSize / 2,
+                rect.Top + (rect.Height - thumbSize) / 2,
+                thumbSize,
+                thumbSize);
         }
 
         private void SliderMouseDown(object? sender, MouseEventArgs args)
@@ -306,10 +313,11 @@ namespace MonoGame.PortableUI.Controls
             Value = Minimum + (Maximum - Minimum) * percent;
         }
 
-        private float GetThumbCenterX(Rect rect)
+        private float GetThumbCenterX(Rect rect, float scale = 1f)
         {
             var percent = Maximum <= Minimum ? 0 : (_value - Minimum) / (Maximum - Minimum);
-            return GetTrackRect(rect).Left + GetTrackRect(rect).Width * MathHelper.Clamp(percent, 0, 1);
+            var track = GetTrackRect(rect, scale);
+            return track.Left + track.Width * MathHelper.Clamp(percent, 0, 1);
         }
 
         private float ClampValue(float value)

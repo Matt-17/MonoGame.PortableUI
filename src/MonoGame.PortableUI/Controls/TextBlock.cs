@@ -258,6 +258,9 @@ namespace MonoGame.PortableUI.Controls
             return wrapWidth.IsFixed() && wrapWidth > 0;
         }
 
+        /// <summary>Height of one line in the current font, size and text scale.</summary>
+        internal float CurrentLineHeight => LineHeight;
+
         private float LineHeight => ActiveDynamicFont is { } dynamicFont
             ? dynamicFont.GetLineHeight(DynamicPixelSize(dynamicFont))
             : Font != null

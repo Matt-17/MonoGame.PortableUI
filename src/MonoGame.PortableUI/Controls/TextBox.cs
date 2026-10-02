@@ -258,6 +258,10 @@ namespace MonoGame.PortableUI.Controls
             var measuredHeight = Math.Max(lineHeight, cache.Lines.Count * lineHeight);
             var width = Width.IsFixed() ? Width : measuredWidth + Padding.Horizontal;
             var height = Height.IsFixed() ? Height : measuredHeight + Padding.Vertical;
+            // A single-line box at the theme's default height is never shorter than its line, so
+            // scaled-up text (TextScaling, larger fonts) still fits. An explicit Height is kept.
+            if (!IsMultiline && (!Height.IsFixed() || Height.Equals(ResolveTheme().TextBoxHeight)))
+                height = Math.Max(height, lineHeight + Padding.Vertical);
 
             // Min/Max constrain the content box only; margin is added afterwards (same as Control).
             return ApplyConstraints(new Size(width, height)) + Margin;
@@ -481,7 +485,8 @@ namespace MonoGame.PortableUI.Controls
         {
             EnsureCursorVisible();
             BackgroundBrush?.Draw(spriteBatch, rect, RenderOpacity);
-            var textRect = rect - Padding;
+            // rect is in render space; scale the layout padding with it (LayoutScale, popup zoom).
+            var textRect = rect - new Thickness(Padding.Left * RenderScale.X, Padding.Top * RenderScale.Y, Padding.Right * RenderScale.X, Padding.Bottom * RenderScale.Y);
 
             if (Text.Length == 0 && !string.IsNullOrEmpty(HintText) && HasDrawableFont)
             {
@@ -863,7 +868,7 @@ namespace MonoGame.PortableUI.Controls
 
             var cache = GetLineMetricsCache();
             var lines = cache.Lines;
-            var lineHeight = GetLineHeight();
+            var lineHeight = GetLineHeight() * RenderScale.Y;
             var selectionStart = SelectionStart;
             var selectionEnd = selectionStart + SelectionLength;
 
@@ -907,7 +912,7 @@ namespace MonoGame.PortableUI.Controls
             var cache = GetLineMetricsCache();
             var lines = cache.Lines;
             var displayText = cache.DisplayText;
-            var lineHeight = GetLineHeight();
+            var lineHeight = GetLineHeight() * RenderScale.Y;
 
             for (var i = 0; i < lines.Count; i++)
             {
@@ -947,7 +952,6 @@ namespace MonoGame.PortableUI.Controls
                 return;
 
             cursorRect.Width = Math.Max(1, cursorRect.Width * RenderScale.X);
-            cursorRect.Height *= RenderScale.Y;
             CursorColor.Draw(spriteBatch, cursorRect, RenderOpacity);
         }
 
@@ -956,7 +960,7 @@ namespace MonoGame.PortableUI.Controls
             var lines = GetLineMetricsCache().Lines;
             var lineIndex = GetLineIndexFromPosition(CursorPosition, lines);
             var line = lines[lineIndex];
-            var lineHeight = GetLineHeight();
+            var lineHeight = GetLineHeight() * RenderScale.Y;
             var top = GetLineTop(textRect, lineHeight, lineIndex);
             if (!IsLineVisible(textRect, top, lineHeight))
                 return Rect.Empty;
@@ -980,7 +984,7 @@ namespace MonoGame.PortableUI.Controls
         private float GetLineTop(Rect textRect, float lineHeight, int lineIndex)
         {
             var top = GetTextTop(textRect, lineHeight) + lineIndex * lineHeight;
-            return IsMultiline ? top - _verticalScrollOffset : top;
+            return IsMultiline ? top - _verticalScrollOffset * RenderScale.Y : top;
         }
 
         private bool IsLineVisible(Rect textRect, float top, float lineHeight)

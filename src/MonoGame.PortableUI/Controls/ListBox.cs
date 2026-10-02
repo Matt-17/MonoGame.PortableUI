@@ -238,7 +238,7 @@ namespace MonoGame.PortableUI.Controls
 
                 _itemHeight = Math.Max(0, value);
                 foreach (var button in _itemButtons)
-                    button.Height = _itemHeight;
+                    button.MinHeight = _itemHeight;
                 InvalidateLayout(true);
             }
         }
@@ -423,7 +423,7 @@ namespace MonoGame.PortableUI.Controls
             {
                 var button = _itemButtons[i];
                 button.Tag = i;
-                button.Height = ItemHeight;
+                button.MinHeight = ItemHeight;
                 var item = Items[i];
                 if (i < _syncedItems.Count && ReferenceEquals(_syncedItems[i], item) && !_refreshItemTexts)
                     continue;
@@ -451,7 +451,7 @@ namespace MonoGame.PortableUI.Controls
         {
             var button = new Button
             {
-                Height = ItemHeight,
+                MinHeight = ItemHeight,
                 Tag = index,
                 TextAlignment = TextAlignment.Left,
                 Padding = ItemPadding,

@@ -14,11 +14,15 @@ namespace MonoGame.PortableUI.Media
         }
 
         public static void Draw(SpriteBatch spriteBatch, Rect rect, CornerRadius radius, ShadowStyle shadow, float opacity)
+            => Draw(spriteBatch, rect, radius, shadow, opacity, 1f);
+
+        // scale: the control's render scale; offset, blur and spread are layout lengths.
+        public static void Draw(SpriteBatch spriteBatch, Rect rect, CornerRadius radius, ShadowStyle shadow, float opacity, float scale)
         {
             // Stack buffer instead of an iterator: shadows are drawn for every shadowed control
             // every frame.
             Span<ShadowLayer> layers = stackalloc ShadowLayer[MaxLayers];
-            var count = FillShadowLayers(rect, shadow, layers);
+            var count = FillShadowLayers(rect, shadow, layers, scale);
             for (var i = 0; i < count; i++)
             {
                 var layer = layers[i];
@@ -36,8 +40,10 @@ namespace MonoGame.PortableUI.Media
             return layers.AsSpan(0, count).ToArray();
         }
 
-        internal static int FillShadowLayers(Rect rect, ShadowStyle shadow, Span<ShadowLayer> layers)
+        internal static int FillShadowLayers(Rect rect, ShadowStyle shadow, Span<ShadowLayer> layers, float scale = 1f)
         {
+            if (System.Math.Abs(scale - 1f) > 0.0001f)
+                shadow = new ShadowStyle { Color = shadow.Color, Opacity = shadow.Opacity, Offset = shadow.Offset * scale, Blur = shadow.Blur * scale, Spread = shadow.Spread * scale, Inset = shadow.Inset };
             if (shadow == null || shadow.Color.A == 0 || shadow.Opacity <= 0)
                 return 0;
 

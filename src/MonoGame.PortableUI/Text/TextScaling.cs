@@ -33,6 +33,7 @@ namespace MonoGame.PortableUI.Text
         private static float _minFactor = 0.8f;
         private static float _maxFactor = 2f;
         private static float _factor = 1f;
+        private static float _densityScale = 1f;
         private static long _version;
 
         /// <summary>Raised after <see cref="Factor"/> changed.</summary>
@@ -70,12 +71,22 @@ namespace MonoGame.PortableUI.Text
             set { _maxFactor = Sanitize(value); Recompute(); }
         }
 
-        /// <summary>The effective, clamped factor applied to all text.</summary>
+        /// <summary>
+        ///     Screen pixel density (Android <c>DisplayMetrics.Density</c>): multiplies every source,
+        ///     unclamped, so text sizes behave like Android "sp". 1 on desktop.
+        /// </summary>
+        public static float DensityScale
+        {
+            get => _densityScale;
+            set { _densityScale = Sanitize(value); Recompute(); }
+        }
+
+        /// <summary>The effective factor applied to all text: the clamped source value times <see cref="DensityScale"/>.</summary>
         public static float Factor => _factor;
 
         internal static long Version => Interlocked.Read(ref _version);
 
-        /// <summary>Restores the defaults (App source, scale 1, clamp 0.8..2).</summary>
+        /// <summary>Restores the defaults (App source, scale 1, clamp 0.8..2, density 1).</summary>
         public static void Reset()
         {
             _source = TextScaleSource.App;
@@ -83,6 +94,7 @@ namespace MonoGame.PortableUI.Text
             _systemScale = 1f;
             _minFactor = 0.8f;
             _maxFactor = 2f;
+            _densityScale = 1f;
             Recompute();
         }
 
@@ -96,7 +108,7 @@ namespace MonoGame.PortableUI.Text
                 TextScaleSource.System => _systemScale,
                 _ => 1f
             };
-            var factor = Math.Clamp(raw, Math.Min(_minFactor, _maxFactor), Math.Max(_minFactor, _maxFactor));
+            var factor = Math.Clamp(raw, Math.Min(_minFactor, _maxFactor), Math.Max(_minFactor, _maxFactor)) * _densityScale;
             if (factor == _factor)
                 return;
             _factor = factor;

@@ -182,7 +182,7 @@ namespace MonoGame.PortableUI.Controls
 
         protected internal override void OnDrawOverlay(SpriteBatch spriteBatch, Rect rect)
         {
-            DrawScrollBars(spriteBatch, rect - Padding);
+            DrawScrollBars(spriteBatch, rect);
             base.OnDrawOverlay(spriteBatch, rect);
         }
 
@@ -463,18 +463,34 @@ namespace MonoGame.PortableUI.Controls
             _visualTreeScratch.Clear();
         }
 
-        private void DrawScrollBars(SpriteBatch spriteBatch, Rect viewportRect)
+        /// <summary>
+        ///     Draws the bars. Their geometry is computed in layout space (the same rects the hit-test
+        ///     uses) and then mapped onto <paramref name="renderRect"/>, which is already transformed:
+        ///     under a render scale (LayoutScale, popup animations) layout lengths such as the thumb
+        ///     travel or the bar thickness must scale with it.
+        /// </summary>
+        private void DrawScrollBars(SpriteBatch spriteBatch, Rect renderRect)
         {
             if (!CanShowScrollBars)
                 return;
 
+            var layout = ClippingRect;
+            var scaleX = layout.Width > 0 ? renderRect.Width / layout.Width : 1f;
+            var scaleY = layout.Height > 0 ? renderRect.Height / layout.Height : 1f;
+            Rect ToRender(Rect r) => new Rect(
+                renderRect.Left + (r.Left - layout.Left) * scaleX,
+                renderRect.Top + (r.Top - layout.Top) * scaleY,
+                r.Width * scaleX,
+                r.Height * scaleY);
+            var viewportRect = ViewportRect;
+
             if (ScrollBarGutterBrush != null)
             {
                 if (TryGetVerticalScrollGutterRect(viewportRect, out var verticalGutterRect))
-                    ScrollBarGutterBrush.Draw(spriteBatch, verticalGutterRect, RenderOpacity);
+                    ScrollBarGutterBrush.Draw(spriteBatch, ToRender(verticalGutterRect), RenderOpacity);
 
                 if (TryGetHorizontalScrollGutterRect(viewportRect, out var horizontalGutterRect))
-                    ScrollBarGutterBrush.Draw(spriteBatch, horizontalGutterRect, RenderOpacity);
+                    ScrollBarGutterBrush.Draw(spriteBatch, ToRender(horizontalGutterRect), RenderOpacity);
             }
 
             var scrollBarBrush = CurrentScrollBarBrush;
@@ -482,10 +498,10 @@ namespace MonoGame.PortableUI.Controls
                 return;
 
             if (TryGetVerticalScrollThumbRect(viewportRect, out var verticalThumbRect))
-                scrollBarBrush.Draw(spriteBatch, verticalThumbRect, RenderOpacity);
+                scrollBarBrush.Draw(spriteBatch, ToRender(verticalThumbRect), RenderOpacity);
 
             if (TryGetHorizontalScrollThumbRect(viewportRect, out var horizontalThumbRect))
-                scrollBarBrush.Draw(spriteBatch, horizontalThumbRect, RenderOpacity);
+                scrollBarBrush.Draw(spriteBatch, ToRender(horizontalThumbRect), RenderOpacity);
         }
 
         private bool CanShowScrollBars => ShowScrollBars && ScrollBarBrush != null && ScrollBarThickness > 0;

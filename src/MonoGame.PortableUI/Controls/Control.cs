@@ -764,30 +764,59 @@ namespace MonoGame.PortableUI.Controls
             ShowToolTip(_lastToolTipAnchorPosition);
         }
 
+        // --- Render-space helpers -----------------------------------------------------------
+        // OnDraw receives a rect that is already transformed (LayoutScale, popup zoom), so lengths
+        // authored in layout units (padding, thickness, radii, glyph sizes) must be scaled with it.
+
+        /// <summary>A horizontal layout length in render units.</summary>
+        protected float ToRenderX(float length) => length * RenderScale.X;
+
+        /// <summary>A vertical layout length in render units.</summary>
+        protected float ToRenderY(float length) => length * RenderScale.Y;
+
+        /// <summary>A uniform layout length (border width, glyph size) in render units.</summary>
+        protected float ToRender(float length) => length * Math.Min(RenderScale.X, RenderScale.Y);
+
+        protected Thickness ToRender(Thickness thickness)
+            => RenderScale == Vector2.One ? thickness
+               : new Thickness(thickness.Left * RenderScale.X, thickness.Top * RenderScale.Y, thickness.Right * RenderScale.X, thickness.Bottom * RenderScale.Y);
+
+        protected CornerRadius ToRender(CornerRadius radius)
+        {
+            if (RenderScale == Vector2.One || radius.IsEmpty)
+                return radius;
+            var s = Math.Min(RenderScale.X, RenderScale.Y);
+            return new CornerRadius(radius.TopLeft * s, radius.TopRight * s, radius.BottomRight * s, radius.BottomLeft * s);
+        }
+
         protected internal virtual void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
+            var radius = ToRender(CornerRadius);
+            var border = ToRender(BorderThickness);
+            var scale = Math.Min(RenderScale.X, RenderScale.Y);
+
             if (Shadow != null && !Shadow.Inset)
-                ShadowRenderer.Draw(spriteBatch, rect, CornerRadius, Shadow, RenderOpacity);
+                ShadowRenderer.Draw(spriteBatch, rect, radius, Shadow, RenderOpacity, scale);
 
             if (BackgroundBrush != null)
             {
-                var context = new BrushContext(rect, CornerRadius, RenderOpacity, spriteBatch.GraphicsDevice, (float)ScreenSystem.TotalTime.TotalSeconds);
+                var context = new BrushContext(rect, radius, RenderOpacity, spriteBatch.GraphicsDevice, (float)ScreenSystem.TotalTime.TotalSeconds);
                 BackgroundBrush.Draw(spriteBatch, in context);
             }
 
             if (Shadow != null && Shadow.Inset)
-                ShadowRenderer.Draw(spriteBatch, rect, CornerRadius, Shadow, RenderOpacity);
+                ShadowRenderer.Draw(spriteBatch, rect, radius, Shadow, RenderOpacity, scale);
 
             if (BorderBevelLight is { } bevelLight && BorderBevelDark is { } bevelDark && HasBorder(BorderThickness) && !CornerRadius.IsEmpty)
             {
-                RoundedRectRenderer.DrawBevelBorder(spriteBatch, rect, CornerRadius, BorderThickness, bevelLight, bevelDark, RenderOpacity);
+                RoundedRectRenderer.DrawBevelBorder(spriteBatch, rect, radius, border, bevelLight, bevelDark, RenderOpacity);
             }
             else if (BorderBrush != null && HasBorder(BorderThickness))
             {
                 if (!CornerRadius.IsEmpty && BorderBrush is SolidColorBrush solidBorder)
-                    RoundedRectRenderer.DrawBorder(spriteBatch, rect, CornerRadius, BorderThickness, Brush.ApplyOpacity(solidBorder.Color, RenderOpacity));
+                    RoundedRectRenderer.DrawBorder(spriteBatch, rect, radius, border, Brush.ApplyOpacity(solidBorder.Color, RenderOpacity));
                 else
-                    DrawBorder(spriteBatch, rect, BorderThickness, BorderBrush, RenderOpacity);
+                    DrawBorder(spriteBatch, rect, border, BorderBrush, RenderOpacity);
             }
         }
 

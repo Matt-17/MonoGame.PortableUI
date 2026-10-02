@@ -35,7 +35,7 @@ namespace MonoGame.PortableUI.Tests
             AssertSolidColor(textBox.SelectionBrush, new Color(51, 153, 255, 95));
             Assert.AreEqual(Color.Silver, textBox.HintTextColor);
             Assert.AreEqual(28, textBox.Height);
-            AssertThickness(new Thickness(4), textBox.Padding);
+            AssertThickness(new Thickness(10, 4), textBox.Padding);
 
             var scrollViewer = new ScrollViewer();
             Assert.AreEqual(8, scrollViewer.ScrollBarThickness);

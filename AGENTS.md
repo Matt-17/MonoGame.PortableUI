@@ -126,9 +126,13 @@ yet (audit P7).
   `DeviceReset`/`Disposing` cleanup and bound growth — follow `BrushTextureCache`.
 - **Don't call `ScreenEngine.Instance` from rendering code** — derive the `GraphicsDevice` from the
   `SpriteBatch` at hand; surface engines are not `Instance`.
-- **Android host:** pin `PreferredBackBufferWidth/Height` to `DisplayMetrics` — a mismatched fixed
-  back-buffer breaks scissor-based text clipping. Screenshot via `adb shell screenrecord` (screencap
-  doesn't capture the GL surface).
+- **Android host:** the back buffer must equal the game view's real size — call
+  `AndroidSurfaceSize.Follow(view, graphics, engine)` in `Initialize`. MonoGame letter-boxes a
+  differently shaped preferred size into the view with a negative viewport offset, so drawing shifts
+  while scissor rects do not and text disappears (this is what broke edge-to-edge). Edge to edge works
+  with it (`SetDecorFitsSystemWindows(false)`, cutout `ShortEdges`, transparent bars) plus a
+  `SafeAreaPanel`; use `ScreenEngineOptions.LayoutScale = density` for dp layout. Screenshot via
+  `adb shell screenrecord` (screencap doesn't capture the GL surface).
 - **`Rect.Contains`** is inclusive on Left/Top, exclusive on Right/Bottom.
 - **Verification loop:** run the test suite, then the demo `--screenshot` sweep and diff PNGs against a
   baseline before/after visual changes; run `*Layout*` benchmarks for layout-path changes.

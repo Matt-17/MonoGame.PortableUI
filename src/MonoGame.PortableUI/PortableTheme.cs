@@ -49,7 +49,7 @@ namespace MonoGame.PortableUI
                 TextBoxCursorBrush = Solid(palette.Primary),
                 TextBoxSelectionBrush = Solid(new Color((int)palette.Primary.R, (int)palette.Primary.G, (int)palette.Primary.B, 120)),
                 TextBoxHintTextColor = palette.MutedText,
-                TextBoxPadding = new Thickness(6, 4),
+                TextBoxPadding = new Thickness(10, 4),
                 TextBoxHeight = 32,
                 ScrollBarThickness = 8,
                 ScrollBarGutterBrush = SurfaceBrush(palette),
@@ -224,7 +224,7 @@ namespace MonoGame.PortableUI
         public Brush TextBoxCursorBrush { get; set; } = new SolidColorBrush(Color.Black);
         public Brush TextBoxSelectionBrush { get; set; } = new SolidColorBrush(new Color(51, 153, 255, 95));
         public Color TextBoxHintTextColor { get; set; } = Color.Silver;
-        public Thickness TextBoxPadding { get; set; } = new Thickness(4);
+        public Thickness TextBoxPadding { get; set; } = new Thickness(10, 4);
         public float TextBoxHeight { get; set; } = 28;
 
         public float ScrollBarThickness { get; set; } = 8;

@@ -54,6 +54,10 @@ namespace MonoGame.PortableUI
         /// </summary>
         public PointF RenderOffset { get; private set; }
 
+        /// <summary>True when <see cref="RenderScale"/> is applied by the draw transform (LayoutScale)
+        /// rather than by blitting a reference-size render target.</summary>
+        internal bool ScalesNatively => RenderScale != 1 && !(Options.ReferenceSize.X > 0 && Options.ReferenceSize.Y > 0);
+
         public static Control? FocusedControl
         {
             get { return _focusedControl; }
@@ -398,6 +402,14 @@ namespace MonoGame.PortableUI
                 logicalWidth = reference.X;
                 logicalHeight = reference.Y;
                 offset = new PointF((width - reference.X * scale) / 2f, (height - reference.Y * scale) / 2f);
+            }
+            else if (Options.LayoutScale > 0 && Math.Abs(Options.LayoutScale - 1) > 0.0001f && width > 0 && height > 0)
+            {
+                // Density scaling: lay out in dp, draw natively through the root transform.
+                scale = Options.LayoutScale;
+                logicalWidth = width / scale;
+                logicalHeight = height / scale;
+                offset = new PointF(0, 0);
             }
             else
             {
