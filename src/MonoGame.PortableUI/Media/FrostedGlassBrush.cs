@@ -149,6 +149,11 @@ namespace MonoGame.PortableUI.Media
             if (rect.Width <= 0 || rect.Height <= 0)
                 return;
 
+            // Whole pixels, like the rounded tint: on a half-pixel rect (e.g. a centred dialog) the
+            // body and the per-row corners would round differently and leave a row uncovered.
+            Rectangle snapped = rect;
+            rect = new Rect(snapped.X, snapped.Y, snapped.Width, snapped.Height);
+
             opacity = MathHelper.Clamp(opacity, 0, 1);
 
             var drewBackdrop = false;
@@ -190,18 +195,42 @@ namespace MonoGame.PortableUI.Media
             // Rounded tint over everything, covering the corner arcs the backdrop skipped.
             RoundedRectRenderer.DrawSolid(spriteBatch, rect, radius, ApplyOpacity(TintColor, opacity));
 
+            // Grain/sheen: one texture spanning the whole card (sampled per part, so no seams),
+            // reaching into the rounded corners row by row like the backdrop.
             var grain = GetTexture(spriteBatch);
             var grainColor = ApplyOpacity(Color.White, opacity * (drewBackdrop ? 0.55f : 1f));
+            var grainScaleX = grain.Width / Math.Max(1f, rect.Width);
+            var grainScaleY = grain.Height / Math.Max(1f, rect.Height);
+            // Whole-pixel corners and no overlap: grain is translucent, a doubled seam would show.
+            var grainRadius = new CornerRadius(MathF.Ceiling(Math.Min(radius.TopLeft, Math.Min(rect.Width, rect.Height) / 2)), MathF.Ceiling(Math.Min(radius.TopRight, Math.Min(rect.Width, rect.Height) / 2)),
+                MathF.Ceiling(Math.Min(radius.BottomRight, Math.Min(rect.Width, rect.Height) / 2)), MathF.Ceiling(Math.Min(radius.BottomLeft, Math.Min(rect.Width, rect.Height) / 2)));
             Span<Rect> grainFills = stackalloc Rect[3];
-            RoundedRectRenderer.FillRects(rect, radius, 0f, grainFills);
+            RoundedRectRenderer.FillRects(rect, grainRadius, 0f, grainFills);
             foreach (var fill in grainFills)
             {
-                if (fill.Width > 0 && fill.Height > 0)
-                    spriteBatch.Draw(grain, fill, grainColor);
+                if (fill.Width <= 0 || fill.Height <= 0)
+                    continue;
+                var source = new Rectangle(
+                    (int)((fill.Left - rect.Left) * grainScaleX),
+                    (int)((fill.Top - rect.Top) * grainScaleY),
+                    Math.Max(1, (int)Math.Ceiling(fill.Width * grainScaleX)),
+                    Math.Max(1, (int)Math.Ceiling(fill.Height * grainScaleY)));
+                spriteBatch.Draw(grain, fill, Rectangle.Intersect(source, grain.Bounds), grainColor);
             }
+            DrawCornerRows(spriteBatch, grain, rect, grainScaleX, grainScaleY, rect, grainRadius.TopLeft, true, true, grainColor, 0);
+            DrawCornerRows(spriteBatch, grain, rect, grainScaleX, grainScaleY, rect, grainRadius.TopRight, true, false, grainColor, 0);
+            DrawCornerRows(spriteBatch, grain, rect, grainScaleX, grainScaleY, rect, grainRadius.BottomRight, false, false, grainColor, 0);
+            DrawCornerRows(spriteBatch, grain, rect, grainScaleX, grainScaleY, rect, grainRadius.BottomLeft, false, true, grainColor, 0);
         }
 
         private static void DrawCornerRows(SpriteBatch spriteBatch, Texture2D backdrop, Rect screenRect, float scaleX, float scaleY, Rect rect, float radius, bool top, bool left, float opacity)
+            => DrawCornerRows(spriteBatch, backdrop, screenRect, scaleX, scaleY, rect, radius, top, left, Color.White * opacity, 1);
+
+        /// <summary>
+        ///     Fills one rounded corner square with <paramref name="texture"/> one pixel row at a time,
+        ///     each row inset along the arc; <paramref name="screenRect"/> is the area the texture spans.
+        /// </summary>
+        private static void DrawCornerRows(SpriteBatch spriteBatch, Texture2D backdrop, Rect screenRect, float scaleX, float scaleY, Rect rect, float radius, bool top, bool left, Color color, int overlap)
         {
             var r = (int)MathF.Ceiling(Math.Min(radius, Math.Min(rect.Width, rect.Height) / 2));
             for (var i = 0; i < r; i++)
@@ -213,9 +242,9 @@ namespace MonoGame.PortableUI.Media
                 if (width <= 0)
                     continue;
                 var y = top ? rect.Top + i : rect.Bottom - 1 - i;
-                // One pixel of overlap with the body so no seam shows where they meet.
-                var x = left ? rect.Left + inset : rect.Right - r - 1;
-                var row = new Rect(x, y, width + 1, 1);
+                // Opaque content overlaps the body by a pixel so no seam shows where they meet.
+                var x = left ? rect.Left + inset : rect.Right - r - overlap;
+                var row = new Rect(x, y, width + overlap, 1);
                 var source = new Rectangle(
                     (int)((row.Left - screenRect.Left) * scaleX),
                     (int)((row.Top - screenRect.Top) * scaleY),
@@ -223,7 +252,7 @@ namespace MonoGame.PortableUI.Media
                     Math.Max(1, (int)Math.Ceiling(scaleY)));
                 source = Rectangle.Intersect(source, backdrop.Bounds);
                 if (source.Width > 0 && source.Height > 0)
-                    spriteBatch.Draw(backdrop, row, source, Color.White * opacity);
+                    spriteBatch.Draw(backdrop, row, source, color);
             }
         }
 

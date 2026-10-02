@@ -188,7 +188,7 @@ public sealed class LiquidWallpaperBrush : Brush
     private void DrawOrb(SpriteBatch spriteBatch, Brush orb, Rect rect, float x, float y, float diameter, float opacity, int phase)
     {
         // Slow Lissajous drift, each orb on its own phase and pace.
-        var t = _time * (0.05f + phase * 0.013f) + phase * 1.9f;
+        var t = _time * (0.22f + phase * 0.05f) + phase * 1.9f;
         var cx = rect.Left + rect.Width * (x + 0.09f * MathF.Sin(t));
         var cy = rect.Top + rect.Height * (y + 0.07f * MathF.Cos(t * 1.3f));
         orb.Draw(spriteBatch, new Rect(cx - diameter / 2, cy - diameter / 2, diameter, diameter), opacity);
