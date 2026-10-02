@@ -14,7 +14,6 @@ public static class PhosphorTheme
                 theme.PostEffects = new PostEffect[]
                 {
                     new ScanlinePostEffect { Strength = 0.12f },
-                    new CrtBarrelPostEffect { Distortion = 0.06f },
                     new BloomPostEffect { Strength = 0.18f }
                 };
             });

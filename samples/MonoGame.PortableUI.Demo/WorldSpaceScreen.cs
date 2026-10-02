@@ -179,8 +179,11 @@ namespace MonoGame.PortableUI.Demo
                 }
             };
             bar.AddChild(_status);
-            // The CRT look belongs to the monitor, not the theme: any theme can be shown curved.
-            var crt = new TextButton("CRT monitor: off")
+            // The display type belongs to the monitor, not the theme: a CRT curves and scanlines
+            // whatever theme it shows, an LCD shows it flat. Starts as a CRT.
+            var crtEffects = new PostEffect[] { new ScanlinePostEffect { Strength = 0.08f }, new CrtBarrelPostEffect { Distortion = 0.08f } };
+            _computerSurface.PostEffects = crtEffects;
+            var crt = new TextButton("Display: CRT")
             {
                 Height = 36,
                 Margin = new Thickness(0, 8, 8, 8),
@@ -189,11 +192,9 @@ namespace MonoGame.PortableUI.Demo
             };
             crt.Click += (sender, args) =>
             {
-                var on = _computerSurface.PostEffects.Count == 0;
-                _computerSurface.PostEffects = on
-                    ? new PostEffect[] { new ScanlinePostEffect { Strength = 0.08f }, new CrtBarrelPostEffect { Distortion = 0.08f } }
-                    : System.Array.Empty<PostEffect>();
-                crt.Text = on ? "CRT monitor: on" : "CRT monitor: off";
+                var toCrt = _computerSurface.PostEffects.Count == 0;
+                _computerSurface.PostEffects = toCrt ? crtEffects : System.Array.Empty<PostEffect>();
+                crt.Text = toCrt ? "Display: CRT" : "Display: LCD";
             };
             bar.AddChild(crt, column: 1);
             var back = new TextButton("Back to demo")
