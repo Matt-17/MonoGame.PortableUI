@@ -78,6 +78,19 @@ namespace MonoGame.PortableUI
         public TimeSpan IdleUpdateInterval { get; set; } = TimeSpan.FromMilliseconds(33);
 
         /// <summary>
+        ///     Rendering effort: <see cref="PortableUI.RenderQuality.Auto"/> (default) is High, or Low while
+        ///     the device saves power; High/Balanced/Low force a level. Can be switched at runtime; the
+        ///     level in effect is <see cref="ScreenEngine.EffectiveRenderQuality"/>.
+        /// </summary>
+        public RenderQuality RenderQuality { get; set; } = RenderQuality.Auto;
+
+        /// <summary>
+        ///     Upper limit for drawn frames per second (0 = none). Updates and input keep their rate; only
+        ///     drawing is skipped. When 0, <see cref="PortableUI.RenderQuality.Low"/> caps at 30.
+        /// </summary>
+        public int MaxFrameRate { get; set; }
+
+        /// <summary>
         /// The engine these options belong to, set once by <see cref="ScreenEngine"/>'s constructor.
         /// Lets the <see cref="Theme"/> setter invalidate the screen this instance actually drives
         /// instead of always the process-wide primary engine (relevant for secondary engines such as

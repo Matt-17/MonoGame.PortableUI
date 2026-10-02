@@ -14,6 +14,7 @@ namespace MonoGame.PortableUI
         private RenderTargetBinding[]? _previousTargets;
         private bool? _hostFixedTimeStep;
         private bool _drawPending;
+        private long _lastDrawTimestamp;
         private int _viewportWidth;
         private int _viewportHeight;
 
@@ -63,6 +64,7 @@ namespace MonoGame.PortableUI
         public override void Draw(GameTime gameTime)
         {
             _drawPending = false;
+            _lastDrawTimestamp = Stopwatch.GetTimestamp();
             _screenEngine.RecordFrame(true);
             if (_spriteBatch == null || _screenEngine.ActiveScreen == null && _screenEngine.LeavingScreen == null)
                 return;
@@ -142,6 +144,7 @@ namespace MonoGame.PortableUI
             if (_screenEngine.Options.RenderMode != RenderMode.OnDemand)
             {
                 RestoreHostTimeStep();
+                WaitForFrameSlot();
                 return;
             }
 
@@ -151,6 +154,7 @@ namespace MonoGame.PortableUI
             {
                 _drawPending = true;
                 RestoreHostTimeStep();
+                WaitForFrameSlot();
                 return;
             }
 
@@ -165,6 +169,21 @@ namespace MonoGame.PortableUI
                 Game.IsFixedTimeStep = false;
             }
             var remaining = _screenEngine.Options.IdleUpdateInterval - Stopwatch.GetElapsedTime(started);
+            if (remaining.TotalMilliseconds >= 1)
+                Thread.Sleep(remaining);
+        }
+
+        /// <summary>
+        ///     Frame cap (<see cref="ScreenEngine.EffectiveMaxFrameRate"/>): waits until the next frame is
+        ///     due in one sleep, so the draw that follows lands on the cap. Skipping draws instead would
+        ///     leave a variable time step without vsync spinning through updates.
+        /// </summary>
+        private void WaitForFrameSlot()
+        {
+            var maxFrameRate = _screenEngine.EffectiveMaxFrameRate;
+            if (maxFrameRate <= 0 || _lastDrawTimestamp == 0)
+                return;
+            var remaining = TimeSpan.FromSeconds(1.0 / maxFrameRate) - Stopwatch.GetElapsedTime(_lastDrawTimestamp);
             if (remaining.TotalMilliseconds >= 1)
                 Thread.Sleep(remaining);
         }

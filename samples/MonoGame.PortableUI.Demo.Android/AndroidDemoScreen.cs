@@ -22,6 +22,8 @@ namespace MonoGame.PortableUI.Demo.Android
         private readonly System.Action<bool>? _setFullscreen;
         private readonly SafeAreaPanel _safeArea;
         private StackPanel? _contentPanel;
+        private TextButton? _qualityButton;
+        private string? _qualityText;
 
         /// <param name="setFullscreen">Hides (true) or shows the system bars; from the activity.</param>
         public AndroidDemoScreen(System.Action<bool>? setFullscreen = null)
@@ -32,6 +34,20 @@ namespace MonoGame.PortableUI.Demo.Android
             // colour and pads only its content into the safe area.
             _safeArea = new SafeAreaPanel(BuildContent()) { BackgroundBrush = Surface };
             Content = _safeArea;
+        }
+
+        /// <summary>Refreshes the quality label; sets the text only when it changed, so an idle screen
+        /// stays idle in RenderMode.OnDemand.</summary>
+        public void SyncRenderQuality()
+        {
+            if (_qualityButton == null || ScreenEngine is not { } engine)
+                return;
+            var cap = engine.EffectiveMaxFrameRate;
+            var text = $"Render quality: {engine.Options.RenderQuality} ({engine.EffectiveRenderQuality}{(cap > 0 ? $", {cap} fps" : "")})";
+            if (text == _qualityText)
+                return;
+            _qualityText = text;
+            _qualityButton.Text = text;
         }
 
         private Control BuildContent()
@@ -102,6 +118,27 @@ namespace MonoGame.PortableUI.Demo.Android
                 TextSize = 14,
                 Margin = new Thickness(16, 0, 16, 16)
             });
+
+            // Render quality: tap cycles Auto -> High -> Balanced -> Low; the label shows the level in
+            // effect (Auto follows battery saver) and the frame cap.
+            _qualityButton = new TextButton("Render quality")
+            {
+                Height = 44,
+                Margin = new Thickness(16, 0, 16, 12)
+            };
+            _qualityButton.Click += (_, _) =>
+            {
+                if (ScreenEngine is not { } engine)
+                    return;
+                engine.Options.RenderQuality = engine.Options.RenderQuality switch
+                {
+                    RenderQuality.Auto => RenderQuality.High,
+                    RenderQuality.High => RenderQuality.Balanced,
+                    RenderQuality.Balanced => RenderQuality.Low,
+                    _ => RenderQuality.Auto
+                };
+            };
+            panel.AddChild(_qualityButton);
 
             var tapLabel = new TextBlock
             {

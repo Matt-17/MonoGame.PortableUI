@@ -57,7 +57,7 @@ namespace MonoGame.PortableUI.Media
 
         private void DrawSweep(SpriteBatch spriteBatch, Rect rect, CornerRadius radius, float opacity, float timeSeconds)
         {
-            if (SweepStrength <= 0f || opacity <= 0f)
+            if (SweepStrength <= 0f || opacity <= 0f || !ScreenEngine.AnimatesDecorations)
                 return;
             ScreenEngine.RequestAnimationFrame();
 

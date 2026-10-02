@@ -28,7 +28,7 @@ namespace MonoGame.PortableUI.Media
 
         private void DrawSpecularSweep(SpriteBatch spriteBatch, Rect rect, CornerRadius radius, float opacity, float timeSeconds)
         {
-            if (SpecularSweepStrength <= 0 || SpecularSweepSpeed <= 0 || rect.Width <= 0 || rect.Height <= 0)
+            if (SpecularSweepStrength <= 0 || SpecularSweepSpeed <= 0 || rect.Width <= 0 || rect.Height <= 0 || !ScreenEngine.AnimatesDecorations)
                 return;
             ScreenEngine.RequestAnimationFrame();
 
