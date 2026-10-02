@@ -989,7 +989,7 @@ namespace MonoGame.PortableUI
             return _combinedEffects;
         }
 
-        private static CrtBarrelPostEffect? FindEnabledBarrel(IReadOnlyList<PostEffect> effects)
+        internal static CrtBarrelPostEffect? FindEnabledBarrel(IReadOnlyList<PostEffect> effects)
         {
             for (var i = 0; i < effects.Count; i++)
             {

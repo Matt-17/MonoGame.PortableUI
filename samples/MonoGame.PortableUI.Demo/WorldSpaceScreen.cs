@@ -42,8 +42,7 @@ namespace MonoGame.PortableUI.Demo
             _computerSurface = new UISurface(_game, computerScreen, SurfaceWidth, SurfaceHeight, preset.CreateTheme())
             {
                 InputSource = _virtualInput,
-                ShowSoftwareCursor = true,
-                SoftwareCursorColor = preset.Palette.Secondary
+                ShowSoftwareCursor = false
             };
             _status = new TextBlock
             {
@@ -53,6 +52,13 @@ namespace MonoGame.PortableUI.Demo
                 Margin = new Thickness(12)
             };
             Content = CreateChrome();
+        }
+
+        protected override void OnNavigatedFrom()
+        {
+            // Leaving the room: the system pointer must not stay hidden.
+            _game.IsMouseVisible = true;
+            base.OnNavigatedFrom();
         }
 
         protected override void OnBeforeDraw(SpriteBatch spriteBatch)
@@ -81,17 +87,21 @@ namespace MonoGame.PortableUI.Demo
         {
             var mouse = Mouse.GetState();
             var ray = WorldSurfaceMapper.GetMouseRay(viewport, view, projection, new PointF(mouse.X, mouse.Y));
-            if (WorldSurfaceMapper.TryMapRayToSurface(ray, world, QuadSize, SurfaceWidth, SurfaceHeight, out var uiPoint))
+            // On the picture (inside the CRT curve, not its dark rim) the monitor shows its own
+            // arrow and gets the input; everywhere else the system pointer is back.
+            var onDisplay = WorldSurfaceMapper.TryMapRayToSurface(ray, world, QuadSize, SurfaceWidth, SurfaceHeight, out var uiPoint)
+                && _computerSurface.IsPointOnDisplay(uiPoint);
+            if (onDisplay)
             {
                 _virtualInput.SetPointer(uiPoint, mouse.LeftButton == ButtonState.Pressed, mouse.RightButton == ButtonState.Pressed, false);
                 _computerSurface.SoftwareCursorPosition = uiPoint;
-                _computerSurface.ShowSoftwareCursor = true;
             }
             else
             {
                 _virtualInput.SetPointer(new PointF(-100, -100), false, false, false);
-                _computerSurface.ShowSoftwareCursor = false;
             }
+            _computerSurface.ShowSoftwareCursor = onDisplay;
+            _game.IsMouseVisible = !onDisplay;
         }
 
         private void DrawRoomBackground(SpriteBatch spriteBatch)
