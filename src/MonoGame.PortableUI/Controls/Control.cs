@@ -815,6 +815,15 @@ namespace MonoGame.PortableUI.Controls
 
         protected internal virtual void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
+            DrawChrome(spriteBatch, rect);
+        }
+
+        /// <summary>
+        ///     Draws the control's own chrome — shadows, background, border — from its properties and
+        ///     theme style. Controls that replace <see cref="OnDraw"/> entirely call this first.
+        /// </summary>
+        protected void DrawChrome(SpriteBatch spriteBatch, Rect rect)
+        {
             var radius = ToRender(CornerRadius);
             var border = ToRender(BorderThickness);
             var scale = Math.Min(RenderScale.X, RenderScale.Y);

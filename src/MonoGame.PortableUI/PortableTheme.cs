@@ -183,13 +183,13 @@ namespace MonoGame.PortableUI
         public ControlStyle Button { get; set; } = new ControlStyle();
 
         /// <summary>Chrome of <see cref="Controls.ButtonVariant.Primary"/> buttons (palette default: Primary fill).</summary>
-        public ControlStyle PrimaryButton { get; set; } = new ControlStyle();
+        public ControlStyle PrimaryButton { get; set; } = ControlStyleBuilder.Variant(new Color(20, 126, 133), Color.White, new Color(210, 216, 222));
 
         /// <summary>Chrome of <see cref="Controls.ButtonVariant.Secondary"/> buttons (palette default: Secondary fill).</summary>
-        public ControlStyle SecondaryButton { get; set; } = new ControlStyle();
+        public ControlStyle SecondaryButton { get; set; } = ControlStyleBuilder.Variant(new Color(82, 101, 111), Color.White, new Color(210, 216, 222));
 
         /// <summary>Chrome of <see cref="Controls.ButtonVariant.Danger"/> buttons (palette default: Danger fill).</summary>
-        public ControlStyle DangerButton { get; set; } = new ControlStyle();
+        public ControlStyle DangerButton { get; set; } = ControlStyleBuilder.Variant(new Color(178, 34, 34), Color.White, new Color(210, 216, 222));
 
         /// <summary>Hover overlay of variant buttons (drawn over their colored face).</summary>
         public Brush VariantButtonHoverBrush { get; set; } = new SolidColorBrush(new Color(255, 255, 255, 40));
