@@ -122,6 +122,55 @@ namespace MonoGame.PortableUI
                 SetKeyboardInset(args.CoveredHeightPixels);
         }
 
+        private readonly Accessibility.AccessibilityService _accessibilityService = new Accessibility.AccessibilityService();
+
+        /// <summary>
+        ///     The platform screen-reader bridge (null: none). The tree is only built while
+        ///     <see cref="Accessibility.IAccessibilityBridge.IsScreenReaderActive"/> is true.
+        /// </summary>
+        public Accessibility.IAccessibilityBridge? AccessibilityBridge { get; set; }
+
+        /// <summary>The last accessibility snapshot of the active screen (empty while no reader is active).</summary>
+        public IReadOnlyList<Accessibility.AccessibilityNode> AccessibilityNodes => _accessibilityService.Nodes;
+
+        /// <summary>Converts a rectangle in layout units to window pixels (scale and letter-box offset).</summary>
+        public Rect LayoutToWindow(Rect rect)
+            => new Rect(rect.Left * RenderScale + RenderOffset.X, rect.Top * RenderScale + RenderOffset.Y, rect.Width * RenderScale, rect.Height * RenderScale);
+
+        /// <summary>Converts a window pixel position to layout units.</summary>
+        public PointF WindowToLayout(PointF point)
+            => new PointF((point.X - RenderOffset.X) / RenderScale, (point.Y - RenderOffset.Y) / RenderScale);
+
+        private readonly System.Collections.Concurrent.ConcurrentQueue<Action> _gameThreadQueue = new System.Collections.Concurrent.ConcurrentQueue<Action>();
+
+        /// <summary>
+        ///     Runs <paramref name="action"/> on the game thread at the start of the next update. For
+        ///     platform callbacks (screen-reader actions, IME events) that arrive on the UI thread.
+        /// </summary>
+        public void InvokeOnGameThread(Action action)
+        {
+            if (action != null)
+                _gameThreadQueue.Enqueue(action);
+        }
+
+        private void DrainGameThreadQueue()
+        {
+            while (_gameThreadQueue.TryDequeue(out var action))
+                action();
+        }
+
+        private void UpdateAccessibility()
+        {
+            var bridge = AccessibilityBridge;
+            if (bridge == null || !bridge.IsScreenReaderActive)
+            {
+                if (_accessibilityService.Nodes.Count > 0)
+                    _accessibilityService.Reset();
+                return;
+            }
+            _accessibilityService.Update(ActiveScreen, bridge);
+        }
+
         /// <summary>Raised on the game thread after <see cref="SafeAreaInsets"/> changed.</summary>
         public event EventHandler? SafeAreaChanged;
 
@@ -598,10 +647,12 @@ namespace MonoGame.PortableUI
             BatchFlushesThisFrame = 0;
             LayoutPassesThisFrame = 0;
             FramesPerSecond = gameTime.ElapsedGameTime.TotalSeconds > 0 ? 1 / gameTime.ElapsedGameTime.TotalSeconds : 0;
+            DrainGameThreadQueue();
             UpdateTransition();
             ApplyPendingInsets(force: false);
             ActiveScreen?.Update();
             _toasts?.Update();
+            UpdateAccessibility();
         }
 
         public void ToggleDebugOverlay()

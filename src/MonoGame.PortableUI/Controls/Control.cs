@@ -667,6 +667,15 @@ namespace MonoGame.PortableUI.Controls
         private sbyte _hasCustomDescendants;
         private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, bool> OverridesGetDescendants = new();
 
+        private Accessibility.AccessibilityProperties? _accessibility;
+
+        /// <summary>Screen-reader overrides (label, role, hidden, live region) for this control.</summary>
+        public Accessibility.AccessibilityProperties Accessibility => _accessibility ??= new Accessibility.AccessibilityProperties();
+
+        internal Accessibility.AccessibilityProperties? AccessibilityIfCreated => _accessibility;
+
+        internal int AccessibilityId { get; set; }
+
         /// <summary>Set by <c>Localize(...)</c>; re-applied by the screen when the language changes.</summary>
         internal Localization.LocalizationBinding? LocalizationBinding { get; set; }
 
