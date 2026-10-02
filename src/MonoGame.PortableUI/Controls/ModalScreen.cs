@@ -76,16 +76,20 @@ namespace MonoGame.PortableUI.Controls
             var sheet = Options.Placement == ModalPlacement.BottomSheet;
             var theme = PortableTheme.ResolveCurrent();
 
+            var background = Options.PanelBackground ?? theme.ModalBackgroundBrush ?? theme.Panel.Normal.Background ?? theme.ContextMenuBackgroundBrush;
             Panel = new Border
             {
                 Content = content,
                 Padding = Options.Padding,
-                BackgroundBrush = Options.PanelBackground ?? theme.Panel.Normal.Background ?? theme.ContextMenuBackgroundBrush,
+                BackgroundBrush = background,
+                Shadow = theme.ModalShadow,
                 // A sheet keeps square bottom corners: it sits on the screen edge.
                 CornerRadius = sheet
                     ? new CornerRadius(Options.CornerRadius, Options.CornerRadius, 0, 0)
                     : new CornerRadius(Options.CornerRadius),
-                ClipToCornerRadius = true,
+                // Glass brushes draw their own rounded shape and must sample the backdrop at screen
+                // coordinates — an offscreen clip layer would break both.
+                ClipToCornerRadius = !background.RequiresBackdrop,
                 HorizontalAlignment = sheet ? HorizontalAlignment.Stretch : HorizontalAlignment.Center,
                 VerticalAlignment = sheet ? VerticalAlignment.Bottom : VerticalAlignment.Center,
                 Width = sheet ? float.NaN : Options.PanelWidth,
