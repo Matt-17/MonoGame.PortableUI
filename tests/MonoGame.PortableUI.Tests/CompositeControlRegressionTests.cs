@@ -16,7 +16,7 @@ namespace MonoGame.PortableUI.Tests
         [TestInitialize]
         public void ResetState()
         {
-            ScreenEngine.FocusedControl = null;
+            if (ScreenEngine.Instance != null) ScreenEngine.Instance.FocusedControl = null;
             ScreenSystem.TotalTime = TimeSpan.Zero;
         }
 
@@ -100,7 +100,7 @@ namespace MonoGame.PortableUI.Tests
             Assert.AreEqual(1, listBox.SelectedIndex);
             Assert.AreEqual("Two", listBox.SelectedItem);
             Assert.IsNull(invoked);
-            Assert.AreSame(listBox, ScreenEngine.FocusedControl);
+            Assert.AreSame(listBox, ScreenEngine.Instance!.FocusedControl);
         }
 
         [TestMethod]

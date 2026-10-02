@@ -74,7 +74,7 @@ state. Routing is **bubbling** (depth-first descendants, then self; `args.Handle
 visited **topmost first** (reverse `GetDescendants` order = reverse draw order). The only tunneling hook is
 `OnPreviewTouchDown`, which lets containers like `ScrollViewer` start a pan under a clickable child; a pan
 past the threshold cancels the child's pending click. Hit-testing uses `ClippingRect` — margins are inert. Focus lives in
-`ScreenEngine.FocusedControl` (currently a process-global static — see audit A1); only controls with
+the owning engine's `FocusedControl` (per engine, so several surfaces/players keep separate focus; resolve it with `ScreenEngine.For(control)`); only controls with
 `IsFocusable` take focus on left-mouse-down. Enter/Space activate the focused clickable control.
 `ScreenSystem.TotalTime` is the global clock for animations, timers, caret blink, and double-click.
 Arrow keys and the gamepad (`IInputSource.GamePad`: D-pad/stick, A, B, Y, shoulders) are screen-level:

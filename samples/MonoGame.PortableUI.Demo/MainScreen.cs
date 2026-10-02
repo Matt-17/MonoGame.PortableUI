@@ -86,7 +86,7 @@ namespace MonoGame.PortableUI.Demo
 
         private void RebuildContent()
         {
-            ScreenEngine.FocusedControl = null;
+            if (ScreenEngine != null) ScreenEngine.FocusedControl = null;
             BackgroundBrush = ScreenBackgroundBrush;
             _status = Label("READY.", Palette.MutedText);
             Content = CreateLayout();

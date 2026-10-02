@@ -122,11 +122,11 @@ namespace MonoGame.PortableUI.Tests
         {
             var textBox = new TextBox();
             var label = new TextBlock { Text = "Just a label" };
-            ScreenEngine.FocusedControl = textBox;
+            ScreenEngine.Instance!.FocusedControl = textBox;
 
             label.OnMouseDown(new MouseEventArgs(new PointF(1, 1), MouseButton.Left));
 
-            Assert.AreSame(textBox, ScreenEngine.FocusedControl);
+            Assert.AreSame(textBox, ScreenEngine.Instance!.FocusedControl);
         }
 
         [TestMethod]
@@ -134,11 +134,11 @@ namespace MonoGame.PortableUI.Tests
         {
             var textBox = new TextBox();
             var button = new Button { Text = "Menu" };
-            ScreenEngine.FocusedControl = textBox;
+            ScreenEngine.Instance!.FocusedControl = textBox;
 
             button.OnMouseDown(new MouseEventArgs(new PointF(1, 1), MouseButton.Right));
 
-            Assert.AreSame(textBox, ScreenEngine.FocusedControl);
+            Assert.AreSame(textBox, ScreenEngine.Instance!.FocusedControl);
         }
 
         [TestMethod]
@@ -146,11 +146,11 @@ namespace MonoGame.PortableUI.Tests
         {
             var textBox = new TextBox();
             var button = new Button { Text = "Go" };
-            ScreenEngine.FocusedControl = textBox;
+            ScreenEngine.Instance!.FocusedControl = textBox;
 
             button.OnMouseDown(new MouseEventArgs(new PointF(1, 1), MouseButton.Left));
 
-            Assert.AreSame(button, ScreenEngine.FocusedControl);
+            Assert.AreSame(button, ScreenEngine.Instance!.FocusedControl);
         }
 
         [TestMethod]

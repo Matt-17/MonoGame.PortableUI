@@ -39,7 +39,7 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestInitialize]
-        public void Reset() => ScreenEngine.FocusedControl = null;
+        public void Reset() { if (ScreenEngine.Instance != null) ScreenEngine.Instance.FocusedControl = null; }
 
         [TestMethod]
         public void Focusing_a_text_box_shows_the_keyboard_with_its_purpose_and_blur_hides_it()
@@ -61,7 +61,7 @@ namespace MonoGame.PortableUI.Tests
             keyboard.Shown[0].Commit!("typed@steam.deck");
             Assert.AreEqual("typed@steam.deck", box.Text, "full-text keyboards commit into the field");
 
-            ScreenEngine.FocusedControl = null;
+            if (ScreenEngine.Instance != null) ScreenEngine.Instance.FocusedControl = null;
             Assert.AreEqual(1, keyboard.Hidden);
         }
 
@@ -99,7 +99,7 @@ namespace MonoGame.PortableUI.Tests
             Assert.AreEqual(400, engine.KeyboardInset);
             Assert.IsTrue(box.ClippingRect.Bottom <= 400, $"field bottom {box.ClippingRect.Bottom} is above the keyboard");
 
-            ScreenEngine.FocusedControl = null;
+            if (ScreenEngine.Instance != null) ScreenEngine.Instance.FocusedControl = null;
             engine.Update(new GameTime());
             Assert.AreEqual(0, engine.KeyboardInset);
         }

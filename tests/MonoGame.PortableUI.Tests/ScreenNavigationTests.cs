@@ -31,7 +31,7 @@ namespace MonoGame.PortableUI.Tests
         public void Reset()
         {
             ScreenSystem.TotalTime = TimeSpan.Zero;
-            ScreenEngine.FocusedControl = null;
+            if (ScreenEngine.Instance != null) ScreenEngine.Instance.FocusedControl = null;
         }
 
         private static ScreenEngine CreateEngine(Game game)
@@ -111,10 +111,10 @@ namespace MonoGame.PortableUI.Tests
             button.Focus();
 
             engine.PushOverlay(new RecordingScreen("pause", log), ScreenTransition.None);
-            Assert.IsNull(ScreenEngine.FocusedControl);
+            Assert.IsNull(ScreenEngine.Instance!.FocusedControl);
 
             engine.NavigateBack();
-            Assert.AreSame(button, ScreenEngine.FocusedControl);
+            Assert.AreSame(button, ScreenEngine.Instance!.FocusedControl);
         }
 
         [TestMethod]

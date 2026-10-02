@@ -129,19 +129,19 @@ namespace MonoGame.PortableUI.Tests
             panel.AddChild(second);
 
             first.Focus();
-            Assert.AreSame(first, ScreenEngine.FocusedControl);
+            Assert.AreSame(first, ScreenEngine.Instance!.FocusedControl);
 
             first.IsVisible = false;
-            Assert.IsNull(ScreenEngine.FocusedControl);
+            Assert.IsNull(ScreenEngine.Instance!.FocusedControl);
 
             second.Focus();
             second.IsEnabled = false;
-            Assert.IsNull(ScreenEngine.FocusedControl);
+            Assert.IsNull(ScreenEngine.Instance!.FocusedControl);
 
             second.IsEnabled = true;
             second.Focus();
             panel.Children.Remove(second);
-            Assert.IsNull(ScreenEngine.FocusedControl);
+            Assert.IsNull(ScreenEngine.Instance!.FocusedControl);
         }
 
         [TestMethod]

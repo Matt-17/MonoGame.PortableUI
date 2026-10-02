@@ -84,7 +84,8 @@ namespace MonoGame.PortableUI.Controls
                 }
 
                 // Keyboard/gamepad users keep focus inside the menu while drilling in and out.
-                if (ScreenEngine.FocusedControl == null || ScreenEngine.FocusedControl.Parent == this || ScreenEngine.FocusedControl.Parent == null)
+                var focused = ScreenEngine.For(this)?.FocusedControl;
+                if (focused == null || focused.Parent == this || focused.Parent == null)
                 {
                     foreach (var child in Children)
                     {

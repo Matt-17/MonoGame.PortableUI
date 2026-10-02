@@ -87,7 +87,7 @@ namespace MonoGame.PortableUI.Controls
 
         public bool IsFocused
         {
-            get { return ScreenEngine.FocusedControl == this; }
+            get { return ScreenEngine.For(this)?.FocusedControl == this; }
         }
 
         /// <summary>Whether pointer-down moves keyboard focus to this control. Non-interactive
@@ -169,8 +169,8 @@ namespace MonoGame.PortableUI.Controls
                     throw new MultipleParentException();
                 // Detaching a subtree that holds focus must drop it, or keys keep reaching a
                 // control that is no longer on screen.
-                if (value == null && ScreenEngine.FocusedControl is { } focused && IsSelfOrAncestorOf(focused))
-                    ScreenEngine.FocusedControl = null;
+                if (value == null && ScreenEngine.For(this) is { FocusedControl: { } focused } engine && IsSelfOrAncestorOf(focused))
+                    engine.FocusedControl = null;
                 _parent = value;
                 if (value != null)
                 {
@@ -560,8 +560,8 @@ namespace MonoGame.PortableUI.Controls
                 _isEnabled = value;
                 if (!_isEnabled)
                 {
-                    if (ScreenEngine.FocusedControl == this)
-                        ScreenEngine.FocusedControl = null;
+                    if (ScreenEngine.For(this) is { } engine && engine.FocusedControl == this)
+                        engine.FocusedControl = null;
                     ResetInputs();
                 }
                 else
@@ -1299,7 +1299,8 @@ namespace MonoGame.PortableUI.Controls
         {
             if (!IsEnabled || !IsVisible || IsGone)
                 return;
-            ScreenEngine.FocusedControl = this;
+            if (ScreenEngine.For(this) is { } focusEngine)
+                focusEngine.FocusedControl = this;
         }
 
         private static bool IsDoubleClick(ref TimeSpan? lastClickAt)

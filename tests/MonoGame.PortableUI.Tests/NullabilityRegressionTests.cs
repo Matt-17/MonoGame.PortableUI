@@ -9,7 +9,7 @@ namespace MonoGame.PortableUI.Tests
         [TestInitialize]
         public void ResetFocus()
         {
-            ScreenEngine.FocusedControl = null;
+            if (ScreenEngine.Instance != null) ScreenEngine.Instance.FocusedControl = null;
         }
 
         [TestMethod]
@@ -71,7 +71,7 @@ namespace MonoGame.PortableUI.Tests
 
             first.Focus();
             second.Focus();
-            ScreenEngine.FocusedControl = null;
+            if (ScreenEngine.Instance != null) ScreenEngine.Instance.FocusedControl = null;
 
             Assert.IsNull(oldElement);
             Assert.AreSame(second, newElement);

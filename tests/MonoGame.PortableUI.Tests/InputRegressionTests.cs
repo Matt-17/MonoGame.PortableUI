@@ -92,13 +92,13 @@ namespace MonoGame.PortableUI.Tests
             var page = new StackPanel();
             var textBox = new TextBox();
             page.AddChild(textBox);
-            ScreenEngine.FocusedControl = textBox;
+            ScreenEngine.Instance!.FocusedControl = textBox;
 
             page.IsGone = true;
             screen.HandleTextInput('x');
 
             Assert.AreEqual("", textBox.Text);
-            Assert.IsNull(ScreenEngine.FocusedControl);
+            Assert.IsNull(ScreenEngine.Instance!.FocusedControl);
         }
 
         [TestMethod]
@@ -109,11 +109,11 @@ namespace MonoGame.PortableUI.Tests
             var textBox = new TextBox();
             page.AddChild(textBox);
             host.Content = page;
-            ScreenEngine.FocusedControl = textBox;
+            ScreenEngine.Instance!.FocusedControl = textBox;
 
             host.Content = null;
 
-            Assert.IsNull(ScreenEngine.FocusedControl);
+            Assert.IsNull(ScreenEngine.Instance!.FocusedControl);
         }
 
         [TestMethod]
@@ -121,7 +121,7 @@ namespace MonoGame.PortableUI.Tests
         {
             var screen = new TestScreen();
             var textBox = new TextBox();
-            ScreenEngine.FocusedControl = textBox;
+            ScreenEngine.Instance!.FocusedControl = textBox;
 
             screen.HandleTextInput('ä');
             screen.HandleTextInput('\b');

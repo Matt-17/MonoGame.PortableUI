@@ -20,7 +20,7 @@ namespace MonoGame.PortableUI.Tests
         public void Reset()
         {
             ScreenSystem.TotalTime = TimeSpan.Zero;
-            ScreenEngine.FocusedControl = null;
+            if (ScreenEngine.Instance != null) ScreenEngine.Instance.FocusedControl = null;
         }
 
         private static (TestScreen Screen, VirtualInputSource Source, ListBox List) CreateList(Game game, SelectionMode mode)
