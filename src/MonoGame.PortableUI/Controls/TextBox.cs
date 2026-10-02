@@ -484,7 +484,8 @@ namespace MonoGame.PortableUI.Controls
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
             EnsureCursorVisible();
-            BackgroundBrush?.Draw(spriteBatch, rect, RenderOpacity);
+            // Theme chrome (corner radius, border, inset shadows), not just the fill.
+            DrawChrome(spriteBatch, rect);
             // rect is in render space; scale the layout padding with it (LayoutScale, popup zoom).
             var textRect = rect - new Thickness(Padding.Left * RenderScale.X, Padding.Top * RenderScale.Y, Padding.Right * RenderScale.X, Padding.Bottom * RenderScale.Y);
 
