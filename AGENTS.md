@@ -7,7 +7,7 @@ No XAML — trees are built in C#. Known open issues and deferred work live in `
 
 - `src/MonoGame.PortableUI` — the library (controls, layout, input, media/brushes, theming core).
 - `src/MonoGame.PortableUI.FontStashSharp` — optional FontStashSharp font backend (`FontStashUIFont`).
-- `src/MonoGame.PortableUI.Themes` — theme catalog add-on (`PortableThemes.All`, 37 themes, one file each under `Themes/`).
+- `src/MonoGame.PortableUI.Themes` — theme catalog add-on (`PortableThemes.All`, 42 themes incl. 5 game UIs, one file each under `Themes/`).
 - `samples/MonoGame.PortableUI.Demo` — DesktopGL demo; `samples/MonoGame.PortableUI.Demo.Android` — Android host.
 - `tests/MonoGame.PortableUI.Tests` — MSTest suite (headless, no graphics device needed for most tests).
 - `benchmarks/` — BenchmarkDotNet. `docs/` — fonts, release process, historical issue log (`issues.md`), audit (`audit.md`).
@@ -106,8 +106,14 @@ and touch events.
 explicitly set by the user. The constructor seeds snapshots from `PortableTheme.ResolveCurrent()`;
 `OnThemeChanged(old, new)` re-seeds only values still reference-equal to the old theme's (so user
 overrides survive theme switches). New themed controls get a `ControlStyle` slot in
-`PortableTheme.FromPalette` with **palette-derived defaults** — never edit the 37 theme files for a new
+`PortableTheme.FromPalette` with **palette-derived defaults** — never edit the 42 theme files for a new
 slot. Theme resolution is cached per global `ThemeVersion`.
+
+**Buttons and chrome brushes:** `Button.Variant` (Primary/Secondary/Danger) resolves the theme's
+`PrimaryButton`/`SecondaryButton`/`DangerButton` slots — use variants instead of setting
+`BackgroundBrush`, or the theme's look is lost. Theme-level shapes: `BevelBrush` (Win9x),
+`FrameBrush` (concentric rings, pixel notches), `ChamferBrush` (cut corners, accent bar),
+`ShadowStyle.Also` (chained shadows, e.g. neumorphism). Brushes get `BrushContext.Scale` for HiDPI line widths.
 
 **Item controls**: `TabControl` materializes one child per item; `ListBox` and `DataGrid` virtualize by
 default (`IsVirtualizing`) — the internal `VirtualItemsPanel` realizes only the rows in view and recycles

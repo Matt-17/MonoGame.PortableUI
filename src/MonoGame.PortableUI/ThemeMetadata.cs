@@ -9,7 +9,10 @@ namespace MonoGame.PortableUI
         Desktop,
         Modern,
         Terminal,
-        Glass
+        Glass,
+
+        /// <summary>Game UI styles (HUDs, RPG frames, casual mobile, tactical, anime-RPG).</summary>
+        Game
     }
 
     public enum ThemeBrightness

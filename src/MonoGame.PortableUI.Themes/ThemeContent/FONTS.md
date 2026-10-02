@@ -6,10 +6,14 @@ distribution; the OFL/Apache/CC licenses require keeping their license notice wi
 
 | Font | File | Used by themes | Author | License | Source |
 |---|---|---|---|---|---|
+| Anton | `Anton-Regular.ttf` | phantom | Vernon Adams | SIL OFL 1.1 | [Google Fonts](https://fonts.google.com/specimen/Anton) |
 | Atkinson Hyperlegible | `AtkinsonHyperlegible-Regular.ttf` | studio, aurora, glass, aqua, macos9, mac1bit, nord, parchment, eink, neumorphic, brutalist, liquid | Braille Institute | [SIL OFL 1.1](https://openfontlicense.org/) | [Google Fonts](https://fonts.google.com/specimen/Atkinson+Hyperlegible) |
+| Barlow Condensed SemiBold | `BarlowCondensed-SemiBold.ttf` | tactical | Jeremy Tribby | SIL OFL 1.1 | [Google Fonts](https://fonts.google.com/specimen/Barlow+Condensed) |
+| Cinzel SemiBold | `Cinzel-SemiBold.ttf` (weight 600 instance of the variable font) | fantasy | Natanael Gama | SIL OFL 1.1 | [Google Fonts](https://fonts.google.com/specimen/Cinzel) |
+| Fredoka SemiBold | `Fredoka-SemiBold.ttf` (weight 600 instance of the variable font) | cozy | Milena Brandão | SIL OFL 1.1 | [Google Fonts](https://fonts.google.com/specimen/Fredoka) |
 | IBM Plex Mono | `IBMPlexMono-Regular.ttf` | terminal, dracula, solarized, gruvbox | IBM | SIL OFL 1.1 | [Google Fonts](https://fonts.google.com/specimen/IBM+Plex+Mono) |
 | Jersey 10 | `Jersey10-Regular.ttf` | amiga | Sarah Cadigan-Fried | SIL OFL 1.1 | [Google Fonts](https://fonts.google.com/specimen/Jersey+10) |
-| Orbitron | `Orbitron-Variable.ttf` | cyberpunk, vaporwave, lcars | Matt McInerney | SIL OFL 1.1 | [Google Fonts](https://fonts.google.com/specimen/Orbitron) |
+| Orbitron | `Orbitron-Variable.ttf` | cyberpunk, vaporwave, lcars, scifi | Matt McInerney | SIL OFL 1.1 | [Google Fonts](https://fonts.google.com/specimen/Orbitron) |
 | Press Start 2P | `PressStart2P-Regular.ttf` | c64, nes | CodeMan38 | SIL OFL 1.1 | [Google Fonts](https://fonts.google.com/specimen/Press+Start+2P) |
 | Px437 IBM VGA 8x16 | `Px437_IBM_VGA_8x16.ttf` | dos, norton | VileR (int10h.org) | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) | [The Oldschool PC Font Resource](https://int10h.org/oldschool-pc-fonts/) |
 | Roboto | `Roboto-Variable.ttf` | material | Google (Christian Robertson) | SIL OFL 1.1 | [Google Fonts](https://fonts.google.com/specimen/Roboto) |

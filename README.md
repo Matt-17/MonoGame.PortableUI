@@ -92,6 +92,16 @@ The `default` theme shows the library's built-in styling when no theme is applie
 |---|---|---|---|
 | ![LCARS](docs/themes/lcars.png) | ![E-Ink](docs/themes/eink.png) | ![Neumorphism](docs/themes/neumorphic.png) | ![Brutalist](docs/themes/brutalist.png) |
 
+Game UI themes:
+
+| Sci-Fi HUD | Dark Fantasy RPG | Cozy Casual |
+|---|---|---|
+| ![Sci-Fi HUD](docs/themes/scifi.png) | ![Dark Fantasy RPG](docs/themes/fantasy.png) | ![Cozy Casual](docs/themes/cozy.png) |
+
+| Tactical Ops | Phantom Strike |
+|---|---|
+| ![Tactical Ops](docs/themes/tactical.png) | ![Phantom Strike](docs/themes/phantom.png) |
+
 ## Small API Examples
 
 Initialize the screen engine from your `Game`. By default, PortableUI tracks the MonoGame viewport and keeps the layout in sync with the window:

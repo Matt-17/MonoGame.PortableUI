@@ -61,3 +61,27 @@ MonoGame.PortableUI FontManager convention: Fonts/{name}-{style}-{size}.
 /processor:FontDescriptionProcessor
 /processorParam:TextureFormat=Compressed
 /build:Fonts\orbitron-regular-14.spritefont
+
+#begin Fonts\cinzel-regular-14.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:TextureFormat=Compressed
+/build:Fonts\cinzel-regular-14.spritefont
+
+#begin Fontsredoka-regular-14.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:TextureFormat=Compressed
+/build:Fontsredoka-regular-14.spritefont
+
+#begin Fontsarlowcondensed-regular-14.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:TextureFormat=Compressed
+/build:Fontsarlowcondensed-regular-14.spritefont
+
+#begin Fontsnton-regular-14.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:TextureFormat=Compressed
+/build:Fontsnton-regular-14.spritefont
