@@ -123,6 +123,9 @@ namespace MonoGame.PortableUI
                 Spacing = 8
             };
             theme.Button = styles["Button"];
+            theme.PrimaryButton = styles["PrimaryButton"];
+            theme.SecondaryButton = styles["SecondaryButton"];
+            theme.DangerButton = styles["DangerButton"];
             theme.TextBox = styles["TextBox"];
             theme.CheckBox = styles["CheckBox"];
             theme.RadioButton = styles["RadioButton"];
@@ -178,6 +181,21 @@ namespace MonoGame.PortableUI
         public Typography Typography { get; set; } = new Typography();
         public ThemeMetrics Metrics { get; set; } = new ThemeMetrics();
         public ControlStyle Button { get; set; } = new ControlStyle();
+
+        /// <summary>Chrome of <see cref="Controls.ButtonVariant.Primary"/> buttons (palette default: Primary fill).</summary>
+        public ControlStyle PrimaryButton { get; set; } = new ControlStyle();
+
+        /// <summary>Chrome of <see cref="Controls.ButtonVariant.Secondary"/> buttons (palette default: Secondary fill).</summary>
+        public ControlStyle SecondaryButton { get; set; } = new ControlStyle();
+
+        /// <summary>Chrome of <see cref="Controls.ButtonVariant.Danger"/> buttons (palette default: Danger fill).</summary>
+        public ControlStyle DangerButton { get; set; } = new ControlStyle();
+
+        /// <summary>Hover overlay of variant buttons (drawn over their colored face).</summary>
+        public Brush VariantButtonHoverBrush { get; set; } = new SolidColorBrush(new Color(255, 255, 255, 40));
+
+        /// <summary>Pressed overlay of variant buttons.</summary>
+        public Brush VariantButtonPressedBrush { get; set; } = new SolidColorBrush(new Color(0, 0, 0, 70));
         public ControlStyle TextBox { get; set; } = new ControlStyle();
         public ControlStyle CheckBox { get; set; } = new ControlStyle();
         public ControlStyle RadioButton { get; set; } = new ControlStyle();

@@ -1012,9 +1012,14 @@ namespace MonoGame.PortableUI
                 var transform = CreateControlTransform(control) * _transform;
                 var renderRect = TransformRect(control.ClippingRect, transform);
                 // Drop shadows render outside the control's bounds; widen the scissor so they survive.
-                var scissorSource = control.Shadow is { Inset: false } shadow
-                    ? renderRect + new Thickness(shadow.Blur + shadow.Spread + Math.Max(Math.Abs(shadow.Offset.X), Math.Abs(shadow.Offset.Y)))
-                    : renderRect;
+                var shadowExtent = 0f;
+                for (var shadow = control.Shadow; shadow != null; shadow = shadow.Also)
+                {
+                    if (!shadow.Inset)
+                        shadowExtent = Math.Max(shadowExtent, shadow.Blur + shadow.Spread + Math.Max(Math.Abs(shadow.Offset.X), Math.Abs(shadow.Offset.Y)));
+                }
+                // Shadow sizes are layout lengths; the render rect is already scaled.
+                var scissorSource = shadowExtent > 0 ? renderRect + new Thickness(shadowExtent * Math.Max(Scale.X, Scale.Y)) : renderRect;
                 var scissorRect = ChildClipRect ^ scissorSource;
                 // Only controls that clip their content (e.g. ScrollViewer) shrink the clip for
                 // descendants; everything else inherits it so overflowing shadows survive.

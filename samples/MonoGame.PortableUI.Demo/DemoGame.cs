@@ -98,6 +98,8 @@ namespace MonoGame.PortableUI.Demo
             var worldSpace = string.Equals(screenName, "worldspace", StringComparison.OrdinalIgnoreCase);
             foreach (var preset in DemoThemeRegistry.Presets)
             {
+                if (_runOptions.ScreenshotThemes is { Length: > 0 } only && Array.IndexOf(only, preset.Id) < 0)
+                    continue;
                 // Apply the preset to the primary engine too so controls constructed by MainScreen
                 // pick up the right theme defaults.
                 ApplyTheme(preset);

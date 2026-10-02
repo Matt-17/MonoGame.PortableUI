@@ -14,6 +14,9 @@ namespace MonoGame.PortableUI.Demo
         /// <summary>--layout-scale 2: screenshots rendered at 2x pixels for the same layout (HiDPI check).</summary>
         public float LayoutScale { get; init; } = 1f;
 
+        /// <summary>--screenshot-themes win95,luna: only render these theme ids.</summary>
+        public string[]? ScreenshotThemes { get; init; }
+
         public static DemoRunOptions Parse(string[]? args)
         {
             // --text-scale 1.5 sets the app text size (TextScaling.AppScale) before anything is built.
@@ -31,6 +34,7 @@ namespace MonoGame.PortableUI.Demo
                 ScreenshotDirectory = TryParseValue(args, "--screenshot"),
                 ScreenshotScreen = TryParseValue(args, "--screenshot-screen") ?? "controls",
                 ScreenshotOverlay = TryParseValue(args, "--screenshot-overlay"),
+                ScreenshotThemes = TryParseValue(args, "--screenshot-themes")?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
                 LayoutScale = float.TryParse(TryParseValue(args, "--layout-scale"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var layoutScale) && layoutScale > 0 ? layoutScale : 1f
             };
         }
