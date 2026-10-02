@@ -139,6 +139,8 @@ namespace MonoGame.PortableUI.Controls
             _shownAt = now;
             _visibleFor = duration == ToastDuration.Long ? LongDuration : ShortDuration;
             _leaving = false;
+            // Wake an idle on-demand loop when the toast is due to leave.
+            _layer.ScreenEngine?.RequestRedrawAt(now + _visibleFor);
 
             var slide = Edge == ToastEdge.Top ? -12 : 12;
             _current.Opacity = 0;

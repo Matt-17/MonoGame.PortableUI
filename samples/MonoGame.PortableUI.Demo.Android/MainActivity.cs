@@ -38,6 +38,9 @@ namespace MonoGame.PortableUI.Demo.Android
                 Window.Attributes = attributes;
             }
 
+            // Game loop on its own thread: an idle on-demand loop then costs next to nothing (on the UI
+            // thread every iteration is marshalled over, ~1.8 ms CPU each). Needs AndroidInputBridge.
+            RenderOnUIThread = false;
             _game = new AndroidDemoGame(SetFullscreen);
             _view = _game.Services.GetService(typeof(View)) as View;
             if (_view != null)

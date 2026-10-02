@@ -15,6 +15,8 @@ namespace MonoGame.PortableUI
         [ThreadStatic] private static ScreenEngine? _drawingEngine;
 
         private int _redrawRequested = 1;
+        private readonly AutoResetEvent _wake = new AutoResetEvent(false);
+        private int _gameThreadId = -1;
         private TimeSpan _redrawAt = TimeSpan.MaxValue;
         private TimeSpan _redrawUntil;
 
@@ -30,7 +32,34 @@ namespace MonoGame.PortableUI
         ///     this already; call it for changes the UI cannot see, e.g. a host drawing its own content.
         ///     Thread-safe.
         /// </summary>
-        public void RequestRedraw() => Interlocked.Exchange(ref _redrawRequested, 1);
+        public void RequestRedraw()
+        {
+            Interlocked.Exchange(ref _redrawRequested, 1);
+            // From another thread the loop may be idling: wake it. (Game-thread calls are frequent and
+            // never happen while the loop waits.)
+            if (Environment.CurrentManagedThreadId != _gameThreadId)
+                _wake.Set();
+        }
+
+        /// <summary>
+        ///     Ends an idle wait of the <see cref="RenderMode.OnDemand"/> loop now, so input that arrives
+        ///     on another thread (e.g. <see cref="AndroidInputBridge"/>) is handled without waiting out
+        ///     <see cref="ScreenEngineOptions.IdleUpdateInterval"/>. Thread-safe.
+        /// </summary>
+        public void WakeUp() => _wake.Set();
+
+        /// <summary>The idle loop's wait: returns after <paramref name="timeout"/>, at <see cref="WakeUp"/>,
+        /// or right away when woken since the last wait.</summary>
+        internal void WaitIdle(TimeSpan timeout)
+        {
+            if (timeout.TotalMilliseconds >= 1)
+                _wake.WaitOne(timeout);
+        }
+
+        /// <summary>When the next scheduled frame (<see cref="RequestRedrawAt"/>) is due; MaxValue for none.</summary>
+        internal TimeSpan NextScheduledRedraw => _redrawAt;
+
+        internal void MarkGameThread() => _gameThreadId = Environment.CurrentManagedThreadId;
 
         /// <summary>Asks for a frame at <paramref name="time"/> (on the <see cref="ScreenSystem.TotalTime"/>
         /// clock), e.g. the next caret blink. Game thread only.</summary>
