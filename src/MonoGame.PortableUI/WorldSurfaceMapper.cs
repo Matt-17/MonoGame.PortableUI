@@ -46,6 +46,28 @@ namespace MonoGame.PortableUI
             return true;
         }
 
+        /// <summary>
+        ///     The inverse of <see cref="TryMapRayToSurface"/>: where a surface point (surface units)
+        ///     appears on screen — e.g. to put the system pointer back where an in-world cursor was.
+        /// </summary>
+        public static PointF MapSurfaceToScreen(
+            Viewport viewport,
+            Matrix view,
+            Matrix projection,
+            Matrix quadWorld,
+            Vector2 quadSize,
+            int surfaceWidth,
+            int surfaceHeight,
+            PointF uiPoint)
+        {
+            var u = surfaceWidth > 0 ? uiPoint.X / surfaceWidth : 0.5f;
+            var v = surfaceHeight > 0 ? uiPoint.Y / surfaceHeight : 0.5f;
+            var local = new Vector3((u - 0.5f) * quadSize.X, (0.5f - v) * quadSize.Y, 0);
+            var world = Vector3.Transform(local, quadWorld);
+            var screen = viewport.Project(world, projection, view, Matrix.Identity);
+            return new PointF(screen.X, screen.Y);
+        }
+
         public static bool TryMapPointToSurface(
             PointF screenPoint,
             Matrix spriteTransform,
