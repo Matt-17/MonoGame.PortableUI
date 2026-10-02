@@ -174,10 +174,29 @@ namespace MonoGame.PortableUI.Demo
                 ColumnDefinitions =
                 {
                     new ColumnDefinition(),
+                    new ColumnDefinition { Width = new GridLength(180) },
                     new ColumnDefinition { Width = new GridLength(180) }
                 }
             };
             bar.AddChild(_status);
+            // The display type belongs to the monitor, not the theme: a CRT curves and scanlines
+            // whatever theme it shows, an LCD shows it flat. Starts as a CRT.
+            var crtEffects = new PostEffect[] { new ScanlinePostEffect { Strength = 0.08f }, new CrtBarrelPostEffect { Distortion = 0.08f } };
+            _computerSurface.PostEffects = crtEffects;
+            var crt = new TextButton("Display: CRT")
+            {
+                Height = 36,
+                Margin = new Thickness(0, 8, 8, 8),
+                BackgroundBrush = new SolidColorBrush(new Color(255, 255, 255, 36)),
+                TextColor = Color.White
+            };
+            crt.Click += (sender, args) =>
+            {
+                var toCrt = _computerSurface.PostEffects.Count == 0;
+                _computerSurface.PostEffects = toCrt ? crtEffects : System.Array.Empty<PostEffect>();
+                crt.Text = toCrt ? "Display: CRT" : "Display: LCD";
+            };
+            bar.AddChild(crt, column: 1);
             var back = new TextButton("Back to demo")
             {
                 Height = 36,
@@ -186,7 +205,7 @@ namespace MonoGame.PortableUI.Demo
                 TextColor = Color.White
             };
             back.Click += (sender, args) => ScreenEngine?.NavigateBack();
-            bar.AddChild(back, column: 1);
+            bar.AddChild(back, column: 2);
             root.AddChild(bar, row: 2);
             return root;
         }
