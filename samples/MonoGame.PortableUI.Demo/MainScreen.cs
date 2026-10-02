@@ -173,10 +173,13 @@ namespace MonoGame.PortableUI.Demo
                 ToolTip = "Switch demo theme"
             };
 
-            foreach (var preset in DemoThemeRegistry.Presets)
+            // Alphabetical by display name, so a theme is easy to find among 42.
+            var sorted = new List<DemoThemePreset>(DemoThemeRegistry.Presets);
+            sorted.Sort((a, b) => string.Compare(a.DisplayName, b.DisplayName, StringComparison.OrdinalIgnoreCase));
+            foreach (var preset in sorted)
                 combo.Items.Add(preset);
 
-            combo.SelectedIndex = DemoThemeRegistry.IndexOf(_themePreset.Id);
+            combo.SelectedIndex = sorted.FindIndex(p => p.Id == _themePreset.Id);
             combo.SelectionChanged += (sender, args) =>
             {
                 if (combo.SelectedItem is not DemoThemePreset preset)

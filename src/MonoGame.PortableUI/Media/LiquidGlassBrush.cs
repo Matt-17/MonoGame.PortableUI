@@ -21,11 +21,12 @@ namespace MonoGame.PortableUI.Media
 
         public override void Draw(SpriteBatch spriteBatch, in BrushContext context)
         {
-            Draw(spriteBatch, context.Rect, context.Opacity);
-            DrawSpecularSweep(spriteBatch, context.Rect, context.Opacity, context.TimeSeconds);
+            // Rounded body via the frosted-glass path, then the sweep kept inside the shape.
+            base.Draw(spriteBatch, in context);
+            DrawSpecularSweep(spriteBatch, context.Rect, context.Radius, context.Opacity, context.TimeSeconds);
         }
 
-        private void DrawSpecularSweep(SpriteBatch spriteBatch, Rect rect, float opacity, float timeSeconds)
+        private void DrawSpecularSweep(SpriteBatch spriteBatch, Rect rect, CornerRadius radius, float opacity, float timeSeconds)
         {
             if (SpecularSweepStrength <= 0 || SpecularSweepSpeed <= 0 || rect.Width <= 0 || rect.Height <= 0)
                 return;
@@ -38,23 +39,21 @@ namespace MonoGame.PortableUI.Media
             var strength = MathHelper.Clamp(SpecularSweepStrength, 0, 1) * MathHelper.Clamp(opacity, 0, 1);
             const int bands = 5;
             var bandWidth = Math.Max(8f, rect.Width * 0.05f);
-            var centerY = rect.Top + rect.Height / 2;
-
+            // Upright bands clipped to the body; the rounded ends stay inside the corner arcs.
+            var inset = Math.Max(Math.Max(radius.TopLeft, radius.TopRight), Math.Max(radius.BottomLeft, radius.BottomRight));
             for (var i = 0; i < bands; i++)
             {
                 var band = i - bands / 2;
                 var falloff = 1 - Math.Abs(band) / (bands / 2f + 1);
                 var color = Premultiply(new Color((byte)255, (byte)255, (byte)255, (byte)(64 * strength * falloff)));
-                spriteBatch.Draw(
-                    Primitives.Pixel(spriteBatch),
-                    new Vector2(sweepCenterX + band * bandWidth, centerY),
-                    null,
-                    color,
-                    0.35f,
-                    new Vector2(0.5f, 0.5f),
-                    new Vector2(bandWidth, rect.Height * 1.8f),
-                    SpriteEffects.None,
-                    0);
+                var left = Math.Max(rect.Left + inset * 0.3f, sweepCenterX + band * bandWidth - bandWidth / 2);
+                var right = Math.Min(rect.Right - inset * 0.3f, sweepCenterX + band * bandWidth + bandWidth / 2);
+                if (right <= left)
+                    continue;
+                var x0 = Math.Min(left - rect.Left, rect.Right - right);
+                // Near the rounded ends shorten the band to stay within the arc.
+                var cut = x0 < inset ? inset - (float)Math.Sqrt(Math.Max(0, inset * inset - (inset - x0) * (inset - x0))) : 0;
+                spriteBatch.Draw(Primitives.Pixel(spriteBatch), new Rect(left, rect.Top + cut, right - left, rect.Height - 2 * cut), color);
             }
         }
     }
