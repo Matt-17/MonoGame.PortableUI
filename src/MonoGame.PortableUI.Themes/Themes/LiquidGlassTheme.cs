@@ -177,11 +177,19 @@ public sealed class LiquidWallpaperBrush : Brush
 
         // Crisp diagonal light lines: refraction bends them visibly at every glass rim.
         var pixel = Primitives.Pixel(spriteBatch);
-        for (var i = 0; i < 9; i++)
+        // They glide sideways (wrapping around) and sway a little, so every rim visibly bends them.
+        var spacing = rect.Width / 8f;
+        var travelled = _time * 18f;
+        var glide = travelled % spacing;
+        var wrapped = (int)(travelled / spacing);
+        var angle = 0.35f + 0.05f * MathF.Sin(_time * 0.3f);
+        for (var i = -1; i < 10; i++)
         {
-            var x = rect.Left + rect.Width * (i / 8f) - rect.Height * 0.3f;
-            spriteBatch.Draw(pixel, new Vector2(x, rect.Top), null, ApplyOpacity(new Color(255, 255, 255, i % 3 == 0 ? 70 : 34), opacity),
-                0.35f, Vector2.Zero, new Vector2(i % 3 == 0 ? 3 : 1.5f, rect.Height * 1.3f), SpriteEffects.None, 0);
+            var x = rect.Left + spacing * i + glide - rect.Height * 0.3f;
+            // Brightness belongs to the line, not the slot, so nothing flickers when they wrap.
+            var bright = (((i - wrapped) % 3) + 3) % 3 == 0;
+            spriteBatch.Draw(pixel, new Vector2(x, rect.Top), null, ApplyOpacity(new Color(255, 255, 255, bright ? 70 : 34), opacity),
+                angle, Vector2.Zero, new Vector2(bright ? 3 : 1.5f, rect.Height * 1.3f), SpriteEffects.None, 0);
         }
     }
 
