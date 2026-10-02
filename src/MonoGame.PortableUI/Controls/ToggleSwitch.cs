@@ -106,7 +106,8 @@ namespace MonoGame.PortableUI.Controls
         private void AdvanceAnimation()
         {
             var now = ScreenSystem.TotalTime;
-            var dt = _hasLastDraw ? (float)(now - _lastDraw).TotalSeconds : 0f;
+            // Clamped: with on-demand rendering the previous frame may be seconds old.
+            var dt = _hasLastDraw ? Math.Min(0.05f, (float)(now - _lastDraw).TotalSeconds) : 0f;
             _lastDraw = now;
             _hasLastDraw = true;
 
@@ -121,7 +122,10 @@ namespace MonoGame.PortableUI.Controls
             if (Math.Abs(target - _anim) <= step)
                 _anim = target;
             else
+            {
                 _anim += Math.Sign(target - _anim) * step;
+                ScreenEngine.RequestAnimationFrame();
+            }
         }
     }
 }

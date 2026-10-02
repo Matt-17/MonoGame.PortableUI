@@ -508,6 +508,7 @@ namespace MonoGame.PortableUI.Controls
             _velocity = new PointF(vx, vy);
             Offset = new PointF(x, y);
             UpdateContentLayout();
+            RequestRedraw();
 
             if (_velocity.X == 0 && _velocity.Y == 0 && !IsOverscrolled)
                 _animating = false;
@@ -762,8 +763,15 @@ namespace MonoGame.PortableUI.Controls
                 var delay = Screen?.ScreenEngine?.Options.ScrollBarAutoHideDelay ?? TimeSpan.FromSeconds(0.75);
                 var idle = (now - _lastScrollActivity - delay).TotalMilliseconds;
                 if (idle <= 0)
+                {
+                    // Shown: wake up when the fade-out starts.
+                    ScreenEngine.RequestAnimationFrameAt(_lastScrollActivity + delay);
                     return 1f;
-                return (float)Math.Max(0, 1 - idle / ScrollBarFadeMilliseconds);
+                }
+                var opacity = (float)Math.Max(0, 1 - idle / ScrollBarFadeMilliseconds);
+                if (opacity > 0)
+                    ScreenEngine.RequestAnimationFrame();
+                return opacity;
             }
         }
 

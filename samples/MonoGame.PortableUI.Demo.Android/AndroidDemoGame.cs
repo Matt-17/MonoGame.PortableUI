@@ -54,6 +54,8 @@ namespace MonoGame.PortableUI.Demo.Android
                 ScrollBarVisibility = MonoGame.PortableUI.Controls.ScrollBarVisibility.AutoHide,
                 // Lay out in dp and draw at native resolution: touch targets get their Android size.
                 LayoutScale = global::Android.App.Application.Context.Resources?.DisplayMetrics?.Density ?? 1f,
+                // App-style: draw only when the UI changes, so the phone idles while nothing moves.
+                RenderMode = RenderMode.OnDemand,
                 Theme = PortableThemes.Default.CreateTheme()
             });
             base.Initialize();

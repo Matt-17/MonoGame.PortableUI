@@ -945,7 +945,10 @@ namespace MonoGame.PortableUI.Controls
             if (!IsFocused)
                 return;
 
-            if (ScreenSystem.TotalTime.TotalMilliseconds % 1000 >= 500)
+            // The caret blinks every 500 ms: ask for the frame that flips it.
+            var phase = ScreenSystem.TotalTime.TotalMilliseconds % 1000;
+            ScreenEngine.RequestAnimationFrameAt(ScreenSystem.TotalTime + TimeSpan.FromMilliseconds(500 - phase % 500));
+            if (phase >= 500)
                 return;
 
             var cursorRect = GetCursorRect(textRect);

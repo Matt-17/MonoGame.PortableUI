@@ -64,6 +64,20 @@ namespace MonoGame.PortableUI
         public PointF ReferenceSize { get; set; }
 
         /// <summary>
+        ///     <see cref="PortableUI.RenderMode.Continuous"/> (default) draws every frame;
+        ///     <see cref="PortableUI.RenderMode.OnDemand"/> draws only when the UI changed and idles the
+        ///     game loop otherwise (battery-friendly apps). Can be switched at runtime.
+        /// </summary>
+        public RenderMode RenderMode { get; set; } = RenderMode.Continuous;
+
+        /// <summary>
+        ///     Update period while <see cref="RenderMode"/> is OnDemand and nothing needs drawing: input
+        ///     and timers are still polled at this rate (default 33 ms, ~30 Hz). Longer saves more power
+        ///     but delays the first frame after a touch by up to this much.
+        /// </summary>
+        public TimeSpan IdleUpdateInterval { get; set; } = TimeSpan.FromMilliseconds(33);
+
+        /// <summary>
         /// The engine these options belong to, set once by <see cref="ScreenEngine"/>'s constructor.
         /// Lets the <see cref="Theme"/> setter invalidate the screen this instance actually drives
         /// instead of always the process-wide primary engine (relevant for secondary engines such as

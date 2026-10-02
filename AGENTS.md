@@ -69,6 +69,16 @@ Translucent rounded fills use a 9-slice of a per-radius mask (`RoundedRectRender
 per-size texture. Offscreen passes: backdrop blur (glass brushes), post-FX (CRT/scanline/etc.), and the
 letter-box scale target. Render targets are pooled (`RenderTargetHelper`) and recreated on device reset.
 
+**Render on demand:** `ScreenEngineOptions.RenderMode = OnDemand` (the Android demo uses it) draws only
+when a frame was requested and otherwise calls `Game.SuppressDraw()` and sleeps out
+`IdleUpdateInterval` (updates keep polling input/timers at ~30 Hz). Requests come from
+`Screen.InvalidateLayout` (any property change), input activity (+250 ms grace), running animations,
+transitions, `InvokeOnGameThread`, insets/viewport changes. A visual that changes with time **only at
+draw time** must ask for its next frame from `OnDraw`: `ScreenEngine.RequestAnimationFrame()` (or
+`RequestAnimationFrameAt(time)` like the caret) — otherwise it freezes in OnDemand mode. State flipped by
+time in update code calls `Control.RequestRedraw()`. Check `FramesDrawn`/`FramesSkipped`, and on Android
+`dumpsys SurfaceFlinger --latency` must show 0 frames on an idle screen.
+
 **Input:** `Screen.Update` polls `IInputSource` (mouse, touch, keyboard) and diffs against the previous
 state. Routing is **bubbling** (depth-first descendants, then self; `args.Handled` stops it); siblings are
 visited **topmost first** (reverse `GetDescendants` order = reverse draw order). The only tunneling hook is

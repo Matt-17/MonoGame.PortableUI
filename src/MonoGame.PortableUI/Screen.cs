@@ -295,6 +295,8 @@ namespace MonoGame.PortableUI
         {
             if (boundsChanged)
                 _layoutDirty = true;
+            // Visual-only changes are read at draw time but still need a frame (RenderMode.OnDemand).
+            ScreenEngine?.RequestRedraw();
         }
 
         /// <summary>Runs the deferred layout pass if anything invalidated since the last one.
@@ -1125,6 +1127,7 @@ namespace MonoGame.PortableUI
                 touchState = touchCollection[0];
             }
             var touchPosition = hasTouch ? TransformPointerPosition((PointF)touchState.Position.ToPoint()) : LastTouchPosition;
+            TrackInputActivity(inputSource, mousePosition, pressedMouseButtons.Count, hasTouch);
 
             Control content;
 
@@ -1398,6 +1401,31 @@ namespace MonoGame.PortableUI
 
             var barrel = FindEnabledBarrel(effects);
             return barrel == null ? 0 : MathHelper.Clamp(barrel.Distortion, 0, 0.5f);
+        }
+
+        private PointF _activityMousePosition;
+        private int _activityScrollWheel;
+        private int _activityHorizontalScrollWheel;
+        private GamePadState _activityGamePad;
+
+        /// <summary>Any pointer, wheel, key or gamepad activity asks the engine to draw (OnDemand).</summary>
+        private void TrackInputActivity(IInputSource inputSource, PointF mousePosition, int pressedMouseButtonCount, bool hasTouch)
+        {
+            var scrollWheel = inputSource.ScrollWheelValue;
+            var horizontalScrollWheel = inputSource.HorizontalScrollWheelValue;
+            var gamePad = inputSource.GamePad;
+            var active = hasTouch || pressedMouseButtonCount > 0
+                || mousePosition != _activityMousePosition
+                || scrollWheel != _activityScrollWheel
+                || horizontalScrollWheel != _activityHorizontalScrollWheel
+                || inputSource.KeyboardState.GetPressedKeyCount() > 0
+                || gamePad != _activityGamePad;
+            _activityMousePosition = mousePosition;
+            _activityScrollWheel = scrollWheel;
+            _activityHorizontalScrollWheel = horizontalScrollWheel;
+            _activityGamePad = gamePad;
+            if (active)
+                ScreenEngine?.NoteInputActivity();
         }
 
         private void UpdateTimersForTree(Control control)

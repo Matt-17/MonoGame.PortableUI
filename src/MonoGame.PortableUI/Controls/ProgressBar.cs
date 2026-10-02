@@ -125,6 +125,7 @@ namespace MonoGame.PortableUI.Controls
 
         private void DrawIndeterminate(SpriteBatch spriteBatch, Rect rect)
         {
+            ScreenEngine.RequestAnimationFrame();
             var cycle = Math.Max(0.1, IndeterminateCycle.TotalSeconds);
             var t = (float)(ScreenSystem.TotalTime.TotalSeconds % cycle / cycle);
             var blockWidth = rect.Width * 0.3f;
