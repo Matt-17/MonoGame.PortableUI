@@ -829,10 +829,13 @@ namespace MonoGame.PortableUI.Controls
             var scale = Math.Min(RenderScale.X, RenderScale.Y);
 
             var shadow = Shadow;
+            // Shadows follow the face's shape: a cut-corner face gets rounded corners there
+            // instead of a square glow filling the cut.
+            var shadowRadius = shadow != null && BackgroundBrush is ChamferBrush chamfer ? chamfer.ShadowRadius(scale) : radius;
             for (var s = shadow; s != null; s = s.Also)
             {
                 if (!s.Inset)
-                    ShadowRenderer.Draw(spriteBatch, rect, radius, s, RenderOpacity, scale);
+                    ShadowRenderer.Draw(spriteBatch, rect, shadowRadius, s, RenderOpacity, scale);
             }
 
             if (BackgroundBrush != null)

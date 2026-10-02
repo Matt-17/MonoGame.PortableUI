@@ -90,6 +90,28 @@ namespace MonoGame.PortableUI.Media
             }
         }
 
+        /// <summary>Fills this brush's outline with one color (hover/pressed overlays that must keep the cut corners).</summary>
+        public void DrawShape(SpriteBatch spriteBatch, in BrushContext context, Color color)
+        {
+            var rect = context.Rect;
+            if (rect.Width <= 0 || rect.Height <= 0)
+                return;
+            var chamfer = MathF.Min(MathF.Round(Chamfer * context.Scale), MathF.Min(rect.Width, rect.Height) / 2);
+            var premultiplied = ApplyOpacity(color, context.Opacity);
+            FillShape(spriteBatch, rect, chamfer, premultiplied, premultiplied);
+        }
+
+        /// <summary>A corner radius approximating the cut corners, for shadows/glows drawn behind the shape.</summary>
+        public CornerRadius ShadowRadius(float scale)
+        {
+            var r = Chamfer * scale;
+            return new CornerRadius(
+                (Corners & ChamferCorners.TopLeft) != 0 ? r : 0,
+                (Corners & ChamferCorners.TopRight) != 0 ? r : 0,
+                (Corners & ChamferCorners.BottomRight) != 0 ? r : 0,
+                (Corners & ChamferCorners.BottomLeft) != 0 ? r : 0);
+        }
+
         private void FillShape(SpriteBatch spriteBatch, Rect rect, float chamfer, Color top, Color bottom)
         {
             if (rect.Width <= 0 || rect.Height <= 0)

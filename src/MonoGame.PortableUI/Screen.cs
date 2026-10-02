@@ -490,8 +490,11 @@ namespace MonoGame.PortableUI
         {
         }
 
+        private bool _resyncPointerState;
+
         internal void RaiseNavigatedTo()
         {
+            _resyncPointerState = true;
             OnNavigatedTo();
             NavigatedTo?.Invoke(this, EventArgs.Empty);
         }
@@ -1071,6 +1074,16 @@ namespace MonoGame.PortableUI
             // All downstream consumers work in UI space: undo the CRT barrel displacement here.
             var mousePosition = TransformPointerPosition(inputSource.MousePosition);
             var pressedMouseButtons = SnapshotPressedMouseButtons(inputSource.PressedMouseButtons);
+            if (_resyncPointerState)
+            {
+                // Just became the active screen: a button still held from the press that changed
+                // screens (e.g. the scrim tap closing a modal) is not a new press here, so its
+                // release cannot click whatever lies under the pointer.
+                _resyncPointerState = false;
+                MouseButtonStates[MouseButton.Left] = GetButtonState(pressedMouseButtons, MouseButton.Left);
+                MouseButtonStates[MouseButton.Right] = GetButtonState(pressedMouseButtons, MouseButton.Right);
+                MouseButtonStates[MouseButton.Middle] = GetButtonState(pressedMouseButtons, MouseButton.Middle);
+            }
             // Read touches once per update: TouchPanel.GetState() consumes the press, so a second
             // read in the same frame would only ever see Moved/Released and taps would be lost.
             var touchCollection = inputSource.Touches;

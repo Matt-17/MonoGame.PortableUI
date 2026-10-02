@@ -143,6 +143,13 @@ namespace MonoGame.PortableUI.Controls
 
         private void DrawStateOverlay(SpriteBatch spriteBatch, Brush brush, in BrushContext context)
         {
+            // Cut-corner faces: the overlay takes the same shape instead of refilling the corners.
+            if (BackgroundBrush is ChamferBrush chamfer && brush is SolidColorBrush solid)
+            {
+                chamfer.DrawShape(spriteBatch, in context, solid.Color);
+                return;
+            }
+
             // Backdrop brushes (frosted glass/acrylic) draw square; on rounded buttons that reads
             // as the button losing its corners — use their solid stand-in with the proper radius.
             if (!context.Radius.IsEmpty && brush.RoundedFallbackColor is { } fallback)
