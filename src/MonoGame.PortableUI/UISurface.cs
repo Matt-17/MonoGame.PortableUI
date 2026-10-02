@@ -163,14 +163,83 @@ namespace MonoGame.PortableUI
             return _target;
         }
 
+        /// <summary>
+        ///     True when <paramref name="surfacePoint"/> (surface units, e.g. from mapping a ray onto the
+        ///     quad) lies on the visible picture — inside the surface and, with a CRT barrel among the
+        ///     theme or display effects, inside the curved image rather than its dark border. Hosts use
+        ///     it to route input and to switch between the in-game and the system cursor.
+        /// </summary>
+        public bool IsPointOnDisplay(PointF surfacePoint)
+        {
+            var rect = new Rect(0, 0, _width, _height);
+            var distortion = BarrelDistortion();
+            if (distortion > 0)
+                surfacePoint = PostProcessManager.InverseBarrel(surfacePoint, rect, distortion);
+            return rect.Contains(surfacePoint);
+        }
+
+        private float BarrelDistortion()
+        {
+            var display = Engine.Options.PostEffects;
+            var barrel = display.Count > 0 ? Screen.FindEnabledBarrel(display) : null;
+            if (barrel == null && Engine.Options.Theme?.PostEffects is { Count: > 0 } themeEffects)
+                barrel = Screen.FindEnabledBarrel(themeEffects);
+            return barrel == null ? 0 : MathHelper.Clamp(barrel.Distortion, 0, 0.5f);
+        }
+
+        // Classic arrow pointer, 12×19 (Windows shape): '#' outline, '.' fill, ' ' transparent.
+        private static readonly string[] ArrowRows =
+        {
+            "#",
+            "##",
+            "#.#",
+            "#..#",
+            "#...#",
+            "#....#",
+            "#.....#",
+            "#......#",
+            "#.......#",
+            "#........#",
+            "#.........#",
+            "#......#####",
+            "#...#..#",
+            "#..##..#",
+            "#.#  #..#",
+            "##   #..#",
+            "#     #..#",
+            "      #..#",
+            "       ##"
+        };
+
+        /// <summary>Outline color of the software cursor (the fill is <see cref="SoftwareCursorColor"/>).</summary>
+        public Color SoftwareCursorOutlineColor { get; set; } = Color.Black;
+
         private void DrawSoftwareCursor(SpriteBatch spriteBatch)
         {
-            var x = SoftwareCursorPosition.X;
-            var y = SoftwareCursorPosition.Y;
+            // Target pixels: layout position × LayoutScale; one bitmap pixel per layout unit.
+            var scale = _layoutScale;
+            var x = SoftwareCursorPosition.X * scale;
+            var y = SoftwareCursorPosition.Y * scale;
+            var pixel = Media.Primitives.Pixel(spriteBatch);
             spriteBatch.Begin();
-            spriteBatch.Draw(Media.Primitives.Pixel(spriteBatch), new Rect(x, y, 10, 2), SoftwareCursorColor);
-            spriteBatch.Draw(Media.Primitives.Pixel(spriteBatch), new Rect(x, y, 2, 14), SoftwareCursorColor);
-            spriteBatch.Draw(Media.Primitives.Pixel(spriteBatch), new Rect(x + 2, y + 10, 8, 2), SoftwareCursorColor);
+            for (var row = 0; row < ArrowRows.Length; row++)
+            {
+                var line = ArrowRows[row];
+                var start = 0;
+                while (start < line.Length)
+                {
+                    var c = line[start];
+                    var end = start;
+                    while (end < line.Length && line[end] == c)
+                        end++;
+                    if (c != ' ')
+                    {
+                        var color = c == '#' ? SoftwareCursorOutlineColor : SoftwareCursorColor;
+                        spriteBatch.Draw(pixel, new Rect(x + start * scale, y + row * scale, (end - start) * scale, scale), color);
+                    }
+                    start = end;
+                }
+            }
             spriteBatch.End();
             Engine.RecordBatchFlush();
         }
