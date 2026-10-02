@@ -113,6 +113,20 @@ namespace MonoGame.PortableUI
 
         public Rect ScreenRect => ScreenEngine?.ScreenRect ?? Rect.Empty;
 
+        /// <summary>The screen in render pixels: equal to <see cref="ScreenRect"/> unless the engine
+        /// scales natively (LayoutScale), where drawing, render targets and backdrops work in pixels.</summary>
+        private Rect PixelScreenRect
+        {
+            get
+            {
+                var rect = ScreenRect;
+                if (ScreenEngine is not { ScalesNatively: true } engine)
+                    return rect;
+                var s = engine.RenderScale;
+                return new Rect(rect.Left * s, rect.Top * s, rect.Width * s, rect.Height * s);
+            }
+        }
+
         protected internal ScreenEngine? ScreenEngine { get; set; }
 
         /// <summary>The engine whose focus this screen routes to: its own, or the default engine for
@@ -331,7 +345,7 @@ namespace MonoGame.PortableUI
             if (usePostFx)
             {
                 previousTargets = RenderTargetHelper.SnapshotRenderTargets(device, ref _postFxPreviousTargets);
-                uiTarget = engine!.PostProcess.EnsureUiTarget((int)Math.Ceiling(ScreenRect.Width), (int)Math.Ceiling(ScreenRect.Height));
+                uiTarget = engine!.PostProcess.EnsureUiTarget((int)Math.Ceiling(PixelScreenRect.Width), (int)Math.Ceiling(PixelScreenRect.Height));
                 device.SetRenderTarget(uiTarget);
                 device.Clear(Color.Transparent);
             }
@@ -341,7 +355,7 @@ namespace MonoGame.PortableUI
             if (BackgroundBrush != null)
             {
                 spriteBatch.Begin();
-                BackgroundBrush.Draw(spriteBatch, ScreenRect);
+                BackgroundBrush.Draw(spriteBatch, PixelScreenRect);
                 spriteBatch.End();
             }
 
@@ -368,7 +382,7 @@ namespace MonoGame.PortableUI
                     device.SetRenderTarget(null);
                 else
                     device.SetRenderTargets(previousTargets);
-                engine!.PostProcess.Compose(spriteBatch, uiTarget!, postEffects ?? Array.Empty<PostEffect>(), ScreenRect);
+                engine!.PostProcess.Compose(spriteBatch, uiTarget!, postEffects ?? Array.Empty<PostEffect>(), PixelScreenRect);
                 engine.RecordBatchFlush();
             }
 
@@ -396,20 +410,20 @@ namespace MonoGame.PortableUI
             var backdrop = engine.Backdrop;
             backdrop.BeginFrame();
             var previousTargets = RenderTargetHelper.SnapshotRenderTargets(device, ref _backdropPreviousTargets);
-            var scene = backdrop.EnsureSceneTarget((int)Math.Ceiling(ScreenRect.Width), (int)Math.Ceiling(ScreenRect.Height));
+            var scene = backdrop.EnsureSceneTarget((int)Math.Ceiling(PixelScreenRect.Width), (int)Math.Ceiling(PixelScreenRect.Height));
             device.SetRenderTarget(scene);
             device.Clear(Color.Transparent);
             spriteBatch.Begin();
             if (external != null)
                 spriteBatch.Draw(external, new Rectangle(0, 0, scene.Width, scene.Height), Color.White);
-            BackgroundBrush?.Draw(spriteBatch, ScreenRect);
+            BackgroundBrush?.Draw(spriteBatch, PixelScreenRect);
             spriteBatch.End();
             var blurred = backdrop.Blur(spriteBatch, scene);
             if (previousTargets.Length == 0)
                 device.SetRenderTarget(null);
             else
                 device.SetRenderTargets(previousTargets);
-            BackdropSource.Set(device, blurred, ScreenRect);
+            BackdropSource.Set(device, blurred, PixelScreenRect);
             engine.RecordBatchFlush();
         }
 
@@ -772,8 +786,8 @@ namespace MonoGame.PortableUI
             var device = spriteBatch.GraphicsDevice;
             var previousTargets = RenderTargetHelper.SnapshotRenderTargets(device, ref _islandPreviousTargets);
             // Full-frame target so the subtree can keep drawing at absolute screen coordinates.
-            var targetWidth = (int)Math.Ceiling(Math.Max(ScreenRect.Right, islandRect.Right));
-            var targetHeight = (int)Math.Ceiling(Math.Max(ScreenRect.Bottom, islandRect.Bottom));
+            var targetWidth = (int)Math.Ceiling(Math.Max(PixelScreenRect.Right, islandRect.Right));
+            var targetHeight = (int)Math.Ceiling(Math.Max(PixelScreenRect.Bottom, islandRect.Bottom));
             var target = engine.PostProcess.EnsureIslandTarget(targetWidth, targetHeight);
             device.SetRenderTarget(target);
             device.Clear(Color.Transparent);
@@ -895,8 +909,8 @@ namespace MonoGame.PortableUI
                 return false;
 
             var device = spriteBatch.GraphicsDevice;
-            var width = (int)Math.Ceiling(Math.Max(ScreenRect.Right, context.RenderRect.Right));
-            var height = (int)Math.Ceiling(Math.Max(ScreenRect.Bottom, context.RenderRect.Bottom));
+            var width = (int)Math.Ceiling(Math.Max(PixelScreenRect.Right, context.RenderRect.Right));
+            var height = (int)Math.Ceiling(Math.Max(PixelScreenRect.Bottom, context.RenderRect.Bottom));
             var layer = engine.GetClipLayers(device).Get(_clipDepth, width, height);
             var previousTargets = RenderTargetHelper.SnapshotRenderTargets(device, ref layer.PreviousTargets);
             var previousScissor = device.ScissorRectangle;
@@ -921,7 +935,7 @@ namespace MonoGame.PortableUI
             device.Clear(Color.Transparent);
             device.ScissorRectangle = fullFrame;
             spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.LinearClamp);
-            clip.DrawMask(spriteBatch, context.RenderRect);
+            clip.DrawMask(spriteBatch, context.RenderRect, Math.Min(context.Scale.X, context.Scale.Y));
             spriteBatch.End();
 
             device.SetRenderTarget(layer.Content);

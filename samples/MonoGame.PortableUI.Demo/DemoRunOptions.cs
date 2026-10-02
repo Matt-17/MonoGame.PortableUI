@@ -11,6 +11,9 @@ namespace MonoGame.PortableUI.Demo
         public string? ScreenshotOverlay { get; init; }
         public bool IsScreenshotMode => !string.IsNullOrWhiteSpace(ScreenshotDirectory);
 
+        /// <summary>--layout-scale 2: screenshots rendered at 2x pixels for the same layout (HiDPI check).</summary>
+        public float LayoutScale { get; init; } = 1f;
+
         public static DemoRunOptions Parse(string[]? args)
         {
             // --text-scale 1.5 sets the app text size (TextScaling.AppScale) before anything is built.
@@ -27,7 +30,8 @@ namespace MonoGame.PortableUI.Demo
                 InitialThemePreset = DemoThemeRegistry.ResolveStartupTheme(args),
                 ScreenshotDirectory = TryParseValue(args, "--screenshot"),
                 ScreenshotScreen = TryParseValue(args, "--screenshot-screen") ?? "controls",
-                ScreenshotOverlay = TryParseValue(args, "--screenshot-overlay")
+                ScreenshotOverlay = TryParseValue(args, "--screenshot-overlay"),
+                LayoutScale = float.TryParse(TryParseValue(args, "--layout-scale"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var layoutScale) && layoutScale > 0 ? layoutScale : 1f
             };
         }
 

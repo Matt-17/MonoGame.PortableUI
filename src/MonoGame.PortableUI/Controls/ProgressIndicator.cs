@@ -72,7 +72,8 @@ namespace MonoGame.PortableUI.Controls
             double rad;
             var value = Precalculate(i, maxValue, out rad);
             color.A = (byte)(value * 204 + 51);
-            var size = (float)(value * (MaxSize - MinSize) + MinSize);
+            // Sizes are layout units; rect is in render space (LayoutScale).
+            var size = ToRender((float)(value * (MaxSize - MinSize) + MinSize));
             var top = rect.Top + (float)((1 - Math.Abs(Math.Sin(rad))) * (rect.Height - size));
             var rectangle = new Rect(rect.Left + (rect.Width - size) / 2, top, size, size);
             spriteBatch.Draw(Primitives.Pixel(spriteBatch), rectangle, Brush.ApplyOpacity(color, RenderOpacity));
