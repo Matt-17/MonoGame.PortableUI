@@ -904,7 +904,7 @@ namespace MonoGame.PortableUI.Controls
                 if (GetDrawOverrides().Overlay)
                     return true;
 
-                if (ShowFocusVisual && IsFocused && FocusBorderWidth > 0 && FocusBorderBrush != null)
+                if (IsFocusVisualShown)
                     return true;
 
                 return !IsEnabled && DisabledOverlayBrush != null;
@@ -926,9 +926,23 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        /// <summary>
+        ///     Text entry keeps its focus ring after a click (it shows where typing goes); other
+        ///     controls show it only while the user navigates with keyboard or gamepad.
+        /// </summary>
+        internal virtual bool ShowsFocusVisualForPointer => false;
+
+        /// <summary>
+        ///     The focus ring is drawn for keyboard/gamepad navigation only (like CSS :focus-visible):
+        ///     clicking or tapping a button must not leave an outline behind.
+        /// </summary>
+        private bool IsFocusVisualShown =>
+            ShowFocusVisual && IsFocused && FocusBorderWidth > 0 && FocusBorderBrush != null
+            && (ShowsFocusVisualForPointer || ScreenEngine.For(this)?.KeyboardNavigationActive != false);
+
         protected internal virtual void OnDrawOverlay(SpriteBatch spriteBatch, Rect rect)
         {
-            if (ShowFocusVisual && IsFocused && FocusBorderWidth > 0 && FocusBorderBrush != null)
+            if (IsFocusVisualShown)
                 DrawFocusVisual(spriteBatch, rect, FocusBorderWidth, FocusBorderBrush, EffectiveFocusVisualKind, RenderOpacity);
 
             if (!IsEnabled && DisabledOverlayBrush is { } disabledOverlay)

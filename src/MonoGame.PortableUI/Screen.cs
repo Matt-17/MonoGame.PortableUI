@@ -1520,6 +1520,7 @@ namespace MonoGame.PortableUI
                 && Array.IndexOf(_lastPressedKeysBuffer, Keys.Tab, 0, _lastPressedKeyCount) < 0;
             if (tabPressed && (focusedControl == null || focusedControl.Screen == this))
             {
+                _keyboardNavigationActive = true;
                 FocusNextTabStop((modifiers & KeyboardModifiers.Shift) != KeyboardModifiers.None);
                 SwapPressedKeyBuffers(pressedKeyCount);
                 _repeatKey = Keys.None;

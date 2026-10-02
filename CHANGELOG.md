@@ -11,6 +11,7 @@
 - **Themes:** Windows 95, XP Luna, Aero, Aqua, E-Ink, Mac 1-bit, Game Boy and Neumorphism reworked to match their originals; five new game UI themes (Sci-Fi HUD, Dark Fantasy RPG, Cozy Casual, Tactical Ops, Phantom Strike) with four new OFL fonts — 42 themes in total.
 - **Fix:** `TextBox` draws its theme's border, corner radius and shadows, not only the fill.
 - **RadioButton** is a classic radio (round ring with a dot, label beside it) styled from the theme's check box values instead of a button face; use `ToggleButton` for a segmented look. Same-named radio groups on different screens/surfaces no longer affect each other.
+- **Focus ring only for keyboard/gamepad** (like CSS `:focus-visible`): clicking or tapping no longer leaves an outline; text boxes keep theirs. Tab now switches to keyboard navigation mode. Radio labels sit centred on the ring.
 - **Fixes:** the scrim tap that closes a modal no longer clicks the control below it; frosted/liquid glass fill their rounded corners; hover overlays and shadows keep cut-corner shapes.
 - **Demo:** controls follow the theme instead of demo-set colors; `--screenshot-themes id,id` renders a subset.
 
