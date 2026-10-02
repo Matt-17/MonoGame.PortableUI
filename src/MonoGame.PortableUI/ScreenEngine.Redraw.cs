@@ -19,6 +19,12 @@ namespace MonoGame.PortableUI
         private int _gameThreadId = -1;
         private TimeSpan _redrawAt = TimeSpan.MaxValue;
         private TimeSpan _redrawUntil;
+        private int _redrawFrames;
+
+        /// <summary>Frames drawn after the window comes back (resume, device reset). Counted in frames,
+        /// not time: game time jumps on resume, and Android only drops its task snapshot once the new
+        /// surface has received a few frames - a single one is not enough.</summary>
+        internal const int SurfaceRestoreFrames = 10;
 
         /// <summary>Frames drawn and frames skipped (OnDemand idle) since start — diagnostics.</summary>
         public long FramesDrawn { get; private set; }
@@ -89,6 +95,20 @@ namespace MonoGame.PortableUI
         /// <paramref name="time"/> (e.g. a blinking caret).</summary>
         public static void RequestAnimationFrameAt(TimeSpan time) => _drawingEngine?.RequestRedrawAt(time);
 
+        /// <summary>Draws at least the next <paramref name="frames"/> frames. Thread-safe.</summary>
+        internal void RequestRedrawFrames(int frames)
+        {
+            int current;
+            do
+            {
+                current = Volatile.Read(ref _redrawFrames);
+                if (current >= frames)
+                    break;
+            }
+            while (Interlocked.CompareExchange(ref _redrawFrames, frames, current) != current);
+            RequestRedraw();
+        }
+
         /// <summary>Input arrived: draw now and for a short grace period.</summary>
         internal void NoteInputActivity() => RequestRedrawFor(RedrawGrace);
 
@@ -103,7 +123,17 @@ namespace MonoGame.PortableUI
             var due = now >= _redrawAt;
             if (due)
                 _redrawAt = TimeSpan.MaxValue;
-            return requested || due || now < _redrawUntil || IsTransitioning || DebugOverlayEnabled;
+            var counted = false;
+            int frames;
+            while ((frames = Volatile.Read(ref _redrawFrames)) > 0)
+            {
+                if (Interlocked.CompareExchange(ref _redrawFrames, frames - 1, frames) == frames)
+                {
+                    counted = true;
+                    break;
+                }
+            }
+            return requested || due || counted || now < _redrawUntil || IsTransitioning || DebugOverlayEnabled;
         }
 
         internal void RecordFrame(bool drawn)

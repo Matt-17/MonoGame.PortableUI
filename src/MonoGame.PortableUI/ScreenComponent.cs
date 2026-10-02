@@ -36,7 +36,7 @@ namespace MonoGame.PortableUI
             GraphicsDevice.DeviceReset += OnFrameLost;
         }
 
-        private void OnFrameLost(object? sender, EventArgs args) => _screenEngine.RequestRedrawFor(ScreenEngine.RedrawGrace);
+        private void OnFrameLost(object? sender, EventArgs args) => _screenEngine.RequestRedrawFrames(ScreenEngine.SurfaceRestoreFrames);
 
         protected override void LoadContent()
         {

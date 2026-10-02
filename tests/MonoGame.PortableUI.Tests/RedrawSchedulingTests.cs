@@ -137,6 +137,23 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void After_the_surface_comes_back_a_fixed_number_of_frames_is_drawn_even_when_game_time_jumps()
+        {
+            using var game = new Game();
+            var (engine, _, _) = CreateIdleUi(game);
+
+            engine.RequestRedrawFrames(3);
+            Advance(engine, 500); // resume: game time jumps past any time-based grace
+            Assert.IsTrue(engine.ConsumeRedrawRequest());
+            Advance(engine, 16);
+            Assert.IsTrue(engine.ConsumeRedrawRequest());
+            Advance(engine, 16);
+            Assert.IsTrue(engine.ConsumeRedrawRequest());
+            Advance(engine, 16);
+            Assert.IsFalse(engine.ConsumeRedrawRequest());
+        }
+
+        [TestMethod]
         public void Animation_frame_requests_only_count_while_drawing()
         {
             using var game = new Game();
