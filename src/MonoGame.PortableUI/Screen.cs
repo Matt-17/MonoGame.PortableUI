@@ -1075,6 +1075,9 @@ namespace MonoGame.PortableUI
                     if (!shadow.Inset)
                         shadowExtent = Math.Max(shadowExtent, shadow.Blur + shadow.Spread + Math.Max(Math.Abs(shadow.Offset.X), Math.Abs(shadow.Offset.Y)));
                 }
+                // The focus ring sits outside the control too (offset ring, glow).
+                if (control.IsFocusVisualShown)
+                    shadowExtent = Math.Max(shadowExtent, 2 + control.FocusBorderWidth * 4);
                 // Shadow sizes are layout lengths; the render rect is already scaled.
                 var scissorSource = shadowExtent > 0 ? renderRect + new Thickness(shadowExtent * Math.Max(Scale.X, Scale.Y)) : renderRect;
                 var scissorRect = ChildClipRect ^ scissorSource;

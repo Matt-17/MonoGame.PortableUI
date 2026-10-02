@@ -137,6 +137,19 @@ namespace MonoGame.PortableUI.Demo
                     for (var step = 1; step <= 3; step++)
                         surface.Update(new GameTime(gameTime.TotalGameTime + TimeSpan.FromSeconds(step), gameTime.ElapsedGameTime));
                 }
+                if (_runOptions.ScreenshotTabs > 0)
+                {
+                    // Keyboard navigation: Tab n times so a focus ring shows in the capture.
+                    var keys = surface.InputSource as PortableUI.Input.VirtualInputSource ?? new PortableUI.Input.VirtualInputSource();
+                    surface.InputSource = keys;
+                    for (var i = 0; i < _runOptions.ScreenshotTabs; i++)
+                    {
+                        keys.SetKeyboardState(new Microsoft.Xna.Framework.Input.KeyboardState(Microsoft.Xna.Framework.Input.Keys.Tab));
+                        surface.Update(gameTime);
+                        keys.SetKeyboardState(new Microsoft.Xna.Framework.Input.KeyboardState());
+                        surface.Update(gameTime);
+                    }
+                }
                 var target = surface.Draw(gameTime);
                 GraphicsDevice.SetRenderTarget(null);
 
