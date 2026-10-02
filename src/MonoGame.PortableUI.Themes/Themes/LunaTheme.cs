@@ -21,6 +21,8 @@ public static class LunaTheme
             danger: "#C03B0F",
             styleTheme: theme =>
             {
+                // XP, Aqua and Aero already had smooth pointers.
+                theme.Cursor = CursorStyle.ModernArrow(Color.White, Color.Black);
                 var frame = ThemeBuilder.Hex("#003C74");
                 var face = ThemeBuilder.Gloss((0, "#FFFFFF"), (0.8f, "#ECEBE6"), (1, "#D6D0C5"));
                 var pressed = ThemeBuilder.Gloss((0, "#CDCAC3"), (0.2f, "#E3E2DA"), (1, "#F2F1EA"));

@@ -214,9 +214,9 @@ namespace MonoGame.PortableUI
 
         /// <summary>
         ///     The software mouse pointer drawn when <see cref="ScreenEngineOptions.ShowSoftwareCursor"/>
-        ///     is on (in-world screens, games that hide the system pointer). Default: white arrow, black outline.
+        ///     is on (in-world screens, games that hide the system pointer). Default: the fine modern arrow.
         /// </summary>
-        public CursorStyle Cursor { get; set; } = CursorStyle.Arrow(Color.White, Color.Black);
+        public CursorStyle Cursor { get; set; } = CursorStyle.ModernArrow(Color.White, Color.Black);
 
         /// <summary>Drop shadow applied to buttons; null = no shadow.</summary>
         public ShadowStyle? ButtonShadow { get; set; }

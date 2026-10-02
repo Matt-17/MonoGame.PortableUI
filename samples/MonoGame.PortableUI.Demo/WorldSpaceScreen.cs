@@ -94,7 +94,6 @@ namespace MonoGame.PortableUI.Demo
             if (onDisplay)
             {
                 _virtualInput.SetPointer(uiPoint, mouse.LeftButton == ButtonState.Pressed, mouse.RightButton == ButtonState.Pressed, false);
-                _computerSurface.SoftwareCursorPosition = uiPoint;
             }
             else
             {

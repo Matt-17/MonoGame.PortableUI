@@ -17,6 +17,9 @@ namespace MonoGame.PortableUI.Demo
         /// <summary>--screenshot-themes win95,luna: only render these theme ids.</summary>
         public string[]? ScreenshotThemes { get; init; }
 
+        /// <summary>--screenshot-cursor 400,300: draw the theme's software pointer there.</summary>
+        public PortableUI.Common.PointF? ScreenshotCursor { get; init; }
+
         public static DemoRunOptions Parse(string[]? args)
         {
             // --text-scale 1.5 sets the app text size (TextScaling.AppScale) before anything is built.
@@ -34,6 +37,7 @@ namespace MonoGame.PortableUI.Demo
                 ScreenshotDirectory = TryParseValue(args, "--screenshot"),
                 ScreenshotScreen = TryParseValue(args, "--screenshot-screen") ?? "controls",
                 ScreenshotOverlay = TryParseValue(args, "--screenshot-overlay"),
+                ScreenshotCursor = ParsePoint(TryParseValue(args, "--screenshot-cursor")),
                 ScreenshotThemes = TryParseValue(args, "--screenshot-themes")?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
                 LayoutScale = float.TryParse(TryParseValue(args, "--layout-scale"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var layoutScale) && layoutScale > 0 ? layoutScale : 1f
             };
@@ -56,6 +60,18 @@ namespace MonoGame.PortableUI.Demo
             }
 
             return null;
+        }
+
+        private static PortableUI.Common.PointF? ParsePoint(string? value)
+        {
+            var parts = value?.Split(',');
+            if (parts is not { Length: 2 })
+                return null;
+            var culture = System.Globalization.CultureInfo.InvariantCulture;
+            return float.TryParse(parts[0], System.Globalization.NumberStyles.Float, culture, out var x)
+                && float.TryParse(parts[1], System.Globalization.NumberStyles.Float, culture, out var y)
+                ? new PortableUI.Common.PointF(x, y)
+                : null;
         }
     }
 }

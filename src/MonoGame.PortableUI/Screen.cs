@@ -377,6 +377,7 @@ namespace MonoGame.PortableUI
                 DrawControlTree(spriteBatch, dragGhost, GetOverlayScissor(dragGhost));
 
             DrawDebugOverlay(spriteBatch);
+            DrawSoftwareCursor(spriteBatch, engine);
 
             if (usePostFx)
             {
@@ -389,6 +390,28 @@ namespace MonoGame.PortableUI
             }
 
             BackdropSource.Clear(device);
+        }
+
+        /// <summary>
+        ///     The theme's pointer, drawn last into the UI (before post effects, so a CRT barrel bends
+        ///     it like the rest of the picture). The position is the UI-space pointer — already mapped
+        ///     back through the barrel — so after the forward warp it sits under the physical pointer.
+        /// </summary>
+        private void DrawSoftwareCursor(SpriteBatch spriteBatch, ScreenEngine? engine)
+        {
+            if (engine is not { Options.ShowSoftwareCursor: true } || !ReferenceEquals(engine.ActiveScreen, this))
+                return;
+            var position = LastMousePosition;
+            if (!ScreenRect.Contains(position))
+                return;
+            var cursor = engine.Options.Theme?.Cursor;
+            if (cursor == null)
+                return;
+            var scale = engine.ScalesNatively ? engine.RenderScale : 1f;
+            spriteBatch.Begin();
+            cursor.Draw(spriteBatch, new Vector2(position.X * scale, position.Y * scale), scale);
+            spriteBatch.End();
+            engine.RecordBatchFlush();
         }
 
         /// <summary>
