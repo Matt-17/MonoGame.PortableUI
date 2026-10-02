@@ -87,6 +87,21 @@ namespace MonoGame.PortableUI.Effects
         ///     forward map used by <see cref="DrawBarrel"/>. Pure and allocation-free so input
         ///     routing can call it per pointer sample.
         /// </summary>
+        /// <summary>Where the barrel pass shows a UI point: displayed = n·(1 − d·ρ), ρ = (nx² + ny²) / 2.</summary>
+        public static PointF ForwardBarrel(PointF ui, Rect rect, float distortion)
+        {
+            distortion = MathHelper.Clamp(distortion, 0, 0.5f);
+            if (distortion <= 0 || rect.Width <= 0 || rect.Height <= 0)
+                return ui;
+
+            var nx = (ui.X - rect.Left) / rect.Width * 2 - 1;
+            var ny = (ui.Y - rect.Top) / rect.Height * 2 - 1;
+            var s = 1 - distortion * (nx * nx + ny * ny) / 2f;
+            return new PointF(
+                rect.Left + (nx * s * 0.5f + 0.5f) * rect.Width,
+                rect.Top + (ny * s * 0.5f + 0.5f) * rect.Height);
+        }
+
         public static PointF InverseBarrel(PointF displayed, Rect rect, float distortion)
         {
             distortion = MathHelper.Clamp(distortion, 0, 0.5f);
