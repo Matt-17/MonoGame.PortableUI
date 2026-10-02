@@ -40,6 +40,13 @@ namespace MonoGame.PortableUI.FontStashSharp
 
         public FontSystem FontSystem { get; }
 
+        /// <summary>
+        ///     Converts the toolkit's text sizes to FontStashSharp pixel sizes. Sizes are points like a
+        ///     SpriteFont's <c>Size</c> (MonoGame bakes 1 pt = 96/72 px), so the default makes TextSize 24
+        ///     look the same in both backends. Set 1 to treat sizes as pixels.
+        /// </summary>
+        public float PixelsPerPoint { get; init; } = 96f / 72f;
+
         public override float DefaultSize { get; }
 
         /// <summary>Number of distinct pixel sizes requested so far (each owns glyphs in the atlas).</summary>
@@ -52,6 +59,19 @@ namespace MonoGame.PortableUI.FontStashSharp
             foreach (var data in fontData)
                 system.AddFont(data);
             return new FontStashUIFont(system, defaultSize, ownsFontSystem: true);
+        }
+
+        /// <summary>Creates a font from streams (e.g. <c>TitleContainer.OpenStream</c>, which also reads Android assets).</summary>
+        public static FontStashUIFont FromStreams(float defaultSize, params Stream[] streams)
+        {
+            var data = new byte[streams.Length][];
+            for (var i = 0; i < streams.Length; i++)
+            {
+                using var buffer = new MemoryStream();
+                streams[i].CopyTo(buffer);
+                data[i] = buffer.ToArray();
+            }
+            return FromData(defaultSize, data);
         }
 
         public static FontStashUIFont FromFiles(float defaultSize, params string[] paths)
@@ -74,32 +94,32 @@ namespace MonoGame.PortableUI.FontStashSharp
             return font;
         }
 
-        public override float GetLineHeight(float pixelSize) => GetFont(Size(pixelSize)).LineHeight * Correction(pixelSize);
+        public override float GetLineHeight(float pixelSize) => GetFont(Size(pixelSize)).LineHeight * Correction(Size(pixelSize));
 
         public override Vector2 MeasureString(string text, float pixelSize)
         {
             if (string.IsNullOrEmpty(text))
                 return new Vector2(0, GetLineHeight(pixelSize));
-            return WithLineHeight(GetFont(Size(pixelSize)).MeasureString(text) * Correction(pixelSize), pixelSize);
+            return WithLineHeight(GetFont(Size(pixelSize)).MeasureString(text) * Correction(Size(pixelSize)), pixelSize);
         }
 
         public override Vector2 MeasureString(StringBuilder text, float pixelSize)
         {
             if (text == null || text.Length == 0)
                 return new Vector2(0, GetLineHeight(pixelSize));
-            return WithLineHeight(GetFont(Size(pixelSize)).MeasureString(text) * Correction(pixelSize), pixelSize);
+            return WithLineHeight(GetFont(Size(pixelSize)).MeasureString(text) * Correction(Size(pixelSize)), pixelSize);
         }
 
         public override void DrawString(SpriteBatch spriteBatch, string text, Vector2 position, Color color, float pixelSize, Vector2 scale)
         {
             var raster = RasterScale(scale);
-            GetFont(Size(pixelSize) * raster).DrawText(spriteBatch, text, position, color, scale: scale / raster * Correction(pixelSize * raster));
+            GetFont(Size(pixelSize) * raster).DrawText(spriteBatch, text, position, color, scale: scale / raster * Correction(Size(pixelSize) * raster));
         }
 
         public override void DrawString(SpriteBatch spriteBatch, StringBuilder text, Vector2 position, Color color, float pixelSize, Vector2 scale)
         {
             var raster = RasterScale(scale);
-            GetFont(Size(pixelSize) * raster).DrawText(spriteBatch, text, position, color, scale: scale / raster * Correction(pixelSize * raster));
+            GetFont(Size(pixelSize) * raster).DrawText(spriteBatch, text, position, color, scale: scale / raster * Correction(Size(pixelSize) * raster));
         }
 
         public void Dispose()
@@ -109,12 +129,12 @@ namespace MonoGame.PortableUI.FontStashSharp
                 FontSystem.Dispose();
         }
 
-        private static float Size(float pixelSize) => pixelSize > 0 ? pixelSize : 16;
+        private float Size(float size) => (size > 0 ? size : DefaultSize) * PixelsPerPoint;
 
         // Rounding the raster size changes the glyph size slightly; this restores the exact size.
         private float Correction(float pixelSize)
         {
-            var size = Size(pixelSize);
+            var size = pixelSize;
             var rounded = Math.Clamp(MathF.Round(size / SizeStep) * SizeStep, MinSize, MaxSize);
             return size / rounded;
         }

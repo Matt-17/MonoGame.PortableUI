@@ -32,12 +32,11 @@ namespace MonoGame.PortableUI.Tests
         /// </summary>
         private static SpriteFont BakeSpriteFont(int bakedSize)
         {
-            var baked = Font.GetFont(bakedSize);
             var bounds = new List<Rectangle>();
             var cropping = new List<Rectangle>();
             var characters = new List<char>();
             var kerning = new List<Vector3>();
-            var lineHeight = (int)MathF.Round(baked.LineHeight);
+            var lineHeight = (int)MathF.Round(Font.GetLineHeight(bakedSize));
             for (var c = ' '; c <= '~'; c++)
             {
                 var advance = Font.MeasureString(new string(c, 10), bakedSize).X / 10f;
@@ -119,7 +118,7 @@ namespace MonoGame.PortableUI.Tests
         {
             var font = FontStashUIFont.FromFiles(16, Path.Combine(AppContext.BaseDirectory, "Fonts", "AtkinsonHyperlegible-Regular.ttf"));
             for (var i = 0; i < 20; i++)
-                font.MeasureString("x", 16f + i * 0.005f); // 16.0 .. 16.095 rounds to the 16 px step
+                font.MeasureString("x", 18f + i * 0.003f); // 24.0 .. 24.08 px rounds to the 24 px step
             Assert.AreEqual(1, font.CachedSizeCount);
             font.Dispose();
         }

@@ -81,8 +81,28 @@ namespace MonoGame.PortableUI.Demo.Android
             panel.AddChild(new TextBox
             {
                 HintText = "Enter some text...",
+                Margin = new Thickness(12, 0, 12, 8)
+            });
+            panel.AddChild(new TextBox
+            {
+                HintText = "E-mail (InputPurpose.Email)",
+                InputPurpose = MonoGame.PortableUI.Input.TextInputPurpose.Email,
                 Margin = new Thickness(12, 0, 12, 16)
             });
+
+            panel.AddChild(new TextBlock
+            {
+                Text = $"SpriteFont vs FontStashSharp · font scale {MonoGame.PortableUI.Text.TextScaling.Factor:0.00}",
+                TextColor = Muted,
+                TextSize = 14,
+                Margin = new Thickness(12, 4, 12, 4)
+            });
+            panel.AddChild(new TextBlock { Text = "Size 24: Zoë", TextSize = 24, TextColor = Heading, Margin = new Thickness(12, 0, 12, 0) });
+            if (DemoFonts.Selawik is { } selawik)
+            {
+                panel.AddChild(new TextBlock { Text = "Size 24: Zoë", TextSize = 24, TextColor = Heading, DynamicFont = selawik, Margin = new Thickness(12, 0, 12, 0) });
+                panel.AddChild(new TextBlock { Text = "Łódź · ½ · € · naïve", TextSize = 18, TextColor = Muted, DynamicFont = selawik, Margin = new Thickness(12, 0, 12, 16) });
+            }
 
             panel.AddChild(new TextBlock
             {

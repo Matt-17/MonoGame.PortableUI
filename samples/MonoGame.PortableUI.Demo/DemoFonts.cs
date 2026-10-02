@@ -1,27 +1,33 @@
 using System;
-using System.IO;
+using Microsoft.Xna.Framework;
 using MonoGame.PortableUI.FontStashSharp;
 
 namespace MonoGame.PortableUI.Demo
 {
-    /// <summary>FontStashSharp fonts for the demo, loaded from the OFL TTFs copied next to the executable.</summary>
-    internal static class DemoFonts
+    /// <summary>FontStashSharp fonts for the demos, loaded through TitleContainer (files on desktop, assets on Android).</summary>
+    public static class DemoFonts
     {
         private static bool _loaded;
-        private static FontStashUIFont? _atkinson;
+        private static FontStashUIFont? _selawik;
 
-        /// <summary>Atkinson Hyperlegible (SIL OFL 1.1), or null when the file is missing (e.g. Android assets).</summary>
-        public static FontStashUIFont? Atkinson
+        /// <summary>Selawik (SIL OFL 1.1, Microsoft's open Segoe UI substitute), or null when the file is missing.</summary>
+        public static FontStashUIFont? Selawik
         {
             get
             {
                 if (_loaded)
-                    return _atkinson;
+                    return _selawik;
                 _loaded = true;
-                var path = Path.Combine(AppContext.BaseDirectory, "Content", "Fonts", "AtkinsonHyperlegible-Regular.ttf");
-                if (File.Exists(path))
-                    _atkinson = FontStashUIFont.FromFiles(16, path);
-                return _atkinson;
+                try
+                {
+                    using var stream = TitleContainer.OpenStream("Content/Fonts/Selawik-Regular.ttf");
+                    _selawik = FontStashUIFont.FromStreams(16, stream);
+                }
+                catch (Exception exception) when (exception is System.IO.IOException or NotSupportedException or ArgumentException)
+                {
+                    _selawik = null;
+                }
+                return _selawik;
             }
         }
     }
