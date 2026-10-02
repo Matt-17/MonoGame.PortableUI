@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -35,6 +36,16 @@ namespace MonoGame.PortableUI
         }
 
         public ScreenEngine Engine { get; }
+
+        /// <summary>
+        ///     Effects of the in-world display this surface is shown on (e.g. CRT curvature,
+        ///     scanlines); independent of the theme. Shortcut for <c>Engine.Options.PostEffects</c>.
+        /// </summary>
+        public IReadOnlyList<PostEffect> PostEffects
+        {
+            get => Engine.Options.PostEffects;
+            set => Engine.Options.PostEffects = value;
+        }
         public Screen Screen { get; }
         public RenderTarget2D Target => EnsureTarget();
         public PortableTheme Theme
