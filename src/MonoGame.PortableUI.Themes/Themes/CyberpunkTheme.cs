@@ -14,7 +14,7 @@ public static class CyberpunkTheme
             primary: "#00F0FF", secondary: "#FF003C", selection: "#FCEE0A", selectionText: "#000000",
             styleTheme: theme =>
             {
-                theme.Cursor = CursorStyle.Arrow(ThemeBuilder.Hex("#FCEE0A"), Color.Black);
+                theme.Cursor = CursorStyle.ModernArrow(ThemeBuilder.Hex("#FCEE0A"), Color.Black);
                 ThemeBuilder.Chrome(theme.Button, null, ThemeBuilder.Solid(theme.Palette.Primary), 1, 0);
                 theme.ButtonShadow = new ShadowStyle { Color = new Color(0, 240, 255, 90), Offset = Vector2.Zero, Blur = 10, Spread = 1 };
                 theme.PanelShadow = new ShadowStyle { Color = new Color(255, 0, 60, 70), Offset = Vector2.Zero, Blur = 12 };

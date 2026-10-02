@@ -18,6 +18,8 @@ public static class AeroTheme
             glass: true,
             styleTheme: theme =>
             {
+                // XP, Aqua and Aero already had smooth pointers.
+                theme.Cursor = CursorStyle.ModernArrow(Color.White, Color.Black);
                 // Windows 7: the hard 45 % split gloss, light blue hover/pressed faces, glossy colored
                 // call-to-action buttons (close-button red, progress green).
                 var face = ThemeBuilder.Gloss((0, "#F2F2F2"), (0.45f, "#EBEBEB"), (0.45f, "#DDDDDD"), (1, "#CFCFCF"));

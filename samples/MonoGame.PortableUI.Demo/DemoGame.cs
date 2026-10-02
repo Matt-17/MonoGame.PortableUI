@@ -113,6 +113,14 @@ namespace MonoGame.PortableUI.Demo
                     InputSource = PortableUI.Input.NullInputSource.Instance,
                     LayoutScale = _runOptions.LayoutScale
                 };
+                if (_runOptions.ScreenshotCursor is { } cursorAt)
+                {
+                    // Capture the theme's software pointer at a fixed spot.
+                    var pointer = new PortableUI.Input.VirtualInputSource();
+                    pointer.SetPointer(cursorAt);
+                    surface.InputSource = pointer;
+                    surface.ShowSoftwareCursor = true;
+                }
                 (screen as MainScreen)?.TrySelectTab(screenName);
                 if (overlay != null)
                 {

@@ -93,6 +93,13 @@ namespace MonoGame.PortableUI
         /// </summary>
         public IReadOnlyList<PostEffect> PostEffects { get; set; } = Array.Empty<PostEffect>();
 
+        /// <summary>
+        ///     Draws the theme's <see cref="PortableTheme.Cursor"/> at the pointer as part of the UI
+        ///     (so display effects such as CRT curvature bend it too). Off by default: the system
+        ///     pointer is used. Turn it on for in-world screens or games that hide the OS cursor.
+        /// </summary>
+        public bool ShowSoftwareCursor { get; set; }
+
         public PortableTheme Theme
         {
             get { return _theme; }

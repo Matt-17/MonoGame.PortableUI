@@ -23,7 +23,7 @@ public static class PhantomStrikeTheme
             surfaceBrush: new ChamferBrush(ThemeBuilder.Hex("#0D0D0D"), ThemeBuilder.Hex("#0D0D0D"), white, 16, 3, ChamferCorners.TopLeft | ChamferCorners.BottomRight),
             styleTheme: theme =>
             {
-                theme.Cursor = CursorStyle.Arrow(ThemeBuilder.Hex("#E5191C"), Color.Black);
+                theme.Cursor = CursorStyle.ModernArrow(ThemeBuilder.Hex("#E5191C"), Color.Black);
                 ChamferBrush Slash(Color fill, Color border, float thickness = 2) =>
                     new(fill, border, 10, thickness, ChamferCorners.TopLeft | ChamferCorners.BottomRight);
                 ShadowStyle Offset(Color color) => new() { Color = color, Offset = new Vector2(5, 5), Blur = 0 };

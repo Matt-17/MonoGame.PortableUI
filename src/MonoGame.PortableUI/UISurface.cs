@@ -89,9 +89,16 @@ namespace MonoGame.PortableUI
         public bool IsInteractive { get; set; } = true;
         public bool HasKeyboardFocus { get; internal set; }
         public float ScaleFactor { get; set; } = 1;
-        public bool ShowSoftwareCursor { get; set; } = true;
-        public PointF SoftwareCursorPosition { get; set; }
-        public Color SoftwareCursorColor { get; set; } = Color.White;
+        /// <summary>
+        ///     Draws the theme's pointer (<see cref="PortableTheme.Cursor"/>) inside the surface, bent by
+        ///     its display effects. Shortcut for <c>Engine.Options.ShowSoftwareCursor</c>; the pointer
+        ///     position comes from <see cref="InputSource"/>.
+        /// </summary>
+        public bool ShowSoftwareCursor
+        {
+            get => Engine.Options.ShowSoftwareCursor;
+            set => Engine.Options.ShowSoftwareCursor = value;
+        }
         public IInputSource InputSource
         {
             get { return Screen.InputSource; }
@@ -135,8 +142,6 @@ namespace MonoGame.PortableUI
             _game.GraphicsDevice.Clear(Color.Transparent);
             // The whole stack: overlays/modals pushed on this surface's engine and its toasts too.
             Engine.DrawStack(_spriteBatch);
-            if (ShowSoftwareCursor)
-                DrawSoftwareCursor(_spriteBatch);
             if (previousTargets.Length == 0)
                 _game.GraphicsDevice.SetRenderTarget(null);
             else
@@ -187,61 +192,5 @@ namespace MonoGame.PortableUI
             return barrel == null ? 0 : MathHelper.Clamp(barrel.Distortion, 0, 0.5f);
         }
 
-        // Classic arrow pointer, 12×19 (Windows shape): '#' outline, '.' fill, ' ' transparent.
-        private static readonly string[] ArrowRows =
-        {
-            "#",
-            "##",
-            "#.#",
-            "#..#",
-            "#...#",
-            "#....#",
-            "#.....#",
-            "#......#",
-            "#.......#",
-            "#........#",
-            "#.........#",
-            "#......#####",
-            "#...#..#",
-            "#..##..#",
-            "#.#  #..#",
-            "##   #..#",
-            "#     #..#",
-            "      #..#",
-            "       ##"
-        };
-
-        /// <summary>Outline color of the software cursor (the fill is <see cref="SoftwareCursorColor"/>).</summary>
-        public Color SoftwareCursorOutlineColor { get; set; } = Color.Black;
-
-        private void DrawSoftwareCursor(SpriteBatch spriteBatch)
-        {
-            // Target pixels: layout position × LayoutScale; one bitmap pixel per layout unit.
-            var scale = _layoutScale;
-            var x = SoftwareCursorPosition.X * scale;
-            var y = SoftwareCursorPosition.Y * scale;
-            var pixel = Media.Primitives.Pixel(spriteBatch);
-            spriteBatch.Begin();
-            for (var row = 0; row < ArrowRows.Length; row++)
-            {
-                var line = ArrowRows[row];
-                var start = 0;
-                while (start < line.Length)
-                {
-                    var c = line[start];
-                    var end = start;
-                    while (end < line.Length && line[end] == c)
-                        end++;
-                    if (c != ' ')
-                    {
-                        var color = c == '#' ? SoftwareCursorOutlineColor : SoftwareCursorColor;
-                        spriteBatch.Draw(pixel, new Rect(x + start * scale, y + row * scale, (end - start) * scale, scale), color);
-                    }
-                    start = end;
-                }
-            }
-            spriteBatch.End();
-            Engine.RecordBatchFlush();
-        }
     }
 }
