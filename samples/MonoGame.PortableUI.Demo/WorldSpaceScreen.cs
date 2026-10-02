@@ -25,6 +25,16 @@ namespace MonoGame.PortableUI.Demo
         private readonly UISurface _computerSurface;
         private readonly VirtualInputSource _virtualInput;
         private readonly TextBlock _status;
+        private readonly SurfacePointerCapture _capture;
+        // Capture mode (default): click the monitor to use it, Escape to leave. Free mode: the
+        // pointer hovers the monitor directly.
+        private bool _captureMode = true;
+        private bool _wasLeftDown;
+        private bool _swallowLeftUntilRelease;
+        private Viewport _viewport;
+        private Matrix _view;
+        private Matrix _projection;
+        private Matrix _world;
         private BasicEffect? _effect;
         private RenderTarget2D? _surfaceTarget;
 
@@ -44,9 +54,11 @@ namespace MonoGame.PortableUI.Demo
                 InputSource = _virtualInput,
                 ShowSoftwareCursor = false
             };
+            _capture = new SurfacePointerCapture(_computerSurface, _virtualInput);
+            _capture.Released += (_, _) => ReturnSystemPointer();
             _status = new TextBlock
             {
-                Text = "World space demo - click the monitor; type into the DOS prompt",
+                Text = CaptureHint,
                 TextColor = Color.White,
                 TextSize = 14,
                 Margin = new Thickness(12)
@@ -54,8 +66,11 @@ namespace MonoGame.PortableUI.Demo
             Content = CreateChrome();
         }
 
+        private const string CaptureHint = "Click the monitor to use it, Esc to leave it";
+
         protected override void OnNavigatedFrom()
         {
+            _capture.Release();
             // Leaving the room: the system pointer must not stay hidden.
             _game.IsMouseVisible = true;
             base.OnNavigatedFrom();
@@ -74,7 +89,14 @@ namespace MonoGame.PortableUI.Demo
             var viewport = device.Viewport;
             var projection = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(45), viewport.AspectRatio, 0.1f, 20f);
 
-            RouteMouseIntoSurface(viewport, view, projection, world);
+            _viewport = viewport;
+            _view = view;
+            _projection = projection;
+            _world = world;
+            if (_captureMode)
+                RouteCapturedMouse(viewport, view, projection, world);
+            else
+                RouteMouseIntoSurface(viewport, view, projection, world);
 
             _computerSurface.Update(gameTime);
             _surfaceTarget = _computerSurface.Draw(gameTime);
@@ -82,6 +104,56 @@ namespace MonoGame.PortableUI.Demo
             DrawRoomBackground(spriteBatch);
             DrawMonitorQuad(device, world, view, projection);
         }
+
+        /// <summary>
+        ///     Capture mode: a click on the picture hands the mouse to the monitor (relative motion,
+        ///     confined to the picture, unaffected by the swaying camera); Escape gives it back.
+        /// </summary>
+        private void RouteCapturedMouse(Viewport viewport, Matrix view, Matrix projection, Matrix world)
+        {
+            var mouse = Mouse.GetState();
+            var leftDown = mouse.LeftButton == ButtonState.Pressed;
+            var centre = new Point(viewport.Width / 2, viewport.Height / 2);
+            if (_capture.IsCaptured)
+            {
+                var delta = new Vector2(mouse.X - centre.X, mouse.Y - centre.Y);
+                // The click that captured the pointer must not also click the monitor.
+                if (_swallowLeftUntilRelease && !leftDown)
+                    _swallowLeftUntilRelease = false;
+                if (_capture.Update(delta, leftDown && !_swallowLeftUntilRelease, mouse.RightButton == ButtonState.Pressed, false, Keyboard.GetState()))
+                {
+                    Mouse.SetPosition(centre.X, centre.Y);
+                    _game.IsMouseVisible = false;
+                }
+                _wasLeftDown = leftDown;
+                return;
+            }
+
+            _game.IsMouseVisible = true;
+            var ray = WorldSurfaceMapper.GetMouseRay(viewport, view, projection, new PointF(mouse.X, mouse.Y));
+            var onDisplay = WorldSurfaceMapper.TryMapRayToSurface(ray, world, QuadSize, SurfaceWidth, SurfaceHeight, out var uiPoint)
+                && _computerSurface.IsPointOnDisplay(uiPoint);
+            if (onDisplay && leftDown && !_wasLeftDown && IsActiveScreen)
+            {
+                _capture.Capture(uiPoint);
+                _swallowLeftUntilRelease = true;
+                Mouse.SetPosition(centre.X, centre.Y);
+                _game.IsMouseVisible = false;
+                _status.Text = "Monitor in use - Esc to leave";
+            }
+            _wasLeftDown = leftDown;
+        }
+
+        /// <summary>After Escape: the system pointer reappears where the in-world cursor was.</summary>
+        private void ReturnSystemPointer()
+        {
+            var at = WorldSurfaceMapper.MapSurfaceToScreen(_viewport, _view, _projection, _world, QuadSize, SurfaceWidth, SurfaceHeight, _capture.Position);
+            Mouse.SetPosition((int)at.X, (int)at.Y);
+            _game.IsMouseVisible = true;
+            _status.Text = CaptureHint;
+        }
+
+        private bool IsActiveScreen => ReferenceEquals(ScreenEngine?.ActiveScreen, this);
 
         private void RouteMouseIntoSurface(Viewport viewport, Matrix view, Matrix projection, Matrix world)
         {
@@ -184,6 +256,7 @@ namespace MonoGame.PortableUI.Demo
                 {
                     new ColumnDefinition(),
                     new ColumnDefinition { Width = new GridLength(180) },
+                    new ColumnDefinition { Width = new GridLength(180) },
                     new ColumnDefinition { Width = new GridLength(180) }
                 }
             };
@@ -206,6 +279,23 @@ namespace MonoGame.PortableUI.Demo
                 crt.Text = toCrt ? "Display: CRT" : "Display: LCD";
             };
             bar.AddChild(crt, column: 1);
+            var mode = new TextButton("Pointer: capture")
+            {
+                Height = 36,
+                Margin = new Thickness(0, 8, 8, 8),
+                BackgroundBrush = new SolidColorBrush(new Color(255, 255, 255, 36)),
+                TextColor = Color.White
+            };
+            mode.Click += (sender, args) =>
+            {
+                _captureMode = !_captureMode;
+                _capture.Release();
+                _virtualInput.SetPointer(new PointF(-100, -100));
+                _computerSurface.ShowSoftwareCursor = false;
+                mode.Text = _captureMode ? "Pointer: capture" : "Pointer: free";
+                _status.Text = _captureMode ? CaptureHint : "Free pointer: hover the monitor to use it";
+            };
+            bar.AddChild(mode, column: 2);
             var back = new TextButton("Back to demo")
             {
                 Height = 36,
@@ -214,7 +304,7 @@ namespace MonoGame.PortableUI.Demo
                 TextColor = Color.White
             };
             back.Click += (sender, args) => ScreenEngine?.NavigateBack();
-            bar.AddChild(back, column: 2);
+            bar.AddChild(back, column: 3);
             root.AddChild(bar, row: 2);
             return root;
         }
