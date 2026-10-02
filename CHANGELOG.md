@@ -34,7 +34,6 @@
 - Virtualized `ListBox` and `DataGrid` (`IsVirtualizing`, on by default): only the rows in view get controls, recycled while scrolling; `ListBox.ScrollIndexIntoView`.
 - `ScreenEngineOptions.LayoutScale`: lay out in density-independent units and draw at native resolution (Android: the display density); rows and single-line text boxes grow to fit scaled text.
 - `ScreenEngine.HandleKeyCommand` and IME text routing in `AndroidOnScreenKeyboard`.
-- `AndroidSurfaceSize.Follow`: keeps the back buffer equal to the game view, which makes edge-to-edge windows work (verified on Android 14 and 16).
 - `ControlStyle.TransitionDuration` drives the button press animation (zero = no animation); `StateStyle.FocusVisualKind` of the Focused state selects the focus visual; `TextBlock.IsHeading` uses `Typography.HeadingSize`.
 
 ### Changed

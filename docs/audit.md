@@ -40,7 +40,7 @@ coalesces N property changes per frame into one layout pass (asserted by
 | P4 | med | `StackPanel.MeasureLayout` measured every child **twice** (LINQ `Max` + `Sum`). | `StackPanel.cs:19-28` | fixed (single pass) |
 | P5 | med | Two `SpriteBatch.Begin/End` pairs per control per frame (`OnDraw` + `OnDrawOverlay`), even when `OnDrawOverlay` is not overridden. | `Screen.cs:457-488` | fixed (overlay pass skipped when not overridden) |
 | P6 | low | Per-frame allocations: `Keyboard.GetPressedKeys()` array + LINQ `Contains`, `GetRenderTargets()` arrays, `Where().ToList()` in `OnMouseEnter`, per-move delegate captures. | `Screen.cs`, `ScreenComponent.cs:65`, `Control.cs:749` | fixed |
-| P7 | high | No virtualization in `ListBox`/`DataGrid` (one child control per item, acknowledged in `DataGrid`'s own doc comment). | `ListBox.cs`, `DataGrid.cs:19` | **deferred** — feature-sized work |
+| P7 | high | No virtualization in `ListBox`/`DataGrid` (one child control per item, acknowledged in `DataGrid`'s own doc comment). | `ListBox.cs`, `DataGrid.cs:19` | **fixed** — `VirtualItemsPanel`, `IsVirtualizing` (default on) work |
 | P8 | low | `Control.Screen` walks the parent chain on every access; read frequently (tooltips, capture, theme). | `Control.cs:91` | **deferred** — needs an invalidation story for reparenting |
 
 ## UI/UX consistency
