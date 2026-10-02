@@ -13,14 +13,16 @@ public static class GlassTheme
     {
         var night = new Color(9, 14, 28);
         var cyan = new Color(97, 242, 226, 214);
-        var pane = new FrostedGlassBrush(new Color(255, 255, 255, 42), new Color(255, 255, 255, 216), 18, 0.42f);
-        var paneAlt = new FrostedGlassBrush(new Color(205, 248, 255, 48), new Color(255, 255, 255, 202), 20, 0.44f);
-        var field = new FrostedGlassBrush(new Color(255, 255, 255, 54), new Color(255, 255, 255, 208), 16, 0.34f);
+        // Smoked frost: a heavy blur under a dark tint keeps white text readable over any backdrop,
+        // the light sheen and grain keep it reading as glass.
+        var pane = new FrostedGlassBrush(new Color(14, 22, 38, 168), new Color(255, 255, 255, 150), 28, 0.3f);
+        var paneAlt = new FrostedGlassBrush(new Color(44, 60, 82, 150), new Color(255, 255, 255, 170), 24, 0.3f);
+        var field = new FrostedGlassBrush(new Color(6, 10, 20, 150), new Color(255, 255, 255, 110), 20, 0.2f);
         var palette = new ThemePalette
         {
             Background = night,
-            Surface = new Color(255, 255, 255, 42),
-            SurfaceAlt = new Color(205, 248, 255, 48),
+            Surface = new Color(14, 22, 38, 168),
+            SurfaceAlt = new Color(44, 60, 82, 150),
             Text = new Color(238, 250, 255),
             HeadingText = Color.White,
             MutedText = new Color(179, 211, 222),
@@ -33,7 +35,7 @@ public static class GlassTheme
             SelectionText = new Color(7, 20, 29),
             TabText = new Color(238, 250, 255),
             SelectedTabText = new Color(7, 20, 29),
-            FieldFrame = new Color(255, 255, 255, 54),
+            FieldFrame = new Color(6, 10, 20, 150),
             FieldBorder = new Color(255, 255, 255, 146),
             DisabledSurface = new Color(20, 29, 41, 164),
             DisabledText = new Color(142, 163, 174),
@@ -54,6 +56,12 @@ public static class GlassTheme
                 theme.ToolTipBackgroundBrush = new FrostedGlassBrush(new Color(9, 14, 28, 228), new Color(255, 255, 255, 120), 10, 0.14f);
                 theme.ToolTipTextColor = Color.White;
                 ThemeBuilder.Chrome(theme.Button, null, ThemeBuilder.Solid(new Color(255, 255, 255, 96)), 1, 10);
+                // Colored actions: tinted glass with the same rounded light edge as the panes.
+                ThemeBuilder.Variants(theme, (style, color) =>
+                {
+                    ThemeBuilder.Chrome(style, new FrostedGlassBrush(new Color((byte)color.R, (byte)color.G, (byte)color.B, (byte)200), new Color(255, 255, 255, 200), 16, 0.2f), ThemeBuilder.Solid(new Color(255, 255, 255, 140)), 1, 10);
+                    style.Disabled.Background = new FrostedGlassBrush(new Color(20, 29, 41, 164), new Color(255, 255, 255, 90), 16, 0.2f);
+                });
                 theme.PanelShadow = new ShadowStyle { Color = new Color(0, 0, 0, 110), Offset = new Vector2(0, 10), Blur = 18 };
             });
     }
