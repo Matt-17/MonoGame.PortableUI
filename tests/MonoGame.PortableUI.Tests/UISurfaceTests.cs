@@ -1,3 +1,4 @@
+using MonoGame.PortableUI.Common;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.Xna.Framework;
 using MonoGame.PortableUI.Themes;
@@ -60,6 +61,20 @@ namespace MonoGame.PortableUI.Tests
 
         private sealed class EmptyScreen : Screen
         {
+        }
+
+        [TestMethod]
+        public void Points_on_the_curved_crt_rim_are_not_on_the_display()
+        {
+            using var game = new Game();
+            using var surface = new UISurface(game, new EmptyScreen(), 400, 300);
+            var corner = new PointF(3, 3);
+            Assert.IsTrue(surface.IsPointOnDisplay(corner), "flat display: the whole surface is picture");
+
+            surface.PostEffects = new PostEffect[] { new CrtBarrelPostEffect { Distortion = 0.1f } };
+            Assert.IsFalse(surface.IsPointOnDisplay(corner), "the corner is the dark rim of the curved picture");
+            Assert.IsTrue(surface.IsPointOnDisplay(new PointF(200, 150)), "the centre is picture");
+            Assert.IsFalse(surface.IsPointOnDisplay(new PointF(-5, 150)), "off the surface");
         }
     }
 }
