@@ -47,6 +47,7 @@ public static class ThemeBuilder
                 var theme = PortableTheme.FromPalette(palette);
                 theme.Typography.FontName = fontName;
                 theme.Cursor = DefaultCursor(era, palette);
+                ApplyEraCaret(theme, era);
                 styleTheme?.Invoke(theme);
                 return theme;
             },
@@ -136,6 +137,7 @@ public static class ThemeBuilder
                 var theme = PortableTheme.FromPalette(palette);
                 theme.Typography.FontName = fontName;
                 theme.Cursor = DefaultCursor(era, palette);
+                ApplyEraCaret(theme, era);
                 styleTheme?.Invoke(theme);
                 if (reducedMotion)
                 {
@@ -207,10 +209,19 @@ public static class ThemeBuilder
         return era switch
         {
             ThemeEra.Retro => CursorStyle.PixelArrow(Color.White, Color.Black),
-            ThemeEra.Terminal => CursorStyle.Arrow(palette.Text, palette.Background),
+            ThemeEra.Terminal => CursorStyle.TextCell(),
             ThemeEra.Desktop => CursorStyle.Arrow(Color.White, Color.Black),
             _ => CursorStyle.ModernArrow(Color.White, Color.Black)
         };
+    }
+
+    /// <summary>Text-mode themes get the DOS caret: underline / overwrite block, blinking at ~3.75 Hz.</summary>
+    public static void ApplyEraCaret(PortableTheme theme, ThemeEra era)
+    {
+        if (era != ThemeEra.Terminal)
+            return;
+        theme.TextBoxCaretStyle = Controls.CaretStyle.TextMode;
+        theme.TextBoxCaretBlinkInterval = TimeSpan.FromMilliseconds(133);
     }
 
     public static Color Hex(string value)

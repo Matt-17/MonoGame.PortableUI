@@ -261,6 +261,12 @@ namespace MonoGame.PortableUI
         public Brush? TextBoxBackgroundBrush { get; set; } = new SolidColorBrush(Color.White);
         public Color TextBoxTextColor { get; set; } = Color.Black;
         public Brush TextBoxCursorBrush { get; set; } = new SolidColorBrush(Color.Black);
+
+        /// <summary>Caret shape of text boxes; text-mode themes use <see cref="CaretStyle.TextMode"/>.</summary>
+        public CaretStyle TextBoxCaretStyle { get; set; } = CaretStyle.Bar;
+
+        /// <summary>Half period of the caret blink (on, then off for as long). DOS: 133 ms ≈ 3.75 Hz.</summary>
+        public TimeSpan TextBoxCaretBlinkInterval { get; set; } = TimeSpan.FromMilliseconds(500);
         public Brush TextBoxSelectionBrush { get; set; } = new SolidColorBrush(new Color(51, 153, 255, 95));
         public Color TextBoxHintTextColor { get; set; } = Color.Silver;
         public Thickness TextBoxPadding { get; set; } = new Thickness(10, 4);

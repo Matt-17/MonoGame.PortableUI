@@ -453,10 +453,66 @@ namespace MonoGame.PortableUI
             if (cursor == null)
                 return;
             var scale = engine.ScalesNatively ? engine.RenderScale : 1f;
+            if (cursor.IsTextCell)
+            {
+                DrawTextCellCursor(spriteBatch, engine, cursor, position, scale);
+                return;
+            }
             spriteBatch.Begin();
             cursor.Draw(spriteBatch, new Vector2(position.X * scale, position.Y * scale), scale);
             spriteBatch.End();
             engine.RecordBatchFlush();
+        }
+
+        // Destination becomes 1 - destination: the cell under the pointer inverted.
+        private static readonly BlendState InvertBlend = new()
+        {
+            ColorSourceBlend = Blend.InverseDestinationColor,
+            ColorDestinationBlend = Blend.Zero,
+            ColorBlendFunction = BlendFunction.Add,
+            AlphaSourceBlend = Blend.Zero,
+            AlphaDestinationBlend = Blend.One
+        };
+
+        private void DrawTextCellCursor(SpriteBatch spriteBatch, ScreenEngine engine, CursorStyle cursor, PointF position, float scale)
+        {
+            // The display's grid, or else cells the size of the theme font's 'M' and line height.
+            var grid = engine.Options.TextGrid ?? FontCellGrid(engine);
+            var (column, row) = grid.CellAt(position, ScreenRect);
+            var cell = grid.CellRect(column, row, ScreenRect);
+            var pixels = new Rect(cell.Left * scale, cell.Top * scale, cell.Width * scale, cell.Height * scale);
+            if (engine.Options.TextCellCursorRenderer is { } custom && custom(spriteBatch, pixels, column, row))
+                return;
+
+            var pixel = Media.Primitives.Pixel(spriteBatch);
+            if (cursor.InvertsCell)
+            {
+                spriteBatch.Begin(SpriteSortMode.Deferred, InvertBlend);
+                spriteBatch.Draw(pixel, pixels, Color.White);
+            }
+            else
+            {
+                spriteBatch.Begin();
+                spriteBatch.Draw(pixel, pixels, Brush.Premultiply(cursor.Fill));
+            }
+            spriteBatch.End();
+            engine.RecordBatchFlush();
+        }
+
+        private TextGrid FontCellGrid(ScreenEngine engine)
+        {
+            var cellWidth = 8f;
+            var cellHeight = 16f;
+            var theme = engine.Options.Theme;
+            if (FontManager.GetFontOrDefault(theme?.Typography.FontName) is { } font)
+            {
+                var size = font.MeasureString("M");
+                if (size.X > 0)
+                    cellWidth = size.X;
+                if (font.LineSpacing > 0)
+                    cellHeight = font.LineSpacing;
+            }
+            return new TextGrid(Math.Max(1, (int)(ScreenRect.Width / cellWidth)), Math.Max(1, (int)(ScreenRect.Height / cellHeight)));
         }
 
         /// <summary>
@@ -1564,6 +1620,11 @@ namespace MonoGame.PortableUI
             if (screenDistortion > 0 && ScreenRect.Width > 0 && ScreenRect.Height > 0)
                 position = PostProcessManager.InverseBarrel(position, ScreenRect, screenDistortion);
 
+            // Text mode: the pointer exists per character cell. Snapped after the curvature is
+            // undone, so a click near the curved edge lands in the cell that is visibly there.
+            if (engine?.Options.TextGrid is { } grid && ScreenRect.Width > 0 && ScreenRect.Height > 0 && ScreenRect.Contains(position))
+                position = grid.Snap(position, ScreenRect);
+
             return position;
         }
 
@@ -2155,6 +2216,8 @@ namespace MonoGame.PortableUI
                     return KeyboardCommand.CursorDown;
                 case Keys.Delete:
                     return KeyboardCommand.Delete;
+                case Keys.Insert:
+                    return KeyboardCommand.Insert;
                 case Keys.Home:
                     return KeyboardCommand.Home;
                 case Keys.End:

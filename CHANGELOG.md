@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.3.0-alpha.4
+
+- **Text-mode displays (#87):** `TextGrid` (`ScreenEngineOptions.TextGrid`, `UISurface.TextGrid`, e.g. `TextGrid.Dos` 80×25, `TextGrid.C64` 40×25) makes a display a character-cell screen: the pointer snaps to the centre of its cell for drawing and input — after the display's curvature is undone, so clicks near a curved edge hit the visible cell. Pointer capture keeps fractional motion, so slow moves still cross cells. Per engine/surface. Cell size = layout size / grid (recommended 640×400 or 720×400 for 80×25, 320×200 for 40×25, stretched to 4:3).
+- **Text-mode pointer:** `CursorStyle.TextCell()` inverts the cell under the pointer (the DOS mouse), `CursorStyle.TextBlock(color)` fills it; default for the terminal-era themes (DOS, Norton, Terminal), phosphor-coloured blocks for Amber/Phosphor, a light-blue block for C64. `ScreenEngineOptions.TextCellCursorRenderer` lets a host with its own character buffer draw the exact attribute-swapped cell.
+- **Text-mode caret:** `CaretStyle.TextMode` — a two-scanline underline in insert mode, a full block in overwrite mode (Insert key toggles `TextBox.IsOverwriteMode`), blinking at ~3.75 Hz (`TextBoxCaretBlinkInterval`); separate from the pointer. Used by the text-mode themes.
+- The world-space demo monitor runs as an 80×25 (C64: 40×25) text-mode screen when it shows a text-mode theme.
+
 ## 0.3.0-alpha.3
 
 Themes, glass and in-world screens: 42 themes (five new game UIs), button variants and chrome brushes, a real liquid glass shader with nested glass for dialogs, themed software cursors, display effects and pointer capture for in-world monitors, single-owner text input for surfaces. The theme catalog is now published as `CodeIX.PortableUI.Themes`; FontStashSharp runtime fonts are part of the core.

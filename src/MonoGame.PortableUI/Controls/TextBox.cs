@@ -95,6 +95,15 @@ namespace MonoGame.PortableUI.Controls
         internal float VerticalScrollOffset => _verticalScrollOffset;
 
         public Brush CursorColor { get; set; }
+
+        /// <summary>Caret shape (bar, or the text-mode underline/block).</summary>
+        public CaretStyle CaretStyle { get; set; }
+
+        /// <summary>Half period of the caret blink.</summary>
+        public TimeSpan CaretBlinkInterval { get; set; } = TimeSpan.FromMilliseconds(500);
+
+        /// <summary>Typed characters replace the one at the caret (Insert key toggles).</summary>
+        public bool IsOverwriteMode { get; set; }
         public Brush SelectionBrush { get; set; }
 
         public event EventHandler? EnterPressed;
@@ -140,6 +149,8 @@ namespace MonoGame.PortableUI.Controls
             IsFocusable = true; // TextBlock disables this; text input needs focus back
             TextColor = theme.TextBoxTextColor;
             CursorColor = theme.TextBoxCursorBrush;
+            CaretStyle = theme.TextBoxCaretStyle;
+            CaretBlinkInterval = theme.TextBoxCaretBlinkInterval;
             SelectionBrush = theme.TextBoxSelectionBrush;
             HintTextColor = theme.TextBoxHintTextColor;
             KeyPressed += HandleKeyPressed;
@@ -179,6 +190,10 @@ namespace MonoGame.PortableUI.Controls
                 TextColor = newTheme.TextBoxTextColor;
             if (ReferenceEquals(CursorColor, oldTheme.TextBoxCursorBrush))
                 CursorColor = newTheme.TextBoxCursorBrush;
+            if (CaretStyle == oldTheme.TextBoxCaretStyle)
+                CaretStyle = newTheme.TextBoxCaretStyle;
+            if (CaretBlinkInterval == oldTheme.TextBoxCaretBlinkInterval)
+                CaretBlinkInterval = newTheme.TextBoxCaretBlinkInterval;
             if (ReferenceEquals(SelectionBrush, oldTheme.TextBoxSelectionBrush))
                 SelectionBrush = newTheme.TextBoxSelectionBrush;
             if (HintTextColor.Equals(oldTheme.TextBoxHintTextColor))
@@ -415,6 +430,9 @@ namespace MonoGame.PortableUI.Controls
                     else
                         Backspace();
                     break;
+                case KeyboardCommand.Insert:
+                    IsOverwriteMode = !IsOverwriteMode;
+                    break;
                 case KeyboardCommand.Delete:
                     if (control && !HasSelection)
                         DeleteWordForward();
@@ -534,6 +552,14 @@ namespace MonoGame.PortableUI.Controls
         {
             if (IsReadOnly)
                 return;
+
+            // Overwrite mode: a typed character replaces the one at the caret (not a line break).
+            if (IsOverwriteMode && !HasSelection && text != "\n" && CursorPosition < Text.Length && Text[CursorPosition] != '\n')
+            {
+                var next = NextCaretStop(CursorPosition);
+                ReplaceRange(CursorPosition, next - CursorPosition, text);
+                return;
+            }
 
             ReplaceSelection(text);
         }
@@ -947,15 +973,31 @@ namespace MonoGame.PortableUI.Controls
             if (!IsFocused)
                 return;
 
-            // The caret blinks every 500 ms: ask for the frame that flips it.
-            var phase = ScreenSystem.TotalTime.TotalMilliseconds % 1000;
-            ScreenEngine.RequestAnimationFrameAt(ScreenSystem.TotalTime + TimeSpan.FromMilliseconds(500 - phase % 500));
-            if (phase >= 500)
+            // The caret blinks (on for one interval, off for one): ask for the frame that flips it.
+            var half = Math.Max(1, CaretBlinkInterval.TotalMilliseconds);
+            var phase = ScreenSystem.TotalTime.TotalMilliseconds % (2 * half);
+            ScreenEngine.RequestAnimationFrameAt(ScreenSystem.TotalTime + TimeSpan.FromMilliseconds(half - phase % half));
+            if (phase >= half)
                 return;
 
             var cursorRect = GetCursorRect(textRect);
             if (cursorRect == Rect.Empty)
                 return;
+
+            if (CaretStyle == CaretStyle.TextMode)
+            {
+                // The cell of the character at the caret: a 2-of-16-scanline underline when inserting,
+                // the whole cell when overwriting.
+                var cellWidth = MeasureText(CursorPosition < Text.Length && Text[CursorPosition] != '\n' ? Text.Substring(CursorPosition, 1) : "M").X * RenderScale.X;
+                var cell = new Rect(cursorRect.Left, cursorRect.Top, Math.Max(1, cellWidth), cursorRect.Height);
+                if (!IsOverwriteMode)
+                {
+                    var thickness = Math.Max(1, MathF.Round(cell.Height * 2f / 16f));
+                    cell = new Rect(cell.Left, cell.Bottom - thickness, cell.Width, thickness);
+                }
+                CursorColor.Draw(spriteBatch, cell, RenderOpacity);
+                return;
+            }
 
             cursorRect.Width = Math.Max(1, cursorRect.Width * RenderScale.X);
             CursorColor.Draw(spriteBatch, cursorRect, RenderOpacity);
