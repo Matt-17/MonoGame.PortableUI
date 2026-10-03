@@ -17,7 +17,7 @@ using MonoGame.PortableUI.Media;
 
 namespace MonoGame.PortableUI
 {
-    public abstract class Screen : FrameworkElement
+    public abstract partial class Screen : FrameworkElement
     {
 
         protected Dictionary<MouseButton, ButtonState> MouseButtonStates { get; } = new Dictionary<MouseButton, ButtonState>
@@ -725,6 +725,7 @@ namespace MonoGame.PortableUI
             var root = RenderContext.Root(scissorRect, nativeScale);
             spriteBatch.GraphicsDevice.ScissorRectangle = ToScissorRectangle(root.ScissorRect);
             DrawControlBatched(spriteBatch, control, root);
+            FlushLayerComposites(spriteBatch);
         }
 
         /// <summary>Ends hover on every control of the tree that still shows it (touch input).</summary>
@@ -802,10 +803,21 @@ namespace MonoGame.PortableUI
             if (context.ScissorRect.Width <= 0 || context.ScissorRect.Height <= 0)
                 return;
 
+            var cached = control.CacheMode == CacheMode.Bitmap && !ReferenceEquals(control, _layerInProgress)
+                && control.OverscrollScale == Vector2.One && control is not ThemeIsland;
+            // Anything but a layer composite draws with its own state: close a pending composite batch.
+            if (!cached)
+                FlushLayerComposites(spriteBatch);
+
             if (control is ThemeIsland island && TryComposeIslandPostFx(spriteBatch, island, parentContext, context))
                 return;
 
             if (control.OverscrollScale != Vector2.One && TryDrawStretched(spriteBatch, control, parentContext))
+                return;
+
+            // Before the clip shape: a cached layer bakes its clip in once instead of composing the
+            // clip passes every frame.
+            if (cached && TryDrawLayer(spriteBatch, control, parentContext, context))
                 return;
 
             if (!ReferenceEquals(control, _clipInProgress) && control.EffectiveClip is { } clip
@@ -827,6 +839,7 @@ namespace MonoGame.PortableUI
             var childCount = control.VisualChildCount;
             for (var i = 0; i < childCount; i++)
                 DrawControlBatched(spriteBatch, control.GetVisualChild(i), context);
+            FlushLayerComposites(spriteBatch);
 
             if (control.NeedsOverlayPass)
             {
@@ -1128,16 +1141,9 @@ namespace MonoGame.PortableUI
             {
                 var transform = CreateControlTransform(control) * _transform;
                 var renderRect = TransformRect(control.ClippingRect, transform);
-                // Drop shadows render outside the control's bounds; widen the scissor so they survive.
-                var shadowExtent = 0f;
-                for (var shadow = control.Shadow; shadow != null; shadow = shadow.Also)
-                {
-                    if (!shadow.Inset)
-                        shadowExtent = Math.Max(shadowExtent, shadow.Blur + shadow.Spread + Math.Max(Math.Abs(shadow.Offset.X), Math.Abs(shadow.Offset.Y)));
-                }
-                // The focus ring sits outside the control too (offset ring, glow).
-                if (control.IsFocusVisualShown)
-                    shadowExtent = Math.Max(shadowExtent, 2 + control.FocusBorderWidth * 4);
+                // Drop shadows and the focus ring render outside the control's bounds; widen the
+                // scissor so they survive.
+                var shadowExtent = VisualOverflow(control);
                 // Shadow sizes are layout lengths; the render rect is already scaled.
                 var scissorSource = shadowExtent > 0 ? renderRect + new Thickness(shadowExtent * Math.Max(Scale.X, Scale.Y)) : renderRect;
                 var scissorRect = ChildClipRect ^ scissorSource;
@@ -1147,6 +1153,34 @@ namespace MonoGame.PortableUI
                 var scale = new Vector2(Scale.X * control.Scale.X, Scale.Y * control.Scale.Y);
                 var opacity = Opacity * MathHelper.Clamp((float)control.Opacity, 0, 1);
                 return new RenderContext(transform, scale, opacity, scissorRect, childClipRect, renderRect);
+            }
+
+            /// <summary>How far a control draws past its own rect, in layout units: drop shadows and the
+            /// focus ring (offset ring, glow).</summary>
+            public static float VisualOverflow(Control control)
+            {
+                var extent = 0f;
+                for (var shadow = control.Shadow; shadow != null; shadow = shadow.Also)
+                {
+                    if (!shadow.Inset)
+                        extent = Math.Max(extent, shadow.Blur + shadow.Spread + Math.Max(Math.Abs(shadow.Offset.X), Math.Abs(shadow.Offset.Y)));
+                }
+                if (control.IsFocusVisualShown)
+                    extent = Math.Max(extent, 2 + control.FocusBorderWidth * 4);
+                return extent;
+            }
+
+            /// <summary>A layout rect in this context's render space.</summary>
+            public Rect ToRender(Rect layoutRect) => TransformRect(layoutRect, _transform);
+
+            /// <summary>
+            ///     Root context of a cached layer: the same transform shifted by the texture origin, full
+            ///     opacity (ancestor opacity is applied when compositing) and the texture as clip.
+            /// </summary>
+            public RenderContext ForLayer(float offsetX, float offsetY, int width, int height)
+            {
+                var layer = new Rect(0, 0, width, height);
+                return new RenderContext(_transform * Matrix.CreateTranslation(offsetX, offsetY, 0), Scale, 1, layer, layer, layer);
             }
 
             private static Matrix CreateControlTransform(Control control)
@@ -1226,6 +1260,7 @@ namespace MonoGame.PortableUI
             if (_appliedThemeVersion != themeVersion || _themeRefreshRequested)
             {
                 _appliedThemeVersion = themeVersion;
+                ScreenEngine?.InvalidateLayerCaches();
                 _themeRefreshRequested = false;
                 RefreshThemeForTree(_mainGrid);
                 if (_flyOut != null)
@@ -1240,6 +1275,7 @@ namespace MonoGame.PortableUI
             if (_appliedTextScaleVersion != textScaleVersion)
             {
                 _appliedTextScaleVersion = textScaleVersion;
+                ScreenEngine?.InvalidateLayerCaches();
                 RefreshTextScaleForTree(_mainGrid);
                 if (_flyOut != null)
                     RefreshTextScaleForTree(_flyOut);
@@ -1252,6 +1288,7 @@ namespace MonoGame.PortableUI
             if (_appliedLocalizationVersion != localizationVersion)
             {
                 _appliedLocalizationVersion = localizationVersion;
+                ScreenEngine?.InvalidateLayerCaches();
                 RefreshLocalizationForTree(_mainGrid);
                 if (_flyOut != null)
                     RefreshLocalizationForTree(_flyOut);

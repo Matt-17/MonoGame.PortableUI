@@ -73,7 +73,21 @@ namespace MonoGame.PortableUI.Controls
 
         public Size Viewport { get; private set; }
         public Size Extent { get; private set; }
-        public PointF Offset { get; private set; }
+        public PointF Offset
+        {
+            get => _offset;
+            private set
+            {
+                if (_offset == value)
+                    return;
+                _offset = value;
+                // Scrolling moves content without a layout pass: still a visual change for redraws
+                // and for cached ancestor layers.
+                RequestRedraw();
+            }
+        }
+
+        private PointF _offset;
 
         public bool ShowScrollBars { get; set; }
         public bool EnableFling { get; set; }

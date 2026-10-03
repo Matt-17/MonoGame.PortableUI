@@ -36,7 +36,12 @@ namespace MonoGame.PortableUI
             GraphicsDevice.DeviceReset += OnFrameLost;
         }
 
-        private void OnFrameLost(object? sender, EventArgs args) => _screenEngine.RequestRedrawFrames(ScreenEngine.SurfaceRestoreFrames);
+        private void OnFrameLost(object? sender, EventArgs args)
+        {
+            // Render target contents do not survive a lost surface either.
+            _screenEngine.InvalidateLayerCaches();
+            _screenEngine.RequestRedrawFrames(ScreenEngine.SurfaceRestoreFrames);
+        }
 
         protected override void LoadContent()
         {
@@ -213,6 +218,7 @@ namespace MonoGame.PortableUI
                 _viewportWidth = viewport.Width;
                 _viewportHeight = viewport.Height;
                 _screenEngine.RequestRedraw();
+                _screenEngine.InvalidateLayerCaches();
             }
             _screenEngine.ApplyViewportSize(viewport.Width, viewport.Height);
         }

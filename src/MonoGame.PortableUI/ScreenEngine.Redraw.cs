@@ -89,11 +89,24 @@ namespace MonoGame.PortableUI
         ///     a spinner, a fading scroll bar): asks the engine that is drawing it for the next frame.
         ///     Does nothing outside a draw.
         /// </summary>
-        public static void RequestAnimationFrame() => _drawingEngine?.RequestRedraw();
+        public static void RequestAnimationFrame()
+        {
+            if (_drawingEngine is not { } engine)
+                return;
+            engine.RequestRedraw();
+            engine.AnimationFrameRequests++;
+        }
 
         /// <summary>Like <see cref="RequestAnimationFrame"/>, for a visual that next changes at
         /// <paramref name="time"/> (e.g. a blinking caret).</summary>
-        public static void RequestAnimationFrameAt(TimeSpan time) => _drawingEngine?.RequestRedrawAt(time);
+        public static void RequestAnimationFrameAt(TimeSpan time)
+        {
+            if (_drawingEngine is not { } engine)
+                return;
+            engine.RequestRedrawAt(time);
+            if (time < engine.EarliestAnimationFrameAt)
+                engine.EarliestAnimationFrameAt = time;
+        }
 
         /// <summary>Draws at least the next <paramref name="frames"/> frames. Thread-safe.</summary>
         internal void RequestRedrawFrames(int frames)
@@ -167,6 +180,7 @@ namespace MonoGame.PortableUI
             if (quality == EffectiveRenderQuality)
                 return;
             EffectiveRenderQuality = quality;
+            InvalidateLayerCaches();
             RequestRedraw();
         }
 

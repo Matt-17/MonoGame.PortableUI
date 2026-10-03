@@ -228,6 +228,12 @@ namespace MonoGame.PortableUI.Demo.Android
             });
             panel.AddChild(BuildDataGrid());
 
+            // Each block of the page is drawn from a cached texture while it does not change, so
+            // scrolling the page only moves textures (the list and grid re-render while they scroll
+            // themselves).
+            foreach (var child in panel.Children)
+                child.CacheMode = CacheMode.Bitmap;
+
             return new ScrollViewer
             {
                 ScrollOrientation = Orientation.Vertical,

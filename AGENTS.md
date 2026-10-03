@@ -80,6 +80,17 @@ draw time** must ask for its next frame from `OnDraw`: `ScreenEngine.RequestAnim
 time in update code calls `Control.RequestRedraw()`. Check `FramesDrawn`/`FramesSkipped`, and on Android
 `dumpsys SurfaceFlinger --latency` must show 0 frames on an idle screen.
 
+**Layer cache:** `Control.CacheMode = CacheMode.Bitmap` draws the control's subtree into a render target
+and composites one quad while it stays valid (scrolling only moves it; consecutive composites share a
+batch). Validity rests on the **visual invalidation contract**: anything read at draw time must, when it
+changes, call `InvalidateLayout(false)` (or `RequestRedraw()`, which bubbles the same way) so cached
+ancestors go dirty - property setters, `HoverState`/`TouchState`, focus, `Opacity`/`Scale`/`Translation`,
+`ScrollViewer.Offset` already do. Draw-time animation (`RequestAnimationFrame[At]`) during a layer
+render marks it dirty/refreshes it; layers re-rendered three frames in a row are drawn live for 30
+frames. Global changes bump `ScreenEngine.LayerCacheGeneration`. Subtrees with backdrop (glass) brushes,
+post-FX islands or overscroll stretch, and transient scales, are drawn live. Unused caches are freed
+after 120 frames; budget three screens of pixels.
+
 **Render quality:** `ScreenEngineOptions.RenderQuality` (Auto = Low in Android battery saver, else High)
 resolves to `ScreenEngine.EffectiveRenderQuality` each update. Drawing code reads it through the static
 `ScreenEngine.DrawingQuality` / `AnimatesDecorations` (the engine currently drawing). New expensive or
