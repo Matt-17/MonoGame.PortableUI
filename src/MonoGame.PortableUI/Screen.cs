@@ -65,6 +65,7 @@ namespace MonoGame.PortableUI
         private readonly Func<Control, MouseEventArgs, bool> _mouseMovePredicate;
         private readonly Func<Control, MouseEventArgs, bool> _mouseLeavePredicate;
         private readonly Func<Control, MouseEventArgs, bool> _hitTestPredicate;
+        private readonly Func<Control, MouseEventArgs, bool> _hoverEnterPredicate;
         private readonly Func<Control, MouseEventArgs, bool> _lastPositionPredicate;
         private static readonly Action<Control, MouseEventArgs> MouseEnterAction = (c, a) => c.OnMouseEnter(a);
         private static readonly Action<Control, MouseEventArgs> MouseMoveAction = (c, a) => c.OnMouseMove(a);
@@ -123,6 +124,7 @@ namespace MonoGame.PortableUI
             _mouseMovePredicate = (c, a) => c.ClippingRect.Contains(a.Position) && c.ClippingRect.Contains(LastMousePosition);
             _mouseLeavePredicate = (c, a) => !c.ClippingRect.Contains(a.Position) && c.ClippingRect.Contains(LastMousePosition);
             _hitTestPredicate = (c, a) => c.ClippingRect.Contains(a.Position);
+            _hoverEnterPredicate = (c, a) => c.ClippingRect.Contains(a.Position) && !c.IsMouseHovering;
             _lastPositionPredicate = (c, a) => c.ClippingRect.Contains(LastMousePosition);
         }
 
@@ -285,6 +287,33 @@ namespace MonoGame.PortableUI
 
         /// <summary>After a popup closes, re-enter the controls under the pointer: the enter
         /// predicate only fires on crossing an edge, which never happens for a stationary pointer.</summary>
+        private bool _hoverStale;
+
+        /// <summary>
+        ///     Content moved under a stationary pointer (scrolling, re-layout, recycled list rows):
+        ///     re-evaluate hover on the next update even though the mouse did not move.
+        /// </summary>
+        internal void MarkHoverStale() => _hoverStale = true;
+
+        /// <summary>Leave what is no longer under the pointer, enter what now is — by hover state, not by edge crossing.</summary>
+        private void RefreshHoverInPlace(Control content, PointF position)
+        {
+            var args = new MouseEventArgs(position, new List<MouseButton>());
+            LeaveControlsNotUnder(content, args);
+            VisualTreeHelper.IterateVisualTree(content, args,
+                (c, a) => c.ClippingRect.Contains(a.Position) && !c.IsMouseHovering,
+                MouseEnterAction, _hitTestPredicate);
+        }
+
+        private static void LeaveControlsNotUnder(Control control, MouseEventArgs args)
+        {
+            var count = control.VisualChildCount;
+            for (var i = 0; i < count; i++)
+                LeaveControlsNotUnder(control.GetVisualChild(i), args);
+            if (control.IsMouseHovering && !control.ClippingRect.Contains(args.Position))
+                control.OnMouseLeave(args);
+        }
+
         private void ResyncMainTreeHover()
         {
             VisualTreeHelper.IterateVisualTree(_mainGrid, CreateHoverSyncArgs(),
@@ -328,6 +357,7 @@ namespace MonoGame.PortableUI
             // and gets picked up on the next frame instead of being lost.
             _layoutDirty = false;
             ScreenEngine?.RecordLayoutPass();
+            _hoverStale = true;
             _mainGrid?.UpdateLayout(ScreenRect);
             // Popups invalidate through this screen too (resize, rotation, theme switch).
             _flyOut?.UpdateLayout(ScreenRect);
@@ -1299,12 +1329,23 @@ namespace MonoGame.PortableUI
                 {
                     // Copy the scratch snapshot: args may be retained by handlers beyond this frame.
                     var args = new MouseEventArgs(mousePosition, new List<MouseButton>(pressedMouseButtons));
+                    // Enter by hover state, not by crossing an edge: a list row recycled under the
+                    // pointer (reset, then re-used for another item) must hover on the next move
+                    // even though the pointer never left its rectangle.
                     if (!pointerIsTouch)
-                        VisualTreeHelper.IterateVisualTree(content, args, _mouseEnterPredicate, MouseEnterAction, _hitTestPredicate);
+                        VisualTreeHelper.IterateVisualTree(content, args, _hoverEnterPredicate, MouseEnterAction, _hitTestPredicate);
                     VisualTreeHelper.IterateVisualTree(content, args, _mouseMovePredicate, MouseMoveAction, null);
                     VisualTreeHelper.IterateVisualTree(content, args, _mouseLeavePredicate, MouseLeaveAction, _lastPositionPredicate);
+                    if (_hoverStale)
+                        LeaveControlsNotUnder(content, args);
                 }
                 LastMousePosition = mousePosition;
+                _hoverStale = false;
+            }
+            else if (_hoverStale && !pointerIsTouch && _capturedMouseControl == null && pressedMouseButtons.Count == 0)
+            {
+                _hoverStale = false;
+                RefreshHoverInPlace(content, mousePosition);
             }
 
             HandleMouseButton(GetButtonState(pressedMouseButtons, MouseButton.Left), ButtonState.Pressed, MouseButton.Left, mousePosition, content, (c, a) => c.OnMouseDown(a));

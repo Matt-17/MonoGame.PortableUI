@@ -642,7 +642,11 @@ namespace MonoGame.PortableUI.Controls
             {
                 var delta = new PointF(contentRect.Left - _arrangedContentRect.Left, contentRect.Top - _arrangedContentRect.Top);
                 if (delta.X != 0 || delta.Y != 0)
+                {
                     Content.OffsetArrangement(delta);
+                    // Rows slid under a resting pointer: let the screen re-evaluate hover.
+                    Screen?.MarkHoverStale();
+                }
             }
             else
             {

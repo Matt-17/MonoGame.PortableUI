@@ -377,7 +377,16 @@ namespace MonoGame.PortableUI.Controls
             // Keep the frame visible: items sit inside the themed border instead of covering it.
             // Keep rows inside the border and inside any frame the background brush draws itself.
             var brushInset = BackgroundBrush?.ContentInset ?? default;
-            _scrollViewer.UpdateLayout(BoundingRect - Margin - BorderThickness - brushInset);
+            var inner = BoundingRect - Margin - BorderThickness - brushInset;
+            // Round the row area inward: on a half-pixel bottom edge the outward-rounded clip would
+            // let opaque rows paint over the frame's last pixel row.
+            if (!BorderThickness.Equals(default(Thickness)) || !brushInset.Equals(default(Thickness)))
+            {
+                var left = MathF.Ceiling(inner.Left);
+                var top = MathF.Ceiling(inner.Top);
+                inner = new Rect(left, top, Math.Max(0, MathF.Floor(inner.Right) - left), Math.Max(0, MathF.Floor(inner.Bottom) - top));
+            }
+            _scrollViewer.UpdateLayout(inner);
         }
 
         public override IEnumerable<Control> GetDescendants()
