@@ -85,7 +85,6 @@ namespace MonoGame.PortableUI
 
         internal void RequestBringFocusIntoView() => _bringFocusIntoView = true;
         // Rebuilt every Draw; Update reads the previous frame's entries for pointer inverse mapping.
-        private readonly List<(Rect Rect, float Distortion)> _distortedIslands = new List<(Rect, float)>();
         private static readonly ScreenEngineOptions DefaultOptions = new ScreenEngineOptions();
         private static readonly RasterizerState ScissorRasterizer = new RasterizerState { ScissorTestEnable = true };
 
@@ -378,7 +377,6 @@ namespace MonoGame.PortableUI
             var engine = ScreenEngine;
             var theme = engine?.Options.Theme;
 
-            _distortedIslands.Clear();
             PrepareBackdrop(spriteBatch, engine);
 
             var postEffects = GetScreenPostEffects();
@@ -515,7 +513,7 @@ namespace MonoGame.PortableUI
         private static readonly Func<Control, ScreenEngine, bool> IsPostFxIsland = static (control, engine) =>
             engine.EffectiveRenderQuality != RenderQuality.Low
             && control is ThemeIsland { IsVisible: true, Theme.PostEffects: { Count: > 0 } effects }
-            && engine.PostProcess.CountEnabled(effects) > 0;
+            && LookEffects(effects) is { } look && engine.PostProcess.CountEnabled(look) > 0;
 
         /// <summary>True when something on this screen (glass) samples the backdrop.</summary>
         internal bool RequiresBackdropNow => ScreenRect.Width > 0 && ScreenRect.Height > 0 && TreeRequiresBackdrop();
@@ -873,7 +871,7 @@ namespace MonoGame.PortableUI
                 return false;
 
             var engine = ScreenEngine;
-            var effects = island.Theme?.PostEffects;
+            var effects = LookEffects(island.Theme?.PostEffects);
             if (engine == null || engine.EffectiveRenderQuality == RenderQuality.Low
                 || effects is not { Count: > 0 } || engine.PostProcess.CountEnabled(effects) == 0)
                 return false;
@@ -908,10 +906,6 @@ namespace MonoGame.PortableUI
 
             engine.PostProcess.Compose(spriteBatch, target, effects, islandRect, islandRect);
             engine.RecordBatchFlush();
-
-            var barrel = FindEnabledBarrel(effects);
-            if (barrel != null)
-                _distortedIslands.Add((islandRect, MathHelper.Clamp(barrel.Distortion, 0, 0.5f)));
             return true;
         }
 
@@ -1093,7 +1087,7 @@ namespace MonoGame.PortableUI
             var options = ScreenEngine?.Options;
             // Low quality drops the theme's look effects; display effects (an in-world monitor's
             // curvature, which input mapping follows) belong to the screen and stay.
-            var themeEffects = ScreenEngine?.EffectiveRenderQuality == RenderQuality.Low ? null : options?.Theme?.PostEffects;
+            var themeEffects = ScreenEngine?.EffectiveRenderQuality == RenderQuality.Low ? null : LookEffects(options?.Theme?.PostEffects);
             var displayEffects = options?.PostEffects;
             if (displayEffects is not { Count: > 0 })
                 return themeEffects;
@@ -1109,6 +1103,40 @@ namespace MonoGame.PortableUI
                 _combinedEffectsDisplay = displayEffects;
             }
             return _combinedEffects;
+        }
+
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<IReadOnlyList<PostEffect>, IReadOnlyList<PostEffect>> LookEffectsCache = new();
+
+        /// <summary>
+        ///     A theme's effects without screen curvature. A theme is the look of the UI; curvature
+        ///     belongs to the display it is shown on (<see cref="ScreenEngineOptions.PostEffects"/>,
+        ///     <see cref="UISurface.PostEffects"/>), so a <see cref="CrtBarrelPostEffect"/> in a theme
+        ///     is ignored. One place owns the curve, so input mapping can never disagree with it.
+        /// </summary>
+        internal static IReadOnlyList<PostEffect>? LookEffects(IReadOnlyList<PostEffect>? effects)
+        {
+            if (effects is not { Count: > 0 } || FindEnabledBarrel(effects) == null && !ContainsBarrel(effects))
+                return effects;
+            return LookEffectsCache.GetValue(effects, static list =>
+            {
+                var filtered = new List<PostEffect>(list.Count);
+                for (var i = 0; i < list.Count; i++)
+                {
+                    if (list[i] is not CrtBarrelPostEffect)
+                        filtered.Add(list[i]);
+                }
+                return filtered;
+            });
+        }
+
+        private static bool ContainsBarrel(IReadOnlyList<PostEffect> effects)
+        {
+            for (var i = 0; i < effects.Count; i++)
+            {
+                if (effects[i] is CrtBarrelPostEffect)
+                    return true;
+            }
+            return false;
         }
 
         internal static CrtBarrelPostEffect? FindEnabledBarrel(IReadOnlyList<PostEffect> effects)
@@ -1515,9 +1543,8 @@ namespace MonoGame.PortableUI
         }
 
         /// <summary>
-        ///     Maps a raw pointer position to UI space: first through the screen-level barrel (if
-        ///     the active theme distorts the whole screen), then through the innermost distorted
-        ///     ThemeIsland containing the point.
+        ///     Maps a raw pointer position to UI space: undoes window scaling, then the display's
+        ///     curvature (the only barrel there is — themes cannot curve the picture).
         /// </summary>
         private PointF TransformPointerPosition(PointF position)
         {
@@ -1536,31 +1563,6 @@ namespace MonoGame.PortableUI
             var screenDistortion = GetActiveBarrelDistortion();
             if (screenDistortion > 0 && ScreenRect.Width > 0 && ScreenRect.Height > 0)
                 position = PostProcessManager.InverseBarrel(position, ScreenRect, screenDistortion);
-
-            if (_distortedIslands.Count > 0)
-            {
-                var bestArea = float.MaxValue;
-                var bestIndex = -1;
-                for (var i = 0; i < _distortedIslands.Count; i++)
-                {
-                    var (rect, distortion) = _distortedIslands[i];
-                    if (distortion <= 0 || !rect.Contains(position))
-                        continue;
-
-                    var area = rect.Width * rect.Height;
-                    if (area < bestArea)
-                    {
-                        bestArea = area;
-                        bestIndex = i;
-                    }
-                }
-
-                if (bestIndex >= 0)
-                {
-                    var (rect, distortion) = _distortedIslands[bestIndex];
-                    position = PostProcessManager.InverseBarrel(position, rect, distortion);
-                }
-            }
 
             return position;
         }

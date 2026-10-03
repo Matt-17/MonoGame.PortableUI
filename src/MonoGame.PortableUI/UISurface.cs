@@ -217,10 +217,10 @@ namespace MonoGame.PortableUI
 
         private float BarrelDistortion()
         {
+            // Only display effects curve the picture (a theme's curvature is ignored), the same
+            // rule the screen's input mapping follows.
             var display = Engine.Options.PostEffects;
             var barrel = display.Count > 0 ? Screen.FindEnabledBarrel(display) : null;
-            if (barrel == null && Engine.Options.Theme?.PostEffects is { Count: > 0 } themeEffects)
-                barrel = Screen.FindEnabledBarrel(themeEffects);
             return barrel == null ? 0 : MathHelper.Clamp(barrel.Distortion, 0, 0.5f);
         }
 
