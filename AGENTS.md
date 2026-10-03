@@ -86,8 +86,12 @@ batch). Validity rests on the **visual invalidation contract**: anything read at
 changes, call `InvalidateLayout(false)` (or `RequestRedraw()`, which bubbles the same way) so cached
 ancestors go dirty - property setters, `HoverState`/`TouchState`, focus, `Opacity`/`Scale`/`Translation`,
 `ScrollViewer.Offset` already do. Draw-time animation (`RequestAnimationFrame[At]`) during a layer
-render marks it dirty/refreshes it; layers re-rendered three frames in a row are drawn live for 30
-frames. Global changes bump `ScreenEngine.LayerCacheGeneration`. Subtrees with backdrop (glass) brushes,
+render marks it dirty/refreshes it; layers re-rendered in three consecutive frames (for any reason,
+e.g. a list scrolling itself) are drawn live for 30 frames, doubling up to 240 while they keep changing.
+Safety net: a press/release, key or text input and `InvokeOnGameThread` re-render every layer once, so
+property changes in handlers show even where a setter does not invalidate - per-frame changes from
+game code still must call `RequestRedraw()`. Layer render targets must use `PreserveContents`: nested
+layers and clip passes switch targets mid-render. `ListBox.ItemCacheMode` caches rows. Global changes bump `ScreenEngine.LayerCacheGeneration`. Subtrees with backdrop (glass) brushes,
 post-FX islands or overscroll stretch, and transient scales, are drawn live. Unused caches are freed
 after 120 frames; budget three screens of pixels.
 

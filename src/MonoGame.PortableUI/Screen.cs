@@ -1247,7 +1247,7 @@ namespace MonoGame.PortableUI
                 touchState = touchCollection[0];
             }
             var touchPosition = hasTouch ? TransformPointerPosition((PointF)touchState.Position.ToPoint()) : LastTouchPosition;
-            TrackInputActivity(inputSource, mousePosition, pressedMouseButtons.Count, hasTouch);
+            TrackInputActivity(inputSource, mousePosition, pressedMouseButtons.Count, hasTouch, touchState.State);
 
             Control content;
 
@@ -1538,12 +1538,14 @@ namespace MonoGame.PortableUI
         }
 
         private PointF _activityMousePosition;
+        private int _activityPressedButtons;
+        private int _activityPressedKeys;
         private int _activityScrollWheel;
         private int _activityHorizontalScrollWheel;
         private GamePadState _activityGamePad;
 
         /// <summary>Any pointer, wheel, key or gamepad activity asks the engine to draw (OnDemand).</summary>
-        private void TrackInputActivity(IInputSource inputSource, PointF mousePosition, int pressedMouseButtonCount, bool hasTouch)
+        private void TrackInputActivity(IInputSource inputSource, PointF mousePosition, int pressedMouseButtonCount, bool hasTouch, TouchLocationState touchState)
         {
             var scrollWheel = inputSource.ScrollWheelValue;
             var horizontalScrollWheel = inputSource.HorizontalScrollWheelValue;
@@ -1554,6 +1556,14 @@ namespace MonoGame.PortableUI
                 || horizontalScrollWheel != _activityHorizontalScrollWheel
                 || inputSource.KeyboardState.GetPressedKeyCount() > 0
                 || gamePad != _activityGamePad;
+            // Presses and releases (not moves) may run handlers that change properties.
+            var pressedKeys = inputSource.KeyboardState.GetPressedKeyCount();
+            var touchEdge = hasTouch && touchState is TouchLocationState.Pressed or TouchLocationState.Released;
+            if (touchEdge || pressedMouseButtonCount != _activityPressedButtons || pressedKeys != _activityPressedKeys
+                || gamePad.Buttons != _activityGamePad.Buttons)
+                ScreenEngine?.NoteDiscreteInput();
+            _activityPressedButtons = pressedMouseButtonCount;
+            _activityPressedKeys = pressedKeys;
             _activityMousePosition = mousePosition;
             _activityScrollWheel = scrollWheel;
             _activityHorizontalScrollWheel = horizontalScrollWheel;
