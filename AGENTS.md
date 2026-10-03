@@ -124,7 +124,8 @@ backend), `SafeAreaInsets` (+ `SafeAreaPanel`), `OnScreenKeyboard`, `Accessibili
 device-tested. There is no iOS head. Platform callbacks must go through `InvokeOnGameThread`.
 Desktop window text input reaches exactly one engine per `Game`: the `UISurface` with
 `HasKeyboardFocus` (set directly or via `SurfaceFocusManager`), otherwise the regular engine(s);
-surface engines never type on their own. `SurfaceFocusManager.RouteTextInput` is only for platforms
+surface engines never type on their own. A display can be a text-mode screen (`TextGrid`): the
+pointer is snapped to character cells after the display curvature is undone (`Screen.TransformPointerPosition`). `SurfaceFocusManager.RouteTextInput` is only for platforms
 without window text input.
 
 ## Implementing a control

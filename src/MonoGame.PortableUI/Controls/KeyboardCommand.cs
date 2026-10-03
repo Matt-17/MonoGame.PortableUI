@@ -21,7 +21,9 @@ namespace MonoGame.PortableUI.Controls
         /// <summary>Context-menu key / Shift+F10 / gamepad Y: open the focused control's ContextMenu.</summary>
         ContextMenu,
         Undo,
-        Redo
+        Redo,
+        /// <summary>Insert key: toggles overwrite mode in text boxes.</summary>
+        Insert
     }
 
     [System.Flags]
