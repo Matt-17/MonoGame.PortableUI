@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.3.0-alpha.5
+
 - **Vertical scanlines:** `ScanlinePostEffect.Orientation = ScanlineOrientation.Vertical` draws the lines top to bottom, for displays whose tube is mounted on its side (3:4 portrait arcade monitors). Works in the PostFx shader and the shader-free overlay path; default stays horizontal.
 
 ## 0.3.0-alpha.4
