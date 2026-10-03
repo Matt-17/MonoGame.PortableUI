@@ -6,7 +6,6 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
-using MonoGame.PortableUI.FontStashSharp;
 using MonoGame.PortableUI.Text;
 
 namespace MonoGame.PortableUI.Tests

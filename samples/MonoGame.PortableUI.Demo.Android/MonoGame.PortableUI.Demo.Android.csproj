@@ -54,7 +54,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\MonoGame.PortableUI\MonoGame.PortableUI.csproj" />
     <ProjectReference Include="..\..\src\MonoGame.PortableUI.Themes\MonoGame.PortableUI.Themes.csproj" />
-    <ProjectReference Include="..\..\src\MonoGame.PortableUI.FontStashSharp\MonoGame.PortableUI.FontStashSharp.csproj" />
   </ItemGroup>
   <ItemGroup>
     <!-- Shared FontStashSharp demo font: Selawik (SIL OFL), read via TitleContainer from the APK assets. -->

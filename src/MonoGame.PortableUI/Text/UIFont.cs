@@ -8,8 +8,8 @@ namespace MonoGame.PortableUI.Text
     /// <summary>
     ///     A font backend that measures and draws at any pixel size. Text controls use it instead of
     ///     their <see cref="SpriteFont"/> when one is set (<see cref="Controls.TextBlock.DynamicFont"/>
-    ///     or <see cref="FontManager.DefaultDynamicFont"/>). The FontStashSharp backend lives in the
-    ///     optional MonoGame.PortableUI.FontStashSharp package; <see cref="SpriteFontUIFont"/> adapts a
+    ///     or <see cref="FontManager.DefaultDynamicFont"/>). The FontStashSharp backend
+    ///     (<see cref="FontStashUIFont"/>) ships in the core; <see cref="SpriteFontUIFont"/> adapts a
     ///     baked SpriteFont to the same contract.
     /// </summary>
     public abstract class UIFont
