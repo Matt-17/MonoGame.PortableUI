@@ -1,6 +1,7 @@
 using System;
 using Microsoft.Xna.Framework;
-using MonoGame.PortableUI.FontStashSharp;
+
+using MonoGame.PortableUI.Text;
 
 namespace MonoGame.PortableUI.Demo
 {
