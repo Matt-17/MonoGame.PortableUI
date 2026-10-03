@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Fix (#63):** window text input reaches exactly one engine per game — the `UISurface` with `HasKeyboardFocus` (now settable; set directly or via `SurfaceFocusManager`), otherwise the main UI. Previously every surface engine typed every character into its own focused field, and `SurfaceFocusManager.RouteTextInput` typed it a second time (now a no-op on desktop). A disposed surface hands the keyboard back.
 - **Packages:** the theme catalog is published as **`CodeIX.PortableUI.Themes`** (namespace unchanged: `MonoGame.PortableUI.Themes`) — the `MonoGame.` prefix is reserved on NuGet, so the `MonoGame.PortableUI.Themes` and `MonoGame.PortableUI.FontStashSharp` IDs of 0.3.0-alpha.2 were never published. `FontStashUIFont` moved into the core (namespace `MonoGame.PortableUI.Text`; the core now depends on the pure-managed FontStashSharp.MonoGame) until MonoGame's own font system can back `UIFont`. The release workflow now fails on a missing or unpublished package instead of reporting success.
 
 - **Render on demand:** `ScreenEngineOptions.RenderMode = RenderMode.OnDemand` draws only when the UI changed (input, property changes, animations, transitions, caret blink, spinners) and idles the game loop otherwise. On a Pixel 5 the idle Android demo went from 60 fps and ~50 % of a core to 0 fps and ~8 %. Custom time-driven visuals call `ScreenEngine.RequestAnimationFrame()` while drawing; `Control.RequestRedraw()`/`ScreenEngine.RequestRedraw()` cover other changes. MonoGame upgraded to 3.8.5.1.

@@ -76,5 +76,69 @@ namespace MonoGame.PortableUI.Tests
             Assert.IsTrue(surface.IsPointOnDisplay(new PointF(200, 150)), "the centre is picture");
             Assert.IsFalse(surface.IsPointOnDisplay(new PointF(-5, 150)), "off the surface");
         }
+
+        private sealed class FieldScreen : Screen
+        {
+            public FieldScreen()
+            {
+                Field = new MonoGame.PortableUI.Controls.TextBox();
+                Content = Field;
+            }
+
+            public MonoGame.PortableUI.Controls.TextBox Field { get; }
+        }
+
+        /// <summary>The game window raises TextInput once; every engine is subscribed to it.</summary>
+        private static void TypeIntoWindow(char character, params ScreenEngine[] engines)
+        {
+            foreach (var engine in engines)
+                engine.OnWindowTextInput(character);
+        }
+
+        [TestMethod]
+        public void Window_text_reaches_exactly_one_engine_the_focused_surface_or_else_the_main_ui()
+        {
+            using var game = new Game();
+            var main = ScreenEngine.Initialize(game, new ScreenEngineOptions { AddComponentToGame = false });
+            var mainScreen = new FieldScreen();
+            main.NavigateToScreen(mainScreen);
+            using var a = new UISurface(game, new FieldScreen(), 320, 200);
+            using var b = new UISurface(game, new FieldScreen(), 320, 200);
+            var fieldA = ((FieldScreen)a.Screen).Field;
+            var fieldB = ((FieldScreen)b.Screen).Field;
+            // Every field keeps control focus in its own engine, the realistic worst case.
+            mainScreen.Field.Focus();
+            fieldA.Focus();
+            fieldB.Focus();
+            var engines = new[] { main, a.Engine, b.Engine };
+
+            TypeIntoWindow('m', engines);
+            Assert.AreEqual("m", mainScreen.Field.Text, "no surface focused: the main UI types");
+            Assert.AreEqual("", fieldA.Text);
+            Assert.AreEqual("", fieldB.Text);
+
+            var focus = new SurfaceFocusManager();
+            focus.Activate(b);
+            TypeIntoWindow('x', engines);
+            focus.RouteTextInput('x'); // the old advertised route must not type a second time
+            Assert.AreEqual("x", fieldB.Text, "the active surface types exactly once");
+            Assert.AreEqual("", fieldA.Text, "an inactive surface stays unchanged");
+            Assert.AreEqual("m", mainScreen.Field.Text, "the main UI does not type while a surface has the keyboard");
+
+            focus.Activate(a);
+            Assert.IsFalse(b.HasKeyboardFocus);
+            TypeIntoWindow('y', engines);
+            Assert.AreEqual("y", fieldA.Text);
+            Assert.AreEqual("x", fieldB.Text);
+
+            focus.Activate(null);
+            TypeIntoWindow('z', engines);
+            Assert.AreEqual("mz", mainScreen.Field.Text, "released: back to the main UI");
+
+            a.HasKeyboardFocus = true;
+            a.Dispose();
+            TypeIntoWindow('w', main, b.Engine);
+            Assert.AreEqual("mzw", mainScreen.Field.Text, "a disposed surface gives the keyboard back");
+        }
     }
 }

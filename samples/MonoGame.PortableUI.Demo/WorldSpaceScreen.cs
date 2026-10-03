@@ -12,8 +12,8 @@ namespace MonoGame.PortableUI.Demo
     /// <summary>
     ///     World-space demo: a live, interactive UISurface rendered on a perspective 3D quad.
     ///     The mouse is raycast onto the quad (WorldSurfaceMapper) and fed into the surface's
-    ///     VirtualInputSource, so the DOS screen on the monitor is fully clickable; keyboard
-    ///     text is routed via SurfaceFocusManager.
+    ///     VirtualInputSource, so the DOS screen on the monitor is fully clickable; the window's
+    ///     text input reaches it while it has keyboard focus (UISurface.HasKeyboardFocus).
     /// </summary>
     public sealed class WorldSpaceScreen : Screen
     {
@@ -55,7 +55,13 @@ namespace MonoGame.PortableUI.Demo
                 ShowSoftwareCursor = false
             };
             _capture = new SurfacePointerCapture(_computerSurface, _virtualInput);
-            _capture.Released += (_, _) => ReturnSystemPointer();
+            // The monitor owns the keyboard while it owns the pointer (typing into the DOS prompt).
+            _capture.Captured += (_, _) => _computerSurface.HasKeyboardFocus = true;
+            _capture.Released += (_, _) =>
+            {
+                _computerSurface.HasKeyboardFocus = false;
+                ReturnSystemPointer();
+            };
             _status = new TextBlock
             {
                 Text = CaptureHint,
@@ -71,6 +77,7 @@ namespace MonoGame.PortableUI.Demo
         protected override void OnNavigatedFrom()
         {
             _capture.Release();
+            _computerSurface.HasKeyboardFocus = false;
             // Leaving the room: the system pointer must not stay hidden.
             _game.IsMouseVisible = true;
             base.OnNavigatedFrom();
@@ -171,6 +178,11 @@ namespace MonoGame.PortableUI.Demo
             {
                 _virtualInput.SetPointer(new PointF(-100, -100), false, false, false);
             }
+            // Free mode: a click on the picture gives the monitor the keyboard, a click elsewhere takes it back.
+            var clicked = mouse.LeftButton == ButtonState.Pressed && !_wasLeftDown;
+            if (clicked)
+                _computerSurface.HasKeyboardFocus = onDisplay;
+            _wasLeftDown = mouse.LeftButton == ButtonState.Pressed;
             _computerSurface.ShowSoftwareCursor = onDisplay;
             _game.IsMouseVisible = !onDisplay;
         }

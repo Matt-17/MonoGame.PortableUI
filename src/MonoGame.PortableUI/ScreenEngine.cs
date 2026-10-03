@@ -368,7 +368,39 @@ namespace MonoGame.PortableUI
 
         public static ScreenEngine CreateSurfaceEngine(Game game, ScreenEngineOptions options)
         {
-            return new ScreenEngine(game, options ?? new ScreenEngineOptions());
+            return new ScreenEngine(game, options ?? new ScreenEngineOptions()) { IsSurfaceEngine = true };
+        }
+
+        /// <summary>True for engines behind a <see cref="UISurface"/> (in-world screens).</summary>
+        internal bool IsSurfaceEngine { get; private init; }
+
+        // Per game: the engine that receives the window's text input. Null = the regular
+        // (non-surface) engines; a surface with keyboard focus takes it over.
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Game, System.Runtime.CompilerServices.StrongBox<ScreenEngine?>> TextOwners = new();
+
+        /// <summary>Makes <paramref name="engine"/> the only receiver of <paramref name="game"/>'s window text input (null = back to the main engine).</summary>
+        internal static void SetTextInputOwner(Game game, ScreenEngine? engine)
+        {
+            TextOwners.GetValue(game, _ => new System.Runtime.CompilerServices.StrongBox<ScreenEngine?>()).Value = engine;
+        }
+
+        internal static ScreenEngine? GetTextInputOwner(Game game)
+        {
+            return TextOwners.TryGetValue(game, out var box) ? box.Value : null;
+        }
+
+        /// <summary>
+        ///     Window text input goes to exactly one engine per game: the surface that has keyboard
+        ///     focus, otherwise the regular engine(s). Without this every engine (each UISurface owns
+        ///     one) typed every character into its own focused control.
+        /// </summary>
+        internal bool ReceivesWindowTextInput
+        {
+            get
+            {
+                var owner = GetTextInputOwner(Game);
+                return owner != null && !owner._disposed ? ReferenceEquals(owner, this) : !IsSurfaceEngine;
+            }
         }
 
         public void RegisterKeyboard(IKeyboard keyboard, string? inputScope = "default")
@@ -790,12 +822,17 @@ namespace MonoGame.PortableUI
         }
 
 #if !ANDROID
-        private void GameWindowTextInput(object? sender, TextInputEventArgs args)
-        {
-            NoteInputActivity();
-            ActiveScreen?.HandleTextInput(args.Character);
-        }
+        private void GameWindowTextInput(object? sender, TextInputEventArgs args) => OnWindowTextInput(args.Character);
 #endif
+
+        /// <summary>One character from the game window's TextInput (every engine is subscribed; only the owner types it).</summary>
+        internal void OnWindowTextInput(char character)
+        {
+            if (!ReceivesWindowTextInput)
+                return;
+            NoteInputActivity();
+            ActiveScreen?.HandleTextInput(character);
+        }
 
         /// <summary>
         /// Routes a typed character into the active screen's focused control. Desktop backends call this

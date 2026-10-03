@@ -122,6 +122,10 @@ backend), `SafeAreaInsets` (+ `SafeAreaPanel`), `OnScreenKeyboard`, `Accessibili
 `ShowModal`. Platform hooks for Android live in the core's `#if ANDROID` files (`AndroidWindowInsets`,
 `AndroidOnScreenKeyboard`, `AndroidTextScaling`, `AndroidAccessibilityBridge`); they are compiled but not
 device-tested. There is no iOS head. Platform callbacks must go through `InvokeOnGameThread`.
+Desktop window text input reaches exactly one engine per `Game`: the `UISurface` with
+`HasKeyboardFocus` (set directly or via `SurfaceFocusManager`), otherwise the regular engine(s);
+surface engines never type on their own. `SurfaceFocusManager.RouteTextInput` is only for platforms
+without window text input.
 
 ## Implementing a control
 
