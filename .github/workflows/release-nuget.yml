@@ -55,7 +55,7 @@ jobs:
 
       - name: Validate package
         shell: pwsh
-        run: ./eng/validate-package.ps1 -PackageDirectory artifacts/packages -ExpectedVersion $env:PACKAGE_VERSION
+        run: ./eng/validate-package.ps1 -PackageDirectory artifacts/packages -ExpectedVersion $env:PACKAGE_VERSION -ExpectedPackageIds MonoGame.PortableUI,MonoGame.PortableUI.Themes,MonoGame.PortableUI.FontStashSharp
 
       - name: NuGet login
         id: login
@@ -71,6 +71,40 @@ jobs:
               throw "No .nupkg files found in artifacts/packages."
           }
 
+          # No --skip-duplicate: NuGet answers "already exists" (409) also for a version that is
+          # stuck in or failed validation, which made 0.3.0-alpha.2 look published while the
+          # add-ons never went public. A conflict is only fine if that exact version is public.
+          $failed = @()
           foreach ($package in $packages) {
-              dotnet nuget push $package.FullName --api-key "${{ steps.login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+              $output = dotnet nuget push $package.FullName --api-key "${{ steps.login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json 2>&1 | Out-String
+              Write-Host $output
+              if ($LASTEXITCODE -eq 0) { continue }
+              if ($output -match 'already exists') {
+                  $id = $package.BaseName.Substring(0, $package.BaseName.Length - $env:PACKAGE_VERSION.Length - 1).ToLowerInvariant()
+                  $index = "https://api.nuget.org/v3-flatcontainer/$id/index.json"
+                  try { $public = (Invoke-RestMethod $index).versions -contains $env:PACKAGE_VERSION.ToLowerInvariant() } catch { $public = $false }
+                  if ($public) { Write-Host "$($package.Name) is already public."; continue }
+                  $failed += "$($package.Name): NuGet says it exists but it is not public (check its validation status under nuget.org > Manage packages)."
+              }
+              else {
+                  $failed += "$($package.Name): push failed (exit $LASTEXITCODE)."
+              }
           }
+          if ($failed.Count -gt 0) { throw ($failed -join [Environment]::NewLine) }
+
+      - name: Verify public packages
+        shell: pwsh
+        run: |
+          # Pushed is not published: wait until every package of the release can be restored.
+          $ids = 'monogame.portableui', 'monogame.portableui.themes', 'monogame.portableui.fontstashsharp'
+          $version = $env:PACKAGE_VERSION.ToLowerInvariant()
+          $deadline = (Get-Date).AddMinutes(30)
+          do {
+              $missing = @($ids | Where-Object {
+                  try { -not ((Invoke-RestMethod "https://api.nuget.org/v3-flatcontainer/$_/index.json").versions -contains $version) } catch { $true }
+              })
+              if ($missing.Count -eq 0) { Write-Host "All packages are public."; break }
+              Write-Host "Waiting for: $($missing -join ', ')"
+              Start-Sleep -Seconds 60
+          } while ((Get-Date) -lt $deadline)
+          if ($missing.Count -gt 0) { throw "Not public after 30 minutes: $($missing -join ', ') $version" }

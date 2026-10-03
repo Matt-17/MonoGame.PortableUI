@@ -2,7 +2,11 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$PackageDirectory,
 
-    [string]$ExpectedVersion
+    [string]$ExpectedVersion,
+
+    # Every package the release must contain; a missing one fails the build instead of shipping
+    # a partial release.
+    [string[]]$ExpectedPackageIds = @()
 )
 
 $ErrorActionPreference = 'Stop'
@@ -16,6 +20,13 @@ if ($packages.Count -eq 0) {
 
 if ($symbols.Count -eq 0) {
     throw "No .snupkg files found in $PackageDirectory."
+}
+
+foreach ($id in $ExpectedPackageIds) {
+    $name = if ([string]::IsNullOrWhiteSpace($ExpectedVersion)) { "$id.*.nupkg" } else { "$id.$ExpectedVersion.nupkg" }
+    if (-not (Get-ChildItem -LiteralPath $PackageDirectory -Filter $name)) {
+        throw "Expected package $name was not built."
+    }
 }
 
 Add-Type -AssemblyName System.IO.Compression.FileSystem
