@@ -41,6 +41,23 @@ namespace MonoGame.PortableUI
         /// <summary>Drops every cached layer's content (re-rendered on next use).</summary>
         internal void InvalidateLayerCaches() => LayerCacheGeneration++;
 
+        private bool _layerCachesStaleAfterUpdate;
+
+        /// <summary>
+        ///     A press, release, key or text input, or a game-thread action happened: app code may have
+        ///     changed properties whose setters do not invalidate, so every cached layer is re-rendered
+        ///     once after this update. Pointer moves (scrolling) do not count.
+        /// </summary>
+        internal void NoteDiscreteInput() => _layerCachesStaleAfterUpdate = true;
+
+        private void ApplyDiscreteInputToLayerCaches()
+        {
+            if (!_layerCachesStaleAfterUpdate)
+                return;
+            _layerCachesStaleAfterUpdate = false;
+            InvalidateLayerCaches();
+        }
+
         /// <summary>The cache of <paramref name="control"/>, registered for aging and disposal.</summary>
         internal LayerCache AcquireLayerCache(Control control)
         {

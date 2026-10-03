@@ -363,7 +363,19 @@ namespace MonoGame.PortableUI.Controls
         }
 
         /// <summary>Draws the pressed look regardless of input (a list's touch hold highlight).</summary>
-        internal bool ForcePressedVisual { get; set; }
+        internal bool ForcePressedVisual
+        {
+            get => _forcePressedVisual;
+            set
+            {
+                if (_forcePressedVisual == value)
+                    return;
+                _forcePressedVisual = value;
+                InvalidateLayout(false);
+            }
+        }
+
+        private bool _forcePressedVisual;
 
         private bool IsPressedVisualState()
         {

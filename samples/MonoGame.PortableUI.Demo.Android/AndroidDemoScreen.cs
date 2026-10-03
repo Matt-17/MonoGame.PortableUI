@@ -207,7 +207,9 @@ namespace MonoGame.PortableUI.Demo.Android
             var list = new ListBox
             {
                 Height = 260,
-                Margin = new Thickness(16, 0, 16, 16)
+                Margin = new Thickness(16, 0, 16, 16),
+                // Rows stay in textures while the list scrolls; only rows coming into view re-render.
+                ItemCacheMode = CacheMode.Bitmap
             };
             foreach (var item in new[]
             {
