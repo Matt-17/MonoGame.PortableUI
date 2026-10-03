@@ -24,8 +24,12 @@ namespace MonoGame.PortableUI.Demo.Android
             _graphics = new GraphicsDeviceManager(this)
             {
                 IsFullScreen = false, // system bars stay visible; the window draws under them (edge to edge)
-                SupportedOrientations = DisplayOrientation.Portrait
+                SupportedOrientations = DisplayOrientation.Portrait,
+                SynchronizeWithVerticalRetrace = true
             };
+            // Frames follow the display's vsync (90 Hz on a Pixel 5) instead of a fixed 60 Hz step,
+            // which on a 90 Hz panel shows every third refresh twice (judder while scrolling).
+            IsFixedTimeStep = false;
 
             // Pin the back buffer to the real display resolution. Left at its default, MonoGame's
             // Android back buffer comes back smaller than the GL surface it actually renders into
