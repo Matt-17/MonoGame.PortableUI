@@ -1008,9 +1008,33 @@ namespace MonoGame.PortableUI
                 return false;
 
             var device = spriteBatch.GraphicsDevice;
-            var width = (int)Math.Ceiling(Math.Max(PixelScreenRect.Right, context.RenderRect.Right));
-            var height = (int)Math.Ceiling(Math.Max(PixelScreenRect.Bottom, context.RenderRect.Bottom));
-            var layer = engine.GetClipLayers(device).Get(_clipDepth, width, height);
+            ClipLayerPool.Layer layer;
+            RenderContext drawContext;
+            Rect maskRect;
+            int left = 0, top = 0, width, height;
+            if (clip.Mode == ClipMode.Inside)
+            {
+                // Nothing outside the control survives an inside clip: a layer the size of the control,
+                // drawn into with a whole-pixel offset, gives the same pixels as a full-frame layer at a
+                // fraction of the fill (three full-screen passes per frame for a rounded list before).
+                var rect = context.RenderRect;
+                left = (int)Math.Floor(rect.Left);
+                top = (int)Math.Floor(rect.Top);
+                width = Math.Max(1, (int)Math.Ceiling(rect.Right) - left);
+                height = Math.Max(1, (int)Math.Ceiling(rect.Bottom) - top);
+                layer = engine.GetClipLayers(device).GetAtLeast(_clipDepth, width, height);
+                drawContext = parentContext.Translated(-left, -top, width, height);
+                maskRect = new Rect(rect.Left - left, rect.Top - top, rect.Width, rect.Height);
+            }
+            else
+            {
+                // An outside clip keeps everything around the shape: full-frame layer at screen coordinates.
+                width = (int)Math.Ceiling(Math.Max(PixelScreenRect.Right, context.RenderRect.Right));
+                height = (int)Math.Ceiling(Math.Max(PixelScreenRect.Bottom, context.RenderRect.Bottom));
+                layer = engine.GetClipLayers(device).Get(_clipDepth, width, height);
+                drawContext = parentContext;
+                maskRect = context.RenderRect;
+            }
             var previousTargets = RenderTargetHelper.SnapshotRenderTargets(device, ref layer.PreviousTargets);
             var previousScissor = device.ScissorRectangle;
 
@@ -1021,7 +1045,7 @@ namespace MonoGame.PortableUI
             _clipDepth++;
             try
             {
-                DrawControlBatched(spriteBatch, control, parentContext);
+                DrawControlBatched(spriteBatch, control, drawContext);
             }
             finally
             {
@@ -1029,17 +1053,17 @@ namespace MonoGame.PortableUI
                 _clipInProgress = previousClip;
             }
 
-            var fullFrame = new Rectangle(0, 0, width, height);
+            var used = new Rectangle(0, 0, width, height);
             device.SetRenderTarget(layer.Mask);
             device.Clear(Color.Transparent);
-            device.ScissorRectangle = fullFrame;
+            device.ScissorRectangle = used;
             spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.LinearClamp);
-            clip.DrawMask(spriteBatch, context.RenderRect, Math.Min(context.Scale.X, context.Scale.Y));
+            clip.DrawMask(spriteBatch, maskRect, Math.Min(context.Scale.X, context.Scale.Y));
             spriteBatch.End();
 
             device.SetRenderTarget(layer.Content);
             spriteBatch.Begin(SpriteSortMode.Deferred, clip.Mode == ClipMode.Inside ? ClipInsideBlend : ClipOutsideBlend, SamplerState.PointClamp);
-            spriteBatch.Draw(layer.Mask!, Vector2.Zero, Color.White);
+            spriteBatch.Draw(layer.Mask!, Vector2.Zero, used, Color.White);
             spriteBatch.End();
 
             if (previousTargets.Length == 0)
@@ -1049,7 +1073,7 @@ namespace MonoGame.PortableUI
 
             device.ScissorRectangle = ToScissorRectangle(parentContext.ScissorRect);
             spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, rasterizerState: ScissorRasterizer);
-            spriteBatch.Draw(layer.Content!, Vector2.Zero, Color.White);
+            spriteBatch.Draw(layer.Content!, new Vector2(left, top), used, Color.White);
             spriteBatch.End();
             device.ScissorRectangle = previousScissor;
             engine.RecordBatchFlush();
@@ -1172,6 +1196,20 @@ namespace MonoGame.PortableUI
 
             /// <summary>A layout rect in this context's render space.</summary>
             public Rect ToRender(Rect layoutRect) => TransformRect(layoutRect, _transform);
+
+            /// <summary>
+            ///     The same context drawn into an offscreen layer whose origin sits at (-offsetX, -offsetY)
+            ///     on screen: transform, render rect and clips shift with it, the clips are limited to the
+            ///     layer, opacity stays.
+            /// </summary>
+            public RenderContext Translated(float offsetX, float offsetY, int width, int height)
+            {
+                var layer = new Rect(0, 0, width, height);
+                return new RenderContext(_transform * Matrix.CreateTranslation(offsetX, offsetY, 0), Scale, Opacity,
+                    Shift(ScissorRect, offsetX, offsetY) ^ layer, Shift(ChildClipRect, offsetX, offsetY) ^ layer, Shift(RenderRect, offsetX, offsetY));
+            }
+
+            private static Rect Shift(Rect rect, float x, float y) => new Rect(rect.Left + x, rect.Top + y, rect.Width, rect.Height);
 
             /// <summary>
             ///     Root context of a cached layer: the same transform shifted by the texture origin, full
