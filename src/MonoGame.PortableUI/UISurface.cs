@@ -87,7 +87,23 @@ namespace MonoGame.PortableUI
         private int PixelHeight => Math.Max(1, (int)Math.Ceiling(_height * _layoutScale));
 
         public bool IsInteractive { get; set; } = true;
-        public bool HasKeyboardFocus { get; internal set; }
+        /// <summary>
+        ///     True while this surface receives the keyboard: the game window's text input then goes
+        ///     to this surface only (not to the main UI, not to other surfaces). Set it directly for a
+        ///     single in-world screen, or let a <see cref="SurfaceFocusManager"/> switch between several.
+        /// </summary>
+        public bool HasKeyboardFocus
+        {
+            // Derived from the single owner, so focusing one surface unfocuses any other.
+            get => ReferenceEquals(ScreenEngine.GetTextInputOwner(_game), Engine);
+            set
+            {
+                if (value)
+                    ScreenEngine.SetTextInputOwner(_game, Engine);
+                else if (HasKeyboardFocus)
+                    ScreenEngine.SetTextInputOwner(_game, null);
+            }
+        }
         public float ScaleFactor { get; set; } = 1;
         /// <summary>
         ///     Draws the theme's pointer (<see cref="PortableTheme.Cursor"/>) inside the surface, bent by
@@ -151,6 +167,7 @@ namespace MonoGame.PortableUI
 
         public void Dispose()
         {
+            HasKeyboardFocus = false;
             _target?.Dispose();
             _spriteBatch?.Dispose();
             PostProcessManager?.Dispose();
