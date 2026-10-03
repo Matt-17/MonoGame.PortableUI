@@ -180,6 +180,11 @@ display-order index list (`DisplayedItems`), never the caller's `Items`.
   engine)` + a 250 ms idle interval: ~0.5 %. In that mode MonoGame's `TouchPanel`/`Keyboard` are unsafe
   (unsynchronized, touch listener set from the wrong thread) - PortableUI reads the bridge instead - and
   any view access from game code must go through `AndroidUiThread.Run`/`view.Post`.
+- **Status bar after resume:** MonoGame's Android presentation parameters report `IsFullScreen = true`
+  even for windowed games and `AndroidGameActivity.OnResume` turns that into `FLAG_FULLSCREEN`, which it
+  never clears. `AndroidSurfaceSize.Follow` writes the window's real state into the parameters on pause
+  (clearing the flag afterwards would make Android re-show bars over an app's immersive mode). Apps
+  with their own immersive mode re-apply it in `OnResume`, posted (see the demo's `MainActivity`).
 - **Frame pacing:** a fixed time step (MonoGame's default, 60 Hz) on a 90/120 Hz panel shows some
   refreshes twice - visible judder while scrolling. App-style hosts set `IsFixedTimeStep = false` with
   `SynchronizeWithVerticalRetrace = true` so frames follow vsync (the Android demo: 90 fps on a Pixel 5,

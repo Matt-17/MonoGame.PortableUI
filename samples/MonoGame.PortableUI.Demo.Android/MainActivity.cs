@@ -66,6 +66,7 @@ namespace MonoGame.PortableUI.Demo.Android
         /// <summary>Hides or shows the status and navigation bars at runtime (called from the game thread).</summary>
         private void SetFullscreen(bool fullscreen)
         {
+            _fullscreen = fullscreen;
             RunOnUiThread(() =>
             {
                 if (!OperatingSystem.IsAndroidVersionAtLeast(30) || Window?.InsetsController is not { } controller)
@@ -91,10 +92,16 @@ namespace MonoGame.PortableUI.Demo.Android
 #pragma warning restore CA1422
         }
 
+        private bool _fullscreen;
+
         protected override void OnResume()
         {
             base.OnResume();
             AndroidTextScaling.Update(this);
+            // Android shows the bars again when the window comes back: re-apply immersive mode, posted
+            // so it runs after AndroidSurfaceSize's own resume fix of the window flags.
+            if (_fullscreen)
+                Window?.DecorView?.Post(() => SetFullscreen(true));
         }
 
         public override void OnConfigurationChanged(Configuration newConfig)
