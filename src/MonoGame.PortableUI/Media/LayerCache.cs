@@ -31,9 +31,18 @@ namespace MonoGame.PortableUI.Media
         /// <summary>A visual inside asked for a frame at this time (caret blink): re-render then.</summary>
         public TimeSpan RefreshAt = TimeSpan.MaxValue;
 
-        /// <summary>Consecutive re-renders forced by animation requests; caching animated content only
-        /// costs, so after a few the control is drawn live for a while.</summary>
-        public int AnimatedRebuilds;
+        /// <summary>Re-renders in consecutive frames (animation, scrolling inside, anything that changes
+        /// every frame). Re-rendering every frame costs more than drawing live, so after a few the
+        /// control is drawn live for <see cref="LiveSpan"/> frames.</summary>
+        public int ConsecutiveRebuilds;
+
+        public long LastRebuildFrame = long.MinValue;
+
+        /// <summary>Length of the next live period; doubles while the content keeps changing.</summary>
+        public int LiveSpan;
+
+        /// <summary>Frames composited from a valid texture in a row; a stable stretch resets <see cref="LiveSpan"/>.</summary>
+        public int ValidStreak;
 
         public long LiveUntilFrame;
         public long LastUsedFrame;

@@ -471,6 +471,7 @@ namespace MonoGame.PortableUI.Controls
         private void BindItemButton(Control row, int index)
         {
             var button = (ItemButton)row;
+            button.CacheMode = _itemCacheMode;
             button.Tag = index;
             button.ForcePressedVisual = index == _touchHighlightIndex;
             button.MinHeight = ItemHeight;
@@ -569,10 +570,31 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        /// <summary>
+        ///     <see cref="Controls.CacheMode"/> of the rows: <see cref="CacheMode.Bitmap"/> keeps each realized
+        ///     row in a texture, so scrolling the list re-renders only rows that come into view (recycled
+        ///     rows change content) and moves the others.
+        /// </summary>
+        public CacheMode ItemCacheMode
+        {
+            get => _itemCacheMode;
+            set
+            {
+                if (_itemCacheMode == value)
+                    return;
+                _itemCacheMode = value;
+                foreach (var row in _itemsPanel.Realized)
+                    row.CacheMode = value;
+            }
+        }
+
+        private CacheMode _itemCacheMode;
+
         private Control CreateItemButton()
         {
             var button = new ItemButton
             {
+                CacheMode = _itemCacheMode,
                 MinHeight = ItemHeight,
                 TextAlignment = TextAlignment.Left,
                 Padding = ItemPadding,

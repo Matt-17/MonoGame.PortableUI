@@ -11,11 +11,13 @@ namespace MonoGame.PortableUI
     // CacheMode.Bitmap: draw a subtree into a texture once, then composite that texture.
     public abstract partial class Screen
     {
-        /// <summary>Re-renders forced by animation requests in a row before a layer is drawn live.</summary>
-        private const int MaxAnimatedRebuilds = 3;
+        /// <summary>Re-renders in consecutive frames before a layer is drawn live.</summary>
+        private const int MaxConsecutiveRebuilds = 3;
 
-        /// <summary>How long (frames) an animated layer is drawn live before caching is tried again.</summary>
-        private const int AnimatedLiveFrames = 30;
+        /// <summary>First live period (frames) of a layer that keeps changing; doubles up to the maximum
+        /// while it keeps changing, resets after a stable stretch.</summary>
+        private const int MinLiveFrames = 30;
+        private const int MaxLiveFrames = 240;
 
         private const int MaxLayerSize = 4096;
 
@@ -79,6 +81,8 @@ namespace MonoGame.PortableUI
             int left, top;
             if (valid)
             {
+                if (++cache!.ValidStreak >= MinLiveFrames)
+                    cache.LiveSpan = 0;
                 left = (int)Math.Floor(renderRect.Left + cache!.OffsetX);
                 top = (int)Math.Floor(renderRect.Top + cache.OffsetY);
             }
@@ -134,7 +138,7 @@ namespace MonoGame.PortableUI
                     return false;
                 engine.TrackLayerCachePixels(pixels - cache.Pixels);
                 cache.Dispose();
-                cache.Target = new RenderTarget2D(device, width, height, false, SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.DiscardContents);
+                cache.Target = new RenderTarget2D(device, width, height, false, SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.PreserveContents);
                 cache.Width = width;
                 cache.Height = height;
             }
@@ -173,11 +177,14 @@ namespace MonoGame.PortableUI
             cache.Generation = engine.LayerCacheGeneration;
             cache.ScaleX = parentContext.Scale.X * control.Scale.X;
             cache.ScaleY = parentContext.Scale.Y * control.Scale.Y;
-            cache.AnimatedRebuilds = animated ? cache.AnimatedRebuilds + 1 : 0;
-            if (cache.AnimatedRebuilds >= MaxAnimatedRebuilds)
+            cache.ValidStreak = 0;
+            cache.ConsecutiveRebuilds = engine.DrawFrameNumber == cache.LastRebuildFrame + 1 ? cache.ConsecutiveRebuilds + 1 : 1;
+            cache.LastRebuildFrame = engine.DrawFrameNumber;
+            if (cache.ConsecutiveRebuilds >= MaxConsecutiveRebuilds)
             {
-                cache.AnimatedRebuilds = 0;
-                cache.LiveUntilFrame = engine.DrawFrameNumber + AnimatedLiveFrames;
+                cache.ConsecutiveRebuilds = 0;
+                cache.LiveSpan = cache.LiveSpan == 0 ? MinLiveFrames : Math.Min(MaxLiveFrames, cache.LiveSpan * 2);
+                cache.LiveUntilFrame = engine.DrawFrameNumber + cache.LiveSpan;
             }
             engine.RecordBatchFlush();
             return true;

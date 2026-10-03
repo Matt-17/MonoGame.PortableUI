@@ -189,6 +189,7 @@ namespace MonoGame.PortableUI
             {
                 action();
                 RequestRedraw();
+                NoteDiscreteInput();
             }
         }
 
@@ -770,6 +771,7 @@ namespace MonoGame.PortableUI
             ActiveScreen?.Update();
             _toasts?.Update();
             UpdateAccessibility();
+            ApplyDiscreteInputToLayerCaches();
         }
 
         public void ToggleDebugOverlay()
@@ -802,6 +804,7 @@ namespace MonoGame.PortableUI
         public void HandleTextInput(char character)
         {
             NoteInputActivity();
+            NoteDiscreteInput();
             ActiveScreen?.HandleTextInput(character);
         }
 
@@ -812,6 +815,7 @@ namespace MonoGame.PortableUI
         public void HandleKeyCommand(KeyboardCommand command)
         {
             NoteInputActivity();
+            NoteDiscreteInput();
             ActiveScreen?.HandleKeyCommand(command);
         }
 

@@ -484,6 +484,7 @@ namespace MonoGame.PortableUI.Controls
             {
                 _backgroundBrushOverride = value;
                 _backgroundBrushSet = true;
+                InvalidateLayout(false);
             }
         }
 
@@ -494,13 +495,18 @@ namespace MonoGame.PortableUI.Controls
             {
                 _borderBrushOverride = value;
                 _borderBrushSet = true;
+                InvalidateLayout(false);
             }
         }
 
         public Thickness BorderThickness
         {
             get => _borderThicknessOverride ?? ResolveStateStyle()?.BorderThickness ?? default;
-            set => _borderThicknessOverride = value;
+            set
+            {
+                _borderThicknessOverride = value;
+                InvalidateLayout(true);
+            }
         }
 
         /// <summary>
@@ -508,14 +514,37 @@ namespace MonoGame.PortableUI.Controls
         /// diagonal bevel — this colour at the top-left blending to <see cref="BorderBevelDark"/> at the
         /// bottom-right — instead of a flat <see cref="BorderBrush"/>. Gives glass panels a lit edge.
         /// </summary>
-        public Color? BorderBevelLight { get; set; }
+        public Color? BorderBevelLight
+        {
+            get => _borderBevelLight;
+            set
+            {
+                _borderBevelLight = value;
+                InvalidateLayout(false);
+            }
+        }
 
-        public Color? BorderBevelDark { get; set; }
+        public Color? BorderBevelDark
+        {
+            get => _borderBevelDark;
+            set
+            {
+                _borderBevelDark = value;
+                InvalidateLayout(false);
+            }
+        }
+
+        private Color? _borderBevelLight;
+        private Color? _borderBevelDark;
 
         public CornerRadius CornerRadius
         {
             get => _cornerRadiusOverride ?? ResolveStateStyle()?.CornerRadius ?? default;
-            set => _cornerRadiusOverride = value;
+            set
+            {
+                _cornerRadiusOverride = value;
+                InvalidateLayout(false);
+            }
         }
 
         public ShadowStyle? Shadow
@@ -531,6 +560,7 @@ namespace MonoGame.PortableUI.Controls
             {
                 _shadowOverride = value;
                 _shadowSet = true;
+                InvalidateLayout(false);
             }
         }
 
