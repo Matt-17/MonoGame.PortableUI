@@ -12,7 +12,8 @@ public static class AmberTheme
             primary: "#FFB000", secondary: "#805800", selection: "#FFB000", selectionText: "#1A0F00",
             styleTheme: theme =>
             {
-                theme.Cursor = CursorStyle.Arrow(ThemeBuilder.Hex("#FFB000"), ThemeBuilder.Hex("#1A0F00"));
+                // Monochrome monitor: inverse video is a block in the phosphor colour.
+                theme.Cursor = CursorStyle.TextBlock(ThemeBuilder.Hex("#FFB000") * 0.85f);
                 ThemeBuilder.Chrome(theme.Button, null, ThemeBuilder.Solid(theme.Palette.Primary), 1, 0);
                 theme.PostEffects = new PostEffect[]
                 {

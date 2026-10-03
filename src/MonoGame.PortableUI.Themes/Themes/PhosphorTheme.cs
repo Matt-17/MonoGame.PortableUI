@@ -12,7 +12,8 @@ public static class PhosphorTheme
             primary: "#33FF33", secondary: "#1A801A", selection: "#33FF33", selectionText: "#001100",
             styleTheme: theme =>
             {
-                theme.Cursor = CursorStyle.Arrow(ThemeBuilder.Hex("#33FF66"), ThemeBuilder.Hex("#001A08"));
+                // Monochrome monitor: inverse video is a block in the phosphor colour.
+                theme.Cursor = CursorStyle.TextBlock(ThemeBuilder.Hex("#33FF66") * 0.85f);
                 ThemeBuilder.Chrome(theme.Button, null, ThemeBuilder.Solid(theme.Palette.Primary), 1, 0);
                 theme.PostEffects = new PostEffect[]
                 {

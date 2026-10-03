@@ -54,6 +54,10 @@ namespace MonoGame.PortableUI.Demo
                 InputSource = _virtualInput,
                 ShowSoftwareCursor = false
             };
+            // A text-mode theme turns the monitor into a text-mode display: 80x25 (C64: 40x25)
+            // cells on its 640x400 surface, the pointer moves from cell to cell.
+            if (_computerSurface.Engine.Options.Theme.Cursor.IsTextCell)
+                _computerSurface.TextGrid = preset.Id == "c64" ? TextGrid.C64 : TextGrid.Dos;
             _capture = new SurfacePointerCapture(_computerSurface, _virtualInput);
             // The monitor owns the keyboard while it owns the pointer (typing into the DOS prompt).
             _capture.Captured += (_, _) => _computerSurface.HasKeyboardFocus = true;

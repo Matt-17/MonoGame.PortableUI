@@ -113,6 +113,21 @@ namespace MonoGame.PortableUI
         /// </summary>
         public bool ShowSoftwareCursor { get; set; }
 
+        /// <summary>
+        ///     Makes this display a text-mode screen (e.g. <see cref="TextGrid.Dos"/>): the pointer is
+        ///     snapped to character cells for drawing and input, after the display's curvature has been
+        ///     undone. Null (default) = free pointer.
+        /// </summary>
+        public TextGrid? TextGrid { get; set; }
+
+        /// <summary>
+        ///     Optional exact text-mode pointer: called with the pixel rectangle and the cell of the
+        ///     pointer instead of drawing a <see cref="Media.CursorStyle.TextCell"/> cursor. A host with
+        ///     its own character buffer can draw the cell with its attribute swapped, as the DOS mouse
+        ///     driver did; return false to fall back to the default inversion.
+        /// </summary>
+        public Func<Microsoft.Xna.Framework.Graphics.SpriteBatch, Rect, int, int, bool>? TextCellCursorRenderer { get; set; }
+
         public PortableTheme Theme
         {
             get { return _theme; }

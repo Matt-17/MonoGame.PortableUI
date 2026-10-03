@@ -110,6 +110,13 @@ namespace MonoGame.PortableUI
         ///     its display effects. Shortcut for <c>Engine.Options.ShowSoftwareCursor</c>; the pointer
         ///     position comes from <see cref="InputSource"/>.
         /// </summary>
+        /// <summary>Text-mode grid of this surface's display (shortcut for <c>Engine.Options.TextGrid</c>); per surface.</summary>
+        public TextGrid? TextGrid
+        {
+            get => Engine.Options.TextGrid;
+            set => Engine.Options.TextGrid = value;
+        }
+
         public bool ShowSoftwareCursor
         {
             get => Engine.Options.ShowSoftwareCursor;

@@ -144,7 +144,10 @@ public static class C64Theme
             PrimaryButton = ControlStyleBuilder.Variant(Green, Blue, DarkBlue),
             SecondaryButton = ControlStyleBuilder.Variant(Yellow, Blue, DarkBlue),
             DangerButton = ControlStyleBuilder.Variant(Red, White, DarkBlue),
-            Cursor = CursorStyle.PixelArrow(LightBlue, DarkBlue)
+            // Text-mode screen: a light-blue cell as the pointer, the DOS-style caret for typing.
+            Cursor = CursorStyle.TextBlock(new Color((byte)LightBlue.R, (byte)LightBlue.G, (byte)LightBlue.B, (byte)200)),
+            TextBoxCaretStyle = MonoGame.PortableUI.Controls.CaretStyle.TextMode,
+            TextBoxCaretBlinkInterval = System.TimeSpan.FromMilliseconds(133)
         };
     }
 }

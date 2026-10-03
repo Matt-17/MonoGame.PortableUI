@@ -80,6 +80,36 @@ namespace MonoGame.PortableUI.Media
             PixelSize = 1;
         }
 
+        private CursorStyle(bool invert, Color fill)
+        {
+            Rows = Array.Empty<string>();
+            IsTextCell = true;
+            InvertsCell = invert;
+            Fill = fill;
+            Outline = Color.Transparent;
+            PixelSize = 1;
+        }
+
+        /// <summary>
+        ///     A text-mode pointer: a whole character cell instead of an arrow (see
+        ///     <see cref="ScreenEngineOptions.TextGrid"/>; without a grid the cell size comes from the
+        ///     theme's font).
+        /// </summary>
+        public bool IsTextCell { get; }
+
+        /// <summary>The text-mode cell is inverted (DOS); otherwise it is filled with <see cref="Fill"/>.</summary>
+        public bool InvertsCell { get; }
+
+        /// <summary>
+        ///     The DOS text-mode mouse: the cell under the pointer shown inverted. (The real driver
+        ///     XORed the cell's colour attribute; a host with a character buffer can draw exactly that
+        ///     via <see cref="ScreenEngineOptions.TextCellCursorRenderer"/>.)
+        /// </summary>
+        public static CursorStyle TextCell() => new(true, Color.White);
+
+        /// <summary>A text-mode pointer that fills the cell with a colour (e.g. a C64-style block).</summary>
+        public static CursorStyle TextBlock(Color fill) => new(false, fill);
+
         /// <summary>Vector outline for smooth (anti-aliased) pointers; null for bitmap pointers.</summary>
         public PathGeometry? Shape { get; }
 
