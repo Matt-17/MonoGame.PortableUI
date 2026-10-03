@@ -116,6 +116,24 @@ namespace MonoGame.PortableUI.Tests
             Assert.AreEqual(1, list.ItemButtons.Count(b => b.IsMouseHovering), "and only that one");
         }
 
+        [TestMethod]
+        public void List_rows_meet_the_frame_exactly_on_half_pixel_positions()
+        {
+            // Frame lines cover the pixels whose centres they contain: top line [20.5, 21.5) is
+            // pixel row 20, bottom line [119.5, 120.5) is row 119 — rows must fill 21..118, no gap,
+            // no overlap; same for the sides.
+            var list = new ListBox { BorderThickness = new Thickness(1) };
+            for (var i = 0; i < 20; i++)
+                list.Items.Add($"Row {i}");
+            list.UpdateLayout(new Rect(10.5f, 20.5f, 200, 100));
+            var area = list.GetVisualChild(0).ClippingRect;
+
+            Assert.AreEqual(21, area.Top, "starts right under the top line");
+            Assert.AreEqual(119, area.Bottom, "ends right above the bottom line");
+            Assert.AreEqual(11, area.Left);
+            Assert.AreEqual(209, area.Right);
+        }
+
         private static ListBox? FindList(Control root)
         {
             if (root is ListBox list)
