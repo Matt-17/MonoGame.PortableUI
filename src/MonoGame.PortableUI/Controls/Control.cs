@@ -154,8 +154,33 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
-        protected HoverStates HoverState { get; set; }
-        protected TouchStates TouchState { get; set; }
+        // Read at draw time: a change is a visual invalidation (redraw, cached layers).
+        protected HoverStates HoverState
+        {
+            get => _hoverState;
+            set
+            {
+                if (_hoverState == value)
+                    return;
+                _hoverState = value;
+                InvalidateLayout(false);
+            }
+        }
+
+        protected TouchStates TouchState
+        {
+            get => _touchState;
+            set
+            {
+                if (_touchState == value)
+                    return;
+                _touchState = value;
+                InvalidateLayout(false);
+            }
+        }
+
+        private HoverStates _hoverState;
+        private TouchStates _touchState;
         internal bool IsMouseHovering => HoverState == HoverStates.Hovering;
 
         public override FrameworkElement? Parent
@@ -357,11 +382,70 @@ namespace MonoGame.PortableUI.Controls
 
         public Thickness Margin { get; set; }
 
-        public Vector2 Scale { get; set; }
+        public Vector2 Scale
+        {
+            get => _scale;
+            set
+            {
+                if (_scale == value)
+                    return;
+                _scale = value;
+                InvalidateLayout(false);
+            }
+        }
 
-        public Vector2 Translation { get; set; }
+        public Vector2 Translation
+        {
+            get => _translation;
+            set
+            {
+                if (_translation == value)
+                    return;
+                _translation = value;
+                InvalidateLayout(false);
+            }
+        }
 
-        public double Opacity { get; set; }
+        public double Opacity
+        {
+            get => _opacity;
+            set
+            {
+                if (_opacity == value)
+                    return;
+                _opacity = value;
+                InvalidateLayout(false);
+            }
+        }
+
+        private Vector2 _scale;
+        private Vector2 _translation;
+        private double _opacity;
+
+        /// <summary>
+        ///     <see cref="Controls.CacheMode.Bitmap"/> renders this control and its subtree into a texture and
+        ///     draws that texture while nothing inside changes - moving it (scrolling, translation) costs
+        ///     one quad. Changes re-render it: property setters, visual states, animations and anything
+        ///     that asks for animation frames while drawing. Subtrees with glass (backdrop) brushes or
+        ///     post effects are drawn normally. Good for static blocks of text and chrome inside scrolling
+        ///     content; pointless for content that changes every frame.
+        /// </summary>
+        public CacheMode CacheMode
+        {
+            get => _cacheMode;
+            set
+            {
+                if (_cacheMode == value)
+                    return;
+                _cacheMode = value;
+                InvalidateLayout(false);
+            }
+        }
+
+        private CacheMode _cacheMode;
+
+        /// <summary>The texture of <see cref="CacheMode"/>, owned by the engine that draws it.</summary>
+        internal Media.LayerCache? LayerCache;
 
         protected float RenderOpacity { get; private set; } = 1;
 
@@ -670,6 +754,8 @@ namespace MonoGame.PortableUI.Controls
             // bubbles, of every ancestor whose measure depends on it.
             if (boundsChanged)
                 _desiredSizePass = -1;
+            if (LayerCache != null)
+                LayerCache.Dirty = true;
             if (_suppressUpdate)
                 return;
             Parent?.InvalidateLayout(boundsChanged);
@@ -1355,7 +1441,12 @@ namespace MonoGame.PortableUI.Controls
         ///     <see cref="InvalidateLayout"/>; call it for state a custom control changes on its own
         ///     in update code. While drawing, use <see cref="ScreenEngine.RequestAnimationFrame"/>.
         /// </summary>
-        public void RequestRedraw() => ScreenEngine.For(this)?.RequestRedraw();
+        public void RequestRedraw()
+        {
+            // Bubbles like any visual change, so cached ancestor layers re-render too.
+            InvalidateLayout(false);
+            ScreenEngine.For(this)?.RequestRedraw();
+        }
 
         /// <summary>Runs once per screen update for every control in the tree (physics-style
         /// animations such as scroll momentum). Keep it cheap; most controls do nothing.</summary>
@@ -1387,11 +1478,13 @@ namespace MonoGame.PortableUI.Controls
 
         protected internal virtual void OnGotFocus(GotFocusEventArgs args)
         {
+            InvalidateLayout(false); // focus ring
             GotFocus?.Invoke(this, args);
         }
 
         protected internal virtual void OnLostFocus(LostFocusEventArgs args)
         {
+            InvalidateLayout(false);
             LostFocus?.Invoke(this, args);
         }
 

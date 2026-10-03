@@ -510,6 +510,7 @@ namespace MonoGame.PortableUI
             finally
             {
                 ExitDraw(previous);
+                TrimLayerCaches();
             }
         }
 
@@ -566,7 +567,19 @@ namespace MonoGame.PortableUI
         }
 
         /// <summary>True after keyboard/gamepad input, false after pointer input.</summary>
-        public bool KeyboardNavigationActive { get; internal set; }
+        public bool KeyboardNavigationActive
+        {
+            get => _keyboardNavigationActive;
+            internal set
+            {
+                if (_keyboardNavigationActive == value)
+                    return;
+                _keyboardNavigationActive = value;
+                FocusedControl?.InvalidateLayout(false); // the focus ring shows only while navigating
+            }
+        }
+
+        private bool _keyboardNavigationActive;
 
         /// <summary>
         ///     Opens <paramref name="content"/> as a modal over the current screen (scrim, input and
@@ -822,6 +835,7 @@ namespace MonoGame.PortableUI
                 Game.Components.Remove(Component);
             _backdrop?.Dispose();
             _postProcess?.Dispose();
+            DisposeLayerCaches();
             _stackBackdropTarget?.Dispose();
             _wake.Dispose();
         }
