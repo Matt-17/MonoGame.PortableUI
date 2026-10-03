@@ -180,5 +180,10 @@ display-order index list (`DisplayedItems`), never the caller's `Items`.
   engine)` + a 250 ms idle interval: ~0.5 %. In that mode MonoGame's `TouchPanel`/`Keyboard` are unsafe
   (unsynchronized, touch listener set from the wrong thread) - PortableUI reads the bridge instead - and
   any view access from game code must go through `AndroidUiThread.Run`/`view.Post`.
+- **Frame pacing:** a fixed time step (MonoGame's default, 60 Hz) on a 90/120 Hz panel shows some
+  refreshes twice - visible judder while scrolling. App-style hosts set `IsFixedTimeStep = false` with
+  `SynchronizeWithVerticalRetrace = true` so frames follow vsync (the Android demo: 90 fps on a Pixel 5,
+  every frame one refresh apart, and less CPU than the fixed step's 1 ms sleep spin). Animations and
+  fling already use real elapsed time. Check pacing with `dumpsys SurfaceFlinger --latency` intervals.
 - **Verification loop:** run the test suite, then the demo `--screenshot` sweep and diff PNGs against a
   baseline before/after visual changes; run `*Layout*` benchmarks for layout-path changes.
