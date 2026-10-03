@@ -255,6 +255,7 @@ namespace MonoGame.PortableUI.Effects
             postFx.Parameters["SourceSize"]?.SetValue(new Vector2(source.Width, source.Height));
             postFx.Parameters["ScanlineStrength"]?.SetValue(scanlines == null ? 0 : MathHelper.Clamp(scanlines.Strength, 0, 1));
             postFx.Parameters["ScanlineSpacing"]?.SetValue(scanlines == null ? 3f : Math.Max(2f, scanlines.Spacing));
+            postFx.Parameters["ScanlineVertical"]?.SetValue(scanlines?.Orientation == ScanlineOrientation.Vertical ? 1f : 0f);
             postFx.Parameters["DotMatrixStrength"]?.SetValue(dotMatrix == null ? 0 : MathHelper.Clamp(dotMatrix.Strength, 0, 1));
             postFx.Parameters["DotMatrixCellSize"]?.SetValue(dotMatrix == null ? 3f : Math.Max(2f, dotMatrix.CellSize));
             postFx.Parameters["VignetteStrength"]?.SetValue(vignette == null ? 0 : MathHelper.Clamp(vignette.Strength, 0, 1));
@@ -420,20 +421,29 @@ namespace MonoGame.PortableUI.Effects
         private Texture2D GetScanlineTexture(ScanlinePostEffect scanlines)
         {
             var spacing = Math.Max(2, (int)Math.Round(scanlines.Spacing));
-            var key = new BrushTextureCacheKey("postfx-scanline", spacing);
-            return BrushTextureCache.TryGet(_graphicsDevice, key, out var cached) ? cached : CreateScanlineTexture(key, spacing);
+            var vertical = scanlines.Orientation == ScanlineOrientation.Vertical;
+            var key = new BrushTextureCacheKey("postfx-scanline", spacing, vertical ? 1 : 0);
+            return BrushTextureCache.TryGet(_graphicsDevice, key, out var cached) ? cached : CreateScanlineTexture(key, spacing, vertical);
+        }
+
+        /// <summary>The tile of the shader-free scanline overlay: one dark pixel row (or column) per period.</summary>
+        internal static Color[] CreateScanlinePattern(int spacing, bool vertical, out int width, out int height)
+        {
+            width = vertical ? spacing : 1;
+            height = vertical ? 1 : spacing;
+            var data = new Color[spacing];
+            for (var i = 0; i < spacing; i++)
+                data[i] = i == spacing - 1 ? new Color(0, 0, 0, 255) : Color.Transparent;
+            return data;
         }
 
         // Miss path only: the factory closure captures the size.
-        private Texture2D CreateScanlineTexture(BrushTextureCacheKey key, int spacing)
+        private Texture2D CreateScanlineTexture(BrushTextureCacheKey key, int spacing, bool vertical)
         {
             return BrushTextureCache.GetOrCreate(_graphicsDevice, key, device =>
             {
-                var data = new Color[spacing];
-                for (var y = 0; y < spacing; y++)
-                    data[y] = y == spacing - 1 ? new Color(0, 0, 0, 255) : Color.Transparent;
-
-                var texture = new Texture2D(device, 1, spacing);
+                var data = CreateScanlinePattern(spacing, vertical, out var width, out var height);
+                var texture = new Texture2D(device, width, height);
                 texture.SetData(data);
                 return texture;
             });

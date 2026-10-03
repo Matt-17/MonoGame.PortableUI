@@ -158,6 +158,16 @@ namespace MonoGame.PortableUI
         public bool Enabled { get; set; } = true;
     }
 
+    /// <summary>Direction of the dark lines drawn by <see cref="ScanlinePostEffect"/>.</summary>
+    public enum ScanlineOrientation
+    {
+        /// <summary>Horizontal lines, as on a normally mounted CRT.</summary>
+        Horizontal,
+
+        /// <summary>Vertical lines, as on a CRT mounted on its side (portrait arcade monitors).</summary>
+        Vertical
+    }
+
     public sealed class ScanlinePostEffect : PostEffect
     {
         public ScanlinePostEffect() : base("scanlines")
@@ -166,6 +176,12 @@ namespace MonoGame.PortableUI
 
         public float Spacing { get; set; } = 3;
         public float Strength { get; set; } = 0.18f;
+
+        /// <summary>
+        ///     Line direction. <see cref="ScanlineOrientation.Vertical"/> suits a display whose tube is turned
+        ///     on its side, e.g. a 3:4 portrait arcade monitor: the beam still sweeps the tube's long side.
+        /// </summary>
+        public ScanlineOrientation Orientation { get; set; } = ScanlineOrientation.Horizontal;
     }
 
     /// <summary>

@@ -8,6 +8,7 @@ float2 TexelSize;         // 1 / texture size in UV
 float2 SourceSize;        // composed region size in pixels
 float ScanlineStrength;   // 0..1
 float ScanlineSpacing;    // pixels between dark lines (>= 2)
+float ScanlineVertical;   // 1 = lines run vertically (a tube mounted on its side)
 float DotMatrixStrength;  // 0..1
 float DotMatrixCellSize;  // cell size in pixels (>= 2)
 float VignetteStrength;   // 0..1
@@ -26,7 +27,7 @@ float4 MainPS(float4 position : SV_POSITION, float4 color : COLOR0, float2 uv : 
 
     if (ScanlineStrength > 0)
     {
-        float scanPos = fmod(pixel.y, ScanlineSpacing);
+        float scanPos = fmod(lerp(pixel.y, pixel.x, ScanlineVertical), ScanlineSpacing);
         float dark = step(ScanlineSpacing - 1.0, scanPos);
         sample.rgb *= 1.0 - dark * ScanlineStrength;
     }
