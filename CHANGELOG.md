@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Vertical scanlines:** `ScanlinePostEffect.Orientation = ScanlineOrientation.Vertical` draws the lines top to bottom, for displays whose tube is mounted on its side (3:4 portrait arcade monitors). Works in the PostFx shader and the shader-free overlay path; default stays horizontal.
+
 ## 0.3.0-alpha.4
 
 - **Text-mode displays (#87):** `TextGrid` (`ScreenEngineOptions.TextGrid`, `UISurface.TextGrid`, e.g. `TextGrid.Dos` 80×25, `TextGrid.C64` 40×25) makes a display a character-cell screen: the pointer snaps to the centre of its cell for drawing and input — after the display's curvature is undone, so clicks near a curved edge hit the visible cell. Pointer capture keeps fractional motion, so slow moves still cross cells. Per engine/surface. Cell size = layout size / grid (recommended 640×400 or 720×400 for 80×25, 320×200 for 40×25, stretched to 4:3).
