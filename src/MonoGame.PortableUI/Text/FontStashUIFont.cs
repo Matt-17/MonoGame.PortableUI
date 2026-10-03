@@ -7,7 +7,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI.Text;
 
-namespace MonoGame.PortableUI.FontStashSharp
+namespace MonoGame.PortableUI.Text
 {
     /// <summary>
     ///     <see cref="UIFont"/> backed by a FontStashSharp <see cref="FontSystem"/>: glyphs are

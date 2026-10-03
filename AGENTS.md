@@ -5,9 +5,8 @@ No XAML — trees are built in C#. Known open issues and deferred work live in `
 
 ## Repository layout
 
-- `src/MonoGame.PortableUI` — the library (controls, layout, input, media/brushes, theming core).
-- `src/MonoGame.PortableUI.FontStashSharp` — optional FontStashSharp font backend (`FontStashUIFont`).
-- `src/MonoGame.PortableUI.Themes` — theme catalog add-on (`PortableThemes.All`, 42 themes incl. 5 game UIs, one self-contained file each under `Themes/`; `ThemeBuilder` lives in the core so a theme file can be copied alone — see `Themes/README.md`).
+- `src/MonoGame.PortableUI` — the library (controls, layout, input, media/brushes, theming core, `FontStashUIFont` runtime fonts via FontStashSharp — in the core until MonoGame's own font system lands).
+- `src/MonoGame.PortableUI.Themes` — theme catalog add-on, NuGet ID `CodeIX.PortableUI.Themes` because the `MonoGame.` prefix is reserved on NuGet (`PortableThemes.All`, 42 themes incl. 5 game UIs, one self-contained file each under `Themes/`; `ThemeBuilder` lives in the core so a theme file can be copied alone — see `Themes/README.md`).
 - `samples/MonoGame.PortableUI.Demo` — DesktopGL demo; `samples/MonoGame.PortableUI.Demo.Android` — Android host.
 - `tests/MonoGame.PortableUI.Tests` — MSTest suite (headless, no graphics device needed for most tests).
 - `benchmarks/` — BenchmarkDotNet. `docs/` — fonts, release process, historical issue log (`issues.md`), audit (`audit.md`).

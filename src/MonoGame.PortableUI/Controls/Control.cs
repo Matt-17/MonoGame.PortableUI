@@ -1058,8 +1058,8 @@ namespace MonoGame.PortableUI.Controls
 
         protected internal virtual void OnDrawOverlay(SpriteBatch spriteBatch, Rect rect)
         {
-            if (IsFocusVisualShown)
-                DrawFocusVisual(spriteBatch, rect, FocusBorderWidth, FocusBorderBrush, EffectiveFocusVisualKind, RenderOpacity);
+            if (IsFocusVisualShown && FocusBorderBrush is { } focusBrush)
+                DrawFocusVisual(spriteBatch, rect, FocusBorderWidth, focusBrush, EffectiveFocusVisualKind, RenderOpacity);
 
             if (!IsEnabled && DisabledOverlayBrush is { } disabledOverlay)
             {

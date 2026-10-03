@@ -4,7 +4,7 @@ Each file here is one complete theme. You can use them in two ways.
 
 ## 1. As a package (quick start, prototypes)
 
-Reference **MonoGame.PortableUI.Themes** from NuGet and pick a theme by id:
+Reference **CodeIX.PortableUI.Themes** from NuGet (namespace `MonoGame.PortableUI.Themes`) and pick a theme by id:
 
 ```csharp
 var theme = PortableThemes.Find("luna")!;          // or PortableThemes.All

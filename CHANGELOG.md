@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Packages:** the theme catalog is published as **`CodeIX.PortableUI.Themes`** (namespace unchanged: `MonoGame.PortableUI.Themes`) — the `MonoGame.` prefix is reserved on NuGet, so the `MonoGame.PortableUI.Themes` and `MonoGame.PortableUI.FontStashSharp` IDs of 0.3.0-alpha.2 were never published. `FontStashUIFont` moved into the core (namespace `MonoGame.PortableUI.Text`; the core now depends on the pure-managed FontStashSharp.MonoGame) until MonoGame's own font system can back `UIFont`. The release workflow now fails on a missing or unpublished package instead of reporting success.
+
 - **Render on demand:** `ScreenEngineOptions.RenderMode = RenderMode.OnDemand` draws only when the UI changed (input, property changes, animations, transitions, caret blink, spinners) and idles the game loop otherwise. On a Pixel 5 the idle Android demo went from 60 fps and ~50 % of a core to 0 fps and ~8 %. Custom time-driven visuals call `ScreenEngine.RequestAnimationFrame()` while drawing; `Control.RequestRedraw()`/`ScreenEngine.RequestRedraw()` cover other changes. MonoGame upgraded to 3.8.5.1.
 - **Fix (Android):** the status bar no longer disappears after returning to the app. MonoGame applied its (wrong) full-screen default as `FLAG_FULLSCREEN` on every resume; `AndroidSurfaceSize.Follow` now keeps the window's real state. The demo re-applies its own immersive mode after a resume.
 - **Android demo at display rate:** the game loop follows vsync (`IsFixedTimeStep = false`) instead of a fixed 60 Hz step: scrolling runs at 90 fps on a Pixel 5 with every frame exactly one refresh apart (60 fps on a 90 Hz panel judders), at ~24 % instead of ~30 % CPU; idle stays at 0 frames.

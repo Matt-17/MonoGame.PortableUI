@@ -5,7 +5,8 @@
     <TargetFramework></TargetFramework>
     <TargetFrameworks>net10.0;net10.0-android</TargetFrameworks>
     <SupportedOSPlatformVersion Condition="$(TargetFramework.EndsWith('-android'))">21.0</SupportedOSPlatformVersion>
-    <PackageId>MonoGame.PortableUI.Themes</PackageId>
+    <!-- The MonoGame. prefix is reserved on NuGet, new IDs under it are rejected (409). -->
+    <PackageId>CodeIX.PortableUI.Themes</PackageId>
     <Title>MonoGame.PortableUI.Themes</Title>
     <Description>Theme catalog add-on for MonoGame.PortableUI. MonoGame.PortableUI works completely without this package; each theme lives in its own file so it can be copied into a project and customized.</Description>
     <Authors>Matthias Voigt;Marcus Katscher</Authors>

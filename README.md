@@ -34,7 +34,7 @@ dotnet mgcb-editor samples/MonoGame.PortableUI.Demo/Content/Content.mgcb
 
 ## Theme Gallery
 
-All themes below ship in the **MonoGame.PortableUI.Themes** add-on package (`PortableThemes.All`); the core library works completely without it. Each theme lives in its own file under `src/MonoGame.PortableUI.Themes/Themes/` and depends only on the core package, so you can either reference the NuGet package (quick start) or copy a single theme file into your project and customize it — see [Themes/README.md](src/MonoGame.PortableUI.Themes/Themes/README.md).
+All themes below ship in the **CodeIX.PortableUI.Themes** add-on package (namespace `MonoGame.PortableUI.Themes`) (`PortableThemes.All`); the core library works completely without it. Each theme lives in its own file under `src/MonoGame.PortableUI.Themes/Themes/` and depends only on the core package, so you can either reference the NuGet package (quick start) or copy a single theme file into your project and customize it — see [Themes/README.md](src/MonoGame.PortableUI.Themes/Themes/README.md).
 
 Fonts cannot ship pre-built from NuGet, so the package carries them as content files. Three steps in your game:
 

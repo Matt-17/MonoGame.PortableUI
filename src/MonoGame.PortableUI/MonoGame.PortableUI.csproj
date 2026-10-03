@@ -30,6 +30,9 @@
     <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" />
     <PackageReference Include="MonoGame.Framework.DesktopGL" Condition="!$(TargetFramework.EndsWith('-android'))" />
     <PackageReference Include="MonoGame.Framework.Android" Condition="$(TargetFramework.EndsWith('-android'))" />
+    <!-- Runtime TTF/OTF fonts (FontStashUIFont). Pure managed; in the core until MonoGame's own
+         font system (roadmap: 3.8.8) can back UIFont without an extra dependency. -->
+    <PackageReference Include="FontStashSharp.MonoGame" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />
