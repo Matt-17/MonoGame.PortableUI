@@ -168,6 +168,11 @@ namespace MonoGame.PortableUI
         public float Strength { get; set; } = 0.18f;
     }
 
+    /// <summary>
+    ///     CRT screen curvature. It belongs to the display, not the look: it only applies as a display
+    ///     effect (<see cref="ScreenEngineOptions.PostEffects"/>, <see cref="UISurface.PostEffects"/>);
+    ///     in a theme's or ThemeIsland's effect list it is ignored. Pointer input follows the curve.
+    /// </summary>
     public sealed class CrtBarrelPostEffect : PostEffect
     {
         public CrtBarrelPostEffect() : base("crt-barrel")
