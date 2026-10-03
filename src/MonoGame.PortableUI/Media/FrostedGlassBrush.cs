@@ -227,7 +227,7 @@ namespace MonoGame.PortableUI.Media
             => DrawCornerRows(spriteBatch, backdrop, screenRect, scaleX, scaleY, rect, radius, top, left, Color.White * opacity, 1);
 
         /// <summary>
-        ///     Fills one rounded corner square with <paramref name="texture"/> one pixel row at a time,
+        ///     Fills one rounded corner square with <paramref name="backdrop"/> one pixel row at a time,
         ///     each row inset along the arc; <paramref name="screenRect"/> is the area the texture spans.
         /// </summary>
         private static void DrawCornerRows(SpriteBatch spriteBatch, Texture2D backdrop, Rect screenRect, float scaleX, float scaleY, Rect rect, float radius, bool top, bool left, Color color, int overlap)

@@ -72,7 +72,8 @@ namespace MonoGame.PortableUI
 
             var device = spriteBatch.GraphicsDevice;
             var renderRect = context.RenderRect;
-            var valid = cache?.Target is { IsDisposed: false, IsContentLost: false } target
+            // Device resets bump LayerCacheGeneration (RenderTarget2D.IsContentLost is always false in MonoGame).
+            var valid = cache?.Target is { IsDisposed: false } target
                 && ReferenceEquals(target.GraphicsDevice, device)
                 && !cache.Dirty
                 && cache.Generation == engine.LayerCacheGeneration
