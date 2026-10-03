@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.3.0-alpha.3
+
+Themes, glass and in-world screens: 42 themes (five new game UIs), button variants and chrome brushes, a real liquid glass shader with nested glass for dialogs, themed software cursors, display effects and pointer capture for in-world monitors, single-owner text input for surfaces. The theme catalog is now published as `CodeIX.PortableUI.Themes`; FontStashSharp runtime fonts are part of the core.
+
 - **Curvature belongs to the display (#74, #75):** `CrtBarrelPostEffect` only applies as a display effect (`ScreenEngineOptions.PostEffects` / `UISurface.PostEffects`); in a theme's or ThemeIsland's effect list it is ignored. One source for the curve means the screen, `UISurface.IsPointOnDisplay`, pointer capture and Low render quality can no longer disagree about it.
 - **Fix (#63):** window text input reaches exactly one engine per game — the `UISurface` with `HasKeyboardFocus` (now settable; set directly or via `SurfaceFocusManager`), otherwise the main UI. Previously every surface engine typed every character into its own focused field, and `SurfaceFocusManager.RouteTextInput` typed it a second time (now a no-op on desktop). A disposed surface hands the keyboard back.
 - **Packages:** the theme catalog is published as **`CodeIX.PortableUI.Themes`** (namespace unchanged: `MonoGame.PortableUI.Themes`) — the `MonoGame.` prefix is reserved on NuGet, so the `MonoGame.PortableUI.Themes` and `MonoGame.PortableUI.FontStashSharp` IDs of 0.3.0-alpha.2 were never published. `FontStashUIFont` moved into the core (namespace `MonoGame.PortableUI.Text`; the core now depends on the pure-managed FontStashSharp.MonoGame) until MonoGame's own font system can back `UIFont`. The release workflow now fails on a missing or unpublished package instead of reporting success.
