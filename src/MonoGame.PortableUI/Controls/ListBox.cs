@@ -378,13 +378,16 @@ namespace MonoGame.PortableUI.Controls
             // Keep rows inside the border and inside any frame the background brush draws itself.
             var brushInset = BackgroundBrush?.ContentInset ?? default;
             var inner = BoundingRect - Margin - BorderThickness - brushInset;
-            // Round the row area inward: on a half-pixel bottom edge the outward-rounded clip would
-            // let opaque rows paint over the frame's last pixel row.
+            // Snap the row area to the pixels the frame leaves free. The GPU fills a pixel when its
+            // centre lies inside a shape, so on half-pixel positions an edge belongs to the pixel
+            // at round-half-down: outward rounding let rows paint over the frame's bottom/right
+            // line, inward rounding left an empty pixel row under the top/left line.
             if (!BorderThickness.Equals(default(Thickness)) || !brushInset.Equals(default(Thickness)))
             {
-                var left = MathF.Ceiling(inner.Left);
-                var top = MathF.Ceiling(inner.Top);
-                inner = new Rect(left, top, Math.Max(0, MathF.Floor(inner.Right) - left), Math.Max(0, MathF.Floor(inner.Bottom) - top));
+                static float Snap(float value) => MathF.Ceiling(value - 0.5f);
+                var left = Snap(inner.Left);
+                var top = Snap(inner.Top);
+                inner = new Rect(left, top, Math.Max(0, Snap(inner.Right) - left), Math.Max(0, Snap(inner.Bottom) - top));
             }
             _scrollViewer.UpdateLayout(inner);
         }
