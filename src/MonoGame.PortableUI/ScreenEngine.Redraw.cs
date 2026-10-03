@@ -49,7 +49,7 @@ namespace MonoGame.PortableUI
 
         /// <summary>
         ///     Ends an idle wait of the <see cref="RenderMode.OnDemand"/> loop now, so input that arrives
-        ///     on another thread (e.g. <see cref="AndroidInputBridge"/>) is handled without waiting out
+        ///     on another thread (e.g. the Android input bridge) is handled without waiting out
         ///     <see cref="ScreenEngineOptions.IdleUpdateInterval"/>. Thread-safe.
         /// </summary>
         public void WakeUp() => _wake.Set();
