@@ -307,7 +307,7 @@ namespace MonoGame.PortableUI
             var spriteBatch = SharedSpriteBatches.Rent(device);
             var resolution = destination is { } tile ? DrawResolutionFor(tile.Width, tile.Height) : 1f;
             var scratch = destination.HasValue
-                ? ScratchTargets.Rent(device, ScaledPixels(PixelWidth, resolution), ScaledPixels(PixelHeight, resolution))
+                ? RenderTargetPool.Rent(device, ScaledPixels(PixelWidth, resolution), ScaledPixels(PixelHeight, resolution))
                 : null;
             try
             {
@@ -346,7 +346,7 @@ namespace MonoGame.PortableUI
             finally
             {
                 if (scratch != null)
-                    ScratchTargets.Return(device, scratch);
+                    RenderTargetPool.Return(device, scratch);
                 SharedSpriteBatches.Return(device, spriteBatch);
             }
             _frameTarget = target;
@@ -460,40 +460,6 @@ namespace MonoGame.PortableUI
             var display = Engine.Options.PostEffects;
             var barrel = display.Count > 0 ? Screen.FindEnabledBarrel(display) : null;
             return barrel == null ? 0 : MathHelper.Clamp(barrel.Distortion, 0, 0.5f);
-        }
-
-        /// <summary>Scratch targets for <see cref="DrawTo"/>, shared by all surfaces of a device and pixel
-        /// size; a surface drawn while another one draws rents a second one.</summary>
-        private static class ScratchTargets
-        {
-            private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<GraphicsDevice, Dictionary<(int, int), Stack<RenderTarget2D>>> Pools = new();
-
-            public static RenderTarget2D Rent(GraphicsDevice device, int width, int height)
-            {
-                var pool = Pool(device, width, height);
-                while (pool.Count > 0)
-                {
-                    var target = pool.Pop();
-                    if (!target.IsDisposed)
-                        return target;
-                }
-                // PreserveContents: offscreen passes switch targets mid-frame and come back.
-                return new RenderTarget2D(device, width, height, false, SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.PreserveContents);
-            }
-
-            public static void Return(GraphicsDevice device, RenderTarget2D target)
-            {
-                if (!target.IsDisposed)
-                    Pool(device, target.Width, target.Height).Push(target);
-            }
-
-            private static Stack<RenderTarget2D> Pool(GraphicsDevice device, int width, int height)
-            {
-                var pools = Pools.GetValue(device, static _ => new Dictionary<(int, int), Stack<RenderTarget2D>>());
-                if (!pools.TryGetValue((width, height), out var pool))
-                    pools[(width, height)] = pool = new Stack<RenderTarget2D>();
-                return pool;
-            }
         }
 
         /// <summary>SpriteBatches shared by all surfaces of a device; nested surface draws rent a second one.</summary>

@@ -59,6 +59,13 @@ namespace MonoGame.PortableUI.Demo
             ApplyTheme(_activeThemePreset);
 
             var deleteIcon = Content.Load<Texture2D>("Images/ic_delete");
+            if (_runOptions.SurfaceBenchmarkFile != null)
+            {
+                SurfaceBenchmark.Run(this, _runOptions.SurfaceBenchmarkFile, _runOptions.SurfaceCount);
+                Exit();
+                return;
+            }
+
             if (_runOptions.BenchmarkFile != null)
             {
                 BenchmarkThemes(_runOptions.BenchmarkFile, deleteIcon);

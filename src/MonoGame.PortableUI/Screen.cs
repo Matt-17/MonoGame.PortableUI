@@ -392,7 +392,13 @@ namespace MonoGame.PortableUI
             if (usePostFx)
             {
                 previousTargets = RenderTargetHelper.SnapshotRenderTargets(device, ref _postFxPreviousTargets);
-                uiTarget = engine!.PostProcess.EnsureUiTarget((int)Math.Ceiling(PixelScreenRect.Width), (int)Math.Ceiling(PixelScreenRect.Height));
+                var uiWidth = (int)Math.Ceiling(PixelScreenRect.Width);
+                var uiHeight = (int)Math.Ceiling(PixelScreenRect.Height);
+                // Surface engines (many, drawn one after another) share the target per device; the
+                // main engine draws every frame and keeps its own.
+                uiTarget = engine!.IsSurfaceEngine
+                    ? RenderTargetPool.Rent(device, uiWidth, uiHeight)
+                    : engine.PostProcess.EnsureUiTarget(uiWidth, uiHeight);
                 device.SetRenderTarget(uiTarget);
                 device.Clear(Color.Transparent);
             }
@@ -432,6 +438,8 @@ namespace MonoGame.PortableUI
                     device.SetRenderTargets(previousTargets);
                 engine!.PostProcess.Compose(spriteBatch, uiTarget!, postEffects ?? Array.Empty<PostEffect>(), PixelScreenRect);
                 engine.RecordBatchFlush();
+                if (engine.IsSurfaceEngine)
+                    RenderTargetPool.Return(device, uiTarget!);
             }
 
             BackdropSource.Clear(device);
@@ -942,7 +950,9 @@ namespace MonoGame.PortableUI
             // Full-frame target so the subtree can keep drawing at absolute screen coordinates.
             var targetWidth = (int)Math.Ceiling(Math.Max(PixelScreenRect.Right, islandRect.Right));
             var targetHeight = (int)Math.Ceiling(Math.Max(PixelScreenRect.Bottom, islandRect.Bottom));
-            var target = engine.PostProcess.EnsureIslandTarget(targetWidth, targetHeight);
+            var target = engine.IsSurfaceEngine
+                ? RenderTargetPool.Rent(device, targetWidth, targetHeight)
+                : engine.PostProcess.EnsureIslandTarget(targetWidth, targetHeight);
             device.SetRenderTarget(target);
             device.Clear(Color.Transparent);
 
@@ -963,6 +973,8 @@ namespace MonoGame.PortableUI
 
             engine.PostProcess.Compose(spriteBatch, target, effects, islandRect, islandRect);
             engine.RecordBatchFlush();
+            if (engine.IsSurfaceEngine)
+                RenderTargetPool.Return(device, target);
             return true;
         }
 
