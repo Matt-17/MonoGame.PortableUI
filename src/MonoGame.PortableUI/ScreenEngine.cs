@@ -341,7 +341,7 @@ namespace MonoGame.PortableUI
             if (_clipLayers == null || !ReferenceEquals(_clipLayers.GraphicsDevice, device))
             {
                 _clipLayers?.Dispose();
-                _clipLayers = new ClipLayerPool(device);
+                _clipLayers = new ClipLayerPool(device) { SharesTargets = IsSurfaceEngine };
             }
             return _clipLayers;
         }
@@ -583,6 +583,14 @@ namespace MonoGame.PortableUI
             {
                 ExitDraw(previous);
                 TrimLayerCaches();
+                if (IsSurfaceEngine)
+                {
+                    // Offscreen targets needed only while drawing go back to the per-device pool.
+                    _clipLayers?.ReleaseShared();
+                    if (_stackBackdropTarget != null)
+                        RenderTargetPool.Return(spriteBatch.GraphicsDevice, _stackBackdropTarget);
+                    _stackBackdropTarget = null;
+                }
             }
         }
 
@@ -612,7 +620,9 @@ namespace MonoGame.PortableUI
             var device = spriteBatch.GraphicsDevice;
             var width = device.Viewport.Width;
             var height = device.Viewport.Height;
-            if (_stackBackdropTarget == null || _stackBackdropTarget.IsDisposed || _stackBackdropTarget.Width != width || _stackBackdropTarget.Height != height)
+            if (IsSurfaceEngine)
+                _stackBackdropTarget = RenderTargetPool.Rent(device, Math.Max(1, width), Math.Max(1, height));
+            else if (_stackBackdropTarget == null || _stackBackdropTarget.IsDisposed || _stackBackdropTarget.Width != width || _stackBackdropTarget.Height != height)
             {
                 _stackBackdropTarget?.Dispose();
                 _stackBackdropTarget = new RenderTarget2D(device, Math.Max(1, width), Math.Max(1, height), false, SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.PreserveContents);

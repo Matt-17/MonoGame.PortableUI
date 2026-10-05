@@ -29,13 +29,17 @@ namespace MonoGame.PortableUI.Effects
 
         public GraphicsDevice GraphicsDevice => _device;
 
+        /// <summary>Rents the targets from <see cref="RenderTargetPool"/> and gives them back in
+        /// <see cref="ReleaseShared"/> after each draw (surface engines: many, drawn one after another).</summary>
+        public bool SharesTargets { get; init; }
+
         public Layer Get(int depth, int width, int height)
         {
             while (_layers.Count <= depth)
                 _layers.Add(new Layer());
             var layer = _layers[depth];
-            layer.Content = RenderTargetHelper.EnsureTarget(_device, ref layer.Content, width, height);
-            layer.Mask = RenderTargetHelper.EnsureTarget(_device, ref layer.Mask, width, height);
+            layer.Content = Ensure(ref layer.Content, width, height);
+            layer.Mask = Ensure(ref layer.Mask, width, height);
             return layer;
         }
 
@@ -62,11 +66,46 @@ namespace MonoGame.PortableUI.Effects
                 && existing.Width >= width && existing.Height >= height
                 && existing.Width <= width * 2 + 64 && existing.Height <= height * 2 + 64)
                 return existing;
-            return RenderTargetHelper.EnsureTarget(_device, ref target, (width + 63) / 64 * 64, (height + 63) / 64 * 64);
+            return Ensure(ref target, (width + 63) / 64 * 64, (height + 63) / 64 * 64);
+        }
+
+        private RenderTarget2D Ensure(ref RenderTarget2D? target, int width, int height)
+        {
+            if (!SharesTargets)
+                return RenderTargetHelper.EnsureTarget(_device, ref target, width, height);
+            width = Math.Max(1, width);
+            height = Math.Max(1, height);
+            if (target is { IsDisposed: false } existing && existing.Width == width && existing.Height == height)
+                return existing;
+            if (target != null)
+                RenderTargetPool.Return(_device, target);
+            return target = RenderTargetPool.Rent(_device, width, height);
+        }
+
+        /// <summary>Gives rented targets back to the shared pool (no-op unless <see cref="SharesTargets"/>).</summary>
+        public void ReleaseShared()
+        {
+            if (!SharesTargets)
+                return;
+            foreach (var layer in _layers)
+            {
+                if (layer.Content != null)
+                    RenderTargetPool.Return(_device, layer.Content);
+                if (layer.Mask != null)
+                    RenderTargetPool.Return(_device, layer.Mask);
+                layer.Content = null;
+                layer.Mask = null;
+            }
         }
 
         public void Dispose()
         {
+            if (SharesTargets)
+            {
+                ReleaseShared();
+                _layers.Clear();
+                return;
+            }
             foreach (var layer in _layers)
             {
                 layer.Content?.Dispose();

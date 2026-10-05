@@ -82,7 +82,9 @@ time in update code calls `Control.RequestRedraw()`. Check `FramesDrawn`/`Frames
 `DrawIfNeeded`/`DrawIfNeededTo` consume; `DrawTo` renders into a host's atlas tile through a scratch target
 shared per device and pixel size (every offscreen pass assumes a full target of the surface's size, so never
 draw a surface with a viewport offset). `PostEffectMode` (All/ThemeOnly/None) is the host's switch over theme
-and display effects.
+and display effects. Surface engines (`IsSurfaceEngine`) keep no offscreen targets between draws: post-FX/island
+targets, clip layers and the glass stack backdrop are rented from `RenderTargetPool` (per device and size) and
+returned at the end of `DrawStack`; only layer caches stay per engine. `--benchmark-surfaces` measures it.
 
 **Layer cache:** `Control.CacheMode = CacheMode.Bitmap` draws the control's subtree into a render target
 and composites one quad while it stays valid (scrolling only moves it; consecutive composites share a

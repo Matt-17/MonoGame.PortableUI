@@ -26,6 +26,11 @@ namespace MonoGame.PortableUI.Demo
         /// <summary>--benchmark-themes out.csv: frame time and draw calls per theme.</summary>
         public string? BenchmarkFile { get; init; }
 
+        /// <summary>--benchmark-surfaces out.csv [--surface-count 100]: cost of hosting many UISurfaces.</summary>
+        public string? SurfaceBenchmarkFile { get; init; }
+
+        public int SurfaceCount { get; init; } = 100;
+
         public static DemoRunOptions Parse(string[]? args)
         {
             // --text-scale 1.5 sets the app text size (TextScaling.AppScale) before anything is built.
@@ -44,6 +49,8 @@ namespace MonoGame.PortableUI.Demo
                 ScreenshotScreen = TryParseValue(args, "--screenshot-screen") ?? "controls",
                 ScreenshotOverlay = TryParseValue(args, "--screenshot-overlay"),
                 BenchmarkFile = TryParseValue(args, "--benchmark-themes"),
+                SurfaceBenchmarkFile = TryParseValue(args, "--benchmark-surfaces"),
+                SurfaceCount = int.TryParse(TryParseValue(args, "--surface-count"), out var surfaceCount) && surfaceCount > 0 ? surfaceCount : 100,
                 ScreenshotTabs = int.TryParse(TryParseValue(args, "--screenshot-tabs"), out var tabs) ? tabs : 0,
                 ScreenshotCursor = ParsePoint(TryParseValue(args, "--screenshot-cursor")),
                 ScreenshotThemes = TryParseValue(args, "--screenshot-themes")?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
