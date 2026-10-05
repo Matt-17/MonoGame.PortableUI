@@ -149,6 +149,18 @@ namespace MonoGame.PortableUI
             return requested || due || counted || now < _redrawUntil || IsTransitioning || DebugOverlayEnabled;
         }
 
+        /// <summary>Whether <see cref="ConsumeRedrawRequest"/> would draw now, without clearing anything.</summary>
+        internal bool PeekRedrawRequest()
+        {
+            var now = ScreenSystem.TotalTime;
+            return Volatile.Read(ref _redrawRequested) != 0 || now >= _redrawAt || Volatile.Read(ref _redrawFrames) > 0
+                || now < _redrawUntil || IsTransitioning || DebugOverlayEnabled;
+        }
+
+        /// <summary>When the next frame is due on the <see cref="ScreenSystem.TotalTime"/> clock: Zero when
+        /// one is due now, MaxValue when idle.</summary>
+        internal TimeSpan NextRedrawDue => PeekRedrawRequest() ? TimeSpan.Zero : _redrawAt;
+
         internal void RecordFrame(bool drawn)
         {
             if (drawn)

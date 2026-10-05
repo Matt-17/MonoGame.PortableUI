@@ -568,6 +568,7 @@ namespace MonoGame.PortableUI
 
         private static readonly Func<Control, ScreenEngine, bool> IsPostFxIsland = static (control, engine) =>
             engine.EffectiveRenderQuality != RenderQuality.Low
+            && engine.Options.PostEffectMode != PostEffectMode.None
             && control is ThemeIsland { IsVisible: true, Theme.PostEffects: { Count: > 0 } effects }
             && LookEffects(effects) is { } look && engine.PostProcess.CountEnabled(look) > 0;
 
@@ -929,6 +930,7 @@ namespace MonoGame.PortableUI
             var engine = ScreenEngine;
             var effects = LookEffects(island.Theme?.PostEffects);
             if (engine == null || engine.EffectiveRenderQuality == RenderQuality.Low
+                || engine.Options.PostEffectMode == PostEffectMode.None
                 || effects is not { Count: > 0 } || engine.PostProcess.CountEnabled(effects) == 0)
                 return false;
 
@@ -1141,10 +1143,14 @@ namespace MonoGame.PortableUI
         internal IReadOnlyList<PostEffect>? GetScreenPostEffects()
         {
             var options = ScreenEngine?.Options;
+            // The host's switch wins: None draws (and maps the pointer) flat, ThemeOnly drops the display.
+            var mode = options?.PostEffectMode ?? PostEffectMode.All;
+            if (mode == PostEffectMode.None)
+                return null;
             // Low quality drops the theme's look effects; display effects (an in-world monitor's
             // curvature, which input mapping follows) belong to the screen and stay.
             var themeEffects = ScreenEngine?.EffectiveRenderQuality == RenderQuality.Low ? null : LookEffects(options?.Theme?.PostEffects);
-            var displayEffects = options?.PostEffects;
+            var displayEffects = mode == PostEffectMode.ThemeOnly ? null : options?.PostEffects;
             if (displayEffects is not { Count: > 0 })
                 return themeEffects;
             if (themeEffects is not { Count: > 0 })

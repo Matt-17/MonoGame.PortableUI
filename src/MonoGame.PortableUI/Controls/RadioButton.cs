@@ -9,7 +9,8 @@ namespace MonoGame.PortableUI.Controls
 {
     public class RadioButton : ToggleButton
     {
-        private static readonly Dictionary<string, List<RadioButton>> RadioButtonDictionary = new Dictionary<string, List<RadioButton>>();
+        private static readonly Dictionary<string, List<WeakReference<RadioButton>>> RadioButtonDictionary = new Dictionary<string, List<WeakReference<RadioButton>>>();
+        private readonly WeakReference<RadioButton> _groupReference;
         private string _radioGroup = "";
 
         /// <summary>
@@ -19,6 +20,7 @@ namespace MonoGame.PortableUI.Controls
         /// </summary>
         public RadioButton()
         {
+            _groupReference = new WeakReference<RadioButton>(this);
             var theme = PortableTheme.ResolveCurrent();
 
             DotBrush = theme.RadioButtonDotBrush;
@@ -126,30 +128,32 @@ namespace MonoGame.PortableUI.Controls
         {
             if (string.IsNullOrEmpty(radioGroup))
                 return;
-            RadioButtonDictionary.TryGetValue(radioGroup, out var list);
+            var list = LiveMembers(radioGroup);
             // A group is scoped to one visual tree: same-named groups on other screens/surfaces
             // are independent, so "new" means no member in this button's tree yet.
             var isNewGroup = true;
+            var contained = false;
             if (list != null)
             {
                 var root = GetRoot(radioButton);
-                foreach (var member in list)
+                foreach (var reference in list)
                 {
-                    if (!ReferenceEquals(member, radioButton) && ReferenceEquals(GetRoot(member), root))
-                    {
+                    if (!reference.TryGetTarget(out var member))
+                        continue;
+                    if (ReferenceEquals(member, radioButton))
+                        contained = true;
+                    else if (isNewGroup && ReferenceEquals(GetRoot(member), root))
                         isNewGroup = false;
-                        break;
-                    }
                 }
             }
             if (list == null)
             {
-                list = new List<RadioButton>();
+                list = new List<WeakReference<RadioButton>>();
                 RadioButtonDictionary.Add(radioGroup, list);
             }
 
-            if (!list.Contains(radioButton))
-                list.Add(radioButton);
+            if (!contained)
+                list.Add(radioButton._groupReference);
 
             // A checked button joining wins the group, so re-attaching a group (e.g. moving its
             // panel) keeps the user's selection instead of ending up with two checked buttons.
@@ -163,13 +167,29 @@ namespace MonoGame.PortableUI.Controls
         {
             if (string.IsNullOrEmpty(radioGroup))
                 return;
-            if (!RadioButtonDictionary.ContainsKey(radioGroup))
+            var list = LiveMembers(radioGroup);
+            if (list == null)
                 return;
-            var list = RadioButtonDictionary[radioGroup];
-            list.Remove(radioButton);
+            list.Remove(radioButton._groupReference);
             if (list.Count == 0)
                 RadioButtonDictionary.Remove(radioGroup);
         }
+
+        /// <summary>The group's members with collected buttons dropped. Members are held weakly: a
+        /// discarded screen or surface keeps its tree attached, so it never leaves its groups.</summary>
+        private static List<WeakReference<RadioButton>>? LiveMembers(string radioGroup)
+        {
+            if (!RadioButtonDictionary.TryGetValue(radioGroup, out var list))
+                return null;
+            list.RemoveAll(IsCollected);
+            if (list.Count > 0)
+                return list;
+            RadioButtonDictionary.Remove(radioGroup);
+            return null;
+        }
+
+        private static readonly Predicate<WeakReference<RadioButton>> IsCollected = static reference => !reference.TryGetTarget(out _);
+
         private bool _isSettingGroup = false;
 
         /// <summary>
@@ -187,13 +207,13 @@ namespace MonoGame.PortableUI.Controls
 
         private static void SetGroupChecked(string radioGroup, RadioButton radioButton)
         {
-            if (!RadioButtonDictionary.ContainsKey(radioGroup))
+            var list = LiveMembers(radioGroup);
+            if (list == null)
                 return;
-            var list = RadioButtonDictionary[radioGroup];
             var root = GetRoot(radioButton);
-            foreach (var button in list)
+            foreach (var reference in list)
             {
-                if (!ReferenceEquals(GetRoot(button), root))
+                if (!reference.TryGetTarget(out var button) || !ReferenceEquals(GetRoot(button), root))
                     continue;
                 button._isSettingGroup = true;
                 button.IsChecked = button == radioButton;

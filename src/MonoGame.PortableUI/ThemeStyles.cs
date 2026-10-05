@@ -158,6 +158,25 @@ namespace MonoGame.PortableUI
         public bool Enabled { get; set; } = true;
     }
 
+    /// <summary>
+    ///     Which post-effect stages an engine draws (<see cref="ScreenEngineOptions.PostEffectMode"/>).
+    ///     Set by the host that shows the UI, not by the UI itself: a host whose display renders
+    ///     curvature and scanlines on its own (e.g. a tube shader in a 3D scene) draws the UI flat.
+    /// </summary>
+    public enum PostEffectMode
+    {
+        /// <summary>The theme's look effects and the display effects (default).</summary>
+        All,
+
+        /// <summary>Only the theme's look effects (<see cref="PortableTheme.PostEffects"/>, also in
+        /// <see cref="Controls.ThemeIsland"/>s); display effects and their pointer mapping are off.</summary>
+        ThemeOnly,
+
+        /// <summary>No post effects at all: the UI is drawn straight into the target, without the
+        /// extra render target and full-screen pass, and pointer input is not mapped through a barrel.</summary>
+        None
+    }
+
     /// <summary>Direction of the dark lines drawn by <see cref="ScanlinePostEffect"/>.</summary>
     public enum ScanlineOrientation
     {
