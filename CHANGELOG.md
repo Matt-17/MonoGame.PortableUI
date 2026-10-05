@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.3.1-alpha.2
+
 - **Every key reaches the UI (#90):** keyboard input was a 2016 design for text boxes: only editing commands (Backspace, Enter, arrows, Ctrl+C, ...) reached the focused control, F1-F12 and Alt/Ctrl chords were dropped, and F3 always toggled the debug overlay. Now every key is raised as `KeyDown`/`KeyUp` (the events existed but were never raised) with `KeyEventArgs.Key`, `Modifiers`, `IsRepeat` (typematic repeat while held) and `Handled`. It goes to the focused control, bubbles through its parents and ends in the new `Screen.KeyDown`/`KeyUp` (also with nothing focused) - the place for menu bars (Alt+F, F10) and shortcuts (F2, F9, Alt+X). Only keys nobody claimed get the screen's meaning: Tab and arrow navigation, Escape, the editing commands (`KeyPressed`, unchanged), and the debug overlay key, now `ScreenEngineOptions.DebugOverlayKey` (F3, null = off; off by default for `UISurface`s). A control can claim Tab or Escape for itself.
 
 ## 0.3.1-alpha.1
