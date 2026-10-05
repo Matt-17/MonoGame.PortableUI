@@ -13,8 +13,11 @@ namespace MonoGame.PortableUI
     {
         private readonly Game _game;
         private RenderTarget2D? _target;
-        // False while the target holds no finished frame (new, resized, device or surface lost).
-        private bool _targetValid;
+        // Where the last finished frame went (the own Target or a host's tile) and whether it is
+        // still there: cleared when the target is replaced, resized or its device/surface is lost.
+        private RenderTarget2D? _frameTarget;
+        private Rectangle _frameRect;
+        private bool _frameValid;
         private GraphicsDevice? _watchedDevice;
         private RenderTargetBinding[]? _previousTargets;
         private int _width;
@@ -95,6 +98,7 @@ namespace MonoGame.PortableUI
                 _layoutScale = value;
                 Engine.SetNativeRenderScale(value);
                 DropTarget();
+                _frameValid = false;
             }
         }
 
@@ -154,7 +158,7 @@ namespace MonoGame.PortableUI
         ///     frame yet. Does not clear anything; <see cref="DrawIfNeeded"/> and <see cref="Draw"/> do.
         ///     Changes made while a surface is not drawn stay pending: skipping draws never loses one.
         /// </summary>
-        public bool NeedsRedraw => !HasValidFrame || Engine.PeekRedrawRequest();
+        public bool NeedsRedraw => !HasFrame || Engine.PeekRedrawRequest();
 
         /// <summary>
         ///     When this surface next wants a frame, on the <see cref="ScreenSystem.TotalTime"/> clock:
@@ -162,7 +166,7 @@ namespace MonoGame.PortableUI
         ///     otherwise the scheduled time (e.g. the next caret blink) - for host schedulers that
         ///     spread surface draws over frames.
         /// </summary>
-        public TimeSpan NextRedrawDue => HasValidFrame ? Engine.NextRedrawDue : TimeSpan.Zero;
+        public TimeSpan NextRedrawDue => HasFrame ? Engine.NextRedrawDue : TimeSpan.Zero;
 
         /// <summary>Frames drawn into <see cref="Target"/>, and calls of <see cref="DrawIfNeeded"/> that
         /// had nothing to draw.</summary>
@@ -189,6 +193,7 @@ namespace MonoGame.PortableUI
             _width = width;
             _height = height;
             DropTarget();
+            _frameValid = false;
             Engine.SetScreenSize(width, height);
         }
 
@@ -204,7 +209,9 @@ namespace MonoGame.PortableUI
         public RenderTarget2D Draw(GameTime gameTime)
         {
             Engine.ConsumeRedrawRequest();
-            return Render();
+            var target = EnsureTarget();
+            Render(target, null);
+            return target;
         }
 
         /// <summary>
@@ -217,12 +224,45 @@ namespace MonoGame.PortableUI
             // Consumed before drawing, so a request raised while drawing (an animation's next frame)
             // carries over to the next call.
             var requested = Engine.ConsumeRedrawRequest();
-            if (!requested && HasValidFrame)
+            var target = EnsureTarget();
+            if (!requested && HasFrameAt(target, target.Bounds))
             {
                 Engine.RecordFrame(false);
                 return false;
             }
-            Render();
+            Render(target, null);
+            return true;
+        }
+
+        /// <summary>
+        ///     Draws the surface into <paramref name="destination"/> of a host's render target, e.g. this
+        ///     surface's tile in a screen atlas, replacing what was there (alpha included). The surface then
+        ///     needs no <see cref="Target"/> of its own: it renders into a scratch target shared by all
+        ///     surfaces of the same pixel size and copies it into the tile, scaled to the tile's size - a
+        ///     smaller tile is a lower resolution for a distant screen. <paramref name="target"/> must use
+        ///     <see cref="RenderTargetUsage.PreserveContents"/>, or binding it wipes the other tiles.
+        /// </summary>
+        public void DrawTo(RenderTarget2D target, Rectangle destination, GameTime gameTime)
+        {
+            ArgumentNullException.ThrowIfNull(target);
+            Engine.ConsumeRedrawRequest();
+            Render(target, destination);
+        }
+
+        /// <summary>
+        ///     <see cref="DrawTo"/> only when <see cref="NeedsRedraw"/> or the tile moved; otherwise the
+        ///     tile keeps the previous picture. Returns whether it drew.
+        /// </summary>
+        public bool DrawIfNeededTo(RenderTarget2D target, Rectangle destination, GameTime gameTime)
+        {
+            ArgumentNullException.ThrowIfNull(target);
+            var requested = Engine.ConsumeRedrawRequest();
+            if (!requested && HasFrameAt(target, destination))
+            {
+                Engine.RecordFrame(false);
+                return false;
+            }
+            Render(target, destination);
             return true;
         }
 
@@ -234,27 +274,44 @@ namespace MonoGame.PortableUI
                 _watchedDevice.DeviceReset -= OnFrameLost;
             _watchedDevice = null;
             _target?.Dispose();
+            _frameTarget = null;
             Engine.Dispose();
         }
 
-        private bool HasValidFrame => _targetValid && _target is { IsDisposed: false }
-            && ReferenceEquals(_target.GraphicsDevice, _game.GraphicsDevice);
+        private bool HasFrame => _frameTarget != null && HasFrameAt(_frameTarget, _frameRect);
 
-        private RenderTarget2D Render()
+        private bool HasFrameAt(RenderTarget2D target, Rectangle rect)
+            => _frameValid && ReferenceEquals(_frameTarget, target) && _frameRect == rect
+               && !target.IsDisposed && ReferenceEquals(target.GraphicsDevice, _game.GraphicsDevice);
+
+        /// <summary>Draws the stack into <paramref name="target"/>; with a <paramref name="destination"/>
+        /// through a shared scratch target copied into that rectangle.</summary>
+        private void Render(RenderTarget2D target, Rectangle? destination)
         {
             var device = _game.GraphicsDevice;
             WatchDevice(device);
-            var target = EnsureTarget();
             // One batch per device for all surfaces, not one each (rented: a surface may draw another).
             var spriteBatch = SharedSpriteBatches.Rent(device);
+            var scratch = destination.HasValue ? ScratchTargets.Rent(device, PixelWidth, PixelHeight) : null;
             try
             {
                 // Restore whatever was bound (e.g. the host screen's post-FX target), not just null.
                 var previousTargets = Effects.RenderTargetHelper.SnapshotRenderTargets(device, ref _previousTargets);
-                device.SetRenderTarget(target);
+                // A full target of exactly the surface's size: every offscreen pass (clip shapes, post
+                // FX, glass) keeps working in the coordinates it expects.
+                device.SetRenderTarget(scratch ?? target);
                 device.Clear(Color.Transparent);
                 // The whole stack: overlays/modals pushed on this surface's engine and its toasts too.
                 Engine.DrawStack(spriteBatch);
+                if (scratch != null)
+                {
+                    device.SetRenderTarget(target);
+                    var rect = destination!.Value;
+                    var sampler = rect.Width == scratch.Width && rect.Height == scratch.Height ? SamplerState.PointClamp : SamplerState.LinearClamp;
+                    spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.Opaque, sampler, DepthStencilState.None, RasterizerState.CullNone);
+                    spriteBatch.Draw(scratch, rect, Color.White);
+                    spriteBatch.End();
+                }
                 if (previousTargets.Length == 0)
                     device.SetRenderTarget(null);
                 else
@@ -262,11 +319,14 @@ namespace MonoGame.PortableUI
             }
             finally
             {
+                if (scratch != null)
+                    ScratchTargets.Return(device, scratch);
                 SharedSpriteBatches.Return(device, spriteBatch);
             }
-            _targetValid = true;
+            _frameTarget = target;
+            _frameRect = destination ?? target.Bounds;
+            _frameValid = true;
             Engine.RecordFrame(true);
-            return target;
         }
 
         private void WatchDevice(GraphicsDevice device)
@@ -282,16 +342,17 @@ namespace MonoGame.PortableUI
         // Render target contents do not survive a lost device or surface (Android resume).
         private void OnFrameLost(object? sender, EventArgs args)
         {
-            _targetValid = false;
+            _frameValid = false;
             Engine.InvalidateLayerCaches();
             Engine.RequestRedraw();
         }
 
         private void DropTarget()
         {
+            if (_target != null && ReferenceEquals(_frameTarget, _target))
+                _frameValid = false;
             _target?.Dispose();
             _target = null;
-            _targetValid = false;
         }
 
         private RenderTarget2D EnsureTarget()
@@ -347,6 +408,40 @@ namespace MonoGame.PortableUI
             var display = Engine.Options.PostEffects;
             var barrel = display.Count > 0 ? Screen.FindEnabledBarrel(display) : null;
             return barrel == null ? 0 : MathHelper.Clamp(barrel.Distortion, 0, 0.5f);
+        }
+
+        /// <summary>Scratch targets for <see cref="DrawTo"/>, shared by all surfaces of a device and pixel
+        /// size; a surface drawn while another one draws rents a second one.</summary>
+        private static class ScratchTargets
+        {
+            private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<GraphicsDevice, Dictionary<(int, int), Stack<RenderTarget2D>>> Pools = new();
+
+            public static RenderTarget2D Rent(GraphicsDevice device, int width, int height)
+            {
+                var pool = Pool(device, width, height);
+                while (pool.Count > 0)
+                {
+                    var target = pool.Pop();
+                    if (!target.IsDisposed)
+                        return target;
+                }
+                // PreserveContents: offscreen passes switch targets mid-frame and come back.
+                return new RenderTarget2D(device, width, height, false, SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.PreserveContents);
+            }
+
+            public static void Return(GraphicsDevice device, RenderTarget2D target)
+            {
+                if (!target.IsDisposed)
+                    Pool(device, target.Width, target.Height).Push(target);
+            }
+
+            private static Stack<RenderTarget2D> Pool(GraphicsDevice device, int width, int height)
+            {
+                var pools = Pools.GetValue(device, static _ => new Dictionary<(int, int), Stack<RenderTarget2D>>());
+                if (!pools.TryGetValue((width, height), out var pool))
+                    pools[(width, height)] = pool = new Stack<RenderTarget2D>();
+                return pool;
+            }
         }
 
         /// <summary>SpriteBatches shared by all surfaces of a device; nested surface draws rent a second one.</summary>
