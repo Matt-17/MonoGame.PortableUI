@@ -31,7 +31,7 @@ namespace MonoGame.PortableUI.Media
         ///     glass): a straight-alpha solid approximation used by small rounded chrome such as
         ///     hover/pressed overlays. Null means the brush renders corner radii itself.
         /// </summary>
-        internal virtual Color? RoundedFallbackColor => null;
+        protected internal virtual Color? RoundedFallbackColor => null;
 
         /// <summary>
         ///     Applies opacity and converts to premultiplied alpha. SpriteBatch's default AlphaBlend

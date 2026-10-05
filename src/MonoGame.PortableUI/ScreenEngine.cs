@@ -290,24 +290,26 @@ namespace MonoGame.PortableUI
         // Created on demand: surface engines draw through their UISurface and never need one.
         internal ScreenComponent Component => _component ??= new ScreenComponent(this, Game);
 
-        private BackdropManager? _backdrop;
-        private PostProcessManager? _postProcess;
+        private IBackdropRenderer? _backdrop;
+        private IPostEffectRenderer? _postEffects;
 
         /// <summary>
-        /// Backdrop-blur pipeline shared by all screens of this engine (created on first use).
-        /// Recreated automatically if the game's GraphicsDevice is replaced
-        /// (e.g. an Android activity restart / device reset), so its render targets never
-        /// reference a disposed device.
+        ///     Backdrop-blur renderer shared by all screens of this engine, or null without the optional
+        ///     effects package (glass then has nothing to sample). Created on first use and recreated
+        ///     when the game's GraphicsDevice is replaced (Android activity restart, device reset).
         /// </summary>
-        public BackdropManager Backdrop
+        public IBackdropRenderer? BackdropRenderer
         {
             get
             {
+                var factory = EffectRenderers.Backdrop;
                 var device = Game.GraphicsDevice;
+                if (factory == null || device == null)
+                    return null;
                 if (_backdrop == null || !ReferenceEquals(_backdrop.GraphicsDevice, device))
                 {
                     _backdrop?.Dispose();
-                    _backdrop = new BackdropManager(device);
+                    _backdrop = factory(device);
                 }
 
                 return _backdrop;
@@ -315,21 +317,24 @@ namespace MonoGame.PortableUI
         }
 
         /// <summary>
-        /// Post-process chain runner shared by all screens of this engine (created on first use).
-        /// Recreated automatically when the game's GraphicsDevice is replaced.
+        ///     Post-effect renderer shared by all screens of this engine, or null without the optional
+        ///     effects package (the UI then draws flat). Recreated when the GraphicsDevice is replaced.
         /// </summary>
-        public PostProcessManager PostProcess
+        public IPostEffectRenderer? PostEffectRenderer
         {
             get
             {
+                var factory = EffectRenderers.PostEffects;
                 var device = Game.GraphicsDevice;
-                if (_postProcess == null || !ReferenceEquals(_postProcess.GraphicsDevice, device))
+                if (factory == null || device == null)
+                    return null;
+                if (_postEffects == null || !ReferenceEquals(_postEffects.GraphicsDevice, device))
                 {
-                    _postProcess?.Dispose();
-                    _postProcess = new PostProcessManager(device);
+                    _postEffects?.Dispose();
+                    _postEffects = factory(device);
                 }
 
-                return _postProcess;
+                return _postEffects;
             }
         }
 
@@ -922,7 +927,7 @@ namespace MonoGame.PortableUI
             if (_component != null && Game.Components.Contains(_component))
                 Game.Components.Remove(_component);
             _backdrop?.Dispose();
-            _postProcess?.Dispose();
+            _postEffects?.Dispose();
             DisposeLayerCaches();
             _stackBackdropTarget?.Dispose();
             _wake.Dispose();

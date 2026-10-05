@@ -21,10 +21,6 @@
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
-    <!-- eng/build-effects.ps1 ships as documentation for recompiling the shader sources,
-         not as a NuGet install hook. NU5110/NU5111 only warn that it will not be executed
-         on install, which is exactly what we want. -->
-    <NoWarn>$(NoWarn);NU5110;NU5111</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" />
@@ -38,13 +34,10 @@
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Effects\compiled\*.mgfxo" />
-    <None Include="Effects\src\*.fx" Pack="true" PackagePath="effects\src\" />
-    <None Include="..\..\eng\build-effects.ps1" Pack="true" PackagePath="eng\" />
-    <None Include="..\..\eng\README.md" Pack="true" PackagePath="eng\" />
-  </ItemGroup>
-  <ItemGroup>
     <InternalsVisibleTo Include="MonoGame.PortableUI.Benchmarks" />
     <InternalsVisibleTo Include="MonoGame.PortableUI.Tests" />
+    <!-- The optional effects package ships in lockstep with the core (same version) and reuses its
+         drawing internals (rounded-rect masks, brush texture cache, render-target helpers). -->
+    <InternalsVisibleTo Include="MonoGame.PortableUI.Effects" />
   </ItemGroup>
 </Project>

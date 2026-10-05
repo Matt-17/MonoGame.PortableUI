@@ -35,7 +35,7 @@ namespace MonoGame.PortableUI.Media
         public override bool RequiresBackdrop => BlurRadius > 0;
 
         // Backdrop sampling cannot be corner-masked; rounded chrome uses the tint as a stand-in.
-        internal override Color? RoundedFallbackColor => TintColor;
+        protected internal override Color? RoundedFallbackColor => TintColor;
 
         public Color TintColor
         {

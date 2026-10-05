@@ -213,7 +213,7 @@ namespace MonoGame.PortableUI
         public ControlStyle Panel { get; set; } = new ControlStyle();
         /// <summary>
         ///     Look effects of the theme (scanlines, bloom, grain, …), dropped at Low render quality.
-        ///     Screen curvature is not a look: a <see cref="CrtBarrelPostEffect"/> here is ignored —
+        ///     Screen curvature is not a look: a <c>CrtBarrelPostEffect</c> (effects package) here is ignored —
         ///     put it on the display (<see cref="ScreenEngineOptions.PostEffects"/>).
         /// </summary>
         public IReadOnlyList<PostEffect> PostEffects { get; set; } = Array.Empty<PostEffect>();
