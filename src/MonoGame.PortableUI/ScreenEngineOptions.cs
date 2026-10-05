@@ -135,6 +135,13 @@ namespace MonoGame.PortableUI
         public bool ShowSoftwareCursor { get; set; }
 
         /// <summary>
+        ///     Key that toggles the debug overlay when no control claims it (F3 by default; null turns
+        ///     the shortcut off). <see cref="UISurface"/> engines default to null, so applications on a
+        ///     surface - an editor where F3 opens a file - keep the key.
+        /// </summary>
+        public Microsoft.Xna.Framework.Input.Keys? DebugOverlayKey { get; set; } = Microsoft.Xna.Framework.Input.Keys.F3;
+
+        /// <summary>
         ///     Makes this display a text-mode screen (e.g. <see cref="TextGrid.Dos"/>): the pointer is
         ///     snapped to character cells for drawing and input, after the display's curvature has been
         ///     undone. Null (default) = free pointer.

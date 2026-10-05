@@ -115,6 +115,10 @@ past the threshold cancels the child's pending click. Hit-testing uses `Clipping
 the owning engine's `FocusedControl` (per engine, so several surfaces/players keep separate focus; resolve it with `ScreenEngine.For(control)`); only controls with
 `IsFocusable` take focus on left-mouse-down. Enter/Space activate the focused clickable control.
 `ScreenSystem.TotalTime` is the global clock for animations, timers, caret blink, and double-click.
+Keyboard: every key (F1-F12, Alt/Ctrl chords) is raised as `KeyDown`/`KeyUp` (`KeyEventArgs.Key`, `IsRepeat`,
+`Handled`) on the focused control, bubbling through its parents to `Screen.KeyDown`; only unclaimed keys get the
+screen's meaning (debug overlay key, Tab, Escape, arrow navigation, `KeyboardCommand` editing commands via
+`KeyPressed`). `ScreenEngineOptions.DebugOverlayKey` (F3, null on surfaces). Text arrives separately as chars.
 Arrow keys and the gamepad (`IInputSource.GamePad`: D-pad/stick, A, B, Y, shoulders) are screen-level:
 a direction the focused control does not claim via `HandlesDirection` moves focus spatially
 (`Screen.MoveFocus`) and scrolls it into view; Escape/B close the open popup or raise

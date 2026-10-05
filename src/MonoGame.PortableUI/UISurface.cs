@@ -34,7 +34,8 @@ namespace MonoGame.PortableUI
             {
                 AddComponentToGame = false,
                 ScreenSizeMode = ScreenSizeMode.Manual,
-                Theme = theme ?? PortableTheme.CreateDefault()
+                Theme = theme ?? PortableTheme.CreateDefault(),
+                DebugOverlayKey = null
             });
             Engine.SetScreenSize(_width, _height);
             Engine.NavigateToScreen(Screen);

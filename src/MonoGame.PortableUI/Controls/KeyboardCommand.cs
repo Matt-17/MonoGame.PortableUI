@@ -39,6 +39,9 @@ namespace MonoGame.PortableUI.Controls
     {
         Char,
         Command,
-        Function
+        Function,
+
+        /// <summary>A physical key (<see cref="Events.KeyEventArgs.Key"/>), raised as KeyDown/KeyUp.</summary>
+        Key
     }
 }
