@@ -245,10 +245,10 @@ namespace MonoGame.PortableUI
         ///     Draws the surface into <paramref name="destination"/> of a host's render target, e.g. this
         ///     surface's tile in a screen atlas, replacing what was there (alpha included). The surface then
         ///     needs no <see cref="Target"/> of its own: it renders into a scratch target shared by all
-        ///     surfaces of the same pixel size and copies it into the tile, scaled to the tile's size.
-        ///     The copy filters linearly without mipmaps and the UI is still rendered at full size: for a
-        ///     distant screen lower <see cref="LayoutScale"/> (one relayout per change) so the surface
-        ///     renders at about the tile's size, and keep the copy above half size, or text shimmers.
+        ///     surfaces of the same pixel size and copies it into the tile. A smaller tile (a distant
+        ///     screen) is rendered at a lower resolution - the next <see cref="DrawToResolutionSteps"/>
+        ///     step that covers it, without a relayout and without changing pointer mapping - so it costs
+        ///     less to draw and the copy never shrinks it by more than a third.
         ///     <paramref name="target"/> must use <see cref="RenderTargetUsage.PreserveContents"/>, or
         ///     binding it wipes the other tiles. A host that writes into the tile itself calls
         ///     <see cref="Invalidate"/>, or <see cref="DrawIfNeededTo"/> keeps skipping.
@@ -305,17 +305,30 @@ namespace MonoGame.PortableUI
             WatchDevice(device);
             // One batch per device for all surfaces, not one each (rented: a surface may draw another).
             var spriteBatch = SharedSpriteBatches.Rent(device);
-            var scratch = destination.HasValue ? ScratchTargets.Rent(device, PixelWidth, PixelHeight) : null;
+            var resolution = destination is { } tile ? DrawResolutionFor(tile.Width, tile.Height) : 1f;
+            var scratch = destination.HasValue
+                ? ScratchTargets.Rent(device, ScaledPixels(PixelWidth, resolution), ScaledPixels(PixelHeight, resolution))
+                : null;
             try
             {
                 // Restore whatever was bound (e.g. the host screen's post-FX target), not just null.
                 var previousTargets = Effects.RenderTargetHelper.SnapshotRenderTargets(device, ref _previousTargets);
-                // A full target of exactly the surface's size: every offscreen pass (clip shapes, post
-                // FX, glass) keeps working in the coordinates it expects.
+                // A full target of exactly the size drawn: every offscreen pass (clip shapes, post FX,
+                // glass) keeps working in the coordinates it expects.
                 device.SetRenderTarget(scratch ?? target);
                 device.Clear(Color.Transparent);
                 // The whole stack: overlays/modals pushed on this surface's engine and its toasts too.
-                Engine.DrawStack(spriteBatch);
+                // A small tile draws the UI smaller (draw-only: layout and pointer mapping stay).
+                Engine.DrawResolution = resolution;
+                try
+                {
+                    Engine.DrawStack(spriteBatch);
+                }
+                finally
+                {
+                    Engine.DrawResolution = 1f;
+                }
+                LastDrawResolution = resolution;
                 if (scratch != null)
                 {
                     device.SetRenderTarget(target);
@@ -341,6 +354,32 @@ namespace MonoGame.PortableUI
             _frameValid = true;
             Engine.RecordFrame(true);
         }
+
+        /// <summary>Resolution factor of the last draw: 1 for <see cref="Draw"/> and full-size tiles,
+        /// a <see cref="DrawToResolutionSteps"/> value for smaller ones.</summary>
+        public float LastDrawResolution { get; private set; } = 1f;
+
+        /// <summary>
+        ///     The resolutions <see cref="DrawTo"/> renders a smaller tile at, as fractions of the
+        ///     surface's pixel size. A tile renders at the smallest step that still covers it, so the copy
+        ///     shrinks by at most a third (no shimmer) and scratch targets and glyph sizes stay few.
+        /// </summary>
+        public static IReadOnlyList<float> DrawToResolutionSteps { get; } = new[] { 1f, 0.75f, 0.5f, 0.375f, 0.25f, 0.1875f, 0.125f };
+
+        internal float DrawResolutionFor(int tileWidth, int tileHeight)
+        {
+            var needed = Math.Max(tileWidth / (float)PixelWidth, tileHeight / (float)PixelHeight);
+            var steps = DrawToResolutionSteps;
+            var resolution = steps[0];
+            // Steps descend: keep the smallest one that still covers the tile (a tiny epsilon keeps a
+            // tile of exactly half size at 1/2 despite rounding).
+            for (var i = 1; i < steps.Count && steps[i] >= needed - 0.0001f; i++)
+                resolution = steps[i];
+            return resolution;
+        }
+
+        private static int ScaledPixels(int pixels, float resolution)
+            => resolution >= 1f ? pixels : Math.Max(1, (int)Math.Ceiling(pixels * resolution));
 
         private void WatchDevice(GraphicsDevice device)
         {

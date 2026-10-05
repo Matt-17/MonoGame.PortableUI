@@ -138,9 +138,9 @@ namespace MonoGame.PortableUI
             get
             {
                 var rect = ScreenRect;
-                if (ScreenEngine is not { ScalesNatively: true } engine)
+                var s = ScreenEngine?.DrawScale ?? 1f;
+                if (s == 1f)
                     return rect;
-                var s = engine.RenderScale;
                 return new Rect(rect.Left * s, rect.Top * s, rect.Width * s, rect.Height * s);
             }
         }
@@ -452,7 +452,7 @@ namespace MonoGame.PortableUI
             var cursor = engine.Options.Theme?.Cursor;
             if (cursor == null)
                 return;
-            var scale = engine.ScalesNatively ? engine.RenderScale : 1f;
+            var scale = engine.DrawScale;
             if (cursor.IsTextCell)
             {
                 DrawTextCellCursor(spriteBatch, engine, cursor, position, scale);
@@ -776,8 +776,7 @@ namespace MonoGame.PortableUI
             if (scissorRect.Width <= 0 || scissorRect.Height <= 0)
                 scissorRect = GetOverlayScissor(control);
 
-            var nativeScale = ScreenEngine is { ScalesNatively: true } engine ? engine.RenderScale : 1f;
-            var root = RenderContext.Root(scissorRect, nativeScale);
+            var root = RenderContext.Root(scissorRect, ScreenEngine?.DrawScale ?? 1f);
             spriteBatch.GraphicsDevice.ScissorRectangle = ToScissorRectangle(root.ScissorRect);
             DrawControlBatched(spriteBatch, control, root);
             FlushLayerComposites(spriteBatch);
@@ -1009,7 +1008,7 @@ namespace MonoGame.PortableUI
             var device = spriteBatch.GraphicsDevice;
             var bounds = parentContext.ChildClipRect;
             // Layer in render (pixel) space: the screen in pixels, or more if the viewport reaches past it.
-            var pixelScale = engine.ScalesNatively ? engine.RenderScale : 1f;
+            var pixelScale = engine.DrawScale;
             var width = (int)Math.Ceiling(Math.Max(ScreenRect.Right * pixelScale, bounds.Right));
             var height = (int)Math.Ceiling(Math.Max(ScreenRect.Bottom * pixelScale, bounds.Bottom));
             if (width <= 0 || height <= 0)

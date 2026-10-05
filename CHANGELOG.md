@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Distant screens render smaller (#99):** `UISurface.DrawTo`/`DrawIfNeededTo` render a tile smaller than the surface at a lower resolution instead of rendering full size and shrinking the copy: the smallest step of `UISurface.DrawToResolutionSteps` (1, ¾, ½, ⅜, ¼, ³⁄₁₆, ⅛ of the pixel size) that still covers the tile. Draw-only: no relayout, pointer mapping unchanged, layer caches re-render at the new scale. The copy shrinks by at most a third, so distant text no longer shimmers; the few steps keep scratch targets and glyph sizes bounded. `LastDrawResolution` reports the step used. A full-size tile stays pixel-identical to `Draw`.
+
 ## 0.3.0-alpha.6
 
 Hosting many in-world screens: surfaces draw only when they changed, can render flat for a host's own display shader, and can draw straight into an atlas tile.
