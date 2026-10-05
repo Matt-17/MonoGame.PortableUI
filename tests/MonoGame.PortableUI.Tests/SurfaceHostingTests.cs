@@ -125,6 +125,26 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void A_smaller_tile_renders_at_the_smallest_step_that_still_covers_it()
+        {
+            using var game = new Game();
+            using var surface = new UISurface(game, new TestScreen(), 640, 400);
+
+            Assert.AreEqual(1f, surface.DrawResolutionFor(640, 400), "full size");
+            Assert.AreEqual(1f, surface.DrawResolutionFor(1280, 800), "a larger tile never renders above the surface's size");
+            Assert.AreEqual(1f, surface.DrawResolutionFor(500, 312), "0.78 needs the full size");
+            Assert.AreEqual(0.75f, surface.DrawResolutionFor(480, 300));
+            Assert.AreEqual(0.5f, surface.DrawResolutionFor(320, 200), "exactly half");
+            Assert.AreEqual(0.375f, surface.DrawResolutionFor(200, 125));
+            Assert.AreEqual(0.125f, surface.DrawResolutionFor(40, 25));
+            Assert.AreEqual(0.125f, surface.DrawResolutionFor(10, 6), "the smallest step is the floor");
+            Assert.AreEqual(0.75f, surface.DrawResolutionFor(480, 100), "the larger axis decides");
+
+            surface.LayoutScale = 2;
+            Assert.AreEqual(0.5f, surface.DrawResolutionFor(640, 400), "steps are fractions of the pixel size (LayoutScale included)");
+        }
+
+        [TestMethod]
         public void Creating_a_surface_does_not_reset_the_global_scale_factor()
         {
             using var game = new Game();
