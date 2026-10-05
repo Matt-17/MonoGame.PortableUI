@@ -38,7 +38,11 @@ namespace MonoGame.PortableUI
             });
             Engine.SetScreenSize(_width, _height);
             Engine.NavigateToScreen(Screen);
+#if ANDROID
+            // Android recreates the GL surface on resume and render targets lose their contents; on
+            // desktop they survive, so window activation must not redraw every surface at once.
             _game.Activated += OnFrameLost;
+#endif
         }
 
         public ScreenEngine Engine { get; }
@@ -157,6 +161,9 @@ namespace MonoGame.PortableUI
         ///     animation or the caret wants its next frame, a transition runs, or the target holds no
         ///     frame yet. Does not clear anything; <see cref="DrawIfNeeded"/> and <see cref="Draw"/> do.
         ///     Changes made while a surface is not drawn stay pending: skipping draws never loses one.
+        ///     Pointer and key activity keep a surface drawing for 250 ms; the default
+        ///     <see cref="InputSource"/> is the real mouse and keyboard, so give unfocused surfaces
+        ///     <see cref="NullInputSource.Instance"/>.
         /// </summary>
         public bool NeedsRedraw => !HasFrame || Engine.PeekRedrawRequest();
 
@@ -238,9 +245,13 @@ namespace MonoGame.PortableUI
         ///     Draws the surface into <paramref name="destination"/> of a host's render target, e.g. this
         ///     surface's tile in a screen atlas, replacing what was there (alpha included). The surface then
         ///     needs no <see cref="Target"/> of its own: it renders into a scratch target shared by all
-        ///     surfaces of the same pixel size and copies it into the tile, scaled to the tile's size - a
-        ///     smaller tile is a lower resolution for a distant screen. <paramref name="target"/> must use
-        ///     <see cref="RenderTargetUsage.PreserveContents"/>, or binding it wipes the other tiles.
+        ///     surfaces of the same pixel size and copies it into the tile, scaled to the tile's size.
+        ///     The copy filters linearly without mipmaps and the UI is still rendered at full size: for a
+        ///     distant screen lower <see cref="LayoutScale"/> (one relayout per change) so the surface
+        ///     renders at about the tile's size, and keep the copy above half size, or text shimmers.
+        ///     <paramref name="target"/> must use <see cref="RenderTargetUsage.PreserveContents"/>, or
+        ///     binding it wipes the other tiles. A host that writes into the tile itself calls
+        ///     <see cref="Invalidate"/>, or <see cref="DrawIfNeededTo"/> keeps skipping.
         /// </summary>
         public void DrawTo(RenderTarget2D target, Rectangle destination, GameTime gameTime)
         {
@@ -269,7 +280,9 @@ namespace MonoGame.PortableUI
         public void Dispose()
         {
             HasKeyboardFocus = false;
+#if ANDROID
             _game.Activated -= OnFrameLost;
+#endif
             if (_watchedDevice != null)
                 _watchedDevice.DeviceReset -= OnFrameLost;
             _watchedDevice = null;
