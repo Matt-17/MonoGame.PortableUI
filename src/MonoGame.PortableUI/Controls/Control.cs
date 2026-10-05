@@ -1518,15 +1518,26 @@ namespace MonoGame.PortableUI.Controls
             LostFocus?.Invoke(this, args);
         }
 
+        /// <summary>
+        ///     A key went down while this control or a descendant has focus (bubbles from the focused
+        ///     control up to the screen): any key, F1-F12 and Alt/Ctrl chords included. Set
+        ///     <see cref="KeyEventArgs.Handled"/> to claim it - also Tab, Escape and arrows, which the
+        ///     screen otherwise uses for navigation.
+        /// </summary>
         protected virtual void OnKeyDown(KeyEventArgs args)
         {
             KeyDown?.Invoke(this, args);
         }
 
+        /// <summary>A key went up while this control or a descendant has focus (bubbles like KeyDown).</summary>
         protected virtual void OnKeyUp(KeyEventArgs args)
         {
             KeyUp?.Invoke(this, args);
         }
+
+        internal void RaiseKeyDown(KeyEventArgs args) => OnKeyDown(args);
+
+        internal void RaiseKeyUp(KeyEventArgs args) => OnKeyUp(args);
 
         public void Focus()
         {
