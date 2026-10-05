@@ -12,8 +12,10 @@ namespace MonoGame.PortableUI
     public sealed class UISurface : IDisposable
     {
         private readonly Game _game;
-        private SpriteBatch? _spriteBatch;
         private RenderTarget2D? _target;
+        // False while the target holds no finished frame (new, resized, device or surface lost).
+        private bool _targetValid;
+        private GraphicsDevice? _watchedDevice;
         private RenderTargetBinding[]? _previousTargets;
         private int _width;
         private int _height;
@@ -33,6 +35,7 @@ namespace MonoGame.PortableUI
             });
             Engine.SetScreenSize(_width, _height);
             Engine.NavigateToScreen(Screen);
+            _game.Activated += OnFrameLost;
         }
 
         public ScreenEngine Engine { get; }
@@ -46,6 +49,19 @@ namespace MonoGame.PortableUI
             get => Engine.Options.PostEffects;
             set => Engine.Options.PostEffects = value;
         }
+
+        /// <summary>
+        ///     Which post-effect stages this surface draws (shortcut for <c>Engine.Options.PostEffectMode</c>).
+        ///     <see cref="PortableUI.PostEffectMode.None"/> renders the UI flat for a host that applies
+        ///     curvature, scanlines and glass in its own shader; <see cref="IsPointOnDisplay"/> and the
+        ///     <c>Map…</c> methods then ignore the display's barrel too.
+        /// </summary>
+        public PostEffectMode PostEffectMode
+        {
+            get => Engine.Options.PostEffectMode;
+            set => Engine.Options.PostEffectMode = value;
+        }
+
         public Screen Screen { get; }
         public RenderTarget2D Target => EnsureTarget();
         public PortableTheme Theme
@@ -78,8 +94,7 @@ namespace MonoGame.PortableUI
                     return;
                 _layoutScale = value;
                 Engine.SetNativeRenderScale(value);
-                _target?.Dispose();
-                _target = null;
+                DropTarget();
             }
         }
 
@@ -105,11 +120,7 @@ namespace MonoGame.PortableUI
             }
         }
         public float ScaleFactor { get; set; } = 1;
-        /// <summary>
-        ///     Draws the theme's pointer (<see cref="PortableTheme.Cursor"/>) inside the surface, bent by
-        ///     its display effects. Shortcut for <c>Engine.Options.ShowSoftwareCursor</c>; the pointer
-        ///     position comes from <see cref="InputSource"/>.
-        /// </summary>
+
         /// <summary>Text-mode grid of this surface's display (shortcut for <c>Engine.Options.TextGrid</c>); per surface.</summary>
         public TextGrid? TextGrid
         {
@@ -117,6 +128,11 @@ namespace MonoGame.PortableUI
             set => Engine.Options.TextGrid = value;
         }
 
+        /// <summary>
+        ///     Draws the theme's pointer (<see cref="PortableTheme.Cursor"/>) inside the surface, bent by
+        ///     its display effects. Shortcut for <c>Engine.Options.ShowSoftwareCursor</c>; the pointer
+        ///     position comes from <see cref="InputSource"/>.
+        /// </summary>
         public bool ShowSoftwareCursor
         {
             get => Engine.Options.ShowSoftwareCursor;
@@ -128,7 +144,40 @@ namespace MonoGame.PortableUI
             set { Screen.InputSource = value ?? NullInputSource.Instance; }
         }
 
-        public PostProcessManager? PostProcessManager { get; private set; }
+        /// <summary>Unused: post effects run on <see cref="ScreenEngine.PostProcess"/> of <see cref="Engine"/>.</summary>
+        [Obsolete("Never used for drawing; post effects run on Engine.PostProcess. Always null.")]
+        public PostProcessManager? PostProcessManager => null;
+
+        /// <summary>
+        ///     True when the picture in <see cref="Target"/> is out of date: something changed, an
+        ///     animation or the caret wants its next frame, a transition runs, or the target holds no
+        ///     frame yet. Does not clear anything; <see cref="DrawIfNeeded"/> and <see cref="Draw"/> do.
+        ///     Changes made while a surface is not drawn stay pending: skipping draws never loses one.
+        /// </summary>
+        public bool NeedsRedraw => !HasValidFrame || Engine.PeekRedrawRequest();
+
+        /// <summary>
+        ///     When this surface next wants a frame, on the <see cref="ScreenSystem.TotalTime"/> clock:
+        ///     <see cref="TimeSpan.Zero"/> when one is due now, <see cref="TimeSpan.MaxValue"/> when idle,
+        ///     otherwise the scheduled time (e.g. the next caret blink) - for host schedulers that
+        ///     spread surface draws over frames.
+        /// </summary>
+        public TimeSpan NextRedrawDue => HasValidFrame ? Engine.NextRedrawDue : TimeSpan.Zero;
+
+        /// <summary>Frames drawn into <see cref="Target"/>, and calls of <see cref="DrawIfNeeded"/> that
+        /// had nothing to draw.</summary>
+        public long FramesDrawn => Engine.FramesDrawn;
+
+        /// <inheritdoc cref="FramesDrawn"/>
+        public long FramesSkipped => Engine.FramesSkipped;
+
+        /// <summary>Marks the whole picture out of date, layer caches included - e.g. after the host
+        /// changed something the UI cannot see.</summary>
+        public void Invalidate()
+        {
+            Engine.InvalidateLayerCaches();
+            Engine.RequestRedraw();
+        }
 
         public void Resize(int width, int height)
         {
@@ -139,8 +188,7 @@ namespace MonoGame.PortableUI
 
             _width = width;
             _height = height;
-            _target?.Dispose();
-            _target = null;
+            DropTarget();
             Engine.SetScreenSize(width, height);
         }
 
@@ -152,42 +200,109 @@ namespace MonoGame.PortableUI
             Engine.Update(gameTime);
         }
 
+        /// <summary>Draws the surface into <see cref="Target"/> unconditionally and returns it.</summary>
         public RenderTarget2D Draw(GameTime gameTime)
         {
-            var target = EnsureTarget();
-            _spriteBatch ??= new SpriteBatch(_game.GraphicsDevice);
-            PostProcessManager ??= new PostProcessManager(_game.GraphicsDevice);
-            PostProcessManager.BeginFrame();
+            Engine.ConsumeRedrawRequest();
+            return Render();
+        }
 
-            // Restore whatever was bound (e.g. the host screen's post-FX target), not just null.
-            var previousTargets = Effects.RenderTargetHelper.SnapshotRenderTargets(_game.GraphicsDevice, ref _previousTargets);
-            _game.GraphicsDevice.SetRenderTarget(target);
-            _game.GraphicsDevice.Clear(Color.Transparent);
-            // The whole stack: overlays/modals pushed on this surface's engine and its toasts too.
-            Engine.DrawStack(_spriteBatch);
-            if (previousTargets.Length == 0)
-                _game.GraphicsDevice.SetRenderTarget(null);
-            else
-                _game.GraphicsDevice.SetRenderTargets(previousTargets);
-            return target;
+        /// <summary>
+        ///     Draws into <see cref="Target"/> only when <see cref="NeedsRedraw"/>; otherwise the previous
+        ///     picture stays (the target preserves its contents). Returns whether it drew. Call it for the
+        ///     surfaces that are seen: the requests of unseen ones stay pending until they are drawn.
+        /// </summary>
+        public bool DrawIfNeeded(GameTime gameTime)
+        {
+            // Consumed before drawing, so a request raised while drawing (an animation's next frame)
+            // carries over to the next call.
+            var requested = Engine.ConsumeRedrawRequest();
+            if (!requested && HasValidFrame)
+            {
+                Engine.RecordFrame(false);
+                return false;
+            }
+            Render();
+            return true;
         }
 
         public void Dispose()
         {
             HasKeyboardFocus = false;
+            _game.Activated -= OnFrameLost;
+            if (_watchedDevice != null)
+                _watchedDevice.DeviceReset -= OnFrameLost;
+            _watchedDevice = null;
             _target?.Dispose();
-            _spriteBatch?.Dispose();
-            PostProcessManager?.Dispose();
             Engine.Dispose();
+        }
+
+        private bool HasValidFrame => _targetValid && _target is { IsDisposed: false }
+            && ReferenceEquals(_target.GraphicsDevice, _game.GraphicsDevice);
+
+        private RenderTarget2D Render()
+        {
+            var device = _game.GraphicsDevice;
+            WatchDevice(device);
+            var target = EnsureTarget();
+            // One batch per device for all surfaces, not one each (rented: a surface may draw another).
+            var spriteBatch = SharedSpriteBatches.Rent(device);
+            try
+            {
+                // Restore whatever was bound (e.g. the host screen's post-FX target), not just null.
+                var previousTargets = Effects.RenderTargetHelper.SnapshotRenderTargets(device, ref _previousTargets);
+                device.SetRenderTarget(target);
+                device.Clear(Color.Transparent);
+                // The whole stack: overlays/modals pushed on this surface's engine and its toasts too.
+                Engine.DrawStack(spriteBatch);
+                if (previousTargets.Length == 0)
+                    device.SetRenderTarget(null);
+                else
+                    device.SetRenderTargets(previousTargets);
+            }
+            finally
+            {
+                SharedSpriteBatches.Return(device, spriteBatch);
+            }
+            _targetValid = true;
+            Engine.RecordFrame(true);
+            return target;
+        }
+
+        private void WatchDevice(GraphicsDevice device)
+        {
+            if (ReferenceEquals(_watchedDevice, device))
+                return;
+            if (_watchedDevice != null)
+                _watchedDevice.DeviceReset -= OnFrameLost;
+            _watchedDevice = device;
+            device.DeviceReset += OnFrameLost;
+        }
+
+        // Render target contents do not survive a lost device or surface (Android resume).
+        private void OnFrameLost(object? sender, EventArgs args)
+        {
+            _targetValid = false;
+            Engine.InvalidateLayerCaches();
+            Engine.RequestRedraw();
+        }
+
+        private void DropTarget()
+        {
+            _target?.Dispose();
+            _target = null;
+            _targetValid = false;
         }
 
         private RenderTarget2D EnsureTarget()
         {
-            if (_target != null && _target.Width == PixelWidth && _target.Height == PixelHeight)
+            if (_target is { IsDisposed: false } && _target.Width == PixelWidth && _target.Height == PixelHeight
+                && ReferenceEquals(_target.GraphicsDevice, _game.GraphicsDevice))
                 return _target;
 
-            _target?.Dispose();
-            // PreserveContents: Screen.Draw may switch to blur/post-FX targets mid-frame and come back.
+            DropTarget();
+            // PreserveContents: Screen.Draw may switch to blur/post-FX targets mid-frame and come back,
+            // and DrawIfNeeded keeps the last picture between draws.
             _target = new RenderTarget2D(_game.GraphicsDevice, PixelWidth, PixelHeight, false, SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.PreserveContents);
             return _target;
         }
@@ -203,7 +318,7 @@ namespace MonoGame.PortableUI
             var rect = new Rect(0, 0, _width, _height);
             var distortion = BarrelDistortion();
             if (distortion > 0)
-                surfacePoint = PostProcessManager.InverseBarrel(surfacePoint, rect, distortion);
+                surfacePoint = Effects.PostProcessManager.InverseBarrel(surfacePoint, rect, distortion);
             // Half a pixel of slack: a point exactly on the edge survives the barrel round trip.
             return surfacePoint.X > -0.5f && surfacePoint.Y > -0.5f && surfacePoint.X < _width + 0.5f && surfacePoint.Y < _height + 0.5f;
         }
@@ -212,24 +327,50 @@ namespace MonoGame.PortableUI
         public PointF MapDisplayToUi(PointF surfacePoint)
         {
             var distortion = BarrelDistortion();
-            return distortion > 0 ? PostProcessManager.InverseBarrel(surfacePoint, new Rect(0, 0, _width, _height), distortion) : surfacePoint;
+            return distortion > 0 ? Effects.PostProcessManager.InverseBarrel(surfacePoint, new Rect(0, 0, _width, _height), distortion) : surfacePoint;
         }
 
         /// <summary>Where a UI point appears on the (curved) picture — applies a CRT barrel.</summary>
         public PointF MapUiToDisplay(PointF uiPoint)
         {
             var distortion = BarrelDistortion();
-            return distortion > 0 ? PostProcessManager.ForwardBarrel(uiPoint, new Rect(0, 0, _width, _height), distortion) : uiPoint;
+            return distortion > 0 ? Effects.PostProcessManager.ForwardBarrel(uiPoint, new Rect(0, 0, _width, _height), distortion) : uiPoint;
         }
 
         private float BarrelDistortion()
         {
             // Only display effects curve the picture (a theme's curvature is ignored), the same
-            // rule the screen's input mapping follows.
+            // rule the screen's input mapping follows. A host drawing the display stage itself
+            // (PostEffectMode below All) maps through its own curve.
+            if (Engine.Options.PostEffectMode != PostEffectMode.All)
+                return 0;
             var display = Engine.Options.PostEffects;
             var barrel = display.Count > 0 ? Screen.FindEnabledBarrel(display) : null;
             return barrel == null ? 0 : MathHelper.Clamp(barrel.Distortion, 0, 0.5f);
         }
 
+        /// <summary>SpriteBatches shared by all surfaces of a device; nested surface draws rent a second one.</summary>
+        private static class SharedSpriteBatches
+        {
+            private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<GraphicsDevice, Stack<SpriteBatch>> Pools = new();
+
+            public static SpriteBatch Rent(GraphicsDevice device)
+            {
+                var pool = Pools.GetValue(device, static _ => new Stack<SpriteBatch>());
+                while (pool.Count > 0)
+                {
+                    var batch = pool.Pop();
+                    if (!batch.IsDisposed)
+                        return batch;
+                }
+                return new SpriteBatch(device);
+            }
+
+            public static void Return(GraphicsDevice device, SpriteBatch batch)
+            {
+                if (!batch.IsDisposed)
+                    Pools.GetValue(device, static _ => new Stack<SpriteBatch>()).Push(batch);
+            }
+        }
     }
 }
