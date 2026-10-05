@@ -72,6 +72,21 @@ namespace MonoGame.PortableUI
         /// rather than by blitting a reference-size render target.</summary>
         internal bool ScalesNatively => RenderScale != 1 && !(Options.ReferenceSize.X > 0 && Options.ReferenceSize.Y > 0);
 
+        private float _drawResolution = 1f;
+
+        /// <summary>Draw-only resolution factor on top of <see cref="RenderScale"/>, set by a
+        /// <see cref="UISurface"/> while it renders a distant screen smaller (layout and pointer
+        /// mapping stay untouched). 1 outside such a draw.</summary>
+        internal float DrawResolution
+        {
+            get => _drawResolution;
+            set => _drawResolution = value > 0 ? value : 1f;
+        }
+
+        /// <summary>Render pixels per layout unit while drawing: the native LayoutScale times
+        /// <see cref="DrawResolution"/>. Drawing code reads this, input mapping reads RenderScale.</summary>
+        internal float DrawScale => (ScalesNatively ? RenderScale : 1f) * _drawResolution;
+
         /// <summary>
         ///     The control with keyboard/gamepad focus in this engine. Each engine (a window, a
         ///     <see cref="UISurface"/>, one player's computer in a game) has its own focus.

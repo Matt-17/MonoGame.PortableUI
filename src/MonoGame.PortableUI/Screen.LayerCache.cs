@@ -60,7 +60,7 @@ namespace MonoGame.PortableUI
         {
             // A transient scale (overscroll stretch, popup zoom) changes every frame: re-rendering the
             // texture each time would cost more than drawing live.
-            var baseScale = engine.ScalesNatively ? engine.RenderScale : 1f;
+            var baseScale = engine.DrawScale;
             if (Math.Abs(context.Scale.X - baseScale) > 0.0001f || Math.Abs(context.Scale.Y - baseScale) > 0.0001f)
                 return false;
             var cache = control.LayerCache;
