@@ -164,7 +164,7 @@ namespace MonoGame.PortableUI
         }
 
         /// <summary>Black or white, whichever reads better on the given color.</summary>
-        private static Color ContrastColor(Color background)
+        internal static Color ContrastColor(Color background)
         {
             var luminance = (0.299 * background.R + 0.587 * background.G + 0.114 * background.B) / 255.0;
             return luminance > 0.55 ? Color.Black : Color.White;
@@ -268,6 +268,13 @@ namespace MonoGame.PortableUI
         /// <summary>Half period of the caret blink (on, then off for as long). DOS: 133 ms ≈ 3.75 Hz.</summary>
         public TimeSpan TextBoxCaretBlinkInterval { get; set; } = TimeSpan.FromMilliseconds(500);
         public Brush TextBoxSelectionBrush { get; set; } = new SolidColorBrush(new Color(51, 153, 255, 95));
+
+        /// <summary>
+        ///     Colour of selected text in text boxes. Null (default) keeps the text colour under a
+        ///     translucent highlight and inverts it under an opaque one: the box's background colour
+        ///     when it reads well on the highlight (Windows 3.1, Game Boy), otherwise black or white.
+        /// </summary>
+        public Color? TextBoxSelectionTextColor { get; set; }
         public Color TextBoxHintTextColor { get; set; } = Color.Silver;
         public Thickness TextBoxPadding { get; set; } = new Thickness(10, 4);
         public float TextBoxHeight { get; set; } = 28;
