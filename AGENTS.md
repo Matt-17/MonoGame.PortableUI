@@ -78,6 +78,11 @@ draw time** must ask for its next frame from `OnDraw`: `ScreenEngine.RequestAnim
 `RequestAnimationFrameAt(time)` like the caret) — otherwise it freezes in OnDemand mode. State flipped by
 time in update code calls `Control.RequestRedraw()`. Check `FramesDrawn`/`FramesSkipped`, and on Android
 `dumpsys SurfaceFlinger --latency` must show 0 frames on an idle screen.
+`UISurface` consumes the same bookkeeping itself (any `RenderMode`): `NeedsRedraw`/`NextRedrawDue` peek,
+`DrawIfNeeded`/`DrawIfNeededTo` consume; `DrawTo` renders into a host's atlas tile through a scratch target
+shared per device and pixel size (every offscreen pass assumes a full target of the surface's size, so never
+draw a surface with a viewport offset). `PostEffectMode` (All/ThemeOnly/None) is the host's switch over theme
+and display effects.
 
 **Layer cache:** `Control.CacheMode = CacheMode.Bitmap` draws the control's subtree into a render target
 and composites one quad while it stays valid (scrolling only moves it; consecutive composites share a
