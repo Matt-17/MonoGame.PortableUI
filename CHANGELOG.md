@@ -3,6 +3,8 @@
 ## Unreleased
 
 - **Distant screens render smaller (#99):** `UISurface.DrawTo`/`DrawIfNeededTo` render a tile smaller than the surface at a lower resolution instead of rendering full size and shrinking the copy: the smallest step of `UISurface.DrawToResolutionSteps` (1, ¾, ½, ⅜, ¼, ³⁄₁₆, ⅛ of the pixel size) that still covers the tile. Draw-only: no relayout, pointer mapping unchanged, layer caches re-render at the new scale. The copy shrinks by at most a third, so distant text no longer shimmers; the few steps keep scratch targets and glyph sizes bounded. `LastDrawResolution` reports the step used. A full-size tile stays pixel-identical to `Draw`.
+- **No GPU memory per surface (#100):** surface engines rent their post-FX UI and effect-island targets, clip-shape layers and the nested-glass backdrop from a pool shared per device and size for the duration of a draw, instead of keeping their own; the main engine keeps its own. With display effects on, a 640×400 surface held a 1000 KB render target each; now 100 surfaces share one.
+- **Surface benchmark:** demo flag `--benchmark-surfaces out.csv [--surface-count 100]` hosts N text-mode editor stations drawn into an atlas with `DrawIfNeededTo`. Measured on a desktop GPU (100 surfaces, 640×400): 0 GPU resources and 21.5 KB managed memory per surface (12.5 KB when surfaces share one theme instance - create a theme once per look, not per surface), ~1 µs idle update per surface, 12 of 100 surfaces redrawn per idle frame (their blinking carets), ~8 ms to redraw all 100 flat and ~16 ms with display effects, nothing retained after `Dispose`. Redrawing is CPU-bound there, so half-size tiles mainly save GPU fill and atlas space.
 
 ## 0.3.0-alpha.6
 
