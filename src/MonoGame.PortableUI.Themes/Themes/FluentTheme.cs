@@ -12,7 +12,7 @@ public static class FluentTheme
         return ThemeBuilder.Catalog("fluent", "Fluent Acrylic", "selawik", ThemeEra.Glass, ThemeBrightness.Dark,
             background: "#202020", surface: "#2C2C2C", surfaceAlt: "#3A3A3A", text: "#FFFFFF",
             primary: "#0078D4", secondary: "#60CDFF", selection: "#0078D4", selectionText: "#FFFFFF",
-            glass: true,
+            glass: tint => new AcrylicBrush(tint),
             styleTheme: theme =>
             {
                 ThemeBuilder.Chrome(theme.Button, null, ThemeBuilder.Solid(ThemeBuilder.Hex("#454545")), 1, 4);

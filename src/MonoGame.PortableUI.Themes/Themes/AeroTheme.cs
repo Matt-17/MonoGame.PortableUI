@@ -15,7 +15,7 @@ public static class AeroTheme
             background: "#DCEFFF", surface: "#B8D6FB", surfaceAlt: "#FFFFFF", text: "#1E395B",
             primary: "#2A7FD4", secondary: "#4FA34F", selection: "#CDE6FC", selectionText: "#1E395B",
             danger: "#C74F35",
-            glass: true,
+            glass: tint => new AcrylicBrush(tint),
             styleTheme: theme =>
             {
                 // XP, Aqua and Aero already had smooth pointers.

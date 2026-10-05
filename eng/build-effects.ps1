@@ -4,8 +4,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
-$source = Join-Path $root "src/MonoGame.PortableUI/Effects/src"
-$compiled = Join-Path $root "src/MonoGame.PortableUI/Effects/compiled"
+$source = Join-Path $root "src/MonoGame.PortableUI.Effects/src"
+$compiled = Join-Path $root "src/MonoGame.PortableUI.Effects/compiled"
 
 dotnet tool restore
 New-Item -ItemType Directory -Force -Path $compiled | Out-Null

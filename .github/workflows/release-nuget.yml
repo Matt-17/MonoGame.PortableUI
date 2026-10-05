@@ -50,11 +50,12 @@ jobs:
         shell: pwsh
         run: |
           dotnet pack src/MonoGame.PortableUI/MonoGame.PortableUI.csproj --configuration Release --no-build --output artifacts/packages -p:Version=$env:PACKAGE_VERSION -p:PackageVersion=$env:PACKAGE_VERSION
+          dotnet pack src/MonoGame.PortableUI.Effects/MonoGame.PortableUI.Effects.csproj --configuration Release --no-build --output artifacts/packages -p:Version=$env:PACKAGE_VERSION -p:PackageVersion=$env:PACKAGE_VERSION
           dotnet pack src/MonoGame.PortableUI.Themes/MonoGame.PortableUI.Themes.csproj --configuration Release --no-build --output artifacts/packages -p:Version=$env:PACKAGE_VERSION -p:PackageVersion=$env:PACKAGE_VERSION
 
       - name: Validate package
         shell: pwsh
-        run: ./eng/validate-package.ps1 -PackageDirectory artifacts/packages -ExpectedVersion $env:PACKAGE_VERSION -ExpectedPackageIds MonoGame.PortableUI,CodeIX.PortableUI.Themes
+        run: ./eng/validate-package.ps1 -PackageDirectory artifacts/packages -ExpectedVersion $env:PACKAGE_VERSION -ExpectedPackageIds MonoGame.PortableUI,CodeIX.PortableUI.Effects,CodeIX.PortableUI.Themes
 
       - name: NuGet login
         id: login

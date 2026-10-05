@@ -48,7 +48,6 @@ namespace MonoGame.PortableUI
         private readonly List<Control> _visualTreeScratch = new List<Control>();
         // Per call site so nested snapshots (island inside the post-FX pass) never share a buffer.
         private RenderTargetBinding[]? _postFxPreviousTargets;
-        private RenderTargetBinding[]? _backdropPreviousTargets;
         private RenderTargetBinding[]? _islandPreviousTargets;
         private readonly List<MouseButton> _pressedMouseButtonsScratch = new List<MouseButton>(3);
         private Control? _toolTipOwner;
@@ -380,12 +379,14 @@ namespace MonoGame.PortableUI
             PrepareBackdrop(spriteBatch, engine);
 
             var postEffects = GetScreenPostEffects();
+            // Post effects are drawn by the optional effects package; without it the UI draws flat.
             // Island post-FX switches render targets mid-frame; the backbuffer discards its
             // contents on re-bind, so when FX islands exist the whole UI must render into a
             // PreserveContents target even without screen-level effects.
-            var usePostFx = engine != null
+            var renderer = engine?.PostEffectRenderer;
+            var usePostFx = renderer != null
                 && ScreenRect.Width > 0 && ScreenRect.Height > 0
-                && (postEffects is { Count: > 0 } && engine.PostProcess.CountEnabled(postEffects) > 0
+                && (postEffects is { Count: > 0 } && renderer.CountEnabled(postEffects) > 0
                     || TreeHasPostFxIslands());
             RenderTargetBinding[]? previousTargets = null;
             RenderTarget2D? uiTarget = null;
@@ -394,11 +395,9 @@ namespace MonoGame.PortableUI
                 previousTargets = RenderTargetHelper.SnapshotRenderTargets(device, ref _postFxPreviousTargets);
                 var uiWidth = (int)Math.Ceiling(PixelScreenRect.Width);
                 var uiHeight = (int)Math.Ceiling(PixelScreenRect.Height);
-                // Surface engines (many, drawn one after another) share the target per device; the
-                // main engine draws every frame and keeps its own.
-                uiTarget = engine!.IsSurfaceEngine
-                    ? RenderTargetPool.Rent(device, uiWidth, uiHeight)
-                    : engine.PostProcess.EnsureUiTarget(uiWidth, uiHeight);
+                // Rented per draw from the per-device pool: surface engines drawn one after another
+                // share it, the main engine gets the same target back every frame.
+                uiTarget = RenderTargetPool.Rent(device, uiWidth, uiHeight);
                 device.SetRenderTarget(uiTarget);
                 device.Clear(Color.Transparent);
             }
@@ -436,14 +435,17 @@ namespace MonoGame.PortableUI
                     device.SetRenderTarget(null);
                 else
                     device.SetRenderTargets(previousTargets);
-                engine!.PostProcess.Compose(spriteBatch, uiTarget!, postEffects ?? Array.Empty<PostEffect>(), PixelScreenRect);
-                engine.RecordBatchFlush();
-                if (engine.IsSurfaceEngine)
-                    RenderTargetPool.Return(device, uiTarget!);
+                renderer!.Compose(spriteBatch, uiTarget!, postEffects ?? Array.Empty<PostEffect>(), PixelScreenRect);
+                engine!.RecordBatchFlush();
+                RenderTargetPool.Return(device, uiTarget!);
             }
 
-            BackdropSource.Clear(device);
+            _preparedBackdrop?.Clear();
+            _preparedBackdrop = null;
         }
+
+        // The renderer that prepared this draw's backdrop, cleared when the draw ends.
+        private IBackdropRenderer? _preparedBackdrop;
 
         /// <summary>
         ///     The theme's pointer, drawn last into the UI (before post effects, so a CRT barrel bends
@@ -533,8 +535,8 @@ namespace MonoGame.PortableUI
 
         private void PrepareBackdrop(SpriteBatch spriteBatch, ScreenEngine? engine)
         {
-            var device = spriteBatch.GraphicsDevice;
-            BackdropSource.Clear(device);
+            _preparedBackdrop?.Clear();
+            _preparedBackdrop = null;
             var external = ExternalBackdrop ?? StackBackdrop;
             if (external != null && external.IsDisposed)
                 external = null;
@@ -543,23 +545,11 @@ namespace MonoGame.PortableUI
                 || (BackgroundBrush == null && external == null) || ScreenRect.Width <= 0 || ScreenRect.Height <= 0 || !TreeRequiresBackdrop())
                 return;
 
-            var backdrop = engine.Backdrop;
-            backdrop.BeginFrame();
-            var previousTargets = RenderTargetHelper.SnapshotRenderTargets(device, ref _backdropPreviousTargets);
-            var scene = backdrop.EnsureSceneTarget((int)Math.Ceiling(PixelScreenRect.Width), (int)Math.Ceiling(PixelScreenRect.Height));
-            device.SetRenderTarget(scene);
-            device.Clear(Color.Transparent);
-            spriteBatch.Begin();
-            if (external != null)
-                spriteBatch.Draw(external, new Rectangle(0, 0, scene.Width, scene.Height), Color.White);
-            BackgroundBrush?.Draw(spriteBatch, PixelScreenRect);
-            spriteBatch.End();
-            var blurred = backdrop.Blur(spriteBatch, scene);
-            if (previousTargets.Length == 0)
-                device.SetRenderTarget(null);
-            else
-                device.SetRenderTargets(previousTargets);
-            BackdropSource.Set(device, blurred, PixelScreenRect, scene);
+            // Glass needs the optional effects package; without it brushes draw their tint fallback.
+            if (engine.BackdropRenderer is not { } backdrop)
+                return;
+            backdrop.Prepare(spriteBatch, PixelScreenRect, external, BackgroundBrush);
+            _preparedBackdrop = backdrop;
             engine.RecordBatchFlush();
         }
 
@@ -578,7 +568,7 @@ namespace MonoGame.PortableUI
             engine.EffectiveRenderQuality != RenderQuality.Low
             && engine.Options.PostEffectMode != PostEffectMode.None
             && control is ThemeIsland { IsVisible: true, Theme.PostEffects: { Count: > 0 } effects }
-            && LookEffects(effects) is { } look && engine.PostProcess.CountEnabled(look) > 0;
+            && LookEffects(effects) is { } look && engine.PostEffectRenderer is { } renderer && renderer.CountEnabled(look) > 0;
 
         /// <summary>True when something on this screen (glass) samples the backdrop.</summary>
         internal bool RequiresBackdropNow => ScreenRect.Width > 0 && ScreenRect.Height > 0 && TreeRequiresBackdrop();
@@ -938,7 +928,7 @@ namespace MonoGame.PortableUI
             var effects = LookEffects(island.Theme?.PostEffects);
             if (engine == null || engine.EffectiveRenderQuality == RenderQuality.Low
                 || engine.Options.PostEffectMode == PostEffectMode.None
-                || effects is not { Count: > 0 } || engine.PostProcess.CountEnabled(effects) == 0)
+                || effects is not { Count: > 0 } || engine.PostEffectRenderer is not { } renderer || renderer.CountEnabled(effects) == 0)
                 return false;
 
             var islandRect = context.RenderRect;
@@ -950,9 +940,7 @@ namespace MonoGame.PortableUI
             // Full-frame target so the subtree can keep drawing at absolute screen coordinates.
             var targetWidth = (int)Math.Ceiling(Math.Max(PixelScreenRect.Right, islandRect.Right));
             var targetHeight = (int)Math.Ceiling(Math.Max(PixelScreenRect.Bottom, islandRect.Bottom));
-            var target = engine.IsSurfaceEngine
-                ? RenderTargetPool.Rent(device, targetWidth, targetHeight)
-                : engine.PostProcess.EnsureIslandTarget(targetWidth, targetHeight);
+            var target = RenderTargetPool.Rent(device, targetWidth, targetHeight);
             device.SetRenderTarget(target);
             device.Clear(Color.Transparent);
 
@@ -971,10 +959,9 @@ namespace MonoGame.PortableUI
             else
                 device.SetRenderTargets(previousTargets);
 
-            engine.PostProcess.Compose(spriteBatch, target, effects, islandRect, islandRect);
+            renderer.Compose(spriteBatch, target, effects, islandRect, islandRect);
             engine.RecordBatchFlush();
-            if (engine.IsSurfaceEngine)
-                RenderTargetPool.Return(device, target);
+            RenderTargetPool.Return(device, target);
             return true;
         }
 
@@ -1183,44 +1170,34 @@ namespace MonoGame.PortableUI
         /// <summary>
         ///     A theme's effects without screen curvature. A theme is the look of the UI; curvature
         ///     belongs to the display it is shown on (<see cref="ScreenEngineOptions.PostEffects"/>,
-        ///     <see cref="UISurface.PostEffects"/>), so a <see cref="CrtBarrelPostEffect"/> in a theme
-        ///     is ignored. One place owns the curve, so input mapping can never disagree with it.
+        ///     <see cref="UISurface.PostEffects"/>), so a display-only effect (<see cref="PostEffect.IsDisplayOnly"/>,
+        ///     the CRT curvature) in a theme is ignored. One place owns the curve, so input mapping can
+        ///     never disagree with it.
         /// </summary>
         internal static IReadOnlyList<PostEffect>? LookEffects(IReadOnlyList<PostEffect>? effects)
         {
-            if (effects is not { Count: > 0 } || FindEnabledBarrel(effects) == null && !ContainsBarrel(effects))
+            if (effects is not { Count: > 0 } || !ContainsDisplayOnly(effects))
                 return effects;
             return LookEffectsCache.GetValue(effects, static list =>
             {
                 var filtered = new List<PostEffect>(list.Count);
                 for (var i = 0; i < list.Count; i++)
                 {
-                    if (list[i] is not CrtBarrelPostEffect)
+                    if (!list[i].IsDisplayOnly)
                         filtered.Add(list[i]);
                 }
                 return filtered;
             });
         }
 
-        private static bool ContainsBarrel(IReadOnlyList<PostEffect> effects)
+        private static bool ContainsDisplayOnly(IReadOnlyList<PostEffect> effects)
         {
             for (var i = 0; i < effects.Count; i++)
             {
-                if (effects[i] is CrtBarrelPostEffect)
+                if (effects[i].IsDisplayOnly)
                     return true;
             }
             return false;
-        }
-
-        internal static CrtBarrelPostEffect? FindEnabledBarrel(IReadOnlyList<PostEffect> effects)
-        {
-            for (var i = 0; i < effects.Count; i++)
-            {
-                if (effects[i] is CrtBarrelPostEffect { Enabled: true } barrel)
-                    return barrel;
-            }
-
-            return null;
         }
 
         private static Rectangle ToScissorRectangle(Rect rect)
@@ -1633,9 +1610,10 @@ namespace MonoGame.PortableUI
                     position = new PointF((position.X - offset.X) / renderScale, (position.Y - offset.Y) / renderScale);
             }
 
-            var screenDistortion = GetActiveBarrelDistortion();
-            if (screenDistortion > 0 && ScreenRect.Width > 0 && ScreenRect.Height > 0)
-                position = PostProcessManager.InverseBarrel(position, ScreenRect, screenDistortion);
+            // Undo the display's geometry (CRT curvature) so the pointer hits what is visibly there.
+            var effects = GetScreenPostEffects();
+            if (PostEffectGeometry.MovesPixels(effects) && ScreenRect.Width > 0 && ScreenRect.Height > 0)
+                position = PostEffectGeometry.DisplayToUi(effects, position, ScreenRect);
 
             // Text mode: the pointer exists per character cell. Snapped after the curvature is
             // undone, so a click near the curved edge lands in the cell that is visibly there.
@@ -1643,16 +1621,6 @@ namespace MonoGame.PortableUI
                 position = grid.Snap(position, ScreenRect);
 
             return position;
-        }
-
-        private float GetActiveBarrelDistortion()
-        {
-            var effects = GetScreenPostEffects();
-            if (effects == null)
-                return 0;
-
-            var barrel = FindEnabledBarrel(effects);
-            return barrel == null ? 0 : MathHelper.Clamp(barrel.Distortion, 0, 0.5f);
         }
 
         private PointF _activityMousePosition;

@@ -6,7 +6,14 @@ No XAML — trees are built in C#. Known open issues and deferred work live in `
 ## Repository layout
 
 - `src/MonoGame.PortableUI` — the library (controls, layout, input, media/brushes, theming core, `FontStashUIFont` runtime fonts via FontStashSharp — in the core until MonoGame's own font system lands).
-- `src/MonoGame.PortableUI.Themes` — theme catalog add-on, NuGet ID `CodeIX.PortableUI.Themes` because the `MonoGame.` prefix is reserved on NuGet (`PortableThemes.All`, 42 themes incl. 5 game UIs, one self-contained file each under `Themes/`; `ThemeBuilder` lives in the core so a theme file can be copied alone — see `Themes/README.md`).
+- `src/MonoGame.PortableUI.Effects` — optional shader visuals, NuGet ID `CodeIX.PortableUI.Effects`: post effects
+  (concrete `PostEffect`s + `PostProcessManager`), backdrop blur (`BackdropRenderer`/`BackdropManager`/`BackdropSource`),
+  glass brushes, all shaders (`compiled/*.mgfxo`, `src/*.fx`, `EffectCache`). It installs itself on first use
+  (`[ModuleInitializer]` → `EffectRenderers` factories in the core). The core keeps only the `PostEffect` base
+  (with `IsDisplayOnly`/`DisplayToUi`/`UiToDisplay` for pointer mapping), the effect lists and the
+  `IPostEffectRenderer`/`IBackdropRenderer` hooks; without the package it draws flat. Namespaces are unchanged.
+  It sees core internals (`InternalsVisibleTo`) and ships in lockstep with the core version.
+- `src/MonoGame.PortableUI.Themes` — theme catalog add-on (depends on the effects package), NuGet ID `CodeIX.PortableUI.Themes` because the `MonoGame.` prefix is reserved on NuGet (`PortableThemes.All`, 42 themes incl. 5 game UIs, one self-contained file each under `Themes/`; `ThemeBuilder` lives in the core so a theme file can be copied alone — see `Themes/README.md`).
 - `samples/MonoGame.PortableUI.Demo` — DesktopGL demo; `samples/MonoGame.PortableUI.Demo.Android` — Android host.
 - `tests/MonoGame.PortableUI.Tests` — MSTest suite (headless, no graphics device needed for most tests).
 - `benchmarks/` — BenchmarkDotNet. `docs/` — fonts, release process, historical issue log (`issues.md`), audit (`audit.md`).
@@ -38,7 +45,7 @@ animations, tooltips, context menu). Specializations: `Panel` → `Grid`/`StackP
 `ToggleSwitch`, `TabControl`, `ThemeIsland`. `ContextMenu`/`MenuItem`/`TabItem` are plain objects, not controls.
 
 **Top level:** `ScreenEngine` owns navigation, focus, viewport scaling (`ReferenceSize` letter-boxing),
-backdrop-blur and post-FX managers. `ScreenComponent` is the MonoGame `DrawableGameComponent` pumping
+the optional post-effect and backdrop renderers (`PostEffectRenderer`/`BackdropRenderer`, null without the effects package). `ScreenComponent` is the MonoGame `DrawableGameComponent` pumping
 Update/Draw. Each `Screen` is a `FrameworkElement` hosting a private root `Grid` (`_mainGrid`).
 
 **Layout contract (two-phase, WPF-like):**
@@ -65,8 +72,8 @@ Update/Draw. Each `Screen` is a `FrameworkElement` hosting a private root `Grid`
 `OnDraw` runs in its own `SpriteBatch.Begin/End` (skipped for controls without an `OnDraw` override,
 background, border or shadow); `OnDrawOverlay` gets a second batch only for types that override it.
 Translucent rounded fills use a 9-slice of a per-radius mask (`RoundedRectRenderer`), never a
-per-size texture. Offscreen passes: backdrop blur (glass brushes), post-FX (CRT/scanline/etc.), and the
-letter-box scale target. Render targets are pooled (`RenderTargetHelper`) and recreated on device reset.
+per-size texture. Offscreen passes: backdrop blur (glass brushes) and post-FX (CRT/scanline/etc.) via the
+effects package's renderers (UI and island targets rented from `RenderTargetPool`), and the letter-box scale target. Render targets are pooled (`RenderTargetHelper`) and recreated on device reset.
 
 **Render on demand:** `ScreenEngineOptions.RenderMode = OnDemand` (the Android demo uses it) draws only
 when a frame was requested and otherwise calls `Game.SuppressDraw()` and sleeps out

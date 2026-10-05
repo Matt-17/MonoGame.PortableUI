@@ -21,7 +21,9 @@ Fonts: see `../ThemeContent/README.md` (copy the font files, paste the mgcb snip
 ## 2. As a copy (your own, final look)
 
 Every theme file depends only on the core **MonoGame.PortableUI** package
-(`ThemeBuilder`, the brushes and the palette types live there). To adapt one:
+(`ThemeBuilder`, the brushes and the palette types live there). Themes with post effects or glass
+brushes (Amber, Phosphor, Cyberpunk, Sci-Fi HUD, Tactical Ops, Dark Fantasy, Glass, Liquid Glass, Aero,
+Fluent) also need **CodeIX.PortableUI.Effects**. To adapt one:
 
 1. Copy the theme file (e.g. `LunaTheme.cs`) into your project. Nothing else from this
    folder is needed.

@@ -29,6 +29,8 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\MonoGame.PortableUI\MonoGame.PortableUI.csproj" />
+    <!-- Ten themes use post effects or glass brushes. -->
+    <ProjectReference Include="..\MonoGame.PortableUI.Effects\MonoGame.PortableUI.Effects.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />

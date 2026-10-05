@@ -177,6 +177,61 @@ namespace MonoGame.PortableUI
 
         public string Name { get; }
         public bool Enabled { get; set; } = true;
+
+        /// <summary>
+        ///     True for an effect of the display rather than the look (CRT curvature): it only applies in
+        ///     <see cref="ScreenEngineOptions.PostEffects"/> and is ignored in a theme's list, so the curve
+        ///     that input follows has a single owner.
+        /// </summary>
+        public virtual bool IsDisplayOnly => false;
+
+        /// <summary>The UI point under <paramref name="point"/> of the shown picture - the inverse of the
+        /// effect's geometry. Identity for effects that do not move pixels.</summary>
+        public virtual PointF DisplayToUi(PointF point, Rect screen) => point;
+
+        /// <summary>Where UI point <paramref name="point"/> appears in the shown picture.</summary>
+        public virtual PointF UiToDisplay(PointF point, Rect screen) => point;
+    }
+
+    /// <summary>Pointer mapping through a list of effects (the ones that move pixels: curvature).</summary>
+    internal static class PostEffectGeometry
+    {
+        public static bool MovesPixels(IReadOnlyList<PostEffect>? effects)
+        {
+            if (effects == null)
+                return false;
+            for (var i = 0; i < effects.Count; i++)
+            {
+                if (effects[i] is { Enabled: true, IsDisplayOnly: true })
+                    return true;
+            }
+            return false;
+        }
+
+        /// <summary>Undoes the effects in reverse order (the picture applied them in list order).</summary>
+        public static PointF DisplayToUi(IReadOnlyList<PostEffect>? effects, PointF point, Rect screen)
+        {
+            if (effects == null)
+                return point;
+            for (var i = effects.Count - 1; i >= 0; i--)
+            {
+                if (effects[i].Enabled)
+                    point = effects[i].DisplayToUi(point, screen);
+            }
+            return point;
+        }
+
+        public static PointF UiToDisplay(IReadOnlyList<PostEffect>? effects, PointF point, Rect screen)
+        {
+            if (effects == null)
+                return point;
+            for (var i = 0; i < effects.Count; i++)
+            {
+                if (effects[i].Enabled)
+                    point = effects[i].UiToDisplay(point, screen);
+            }
+            return point;
+        }
     }
 
     /// <summary>
@@ -196,85 +251,6 @@ namespace MonoGame.PortableUI
         /// <summary>No post effects at all: the UI is drawn straight into the target, without the
         /// extra render target and full-screen pass, and pointer input is not mapped through a barrel.</summary>
         None
-    }
-
-    /// <summary>Direction of the dark lines drawn by <see cref="ScanlinePostEffect"/>.</summary>
-    public enum ScanlineOrientation
-    {
-        /// <summary>Horizontal lines, as on a normally mounted CRT.</summary>
-        Horizontal,
-
-        /// <summary>Vertical lines, as on a CRT mounted on its side (portrait arcade monitors).</summary>
-        Vertical
-    }
-
-    public sealed class ScanlinePostEffect : PostEffect
-    {
-        public ScanlinePostEffect() : base("scanlines")
-        {
-        }
-
-        public float Spacing { get; set; } = 3;
-        public float Strength { get; set; } = 0.18f;
-
-        /// <summary>
-        ///     Line direction. <see cref="ScanlineOrientation.Vertical"/> suits a display whose tube is turned
-        ///     on its side, e.g. a 3:4 portrait arcade monitor: the beam still sweeps the tube's long side.
-        /// </summary>
-        public ScanlineOrientation Orientation { get; set; } = ScanlineOrientation.Horizontal;
-    }
-
-    /// <summary>
-    ///     CRT screen curvature. It belongs to the display, not the look: it only applies as a display
-    ///     effect (<see cref="ScreenEngineOptions.PostEffects"/>, <see cref="UISurface.PostEffects"/>);
-    ///     in a theme's or ThemeIsland's effect list it is ignored. Pointer input follows the curve.
-    /// </summary>
-    public sealed class CrtBarrelPostEffect : PostEffect
-    {
-        public CrtBarrelPostEffect() : base("crt-barrel")
-        {
-        }
-
-        public float Distortion { get; set; } = 0.08f;
-        public float Vignette { get; set; } = 0.24f;
-    }
-
-    public sealed class VignettePostEffect : PostEffect
-    {
-        public VignettePostEffect() : base("vignette")
-        {
-        }
-
-        public float Strength { get; set; } = 0.2f;
-    }
-
-    public sealed class FilmGrainPostEffect : PostEffect
-    {
-        public FilmGrainPostEffect() : base("film-grain")
-        {
-        }
-
-        public float Strength { get; set; } = 0.04f;
-    }
-
-    public sealed class BloomPostEffect : PostEffect
-    {
-        public BloomPostEffect() : base("bloom")
-        {
-        }
-
-        public float Strength { get; set; } = 0.25f;
-        public float Threshold { get; set; } = 0.72f;
-    }
-
-    public sealed class DotMatrixPostEffect : PostEffect
-    {
-        public DotMatrixPostEffect() : base("dot-matrix")
-        {
-        }
-
-        public float CellSize { get; set; } = 3;
-        public float Strength { get; set; } = 0.18f;
     }
 
     public static class ControlStyleBuilder

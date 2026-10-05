@@ -8,6 +8,7 @@
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/MonoGame.PortableUI/MonoGame.PortableUI.csproj" />
+    <Project Path="src/MonoGame.PortableUI.Effects/MonoGame.PortableUI.Effects.csproj" />
     <Project Path="src/MonoGame.PortableUI.Themes/MonoGame.PortableUI.Themes.csproj" />
   </Folder>
   <Folder Name="/tests/">

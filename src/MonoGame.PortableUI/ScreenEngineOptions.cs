@@ -100,7 +100,7 @@ namespace MonoGame.PortableUI
 
         /// <summary>
         ///     Display effects that belong to the screen this UI is shown on, not to its look — e.g.
-        ///     the curvature (<see cref="CrtBarrelPostEffect"/>) and scanlines of an in-world CRT
+        ///     the curvature (<c>CrtBarrelPostEffect</c>) and scanlines of an in-world CRT
         ///     monitor. They run after the theme's <see cref="PortableTheme.PostEffects"/> and stay when
         ///     the theme changes. Pointer input is mapped through a barrel here as well.
         /// </summary>

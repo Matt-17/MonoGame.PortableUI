@@ -76,8 +76,7 @@ public static class ThemeBuilder
         string selectionText,
         Action<PortableTheme>? styleTheme = null,
         bool reducedMotion = false,
-        bool glass = false,
-        bool liquid = false,
+        Func<Color, Brush>? glass = null,
         string? danger = null,
         Brush? backgroundBrush = null,
         Brush? surfaceBrush = null)
@@ -111,11 +110,11 @@ public static class ThemeBuilder
             FieldBorder = primaryColor,
             DisabledSurface = Mix(surfaceColor, backgroundColor, 0.5f),
             DisabledText = Mix(textColor, backgroundColor, 0.45f),
-            BackgroundBrush = backgroundBrush ?? (glass ? new GradientBrush(backgroundColor, Mix(primaryColor, backgroundColor, 0.78f), GradientDirection.DiagonalDown) : null),
-            SurfaceBrush = surfaceBrush ?? (liquid ? new LiquidGlassBrush() : glass ? new AcrylicBrush(new Color((byte)surfaceColor.R, (byte)surfaceColor.G, (byte)surfaceColor.B, (byte)150)) : null),
-            SurfaceAltBrush = glass ? new AcrylicBrush(new Color((byte)surfaceAltColor.R, (byte)surfaceAltColor.G, (byte)surfaceAltColor.B, (byte)168)) : null,
+            BackgroundBrush = backgroundBrush ?? (glass != null ? new GradientBrush(backgroundColor, Mix(primaryColor, backgroundColor, 0.78f), GradientDirection.DiagonalDown) : null),
+            SurfaceBrush = surfaceBrush ?? glass?.Invoke(new Color((byte)surfaceColor.R, (byte)surfaceColor.G, (byte)surfaceColor.B, (byte)150)),
+            SurfaceAltBrush = glass?.Invoke(new Color((byte)surfaceAltColor.R, (byte)surfaceAltColor.G, (byte)surfaceAltColor.B, (byte)168)),
             SelectionBrush = new LinearGradientBrush(new GradientStop(0, selectionColor), new GradientStop(1, primaryColor)) { AngleDegrees = 0 },
-            FieldFrameBrush = glass ? new AcrylicBrush(new Color((byte)surfaceAltColor.R, (byte)surfaceAltColor.G, (byte)surfaceAltColor.B, (byte)160)) : null
+            FieldFrameBrush = glass?.Invoke(new Color((byte)surfaceAltColor.R, (byte)surfaceAltColor.G, (byte)surfaceAltColor.B, (byte)160))
         };
 
         return new ThemeDefinition
@@ -143,10 +142,6 @@ public static class ThemeBuilder
                 {
                     theme.Button.TransitionDuration = TimeSpan.Zero;
                     theme.TextBox.TransitionDuration = TimeSpan.Zero;
-                }
-                if (liquid)
-                {
-                    theme.Panel.Normal.CornerRadius = 20;
                 }
                 return theme;
             },

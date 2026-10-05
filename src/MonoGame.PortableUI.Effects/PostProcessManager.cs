@@ -13,16 +13,14 @@ namespace MonoGame.PortableUI.Effects
     ///     distortion mesh drawn with <see cref="BasicEffect"/>, and bloom reuses the
     ///     <see cref="BackdropManager"/> blur chain drawn additively.
     /// </summary>
-    public sealed class PostProcessManager : IDisposable
+    public sealed class PostProcessManager : IPostEffectRenderer
     {
         private const int BarrelColumns = 32;
         private const int BarrelRows = 24;
 
         private readonly GraphicsDevice _graphicsDevice;
-        private RenderTarget2D? _uiTarget;
         private BackdropManager? _bloomBlur;
         private RenderTargetBinding[]? _bloomPreviousTargets;
-        private RenderTarget2D? _islandTarget;
         private BasicEffect? _basicEffect;
         private VertexPositionColorTexture[]? _barrelVertices;
         private short[]? _barrelIndices;
@@ -68,18 +66,6 @@ namespace MonoGame.PortableUI.Effects
         {
             if (CanApply(effect))
                 AppliedEffectsThisFrame++;
-        }
-
-        /// <summary>Render target the UI is drawn into when a post-process chain is active.</summary>
-        internal RenderTarget2D EnsureUiTarget(int width, int height)
-        {
-            return RenderTargetHelper.EnsureTarget(_graphicsDevice, ref _uiTarget, width, height);
-        }
-
-        /// <summary>Target used to render a ThemeIsland subtree before composing its post-FX chain.</summary>
-        internal RenderTarget2D EnsureIslandTarget(int width, int height)
-        {
-            return RenderTargetHelper.EnsureTarget(_graphicsDevice, ref _islandTarget, width, height);
         }
 
         /// <summary>
@@ -150,7 +136,7 @@ namespace MonoGame.PortableUI.Effects
         ///     <paramref name="sourceRect"/> selects the region of <paramref name="ui"/> holding the
         ///     content (used for ThemeIsland composition); defaults to the full texture.
         /// </summary>
-        internal void Compose(SpriteBatch spriteBatch, RenderTarget2D ui, IReadOnlyList<PostEffect> effects, Rect screenRect, Rect? sourceRect = null)
+        public void Compose(SpriteBatch spriteBatch, Texture2D ui, IReadOnlyList<PostEffect> effects, Rect screenRect, Rect? sourceRect = null)
         {
             var source = sourceRect ?? new Rect(0, 0, ui.Width, ui.Height);
             Texture2D? bloomTexture = null;
@@ -239,7 +225,7 @@ namespace MonoGame.PortableUI.Effects
                 DrawVignette(spriteBatch, screenRect, barrel.Vignette);
         }
 
-        private bool DrawWithPostFxShader(SpriteBatch spriteBatch, Microsoft.Xna.Framework.Graphics.Effect postFx, RenderTarget2D ui, IReadOnlyList<PostEffect> effects, Rect screenRect, Rect source)
+        private bool DrawWithPostFxShader(SpriteBatch spriteBatch, Microsoft.Xna.Framework.Graphics.Effect postFx, Texture2D ui, IReadOnlyList<PostEffect> effects, Rect screenRect, Rect source)
         {
             var scanlines = Find<ScanlinePostEffect>(effects);
             var dotMatrix = Find<DotMatrixPostEffect>(effects);
@@ -279,8 +265,6 @@ namespace MonoGame.PortableUI.Effects
 
         public void Dispose()
         {
-            _uiTarget?.Dispose();
-            _islandTarget?.Dispose();
             _bloomBlur?.Dispose();
             _basicEffect?.Dispose();
         }
@@ -336,7 +320,7 @@ namespace MonoGame.PortableUI.Effects
             spriteBatch.End();
         }
 
-        private void DrawBarrel(RenderTarget2D ui, Rect screenRect, CrtBarrelPostEffect barrel, Rect source)
+        private void DrawBarrel(Texture2D ui, Rect screenRect, CrtBarrelPostEffect barrel, Rect source)
         {
             var vertexCount = (BarrelColumns + 1) * (BarrelRows + 1);
             _barrelVertices ??= new VertexPositionColorTexture[vertexCount];

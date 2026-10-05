@@ -34,7 +34,9 @@ dotnet mgcb-editor samples/MonoGame.PortableUI.Demo/Content/Content.mgcb
 
 ## Theme Gallery
 
-All themes below ship in the **CodeIX.PortableUI.Themes** add-on package (namespace `MonoGame.PortableUI.Themes`) (`PortableThemes.All`); the core library works completely without it. Each theme lives in its own file under `src/MonoGame.PortableUI.Themes/Themes/` and depends only on the core package, so you can either reference the NuGet package (quick start) or copy a single theme file into your project and customize it — see [Themes/README.md](src/MonoGame.PortableUI.Themes/Themes/README.md).
+All themes below ship in the **CodeIX.PortableUI.Themes** add-on package (namespace `MonoGame.PortableUI.Themes`) (`PortableThemes.All`); the core library works completely without it. Each theme lives in its own file under `src/MonoGame.PortableUI.Themes/Themes/` and depends only on the core package - plus **CodeIX.PortableUI.Effects** for the ten themes with post effects or glass - so you can either reference the NuGet package (quick start) or copy a single theme file into your project and customize it — see [Themes/README.md](src/MonoGame.PortableUI.Themes/Themes/README.md).
+
+**Optional effects:** shader visuals live in the **CodeIX.PortableUI.Effects** package (namespaces unchanged): post effects (`ScanlinePostEffect`, `CrtBarrelPostEffect`, `VignettePostEffect`, `FilmGrainPostEffect`, `BloomPostEffect`, `DotMatrixPostEffect`), backdrop blur and glass brushes (`FrostedGlassBrush`, `AcrylicBrush`, `LiquidGlassBrush`, `ShimmerGlassBrush`). Referencing it is enough - it installs itself when first used (`PortableEffects.Install()` does it explicitly). Without it the UI draws flat and needs no shaders.
 
 Fonts cannot ship pre-built from NuGet, so the package carries them as content files. Three steps in your game:
 

@@ -5,7 +5,7 @@ namespace MonoGame.PortableUI.Effects
 {
     /// <summary>
     /// Shared "recreate if the requested size changed" logic for pooled render targets, previously
-    /// duplicated across <see cref="PostProcessManager"/> and <see cref="BackdropManager"/>.
+    /// duplicated across the post-effect and backdrop renderers.
     /// </summary>
     internal static class RenderTargetHelper
     {
