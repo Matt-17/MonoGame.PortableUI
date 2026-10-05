@@ -106,6 +106,27 @@ namespace MonoGame.PortableUI
         /// </summary>
         public IReadOnlyList<PostEffect> PostEffects { get; set; } = Array.Empty<PostEffect>();
 
+        private PostEffectMode _postEffectMode;
+
+        /// <summary>
+        ///     Which post-effect stages are drawn: all (default), only the theme's look, or none. A host
+        ///     switch that wins over the theme and <see cref="PostEffects"/> — e.g. an in-world screen
+        ///     whose curvature, scanlines and glass come from the host's own shader renders flat with
+        ///     <see cref="PortableUI.PostEffectMode.None"/> and maps the pointer through its curve itself.
+        /// </summary>
+        public PostEffectMode PostEffectMode
+        {
+            get => _postEffectMode;
+            set
+            {
+                if (_postEffectMode == value)
+                    return;
+                _postEffectMode = value;
+                Owner?.InvalidateLayerCaches();
+                Owner?.RequestRedraw();
+            }
+        }
+
         /// <summary>
         ///     Draws the theme's <see cref="PortableTheme.Cursor"/> at the pointer as part of the UI
         ///     (so display effects such as CRT curvature bend it too). Off by default: the system

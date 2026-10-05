@@ -18,25 +18,23 @@ namespace MonoGame.PortableUI
         //probably better if it's internal. making it public for a small hack
         public IKeyboard? CurrentKeyboard;
 
-        private ScreenEngine(Game game, ScreenEngineOptions options)
+        private ScreenEngine(Game game, ScreenEngineOptions options, bool isSurfaceEngine = false)
         {
             Game = game;
             Options = options;
             Options.Owner = this;
+            IsSurfaceEngine = isSurfaceEngine;
             ScreenHistory = new Stack<Screen>();
-            Component = new ScreenComponent(this, game);
             _keyboards = new Dictionary<string, IKeyboard>();
-            ScaleFactor = 1;
-#if !ANDROID
-            // GameWindow.TextInput is provided by the DesktopGL/WindowsDX backends only. On Android
-            // text arrives via the soft keyboard/IME; consumers route it through HandleTextInput.
-            game.Window.TextInput += GameWindowTextInput;
-#endif
-            if (!game.Components.Contains(Component) && options.AddComponentToGame)
+            // Surface engines subscribe only while they own the window's text input (SetTextInputOwner):
+            // a hall of surfaces would otherwise add one handler per surface to every keystroke.
+            if (!isSurfaceEngine)
+                SubscribeWindowTextInput(true);
+            if (options.AddComponentToGame && !game.Components.Contains(Component))
                 game.Components.Add(Component);
         }
 
-        public static float ScaleFactor { get; set; }
+        public static float ScaleFactor { get; set; } = 1;
         public ScreenEngineOptions Options { get; }
 
         /// <summary>
@@ -272,7 +270,10 @@ namespace MonoGame.PortableUI
             SafeAreaChanged?.Invoke(this, EventArgs.Empty);
         }
 
-        internal ScreenComponent Component { get; }
+        private ScreenComponent? _component;
+
+        // Created on demand: surface engines draw through their UISurface and never need one.
+        internal ScreenComponent Component => _component ??= new ScreenComponent(this, Game);
 
         private BackdropManager? _backdrop;
         private PostProcessManager? _postProcess;
@@ -368,11 +369,11 @@ namespace MonoGame.PortableUI
 
         public static ScreenEngine CreateSurfaceEngine(Game game, ScreenEngineOptions options)
         {
-            return new ScreenEngine(game, options ?? new ScreenEngineOptions()) { IsSurfaceEngine = true };
+            return new ScreenEngine(game, options ?? new ScreenEngineOptions(), isSurfaceEngine: true);
         }
 
         /// <summary>True for engines behind a <see cref="UISurface"/> (in-world screens).</summary>
-        internal bool IsSurfaceEngine { get; private init; }
+        internal bool IsSurfaceEngine { get; }
 
         // Per game: the engine that receives the window's text input. Null = the regular
         // (non-surface) engines; a surface with keyboard focus takes it over.
@@ -381,7 +382,30 @@ namespace MonoGame.PortableUI
         /// <summary>Makes <paramref name="engine"/> the only receiver of <paramref name="game"/>'s window text input (null = back to the main engine).</summary>
         internal static void SetTextInputOwner(Game game, ScreenEngine? engine)
         {
-            TextOwners.GetValue(game, _ => new System.Runtime.CompilerServices.StrongBox<ScreenEngine?>()).Value = engine;
+            var box = TextOwners.GetValue(game, _ => new System.Runtime.CompilerServices.StrongBox<ScreenEngine?>());
+            var previous = box.Value;
+            box.Value = engine;
+            if (previous is { IsSurfaceEngine: true } && !ReferenceEquals(previous, engine))
+                previous.SubscribeWindowTextInput(false);
+            if (engine is { IsSurfaceEngine: true, _disposed: false })
+                engine.SubscribeWindowTextInput(true);
+        }
+
+        private bool _textInputSubscribed;
+
+        private void SubscribeWindowTextInput(bool subscribe)
+        {
+            if (_textInputSubscribed == subscribe)
+                return;
+            _textInputSubscribed = subscribe;
+#if !ANDROID
+            // GameWindow.TextInput is provided by the DesktopGL/WindowsDX backends only. On Android
+            // text arrives via the soft keyboard/IME; consumers route it through HandleTextInput.
+            if (subscribe)
+                Game.Window.TextInput += GameWindowTextInput;
+            else
+                Game.Window.TextInput -= GameWindowTextInput;
+#endif
         }
 
         internal static ScreenEngine? GetTextInputOwner(Game game)
@@ -869,11 +893,9 @@ namespace MonoGame.PortableUI
             if (_disposed)
                 return;
             _disposed = true;
-#if !ANDROID
-            Game.Window.TextInput -= GameWindowTextInput;
-#endif
-            if (Options.AddComponentToGame && Game.Components.Contains(Component))
-                Game.Components.Remove(Component);
+            SubscribeWindowTextInput(false);
+            if (_component != null && Game.Components.Contains(_component))
+                Game.Components.Remove(_component);
             _backdrop?.Dispose();
             _postProcess?.Dispose();
             DisposeLayerCaches();
