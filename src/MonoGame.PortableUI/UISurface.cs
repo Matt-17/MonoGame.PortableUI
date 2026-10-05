@@ -153,10 +153,6 @@ namespace MonoGame.PortableUI
             set { Screen.InputSource = value ?? NullInputSource.Instance; }
         }
 
-        /// <summary>Unused: post effects run on <see cref="ScreenEngine.PostProcess"/> of <see cref="Engine"/>.</summary>
-        [Obsolete("Never used for drawing; post effects run on Engine.PostProcess. Always null.")]
-        public PostProcessManager? PostProcessManager => null;
-
         /// <summary>
         ///     True when the picture in <see cref="Target"/> is out of date: something changed, an
         ///     animation or the caret wants its next frame, a transition runs, or the target holds no
@@ -430,9 +426,7 @@ namespace MonoGame.PortableUI
         public bool IsPointOnDisplay(PointF surfacePoint)
         {
             var rect = new Rect(0, 0, _width, _height);
-            var distortion = BarrelDistortion();
-            if (distortion > 0)
-                surfacePoint = Effects.PostProcessManager.InverseBarrel(surfacePoint, rect, distortion);
+            surfacePoint = PostEffectGeometry.DisplayToUi(DisplayGeometry(), surfacePoint, rect);
             // Half a pixel of slack: a point exactly on the edge survives the barrel round trip.
             return surfacePoint.X > -0.5f && surfacePoint.Y > -0.5f && surfacePoint.X < _width + 0.5f && surfacePoint.Y < _height + 0.5f;
         }
@@ -440,27 +434,25 @@ namespace MonoGame.PortableUI
         /// <summary>The UI point under a point of the (curved) picture — undoes a CRT barrel.</summary>
         public PointF MapDisplayToUi(PointF surfacePoint)
         {
-            var distortion = BarrelDistortion();
-            return distortion > 0 ? Effects.PostProcessManager.InverseBarrel(surfacePoint, new Rect(0, 0, _width, _height), distortion) : surfacePoint;
+            return PostEffectGeometry.DisplayToUi(DisplayGeometry(), surfacePoint, new Rect(0, 0, _width, _height));
         }
 
         /// <summary>Where a UI point appears on the (curved) picture — applies a CRT barrel.</summary>
         public PointF MapUiToDisplay(PointF uiPoint)
         {
-            var distortion = BarrelDistortion();
-            return distortion > 0 ? Effects.PostProcessManager.ForwardBarrel(uiPoint, new Rect(0, 0, _width, _height), distortion) : uiPoint;
+            return PostEffectGeometry.UiToDisplay(DisplayGeometry(), uiPoint, new Rect(0, 0, _width, _height));
         }
 
-        private float BarrelDistortion()
+        /// <summary>The display effects that move pixels (curvature), or null. Only display effects
+        /// curve the picture (a theme's curvature is ignored), the same rule the screen's input mapping
+        /// follows; a host drawing the display stage itself (PostEffectMode below All) maps through its
+        /// own curve.</summary>
+        private IReadOnlyList<PostEffect>? DisplayGeometry()
         {
-            // Only display effects curve the picture (a theme's curvature is ignored), the same
-            // rule the screen's input mapping follows. A host drawing the display stage itself
-            // (PostEffectMode below All) maps through its own curve.
             if (Engine.Options.PostEffectMode != PostEffectMode.All)
-                return 0;
+                return null;
             var display = Engine.Options.PostEffects;
-            var barrel = display.Count > 0 ? Screen.FindEnabledBarrel(display) : null;
-            return barrel == null ? 0 : MathHelper.Clamp(barrel.Distortion, 0, 0.5f);
+            return PostEffectGeometry.MovesPixels(display) ? display : null;
         }
 
         /// <summary>SpriteBatches shared by all surfaces of a device; nested surface draws rent a second one.</summary>

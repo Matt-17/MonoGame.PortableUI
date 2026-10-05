@@ -1,0 +1,50 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- Multi-target: net10.0 (DesktopGL) + net10.0-android, mirroring the core library.
+         Clear the inherited singular TargetFramework so the SDK performs the multi-targeting fan-out. -->
+    <TargetFramework></TargetFramework>
+    <TargetFrameworks>net10.0;net10.0-android</TargetFrameworks>
+    <SupportedOSPlatformVersion Condition="$(TargetFramework.EndsWith('-android'))">21.0</SupportedOSPlatformVersion>
+    <!-- Embedded shader names stay MonoGame.PortableUI.Effects.compiled.*.ogl.mgfxo. -->
+    <RootNamespace>MonoGame.PortableUI.Effects</RootNamespace>
+    <!-- The MonoGame. prefix is reserved on NuGet, new IDs under it are rejected (409). -->
+    <PackageId>CodeIX.PortableUI.Effects</PackageId>
+    <Title>MonoGame.PortableUI.Effects</Title>
+    <Description>Optional shader effects for MonoGame.PortableUI: post effects (scanlines, CRT curvature, vignette, film grain, bloom, dot matrix), backdrop blur and glass brushes (frosted, acrylic, liquid glass). Referencing the package installs it; without it the UI draws flat.</Description>
+    <Authors>Matthias Voigt;Marcus Katscher</Authors>
+    <Company>code-ix</Company>
+    <Product>MonoGame.PortableUI</Product>
+    <Version>0.0.0-local</Version>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/Matt-17/MonoGame.PortableUI</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <!-- eng/build-effects.ps1 ships as documentation for recompiling the shader sources,
+         not as a NuGet install hook. NU5110/NU5111 only warn that it will not be executed
+         on install, which is exactly what we want. -->
+    <NoWarn>$(NoWarn);NU5110;NU5111</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" />
+    <PackageReference Include="MonoGame.Framework.DesktopGL" Condition="!$(TargetFramework.EndsWith('-android'))" />
+    <PackageReference Include="MonoGame.Framework.Android" Condition="$(TargetFramework.EndsWith('-android'))" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\MonoGame.PortableUI\MonoGame.PortableUI.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <EmbeddedResource Include="compiled\*.mgfxo" />
+    <None Include="src\*.fx" Pack="true" PackagePath="effects\src\" />
+    <None Include="..\..\eng\build-effects.ps1" Pack="true" PackagePath="eng\" />
+    <None Include="..\..\eng\README.md" Pack="true" PackagePath="eng\" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="MonoGame.PortableUI.Benchmarks" />
+    <InternalsVisibleTo Include="MonoGame.PortableUI.Tests" />
+  </ItemGroup>
+</Project>
