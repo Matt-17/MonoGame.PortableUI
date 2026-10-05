@@ -106,6 +106,13 @@ namespace MonoGame.PortableUI.Controls
         public bool IsOverwriteMode { get; set; }
         public Brush SelectionBrush { get; set; }
 
+        /// <summary>
+        ///     Colour of selected text; null keeps <see cref="TextBlock.TextColor"/> under a translucent
+        ///     <see cref="SelectionBrush"/> and inverts it under an opaque one (see
+        ///     <see cref="PortableTheme.TextBoxSelectionTextColor"/>).
+        /// </summary>
+        public Color? SelectionTextColor { get; set; }
+
         public event EventHandler? EnterPressed;
 
         public string? InputScope { get; set; }
@@ -152,6 +159,7 @@ namespace MonoGame.PortableUI.Controls
             CaretStyle = theme.TextBoxCaretStyle;
             CaretBlinkInterval = theme.TextBoxCaretBlinkInterval;
             SelectionBrush = theme.TextBoxSelectionBrush;
+            SelectionTextColor = theme.TextBoxSelectionTextColor;
             HintTextColor = theme.TextBoxHintTextColor;
             KeyPressed += HandleKeyPressed;
             Click += OnClick;
@@ -196,6 +204,8 @@ namespace MonoGame.PortableUI.Controls
                 CaretBlinkInterval = newTheme.TextBoxCaretBlinkInterval;
             if (ReferenceEquals(SelectionBrush, oldTheme.TextBoxSelectionBrush))
                 SelectionBrush = newTheme.TextBoxSelectionBrush;
+            if (Nullable.Equals(SelectionTextColor, oldTheme.TextBoxSelectionTextColor))
+                SelectionTextColor = newTheme.TextBoxSelectionTextColor;
             if (HintTextColor.Equals(oldTheme.TextBoxHintTextColor))
                 HintTextColor = newTheme.TextBoxHintTextColor;
             if (Height.Equals(oldTheme.TextBoxHeight))
@@ -942,6 +952,10 @@ namespace MonoGame.PortableUI.Controls
             var lines = cache.Lines;
             var displayText = cache.DisplayText;
             var lineHeight = GetLineHeight() * RenderScale.Y;
+            var color = Brush.ApplyOpacity(TextColor, RenderOpacity);
+            var selectedColor = HasSelection ? GetSelectedTextColor() : null;
+            var selectionStart = SelectionStart;
+            var selectionEnd = selectionStart + SelectionLength;
 
             for (var i = 0; i < lines.Count; i++)
             {
@@ -954,12 +968,78 @@ namespace MonoGame.PortableUI.Controls
                 if (visibleRange.Length <= 0)
                     continue;
 
-                var offset = new PointF(textRect.Left + (GetLineMetric(line).GetWidth(visibleRange.Start) - _horizontalScrollOffset) * RenderScale.X, lineTop);
+                var start = line.Start + visibleRange.Start;
+                var end = start + visibleRange.Length;
+                var metric = GetLineMetric(line);
+                // The run starts where the whole line would (snapped once); later runs are placed by
+                // their unsnapped width from it, so glyphs land exactly where an undivided line puts them.
+                var origin = new PointF(textRect.Left + (metric.GetWidth(visibleRange.Start) - _horizontalScrollOffset) * RenderScale.X, lineTop);
                 if (SnapToPixel)
-                    offset = offset.ToInts();
-                _drawBuffer.Clear().Append(displayText, line.Start + visibleRange.Start, visibleRange.Length);
-                DrawText(spriteBatch, _drawBuffer, offset, Brush.ApplyOpacity(TextColor, RenderOpacity));
+                    origin = origin.ToInts();
+                if (selectedColor is not { } selected || selectionEnd <= start || selectionStart >= end)
+                {
+                    DrawTextSegment(spriteBatch, metric, line, displayText, start, start, end, origin, color);
+                    continue;
+                }
+
+                // Selected glyphs in their own colour: up to three runs, so nothing is drawn twice
+                // (no halo of the normal colour).
+                var selectedStart = Math.Max(start, selectionStart);
+                var selectedEnd = Math.Min(end, selectionEnd);
+                DrawTextSegment(spriteBatch, metric, line, displayText, start, start, selectedStart, origin, color);
+                DrawTextSegment(spriteBatch, metric, line, displayText, start, selectedStart, selectedEnd, origin, Brush.ApplyOpacity(selected, RenderOpacity));
+                DrawTextSegment(spriteBatch, metric, line, displayText, start, selectedEnd, end, origin, color);
             }
+        }
+
+        private void DrawTextSegment(SpriteBatch spriteBatch, LineMetric metric, in TextLine line, string displayText, int runStart, int start, int end, PointF origin, Color color)
+        {
+            if (end <= start)
+                return;
+            var offset = start == runStart
+                ? origin
+                : new PointF(origin.X + (metric.GetWidth(start - line.Start) - metric.GetWidth(runStart - line.Start)) * RenderScale.X, origin.Y);
+            _drawBuffer.Clear().Append(displayText, start, end - start);
+            DrawText(spriteBatch, _drawBuffer, offset, color);
+        }
+
+        /// <summary>The colour selected glyphs are drawn in, or null to keep <see cref="TextBlock.TextColor"/>.</summary>
+        internal Color? GetSelectedTextColor()
+        {
+            if (SelectionTextColor is { } explicitColor)
+                return explicitColor;
+            // A translucent highlight shows the text through it; only an opaque one needs inverting.
+            if (SelectionBrush is not SolidColorBrush { Color.A: 255 } highlight)
+                return null;
+            // Classic inversion: the box's own background colour, when it reads on the highlight.
+            if (FaceColor(BackgroundBrush) is { A: 255 } face && Contrast(face, highlight.Color) >= 3)
+                return face;
+            return PortableTheme.ContrastColor(highlight.Color);
+        }
+
+        /// <summary>The colour the text sits on: a solid fill or a chrome brush's face.</summary>
+        private static Color? FaceColor(Brush? brush) => brush switch
+        {
+            SolidColorBrush solid => solid.Color,
+            FrameBrush frame => frame.Face,
+            BevelBrush bevel => bevel.Face,
+            _ => null
+        };
+
+        /// <summary>WCAG contrast ratio of two colours (1 = none, 21 = black on white).</summary>
+        private static double Contrast(Color a, Color b)
+        {
+            var la = Luminance(a);
+            var lb = Luminance(b);
+            return (Math.Max(la, lb) + 0.05) / (Math.Min(la, lb) + 0.05);
+        }
+
+        private static double Luminance(Color c) => 0.2126 * Linear(c.R) + 0.7152 * Linear(c.G) + 0.0722 * Linear(c.B);
+
+        private static double Linear(byte value)
+        {
+            var s = value / 255.0;
+            return s <= 0.03928 ? s / 12.92 : Math.Pow((s + 0.055) / 1.055, 2.4);
         }
 
         /// <summary>Glyph scale for DrawString. Caret, selection and hit-test metrics come from
