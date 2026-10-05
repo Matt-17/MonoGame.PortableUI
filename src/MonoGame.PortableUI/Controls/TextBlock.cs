@@ -79,8 +79,10 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
-        /// <summary>The dynamic font in effect, or null for the SpriteFont path.</summary>
-        protected UIFont? ActiveDynamicFont => _dynamicFont ?? (_fontOverride == null ? FontManager.DefaultDynamicFont : null);
+        /// <summary>The dynamic font in effect, or null for the SpriteFont path: this block's own, else its
+        /// theme's (<see cref="Typography.DynamicFont"/>, per surface/island), else the app default.</summary>
+        protected UIFont? ActiveDynamicFont
+            => _dynamicFont ?? (_fontOverride == null ? ResolveTheme().Typography?.DynamicFont ?? FontManager.DefaultDynamicFont : null);
 
         /// <summary>Pixel size text is measured and drawn at with a dynamic font.</summary>
         protected float DynamicPixelSize(UIFont font) => (_textSize > 0 ? _textSize : font.DefaultSize) * TextScaling.Factor;
@@ -401,6 +403,9 @@ namespace MonoGame.PortableUI.Controls
                 MeasuredText = MeasureText(Text);
                 InvalidateLayout(true);
             }
+            // Moving into a theme (surface, island) with another dynamic font re-measures the text.
+            if (_dynamicFont == null && !ReferenceEquals(oldTheme.Typography?.DynamicFont, newTheme.Typography?.DynamicFont))
+                OnTextScaleChanged();
         }
 
         private static SpriteFont? TryResolveThemeFont(PortableTheme theme)
