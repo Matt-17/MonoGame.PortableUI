@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.4.0-alpha.1
+
+Shader visuals become an optional package: the core draws flat and needs no shaders; post effects, backdrop blur and glass come with **CodeIX.PortableUI.Effects**.
+
 - **Optional effects package (#96):** shader visuals moved out of the core into the new **CodeIX.PortableUI.Effects** package (namespaces unchanged): the post effects (`ScanlinePostEffect`, `CrtBarrelPostEffect`, `VignettePostEffect`, `FilmGrainPostEffect`, `BloomPostEffect`, `DotMatrixPostEffect`, `ScanlineOrientation`) and `PostProcessManager`, backdrop blur (`BackdropManager`, `BackdropSource`, new `BackdropRenderer`), the glass brushes (`FrostedGlassBrush`, `AcrylicBrush`, `LiquidGlassBrush`, `ShimmerGlassBrush`) and every shader with `EffectCache`/`RenderCapabilities`. The core keeps the `PostEffect` base and the effect lists on themes and engines, and draws flat without the package - no shaders needed. Referencing the package is enough: it installs itself when first used (`PortableEffects.Install()` does it explicitly). The themes package depends on it (ten themes use effects or glass). Rendering is unchanged: all theme screenshots, with dialogs and on the world-space CRT, are byte-identical to before.
   - **Migration:** add `CodeIX.PortableUI.Effects` if you use post effects or glass (`CodeIX.PortableUI.Themes` brings it along). `ScreenEngine.PostProcess` and `ScreenEngine.Backdrop` are replaced by `PostEffectRenderer`/`BackdropRenderer` (interfaces `IPostEffectRenderer`/`IBackdropRenderer`, null without the package; factories in `EffectRenderers`). The obsolete `UISurface.PostProcessManager` is gone. `ThemeBuilder.Catalog(glass: true)` became `glass: tint => new AcrylicBrush(tint)` (a factory for the glass surfaces; the unused `liquid` switch is gone). Custom effects can map the pointer through their geometry by overriding `PostEffect.IsDisplayOnly`/`DisplayToUi`/`UiToDisplay`, as the CRT curvature does.
 
