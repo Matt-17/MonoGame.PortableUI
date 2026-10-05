@@ -11,6 +11,7 @@ namespace MonoGame.PortableUI.Tests
     /// <summary>Hosting many UISurfaces: on-demand drawing (#93), the post-effect switch (#97) and
     /// per-surface state that must not leak into other surfaces (#95).</summary>
     [TestClass]
+    [DoNotParallelize] // drives the global ScreenSystem.TotalTime clock and ScreenEngine.ScaleFactor
     public class SurfaceHostingTests
     {
         private sealed class TestScreen : Screen

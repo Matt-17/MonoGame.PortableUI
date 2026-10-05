@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 0.3.0-alpha.6
+
+Hosting many in-world screens: surfaces draw only when they changed, can render flat for a host's own display shader, and can draw straight into an atlas tile.
+
+- **On-demand surfaces (#93):** `UISurface.NeedsRedraw` (peek, consumes nothing), `NextRedrawDue` (on the `ScreenSystem.TotalTime` clock: `Zero` = now, `MaxValue` = idle, otherwise e.g. the next caret flip), `DrawIfNeeded(gameTime)` (draws only when needed, the target keeps the last picture), `Invalidate()`, `FramesDrawn`/`FramesSkipped`. Changes made while a surface is not drawn stay pending: skipping draws never loses one. Device resets (and, on Android, resuming) invalidate the frame; on desktop, window activation does not redraw anything. Give every surface its own `InputSource` (`NullInputSource.Instance` while unfocused): the default is the real mouse and keyboard, and their activity keeps a surface drawing for 250 ms. Update all surfaces with the same monotonic `GameTime`: `ScreenSystem.TotalTime` is one clock.
+- **Host post-effect switch (#97):** `ScreenEngineOptions.PostEffectMode` / `UISurface.PostEffectMode`: `All` (default), `ThemeOnly` (theme look without the display stage), `None` (flat: no extra render target, no full-screen pass, no effect islands, pointer not mapped through a barrel). It wins over the theme's and the display's effects, so a host whose 3D display shader does curvature, scanlines and glass renders station UIs flat and maps the pointer through its own curve.
+- **Draw into an atlas tile (#94):** `UISurface.DrawTo(target, destination, gameTime)` / `DrawIfNeededTo(...)` render the surface into a rectangle of a host's render target (which must use `PreserveContents`), replacing the tile's contents. The surface then owns no target of its own: it renders into a scratch target shared by all surfaces of the same pixel size and copies it into the tile, scaled to the tile's size. Pixel-identical to `Draw` at 1:1. Scaling down saves atlas space, not rendering: the UI is rendered at full size and copied with linear filtering without mipmaps, so text shimmers below half size. For distant screens lower `LayoutScale` (one relayout per change) to render at about the tile's size. A host that writes into a tile itself calls `Invalidate()`.
+- **Cheaper surfaces (#95):** surface engines create no `ScreenComponent` and subscribe to the window's text input only while they own the keyboard; surfaces share their `SpriteBatch` per device. `UISurface.PostProcessManager` is obsolete (it was never used and is now always null).
+- **Fix:** radio groups held their buttons strongly, keeping every discarded screen or surface with a `RadioButton` alive; members are now weak.
+- **Fix:** creating any engine (each `UISurface` creates one) reset the static `ScreenEngine.ScaleFactor` to 1.
+
 ## 0.3.0-alpha.5
 
 - **Vertical scanlines:** `ScanlinePostEffect.Orientation = ScanlineOrientation.Vertical` draws the lines top to bottom, for displays whose tube is mounted on its side (3:4 portrait arcade monitors). Works in the PostFx shader and the shader-free overlay path; default stays horizontal.
