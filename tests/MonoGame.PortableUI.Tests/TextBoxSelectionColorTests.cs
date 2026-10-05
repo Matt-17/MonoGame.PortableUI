@@ -8,6 +8,7 @@ namespace MonoGame.PortableUI.Tests
 {
     /// <summary>#91: selected text stays readable on an opaque selection highlight.</summary>
     [TestClass]
+    [DoNotParallelize] // sets ScreenEngine.Instance and its theme, which new controls read
     public class TextBoxSelectionColorTests
     {
         private static readonly Color Navy = new Color(0, 0, 128);
