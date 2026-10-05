@@ -13,6 +13,27 @@ namespace MonoGame.PortableUI
         public int TextSize { get; set; } = 14;
         /// <summary>Text size of <see cref="Controls.TextBlock"/>s with <c>IsHeading</c> set.</summary>
         public int HeadingSize { get; set; } = 16;
+
+        private Text.UIFont? _dynamicFont;
+
+        /// <summary>
+        ///     Runtime-rasterizing font of this theme: text controls under it (a screen, a
+        ///     <see cref="UISurface"/>, a <see cref="Controls.ThemeIsland"/>) use it instead of
+        ///     <see cref="FontManager.DefaultDynamicFont"/>, so surfaces with different themes draw
+        ///     their own fonts side by side. A control's own <c>DynamicFont</c> still wins.
+        /// </summary>
+        public Text.UIFont? DynamicFont
+        {
+            get => _dynamicFont;
+            set
+            {
+                if (ReferenceEquals(_dynamicFont, value))
+                    return;
+                _dynamicFont = value;
+                // Screens re-measure their text on the next update, as for the default font.
+                FontManager.NotifyDynamicFontChanged();
+            }
+        }
     }
 
     public sealed class ThemeMetrics
