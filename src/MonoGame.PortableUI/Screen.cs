@@ -1743,52 +1743,25 @@ namespace MonoGame.PortableUI
             keyboardState.GetPressedKeys(_pressedKeysBuffer);
             var modifiers = GetKeyboardModifiers(keyboardState);
 
-            // The debug overlay toggle isn't control-specific, so it must not be gated behind a
-            // focused control (otherwise F3 does nothing on a screen with nothing focused).
-            if (Array.IndexOf(_pressedKeysBuffer, Keys.F3, 0, pressedKeyCount) >= 0
-                && Array.IndexOf(_lastPressedKeysBuffer, Keys.F3, 0, _lastPressedKeyCount) < 0)
-                ScreenEngine?.ToggleDebugOverlay();
-
             var focusedControl = DropFocusIfNotInteractive();
 
-            // Tab traversal is screen-level, not control-level: handle it before per-control
-            // routing so it also works when nothing is focused yet. Only the screen that owns
-            // the current focus (or any screen when focus is empty — the first one to see the
-            // press wins and thereby claims focus) may act.
-            var tabPressed = Array.IndexOf(_pressedKeysBuffer, Keys.Tab, 0, pressedKeyCount) >= 0
-                && Array.IndexOf(_lastPressedKeysBuffer, Keys.Tab, 0, _lastPressedKeyCount) < 0;
-            if (tabPressed && (focusedControl == null || focusedControl.Screen == this))
+            // Focus is per engine while several screens can update per frame (UISurfaces, overlays):
+            // only the screen that owns the focused control - or any screen while nothing is focused -
+            // processes keys, or every screen would apply the same backspace or arrow once each.
+            // Unattached controls keep the legacy routing.
+            if (focusedControl != null && focusedControl.Screen != null && focusedControl.Screen != this)
             {
-                _keyboardNavigationActive = true;
-                FocusNextTabStop((modifiers & KeyboardModifiers.Shift) != KeyboardModifiers.None);
                 SwapPressedKeyBuffers(pressedKeyCount);
                 _repeatKey = Keys.None;
                 return;
             }
 
-            // Escape is screen-level like Tab: close the open popup, otherwise request "back".
-            var escapePressed = Array.IndexOf(_pressedKeysBuffer, Keys.Escape, 0, pressedKeyCount) >= 0
-                && Array.IndexOf(_lastPressedKeysBuffer, Keys.Escape, 0, _lastPressedKeyCount) < 0;
-            if (escapePressed && (focusedControl == null || focusedControl.Screen == this))
+            // Released keys first, so a key released and pressed again within one poll still pairs.
+            for (var i = 0; i < _lastPressedKeyCount; i++)
             {
-                _keyboardNavigationActive = true;
-                RequestBack();
-                SwapPressedKeyBuffers(pressedKeyCount);
-                _repeatKey = Keys.None;
-                return;
-            }
-
-            // Focus is global while several screens can update per frame (UISurfaces): only the
-            // screen that owns the focused control may process keys, or every screen would apply
-            // the same backspace/arrow once each. Unattached controls keep the legacy routing.
-            if (focusedControl == null || (focusedControl.Screen != null && focusedControl.Screen != this))
-            {
-                // With nothing focused an arrow key enters spatial navigation at the first stop.
-                if (focusedControl == null && IsNewlyPressedArrow(pressedKeyCount))
-                    FocusNextTabStop();
-                SwapPressedKeyBuffers(pressedKeyCount);
-                _repeatKey = Keys.None;
-                return;
+                var key = _lastPressedKeysBuffer[i];
+                if (Array.IndexOf(_pressedKeysBuffer, key, 0, pressedKeyCount) < 0)
+                    RaiseKeyUp(focusedControl, key, modifiers);
             }
 
             for (var i = 0; i < pressedKeyCount; i++)
@@ -1797,21 +1770,26 @@ namespace MonoGame.PortableUI
                 if (Array.IndexOf(_lastPressedKeysBuffer, key, 0, _lastPressedKeyCount) >= 0)
                     continue;
 
-                if (key == Keys.F3)
-                    continue; // handled above regardless of focus
-
-                var command = TryGetKeyboardCommand(key, modifiers);
-                if (command.HasValue)
+                // Typematic: one long pause after the first hit, then fast repeats while held.
+                if (!IsModifierKey(key))
                 {
-                    DispatchCommand(focusedControl, command.Value, modifiers);
-                    // Typematic: one long pause after the first hit, then fast repeats while held.
                     _repeatKey = key;
                     _nextKeyRepeatTime = ScreenSystem.TotalTime + KeyRepeatInitialDelay;
-                    continue;
                 }
 
-                if ((modifiers & (KeyboardModifiers.Control | KeyboardModifiers.Alt)) != KeyboardModifiers.None)
+                // Every key goes to the focused control and bubbles up to the screen first; only keys
+                // nobody claimed get the screen's own meaning.
+                if (RaiseKeyDown(focusedControl, key, modifiers, isRepeat: false))
                     continue;
+                if (HandleUnclaimedKey(focusedControl, key, modifiers))
+                {
+                    // Tab and Escape moved focus or closed a popup: the rest of this frame's keys
+                    // belong to the new state.
+                    SwapPressedKeyBuffers(pressedKeyCount);
+                    _repeatKey = Keys.None;
+                    return;
+                }
+                focusedControl = FocusEngine?.FocusedControl ?? focusedControl;
             }
 
             if (_repeatKey != Keys.None)
@@ -1822,9 +1800,13 @@ namespace MonoGame.PortableUI
                 }
                 else if (ScreenSystem.TotalTime >= _nextKeyRepeatTime)
                 {
-                    var command = TryGetKeyboardCommand(_repeatKey, modifiers);
-                    if (command.HasValue)
-                        DispatchCommand(FocusEngine?.FocusedControl ?? focusedControl, command.Value, modifiers);
+                    var target = FocusEngine?.FocusedControl ?? focusedControl;
+                    if (target == null || target.Screen == null || target.Screen == this)
+                    {
+                        if (!RaiseKeyDown(target, _repeatKey, modifiers, isRepeat: true) && target != null
+                            && TryGetKeyboardCommand(_repeatKey, modifiers) is { } command)
+                            DispatchCommand(target, command, modifiers);
+                    }
                     _nextKeyRepeatTime = ScreenSystem.TotalTime + KeyRepeatInterval;
                 }
             }
@@ -1832,17 +1814,79 @@ namespace MonoGame.PortableUI
             SwapPressedKeyBuffers(pressedKeyCount);
         }
 
-        private bool IsNewlyPressedArrow(int pressedKeyCount)
+        /// <summary>
+        ///     Raised for keys that go down while nothing on this screen claimed them on the way up
+        ///     (the focused control and its parents, see <see cref="Control.KeyDown"/>), and for every key
+        ///     while nothing is focused: the place for screen-wide shortcuts such as a menu bar's Alt+F
+        ///     or F10. Set <see cref="KeyEventArgs.Handled"/> to keep the screen's own meaning (Tab,
+        ///     Escape, arrows, editing commands) from running.
+        /// </summary>
+        public event KeyEventHandler? KeyDown;
+
+        /// <summary>Raised for keys that go up, after the focused control and its parents.</summary>
+        public event KeyEventHandler? KeyUp;
+
+        private bool RaiseKeyDown(Control? focusedControl, Keys key, KeyboardModifiers modifiers, bool isRepeat)
         {
-            for (var i = 0; i < pressedKeyCount; i++)
+            var args = new KeyEventArgs(key, modifiers, isRepeat);
+            for (var control = focusedControl; control != null && !args.Handled; control = control.Parent as Control)
+                control.RaiseKeyDown(args);
+            if (!args.Handled)
+                KeyDown?.Invoke(this, args);
+            if (args.Handled)
+                _keyboardNavigationActive = true;
+            return args.Handled;
+        }
+
+        private void RaiseKeyUp(Control? focusedControl, Keys key, KeyboardModifiers modifiers)
+        {
+            var args = new KeyEventArgs(key, modifiers);
+            for (var control = focusedControl; control != null && !args.Handled; control = control.Parent as Control)
+                control.RaiseKeyUp(args);
+            if (!args.Handled)
+                KeyUp?.Invoke(this, args);
+        }
+
+        /// <summary>The screen's own meaning of a key nobody claimed. Returns true when it moved focus or
+        /// closed something (Tab, Escape), which ends this frame's key processing.</summary>
+        private bool HandleUnclaimedKey(Control? focusedControl, Keys key, KeyboardModifiers modifiers)
+        {
+            if (ScreenEngine?.Options.DebugOverlayKey is { } debugKey && key == debugKey)
             {
-                var key = _pressedKeysBuffer[i];
-                if (key is Keys.Left or Keys.Right or Keys.Up or Keys.Down
-                    && Array.IndexOf(_lastPressedKeysBuffer, key, 0, _lastPressedKeyCount) < 0)
-                    return true;
+                ScreenEngine.ToggleDebugOverlay();
+                return false;
             }
+
+            if (key == Keys.Tab)
+            {
+                _keyboardNavigationActive = true;
+                FocusNextTabStop((modifiers & KeyboardModifiers.Shift) != KeyboardModifiers.None);
+                return true;
+            }
+
+            // Escape closes the open popup, otherwise requests "back".
+            if (key == Keys.Escape)
+            {
+                _keyboardNavigationActive = true;
+                RequestBack();
+                return true;
+            }
+
+            if (focusedControl == null)
+            {
+                // With nothing focused an arrow key enters spatial navigation at the first stop.
+                if (key is Keys.Left or Keys.Right or Keys.Up or Keys.Down)
+                    FocusNextTabStop();
+                return false;
+            }
+
+            if (TryGetKeyboardCommand(key, modifiers) is { } command)
+                DispatchCommand(focusedControl, command, modifiers);
             return false;
         }
+
+        private static bool IsModifierKey(Keys key) => key is Keys.LeftShift or Keys.RightShift or Keys.LeftControl
+            or Keys.RightControl or Keys.LeftAlt or Keys.RightAlt or Keys.LeftWindows or Keys.RightWindows;
 
         /// <summary>Arrow commands the focused control does not use itself move focus spatially.</summary>
         private void DispatchCommand(Control focusedControl, KeyboardCommand command, KeyboardModifiers modifiers)
