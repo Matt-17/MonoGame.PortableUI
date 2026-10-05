@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Fonts per theme (#92):** `Typography.DynamicFont` gives a theme its own runtime font (FontStashSharp `UIFont`). Text controls resolve their dynamic font as: their own `DynamicFont`, else their theme's (the screen's, the `UISurface`'s or a `ThemeIsland`'s), else `FontManager.DefaultDynamicFont`. Several surfaces with different themes (a DOS and a C64 cabinet) now draw their own fonts at the same time instead of fighting over the process-wide default; moving to a theme with another font re-measures the text.
+
 ## 0.3.0-alpha.7
 
 Distant in-world screens render smaller, surfaces hold no GPU memory of their own, and selected text stays readable on opaque highlights.

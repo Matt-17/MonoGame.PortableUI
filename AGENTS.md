@@ -125,7 +125,7 @@ Navigation: `NavigateToScreen` / `PushOverlay` (screens below stay drawn, frozen
 **App-wide services** (all on `ScreenEngine` unless noted; screens pick changes up on their next update via
 version counters, never by rebuilding): `TextScaling` (static, text size factor), `Localizer.Default`
 (static, string catalogues; bind with `control.Localize(...)`), `FontManager.DefaultDynamicFont` (UIFont
-backend), `SafeAreaInsets` (+ `SafeAreaPanel`), `OnScreenKeyboard`, `AccessibilityBridge`, `Toasts`,
+backend; a theme's `Typography.DynamicFont` overrides it per screen/surface/island), `SafeAreaInsets` (+ `SafeAreaPanel`), `OnScreenKeyboard`, `AccessibilityBridge`, `Toasts`,
 `ShowModal`. Platform hooks for Android live in the core's `#if ANDROID` files (`AndroidWindowInsets`,
 `AndroidOnScreenKeyboard`, `AndroidTextScaling`, `AndroidAccessibilityBridge`); they are compiled but not
 device-tested. There is no iOS head. Platform callbacks must go through `InvokeOnGameThread`.

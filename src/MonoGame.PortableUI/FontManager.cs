@@ -55,6 +55,8 @@ namespace MonoGame.PortableUI
 
         internal static long DynamicFontVersion => System.Threading.Interlocked.Read(ref _dynamicFontVersion);
 
+        internal static void NotifyDynamicFontChanged() => System.Threading.Interlocked.Increment(ref _dynamicFontVersion);
+
         public static SpriteFont? DefaultFont
         {
             get => _defaultFont;
