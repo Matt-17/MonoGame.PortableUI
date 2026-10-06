@@ -156,6 +156,41 @@ namespace MonoGame.PortableUI.Media
             return GradientStops.GetHash(Stops);
         }
 
+        /// <summary>
+        ///     The gradient's straight-alpha colour at <paramref name="offset"/> (0..1) without allocating
+        ///     (stops need not be sorted). Two stops at one offset make a hard step.
+        /// </summary>
+        public Color ColorAt(float offset)
+        {
+            if (Stops.Count == 0)
+                return Color.Transparent;
+            if (Stops.Count == 1)
+                return Stops[0].Color;
+            offset = MathHelper.Clamp(offset, 0, 1);
+            GradientStop below = default, above = default;
+            bool hasBelow = false, hasAbove = false;
+            foreach (var stop in Stops)
+            {
+                // Strictly above for a step: at the step offset itself the upper colour wins.
+                if (stop.Offset <= offset && (!hasBelow || stop.Offset >= below.Offset))
+                {
+                    below = stop;
+                    hasBelow = true;
+                }
+                if (stop.Offset > offset && (!hasAbove || stop.Offset < above.Offset))
+                {
+                    above = stop;
+                    hasAbove = true;
+                }
+            }
+            if (!hasBelow)
+                return above.Color;
+            if (!hasAbove)
+                return below.Color;
+            var span = Math.Max(0.0001f, above.Offset - below.Offset);
+            return Color.Lerp(below.Color, above.Color, (offset - below.Offset) / span);
+        }
+
         private static float GetProjection(Vector2 point, Vector2 direction)
         {
             return Vector2.Dot(point, direction);

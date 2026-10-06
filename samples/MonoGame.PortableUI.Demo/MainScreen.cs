@@ -600,6 +600,18 @@ namespace MonoGame.PortableUI.Demo
                 Glow = new TextGlow(Palette.Primary.WithAlpha(0.6f), 8),
                 DynamicFont = DemoFonts.Selawik
             });
+            // Gradient text fill with a hard horizon step (chrome logo).
+            effects.AddChild(new TextBlock
+            {
+                Text = "NIGHT",
+                TextSize = 30,
+                DynamicFont = DemoFonts.Selawik,
+                TextFillSpan = new Vector2(0.2f, 0.85f),
+                TextFill = new LinearGradientBrush(
+                    new GradientStop(0, Color.White), new GradientStop(0.46f, Palette.Info),
+                    new GradientStop(0.5f, Palette.Primary), new GradientStop(1, Palette.Text)),
+                Stroke = new TextStroke(Color.Black, 1.5f)
+            });
             // Image.SourceRectangle (left half of the icon) and UniformToFill cropped to a wide box.
             effects.AddChild(new Image { Source = _deleteIcon, SourceRectangle = new Rectangle(0, 0, _deleteIcon.Width / 2, _deleteIcon.Height), Height = 36, VerticalAlignment = VerticalAlignment.Center });
             effects.AddChild(new Image { Source = _deleteIcon, Stretch = Stretch.UniformToFill, Width = 72, Height = 20, VerticalAlignment = VerticalAlignment.Center });
