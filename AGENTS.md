@@ -129,6 +129,7 @@ Keyboard: every key (F1-F12, Alt/Ctrl chords) is raised as `KeyDown`/`KeyUp` (`K
 `Handled`) on the focused control, bubbling through its parents to `Screen.KeyDown`; only unclaimed keys get the
 screen's meaning (debug overlay key, Tab, Escape, arrow navigation, `KeyboardCommand` editing commands via
 `KeyPressed`). `ScreenEngineOptions.DebugOverlayKey` (F3, null on surfaces). Text arrives separately as chars.
+Space activates buttons as a key (`KeyDown`), a typed space only when no Space key is down. `Screen.FocusFollowsPointer` (menu mode: pointer focuses, hover merges into focus) and `Screen.WrapFocusNavigation` are opt-in.
 Arrow keys and the gamepad (`IInputSource.GamePad`: D-pad/stick, A, B, Y, shoulders) are screen-level:
 a direction the focused control does not claim via `HandlesDirection` moves focus spatially
 (`Screen.MoveFocus`) and scrolls it into view; Escape/B close the open popup or raise
