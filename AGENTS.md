@@ -163,7 +163,7 @@ and touch events.
 **Theming pattern:** visual properties resolve live from the current theme's `ControlStyle` slot unless
 explicitly set by the user. The constructor seeds snapshots from `PortableTheme.ResolveCurrent()`;
 `OnThemeChanged(old, new)` re-seeds only values still reference-equal to the old theme's (so user
-overrides survive theme switches). New themed controls get a `ControlStyle` slot in
+overrides survive theme switches). App controls use `StyleKey` + `PortableTheme.Styles` (named slots) instead. New built-in themed controls get a `ControlStyle` slot in
 `PortableTheme.FromPalette` with **palette-derived defaults** — never edit the 42 theme files for a new
 slot. Theme resolution is cached per global `ThemeVersion`.
 
