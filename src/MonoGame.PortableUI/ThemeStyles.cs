@@ -10,9 +10,9 @@ namespace MonoGame.PortableUI
     public sealed class Typography
     {
         public string FontName { get; set; } = "default";
-        public int TextSize { get; set; } = 14;
+        public float TextSize { get; set; } = 14;
         /// <summary>Text size of <see cref="Controls.TextBlock"/>s with <c>IsHeading</c> set.</summary>
-        public int HeadingSize { get; set; } = 16;
+        public float HeadingSize { get; set; } = 16;
 
         /// <summary>Outline of every text block under this theme that sets no <see cref="Controls.TextBlock.Stroke"/> itself (null = none).</summary>
         public Media.TextStroke? TextStroke { get; set; }

@@ -176,7 +176,7 @@ namespace MonoGame.PortableUI
         }
 
         public Color TextColor { get; set; } = Color.Black;
-        public int TextSize { get; set; } = 14;
+        public float TextSize { get; set; } = 14;
         public bool PixelSnapping { get; set; } = true;
         public ThemePalette Palette { get; set; } = ThemePalette.Empty;
         public Typography Typography { get; set; } = new Typography();
