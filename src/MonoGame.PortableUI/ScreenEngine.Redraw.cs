@@ -184,6 +184,29 @@ namespace MonoGame.PortableUI
         /// <summary>Whether decorations that never rest (glass sweeps, film-grain noise) animate.</summary>
         internal static bool AnimatesDecorations => DrawingQuality == RenderQuality.High;
 
+        /// <summary>The engine drawing on this thread right now, or null (brushes remember who drew them).</summary>
+        internal static ScreenEngine? DrawingEngine => _drawingEngine;
+
+        private int _seenBrushVersion = Media.Brush.GlobalVersion;
+
+        /// <summary>A brush this engine drew changed: its picture (and cached layers) are out of date.</summary>
+        internal void OnBrushChanged()
+        {
+            InvalidateLayerCaches();
+            RequestRedraw();
+        }
+
+        // A brush whose engine is unknown (never drawn as chrome, or drawn by several engines) changed:
+        // every engine redraws once.
+        private void ApplyGlobalBrushChanges()
+        {
+            var version = Media.Brush.GlobalVersion;
+            if (version == _seenBrushVersion)
+                return;
+            _seenBrushVersion = version;
+            OnBrushChanged();
+        }
+
         internal void UpdateRenderQuality()
         {
             var quality = Options.RenderQuality;
@@ -205,5 +228,19 @@ namespace MonoGame.PortableUI
         }
 
         private static void ExitDraw(ScreenEngine? previous) => _drawingEngine = previous;
+
+        /// <summary>Runs <paramref name="draw"/> as if this engine were drawing (tests).</summary>
+        internal void DrawAs(Action draw)
+        {
+            var previous = EnterDraw();
+            try
+            {
+                draw();
+            }
+            finally
+            {
+                ExitDraw(previous);
+            }
+        }
     }
 }

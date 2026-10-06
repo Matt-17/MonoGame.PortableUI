@@ -116,7 +116,8 @@ namespace MonoGame.PortableUI
         private readonly object _insetLock = new object();
         private Thickness _pendingSystemInsets;
         private float _pendingKeyboardInset;
-        private bool _insetsPending;
+        // Volatile: Update tests it without the lock (every frame, for every surface engine).
+        private volatile bool _insetsPending;
         private Thickness _systemInsetPixels;
         private float _keyboardInsetPixels;
 
@@ -250,14 +251,18 @@ namespace MonoGame.PortableUI
 
         private void ApplyPendingInsets(bool force)
         {
-            lock (_insetLock)
+            // Common case: nothing pending - no lock (many surfaces update every frame).
+            if (_insetsPending)
             {
-                if (_insetsPending)
+                lock (_insetLock)
                 {
-                    _systemInsetPixels = _pendingSystemInsets;
-                    _keyboardInsetPixels = _pendingKeyboardInset;
-                    _insetsPending = false;
-                    force = true;
+                    if (_insetsPending)
+                    {
+                        _systemInsetPixels = _pendingSystemInsets;
+                        _keyboardInsetPixels = _pendingKeyboardInset;
+                        _insetsPending = false;
+                        force = true;
+                    }
                 }
             }
             if (!force)
@@ -858,6 +863,7 @@ namespace MonoGame.PortableUI
             FramesPerSecond = gameTime.ElapsedGameTime.TotalSeconds > 0 ? 1 / gameTime.ElapsedGameTime.TotalSeconds : 0;
             DrainGameThreadQueue();
             UpdateRenderQuality();
+            ApplyGlobalBrushChanges();
             UpdateTransition();
             ApplyPendingInsets(force: false);
             ActiveScreen?.Update();

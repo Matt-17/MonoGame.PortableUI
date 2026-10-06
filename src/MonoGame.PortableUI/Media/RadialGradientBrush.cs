@@ -23,24 +23,42 @@ namespace MonoGame.PortableUI.Media
 
         public List<GradientStop> Stops { get; }
 
-        public PointF Center { get; set; } = new PointF(0.5f, 0.5f);
+        private PointF _center = new PointF(0.5f, 0.5f);
+        public PointF Center
+        {
+            get => _center;
+            set => SetProperty(ref _center, value);
+        }
 
-        public float RadiusX { get; set; } = 0.5f;
+        private float _radiusX = 0.5f;
+        public float RadiusX
+        {
+            get => _radiusX;
+            set => SetProperty(ref _radiusX, value);
+        }
 
-        public float RadiusY { get; set; } = 0.5f;
+        private float _radiusY = 0.5f;
+        public float RadiusY
+        {
+            get => _radiusY;
+            set => SetProperty(ref _radiusY, value);
+        }
 
         public override void Draw(SpriteBatch spriteBatch, Rect rect)
         {
+            MarkDrawn();
             Draw(spriteBatch, rect, 1);
         }
 
         public override void Draw(SpriteBatch spriteBatch, Rect rect, float opacity)
         {
+            MarkDrawn();
             Draw(spriteBatch, new BrushContext(rect, 0, opacity, spriteBatch.GraphicsDevice));
         }
 
         public override void Draw(SpriteBatch spriteBatch, in BrushContext context)
         {
+            MarkDrawn();
             if (context.Rect.Width <= 0 || context.Rect.Height <= 0)
                 return;
 

@@ -1,4 +1,7 @@
-﻿using Microsoft.Xna.Framework;
+﻿using System;
+using System.Collections.Generic;
+using System.Threading;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI.Common;
 
@@ -11,6 +14,59 @@ namespace MonoGame.PortableUI.Media
     /// </summary>
     public abstract class Brush
     {
+        private static int _globalVersion;
+        private WeakReference<ScreenEngine>? _drawnBy;
+        private bool _drawnByMany;
+
+        /// <summary>Bumped when a brush changes whose engine is unknown; engines poll it each update.</summary>
+        internal static int GlobalVersion => Volatile.Read(ref _globalVersion);
+
+        /// <summary>Remembers the engine drawing this brush, so a change redraws only that engine. Brushes with
+        /// settable look call it first in their Draw overrides.</summary>
+        protected void MarkDrawn()
+        {
+            if (_drawnByMany)
+                return;
+            if (ScreenEngine.DrawingEngine is not { } engine)
+            {
+                // Drawn outside an engine (a host's own batch): remember that it is shown, owner unknown.
+                if (_drawnBy == null)
+                    _drawnByMany = true;
+                return;
+            }
+            if (_drawnBy == null)
+                _drawnBy = new WeakReference<ScreenEngine>(engine);
+            else if (!_drawnBy.TryGetTarget(out var previous))
+                _drawnBy.SetTarget(engine);
+            else if (!ReferenceEquals(previous, engine))
+                _drawnByMany = true;
+        }
+
+        /// <summary>
+        ///     Call from property setters when the brush's look changed: the engine that draws it (or, when
+        ///     unknown or shared, every engine) draws a new frame and drops its cached layers, so the change
+        ///     shows in <see cref="RenderMode.OnDemand"/>, on surfaces and inside <c>CacheMode.Bitmap</c> layers.
+        /// </summary>
+        protected void OnChanged()
+        {
+            // Never drawn yet (being built, e.g. in a constructor or a new theme): nobody shows it.
+            if (_drawnBy == null && !_drawnByMany)
+                return;
+            if (!_drawnByMany && _drawnBy!.TryGetTarget(out var engine))
+                engine.OnBrushChanged();
+            else
+                Interlocked.Increment(ref _globalVersion);
+        }
+
+        /// <summary>Sets a property's field and calls <see cref="OnChanged"/> when the value differs.</summary>
+        protected void SetProperty<T>(ref T field, T value)
+        {
+            if (EqualityComparer<T>.Default.Equals(field, value))
+                return;
+            field = value;
+            OnChanged();
+        }
+
         public virtual bool RequiresBackdrop => false;
 
         /// <summary>

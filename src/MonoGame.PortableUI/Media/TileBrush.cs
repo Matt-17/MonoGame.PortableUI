@@ -8,19 +8,36 @@ namespace MonoGame.PortableUI.Media
 {
     public class TileBrush : Brush
     {
-        public Texture2D? Source { get; set; }
+        private Texture2D? _source;
+        public Texture2D? Source
+        {
+            get => _source;
+            set => SetProperty(ref _source, value);
+        }
 
-        public float Scale { get; set; } = 1;
+        private float _scale = 1;
+        public float Scale
+        {
+            get => _scale;
+            set => SetProperty(ref _scale, value);
+        }
 
-        public Color TintColor { get; set; } = Color.White;
+        private Color _tintColor = Color.White;
+        public Color TintColor
+        {
+            get => _tintColor;
+            set => SetProperty(ref _tintColor, value);
+        }
 
         public override void Draw(SpriteBatch spriteBatch, Rect rect)
         {
+            MarkDrawn();
             Draw(spriteBatch, rect, 1);
         }
 
         public override void Draw(SpriteBatch spriteBatch, Rect rect, float opacity)
         {
+            MarkDrawn();
             if (Source == null || rect.Width <= 0 || rect.Height <= 0)
                 return;
 

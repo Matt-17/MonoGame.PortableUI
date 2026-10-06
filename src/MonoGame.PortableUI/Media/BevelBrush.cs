@@ -35,7 +35,12 @@ namespace MonoGame.PortableUI.Media
         public Color InnerLight { get; }
         public Color InnerDark { get; }
         public Color OuterDark { get; }
-        public bool Sunken { get; set; }
+        private bool _sunken;
+        public bool Sunken
+        {
+            get => _sunken;
+            set => SetProperty(ref _sunken, value);
+        }
 
         public override Thickness ContentInset => new Thickness(_singleLine ? 1 : 2);
 
@@ -48,12 +53,21 @@ namespace MonoGame.PortableUI.Media
 
         public override void Draw(SpriteBatch spriteBatch, Rect rect)
         {
+            MarkDrawn();
             Draw(spriteBatch, rect, 1);
         }
 
-        public override void Draw(SpriteBatch spriteBatch, Rect rect, float opacity) => Draw(spriteBatch, rect, opacity, 1);
+        public override void Draw(SpriteBatch spriteBatch, Rect rect, float opacity)
+        {
+            MarkDrawn();
+            Draw(spriteBatch, rect, opacity, 1);
+        }
 
-        public override void Draw(SpriteBatch spriteBatch, in BrushContext context) => Draw(spriteBatch, context.Rect, context.Opacity, context.Scale);
+        public override void Draw(SpriteBatch spriteBatch, in BrushContext context)
+        {
+            MarkDrawn();
+            Draw(spriteBatch, context.Rect, context.Opacity, context.Scale);
+        }
 
         private void Draw(SpriteBatch spriteBatch, Rect rect, float opacity, float scale)
         {

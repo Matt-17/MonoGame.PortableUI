@@ -13,16 +13,64 @@ namespace MonoGame.PortableUI.Controls
             IsFocusable = false;
         }
 
-        public Texture2D? Source { get; set; }
+        private Texture2D? _source;
+        private Color _tintColor;
+        // Uniform matches the WPF default; None would draw oversized sources clipped to a corner.
+        private Stretch _stretch = Stretch.Uniform;
+        private SamplerState _samplerState = SamplerState.LinearClamp;
+
+        /// <summary>The texture; its size feeds the measured size, so a new source re-lays out.</summary>
+        public Texture2D? Source
+        {
+            get => _source;
+            set
+            {
+                if (ReferenceEquals(_source, value))
+                    return;
+                var sizeChanged = _source == null || value == null || _source.Width != value.Width || _source.Height != value.Height;
+                _source = value;
+                InvalidateLayout(sizeChanged);
+                RequestRedraw();
+            }
+        }
 
         /// <summary>Tint multiplied over the image, straight alpha (see <see cref="Media.ColorAlpha"/>);
         /// transparent (the default) draws the image untinted.</summary>
-        public Color TintColor { get; set; }
+        public Color TintColor
+        {
+            get => _tintColor;
+            set
+            {
+                if (_tintColor == value)
+                    return;
+                _tintColor = value;
+                RequestRedraw();
+            }
+        }
 
-        // Uniform matches the WPF default; None would draw oversized sources clipped to a corner.
-        public Stretch Stretch { get; set; } = Stretch.Uniform;
+        public Stretch Stretch
+        {
+            get => _stretch;
+            set
+            {
+                if (_stretch == value)
+                    return;
+                _stretch = value;
+                InvalidateLayout(true);
+            }
+        }
 
-        public SamplerState SamplerState { get; set; } = SamplerState.LinearClamp;
+        public SamplerState SamplerState
+        {
+            get => _samplerState;
+            set
+            {
+                if (ReferenceEquals(_samplerState, value))
+                    return;
+                _samplerState = value;
+                RequestRedraw();
+            }
+        }
         
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {

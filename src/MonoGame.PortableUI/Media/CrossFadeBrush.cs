@@ -15,28 +15,41 @@ namespace MonoGame.PortableUI.Media
             Progress = progress;
         }
 
-        public Brush From { get; set; }
-        public Brush To { get; set; }
+        private Brush _from = null!;
+        public Brush From
+        {
+            get => _from;
+            set => SetProperty(ref _from, value);
+        }
+        private Brush _to = null!;
+        public Brush To
+        {
+            get => _to;
+            set => SetProperty(ref _to, value);
+        }
 
         public float Progress
         {
             get { return _progress; }
-            set { _progress = MathHelper.Clamp(value, 0, 1); }
+            set { SetProperty(ref _progress, MathHelper.Clamp(value, 0, 1)); }
         }
 
         public override void Draw(SpriteBatch spriteBatch, Rect rect)
         {
+            MarkDrawn();
             Draw(spriteBatch, rect, 1);
         }
 
         public override void Draw(SpriteBatch spriteBatch, Rect rect, float opacity)
         {
+            MarkDrawn();
             From.Draw(spriteBatch, rect, opacity * (1 - Progress));
             To.Draw(spriteBatch, rect, opacity * Progress);
         }
 
         public override void Draw(SpriteBatch spriteBatch, in BrushContext context)
         {
+            MarkDrawn();
             var fromContext = new BrushContext(
                 context.Rect,
                 context.Radius,

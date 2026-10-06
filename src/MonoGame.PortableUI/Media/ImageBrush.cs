@@ -20,28 +20,56 @@ namespace MonoGame.PortableUI.Media
         private static readonly ConditionalWeakTable<Texture2D, object> SourceIds = new();
         private static int _nextSourceId;
 
-        public Texture2D? Source { get; set; }
+        private Texture2D? _source;
+        public Texture2D? Source
+        {
+            get => _source;
+            set => SetProperty(ref _source, value);
+        }
 
-        public Stretch Stretch { get; set; } = Stretch.Fill;
+        private Stretch _stretch = Stretch.Fill;
+        public Stretch Stretch
+        {
+            get => _stretch;
+            set => SetProperty(ref _stretch, value);
+        }
 
-        public ImageBrushTileMode TileMode { get; set; }
+        private ImageBrushTileMode _tileMode;
+        public ImageBrushTileMode TileMode
+        {
+            get => _tileMode;
+            set => SetProperty(ref _tileMode, value);
+        }
 
-        public Rectangle? SourceRect { get; set; }
+        private Rectangle? _sourceRect;
+        public Rectangle? SourceRect
+        {
+            get => _sourceRect;
+            set => SetProperty(ref _sourceRect, value);
+        }
 
-        public Color TintColor { get; set; } = Color.White;
+        private Color _tintColor = Color.White;
+        public Color TintColor
+        {
+            get => _tintColor;
+            set => SetProperty(ref _tintColor, value);
+        }
 
         public override void Draw(SpriteBatch spriteBatch, Rect rect)
         {
+            MarkDrawn();
             Draw(spriteBatch, rect, 1);
         }
 
         public override void Draw(SpriteBatch spriteBatch, Rect rect, float opacity)
         {
+            MarkDrawn();
             Draw(spriteBatch, new BrushContext(rect, 0, opacity, spriteBatch.GraphicsDevice));
         }
 
         public override void Draw(SpriteBatch spriteBatch, in BrushContext context)
         {
+            MarkDrawn();
             if (Source == null || context.Rect.Width <= 0 || context.Rect.Height <= 0)
                 return;
 
