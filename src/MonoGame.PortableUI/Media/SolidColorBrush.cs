@@ -21,6 +21,8 @@ namespace MonoGame.PortableUI.Media
             }
         }
 
+        /// <summary>Fill colour, straight alpha: <c>Color.White.WithAlpha(0.07f)</c> is white at 7 %.
+        /// MonoGame's <c>Color.White * 0.07f</c> is premultiplied and would draw at 0.5 % (see <see cref="ColorAlpha"/>).</summary>
         public Color Color { get; set; }
 
         public SolidColorBrush()
