@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.4.0-alpha.2
+
 - **Tab headers never overlap (#58):** with wide pixel fonts (C64, NES, Game Boy) the `TabControl` squeezed its headers below their text width, so labels ran into each other. Headers now keep a gap; when the strip gets tight the gaps shrink first (down to 6 units), and only when even that does not fit the longest labels shorten with an ellipsis while short ones stay whole. Strips with room to spare are unchanged.
 - **Theme review (#58):** Windows XP Luna buttons get the real two-tone "candy" gloss and XP's beige disabled look (no dark overlay). The earlier rework of E-Ink, Game Boy, Luna, Aero, Aqua, Mac 1-bit and Neumorphism and the five game themes covered the rest of the review; the demo's labels shorten instead of overlapping with wide fonts.
 
