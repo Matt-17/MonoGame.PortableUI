@@ -98,22 +98,53 @@ namespace MonoGame.PortableUI.Controls
             var contentRect = BoundingRect - Margin;
             if (_headerButtons.Count > 0 && contentRect.Width > 0)
             {
-                // Distribute the strip proportionally to each header's measured width so long
-                // labels are not cut while short ones don't hog space.
-                var measured = new float[_headerButtons.Count];
-                var total = 0f;
+                // Header widths, in three steps: with room to spare the strip is shared in
+                // proportion to the labels (theme padding included); when that does not fit (wide
+                // pixel fonts) the gaps shrink first, down to a minimum, so every label stays whole;
+                // only then the longest labels shorten with an ellipsis (short ones stay whole) -
+                // never running into each other.
+                if (_headerMeasured.Length != _headerButtons.Count)
+                    _headerMeasured = new float[_headerButtons.Count];
+                var text = _headerMeasured;
+                var totalText = 0f;
                 for (var i = 0; i < _headerButtons.Count; i++)
                 {
-                    measured[i] = System.Math.Max(1, _headerButtons[i].Measure().Width);
-                    total += measured[i];
+                    var button = _headerButtons[i];
+                    text[i] = System.Math.Max(1, button.Content is TextBlock label
+                        ? label.Measure().Width
+                        : button.Measure().Width - button.Padding.Horizontal);
+                    totalText += text[i];
                 }
 
-                var scale = contentRect.Width / total;
-                var left = contentRect.Left;
-                for (var i = 0; i < _headerButtons.Count; i++)
+                var theme = ResolveTheme();
+                var count = _headerButtons.Count;
+                var side = System.Math.Max(HeaderGap / 2, System.Math.Max(theme.ButtonPadding.Left, theme.ButtonPadding.Right));
+                float pad;
+                var scale = 1f;
+                var cap = float.MaxValue;
+                if (totalText + count * 2 * side <= contentRect.Width)
                 {
-                    var width = measured[i] * scale;
-                    _headerButtons[i].UpdateLayout(new Rect(left, contentRect.Top, width, HeaderHeight));
+                    pad = side;
+                    scale = contentRect.Width / (totalText + count * 2 * side);
+                }
+                else if (totalText + count * MinHeaderGap <= contentRect.Width)
+                {
+                    pad = (contentRect.Width - totalText) / (2 * count);
+                }
+                else
+                {
+                    pad = MinHeaderGap / 2;
+                    cap = LabelCap(text, count, System.Math.Max(0, contentRect.Width - count * MinHeaderGap));
+                }
+
+                var left = contentRect.Left;
+                for (var i = 0; i < count; i++)
+                {
+                    var button = _headerButtons[i];
+                    if (button.Padding.Left != pad || button.Padding.Right != pad)
+                        button.Padding = new Thickness(pad, button.Padding.Top, pad, button.Padding.Bottom);
+                    var width = (System.Math.Min(text[i], cap) + 2 * pad) * scale;
+                    button.UpdateLayout(new Rect(left, contentRect.Top, width, HeaderHeight));
                     left += width;
                 }
             }
@@ -151,6 +182,33 @@ namespace MonoGame.PortableUI.Controls
         protected internal override Control GetVisualChild(int index)
         {
             return index < _headerButtons.Count ? _headerButtons[index] : SelectedItem!;
+        }
+
+        /// <summary>Space between two header labels with room to spare, and the least before labels
+        /// shorten, in layout units.</summary>
+        private const float HeaderGap = 16;
+        private const float MinHeaderGap = 6;
+
+        private float[] _headerMeasured = System.Array.Empty<float>();
+        private float[] _headerSorted = System.Array.Empty<float>();
+
+        /// <summary>The widest a label may be so all labels, each capped, share <paramref name="available"/>:
+        /// labels narrower than the cap keep their width, only the longest ones shorten.</summary>
+        private float LabelCap(float[] widths, int count, float available)
+        {
+            if (_headerSorted.Length != count)
+                _headerSorted = new float[count];
+            System.Array.Copy(widths, _headerSorted, count);
+            System.Array.Sort(_headerSorted, 0, count);
+            var remaining = available;
+            for (var i = 0; i < count; i++)
+            {
+                var share = remaining / (count - i);
+                if (_headerSorted[i] > share)
+                    return share;
+                remaining -= _headerSorted[i];
+            }
+            return float.MaxValue;
         }
 
         private void EnsureHeaderButtons()
@@ -191,6 +249,16 @@ namespace MonoGame.PortableUI.Controls
                 var headerText = string.IsNullOrEmpty(item.Header) ? $"Tab {i + 1}" : item.Header;
                 if (button.Text != headerText)
                     button.Text = headerText;
+                // The label spans the header (text centred inside it) instead of sizing to its text,
+                // so a header narrower than its text shortens it with an ellipsis rather than
+                // spilling into the neighbours.
+                if (button.Content is TextBlock label)
+                {
+                    if (label.TextTrimming != TextTrimming.Ellipsis)
+                        label.TextTrimming = TextTrimming.Ellipsis;
+                    if (label.HorizontalAlignment != HorizontalAlignment.Stretch)
+                        label.HorizontalAlignment = HorizontalAlignment.Stretch;
+                }
 
                 var headerBrush = i == SelectedIndex ? SelectedHeaderBackground : HeaderBackground;
                 if (!ReferenceEquals(button.BackgroundBrush, headerBrush))

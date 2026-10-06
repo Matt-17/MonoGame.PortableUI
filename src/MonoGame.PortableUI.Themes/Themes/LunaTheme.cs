@@ -31,6 +31,11 @@ public static class LunaTheme
                 theme.Button.Hover.BorderBrush = ThemeBuilder.Solid(ThemeBuilder.Hex("#F8B330"));
                 theme.Button.Hover.BorderThickness = new Thickness(2);
                 theme.Button.Pressed.Background = pressed;
+                theme.Button.Disabled.Background = ThemeBuilder.Solid(ThemeBuilder.Hex("#F4F3EE"));
+                theme.Button.Disabled.BorderBrush = ThemeBuilder.Solid(ThemeBuilder.Hex("#C9C7BA"));
+                theme.Button.Disabled.TextColor = ThemeBuilder.Hex("#ACA899");
+                // XP greys controls out with its own colours, not a dark veil over them.
+                theme.DisabledOverlayBrush = null;
                 theme.ButtonBackgroundBrush = face;
                 theme.ButtonTextColor = Color.Black;
                 theme.ButtonHoverTextColor = Color.Black;
@@ -40,9 +45,11 @@ public static class LunaTheme
                 theme.Button.InvalidateResolvedCache();
 
                 // Call-to-action buttons wear the XP chrome colors: title-bar blue, Start green, close red.
-                Candy(theme.PrimaryButton, ThemeBuilder.Gloss((0, "#3D95FF"), (0.1f, "#0058EE"), (0.45f, "#0050EE"), (0.88f, "#0066FF"), (1, "#003DD7")), "#0831D9");
-                Candy(theme.SecondaryButton, ThemeBuilder.Gloss((0, "#7CC97C"), (0.12f, "#3C9A3C"), (0.6f, "#2E8B2E"), (1, "#1F6B1F")), "#1E5B1E");
-                Candy(theme.DangerButton, ThemeBuilder.Gloss((0, "#F0A98F"), (0.15f, "#E06A45"), (0.6f, "#D24E22"), (1, "#B0350C")), "#7A2508");
+                // Candy: a light upper half breaking hard into the saturated lower half, as on the
+                // XP title bar and Start button.
+                Candy(theme.PrimaryButton, ThemeBuilder.Gloss((0, "#7DB6FF"), (0.42f, "#3A86FA"), (0.5f, "#0B5DEC"), (0.9f, "#0A55E4"), (1, "#0841C4")), "#0831D9");
+                Candy(theme.SecondaryButton, ThemeBuilder.Gloss((0, "#A4DE96"), (0.42f, "#5DB84F"), (0.5f, "#3A9A2E"), (0.9f, "#348C29"), (1, "#256B1D")), "#1E5B1E");
+                Candy(theme.DangerButton, ThemeBuilder.Gloss((0, "#F7BFA8"), (0.42f, "#E8825F"), (0.5f, "#D6542A"), (0.9f, "#CA4A1F"), (1, "#A8360E")), "#7A2508");
                 theme.VariantButtonHoverBrush = ThemeBuilder.Solid(new Color(255, 255, 255, 46));
                 theme.VariantButtonPressedBrush = ThemeBuilder.Solid(new Color(0, 0, 40, 60));
 
