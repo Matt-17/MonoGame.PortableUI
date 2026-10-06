@@ -4,6 +4,8 @@ namespace MonoGame.PortableUI.Media
 {
     public sealed class ShadowStyle
     {
+        /// <summary>Shadow colour, straight alpha (<c>Color.Black.WithAlpha(0.35f)</c>, not <c>Color.Black * 0.35f</c>;
+        /// see <see cref="ColorAlpha"/>).</summary>
         public Color Color { get; set; } = new Color(0, 0, 0, 90);
 
         /// <summary>Overall shadow strength, multiplied on top of the color's alpha (0..1).</summary>

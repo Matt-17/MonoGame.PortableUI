@@ -15,6 +15,8 @@ namespace MonoGame.PortableUI.Controls
 
         public Texture2D? Source { get; set; }
 
+        /// <summary>Tint multiplied over the image, straight alpha (see <see cref="Media.ColorAlpha"/>);
+        /// transparent (the default) draws the image untinted.</summary>
         public Color TintColor { get; set; }
 
         // Uniform matches the WPF default; None would draw oversized sources clipped to a corner.

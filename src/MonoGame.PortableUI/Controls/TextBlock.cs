@@ -142,7 +142,8 @@ namespace MonoGame.PortableUI.Controls
         /// <summary>NoWrap only: trim overflowing text with an ellipsis instead of overdrawing.</summary>
         public TextTrimming TextTrimming { get; set; }
 
-        /// <summary>Text colour (straight alpha). Follows the theme until set explicitly.</summary>
+        /// <summary>Text colour, straight alpha (<c>Color.White.WithAlpha(0.6f)</c>, not <c>Color.White * 0.6f</c>;
+        /// see <see cref="ColorAlpha"/>). Follows the theme until set explicitly.</summary>
         public Color TextColor
         {
             get { return _textColor; }
@@ -173,7 +174,7 @@ namespace MonoGame.PortableUI.Controls
         protected virtual Color GetThemeTextColor(PortableTheme theme) => theme.TextColor;
         public Vector2 MeasuredText { get; private set; }
 
-        /// <summary>Soft drop-shadow colour; fully transparent (the default) disables the shadow.</summary>
+        /// <summary>Soft drop-shadow colour (straight alpha); fully transparent (the default) disables the shadow.</summary>
         public Color ShadowColor { get; set; } = Color.Transparent;
 
         /// <summary>Offset of the drop shadow from the text, in design pixels.</summary>
