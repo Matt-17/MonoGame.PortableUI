@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Surface draw order documented (#126):** drawing a `UISurface` binds its target and then the previous one again; MonoGame clears targets with `DiscardContents` (the back buffer's default) on bind, so a surface drawn after the host's scene left only the UI. `UISurface` now documents the pattern: draw surfaces first, then the scene, then blit `Target` with alpha blending (or keep the scene in a `PreserveContents` target).
+
 - **Drawing past the box: `InkOverflow` (#122):** every control's drawing is clipped to its box, widened only for drop shadows and the focus ring, so ink outside the line box was cut off - a comma below a cap-height font's box read as a period, outlines lost rows. `Control.InkOverflow` (design pixels per side) widens the clip for custom drawing; subclasses add their own through `GetInkOverflow()`. Fonts report ink outside their measured box with `UIFont.GetInkOverflow(pixelSize)` (descenders of a cap-height font, built-in outlines). `TextBlock` adds its stroke, glow and shadow automatically. Layout and hit testing are unchanged.
 - **Text outline and glow (#114):** `TextBlock.Stroke` (`TextStroke`: colour, width, stamp spacing) draws a round outline and `TextBlock.Glow` (`TextGlow`: colour, radius) a soft outer glow, with SpriteFonts and every `UIFont`; both honour opacity and render scale and extend the clip by themselves. Themes set defaults with `Typography.TextStroke`/`TextGlow`; `Stroke = null` switches a theme outline off for one block. Buttons and other text-showing controls inherit them through their labels; `TextBox` does not draw them.
 - **Sharp text shadows keep their alpha (#117):** `ShadowBlur = 0` stamped nine copies on one spot, so a translucent shadow came out opaque; it now draws one copy.
