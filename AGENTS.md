@@ -183,8 +183,11 @@ display-order index list (`DisplayedItems`), never the caller's `Items`.
 
 ## Pitfalls
 
-- **Premultiplied alpha everywhere.** Brushes/masks draw with premultiplied colors
-  (`Color * alpha`, not `new Color(r,g,b,a)`); `RoundedRectRenderer` expects premultiplied input.
+- **Premultiplied alpha when drawing, straight alpha in the API.** Brushes/masks draw with premultiplied
+  colors (`Color * alpha`, not `new Color(r,g,b,a)`); `RoundedRectRenderer` expects premultiplied input.
+  But every colour the public API takes (brush colours, `TextColor`, `TintColor`, `ShadowStyle.Color`,
+  theme colours) is straight alpha and premultiplied by `Brush.ApplyOpacity`/`Premultiply` - in API-facing
+  code write `color.WithAlpha(a)` (`ColorAlpha`), never `color * a`, or the alpha is applied twice.
 - **Hot paths must not allocate.** No LINQ in `MeasureLayout`/`UpdateLayout`/`OnDraw`/per-frame update
   code; reuse buffers (see pressed-keys/render-target caching in `Screen`/`ScreenComponent`).
 - **GPU resources need device-lifetime handling.** Any static `Texture2D` cache must register

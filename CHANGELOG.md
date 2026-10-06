@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Colours are straight alpha - now documented, with helpers (#119):** every colour PortableUI takes (brush colours, `TextColor`, `Image.TintColor`, `ShadowStyle.Color`, theme colours) is straight alpha and premultiplied when drawn. MonoGame's `Color.White * 0.07f` is already premultiplied, so it came out at 0.5 % instead of 7 %. New `ColorAlpha` extensions: `color.WithAlpha(0.07f)` and `(Color.White * 0.07f).ToStraightAlpha()`. The context menu's shortcut text had the same mistake and now draws at the intended 70 %.
+
 - **Explicit text sizes and colours survive theme switches (#113):** `TextBlock` (and `TextBox`) told seeded theme values from app values only by comparing with the old theme, so `new TextBlock { TextSize = 14 }` grew to 15 when moved into a theme with `TextSize = 15`. Each block now remembers whether `TextSize`/`TextColor` were set explicitly; only seeded values (constructor, `IsHeading`) follow the theme. Subclasses re-seed through `SeedThemeTextColor` and pick their slot with `GetThemeTextColor`.
 
 ## 0.4.0-alpha.2

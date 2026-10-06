@@ -168,7 +168,7 @@ namespace MonoGame.PortableUI.Controls
 
                 row.AddChild(new TextBlock { Text = text, TextColor = textColor, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 12, 0) }, column: 1);
                 if (!isBack && !string.IsNullOrEmpty(item!.ShortcutText))
-                    row.AddChild(new TextBlock { Text = item.ShortcutText!, TextColor = textColor * 0.7f, VerticalAlignment = VerticalAlignment.Center }, column: 2);
+                    row.AddChild(new TextBlock { Text = item.ShortcutText!, TextColor = textColor.WithAlpha(textColor.A / 255f * 0.7f), VerticalAlignment = VerticalAlignment.Center }, column: 2);
                 if (!isBack && item!.HasSubmenu)
                     row.AddChild(Glyph(ChevronGeometry, textColor), column: 3);
                 return row;

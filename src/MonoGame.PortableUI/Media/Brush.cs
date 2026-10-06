@@ -4,6 +4,11 @@ using MonoGame.PortableUI.Common;
 
 namespace MonoGame.PortableUI.Media
 {
+    /// <summary>
+    ///     Base of all fills. Colours given to brushes (and to <c>TextColor</c>, <c>TintColor</c>, shadows and
+    ///     themes) are straight alpha; brushes premultiply when drawing. Do not pass MonoGame's
+    ///     premultiplied <c>Color * float</c> - use <see cref="ColorAlpha.WithAlpha(Color, float)"/>.
+    /// </summary>
     public abstract class Brush
     {
         public virtual bool RequiresBackdrop => false;
