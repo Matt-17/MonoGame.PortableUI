@@ -39,7 +39,7 @@ dotnet run --project benchmarks/MonoGame.PortableUI.Benchmarks -c Release -- --f
 
 **Class hierarchy:** `FrameworkElement` (Parent, BackgroundBrush, InvalidateLayout) → `UIElement`
 (IsVisible/IsGone) → `Control` (the workhorse: sizing, margin/alignment, input events, theming,
-animations, tooltips, context menu). Specializations: `Panel` → `Grid`/`StackPanel`/`SwipePresenter`;
+animations, tooltips, context menu). Specializations: `Panel` → `Grid`/`StackPanel`/`SwipePresenter`/`Canvas` (absolute positions; moves shift via `OffsetArrangement`, no layout pass);
 `ContentControl` → `Button` (→ `ToggleButton` → `RadioButton`), `Border`, `CheckBox`, `ScrollViewer`,
 `FlyOut`, `Badge`; `TextBlock` → `TextBox`; direct: `ListBox`, `DataGrid`, `Slider`, `ProgressBar`, `DrawingCanvas` (immediate `DrawingContext`: triangles via `BasicEffect` between `End`/`ResumeControlBatch`),
 `ToggleSwitch`, `TabControl`, `ThemeIsland`. `ContextMenu`/`MenuItem`/`TabItem` are plain objects, not controls.

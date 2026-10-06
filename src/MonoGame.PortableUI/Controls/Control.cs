@@ -826,6 +826,8 @@ namespace MonoGame.PortableUI.Controls
         /// <summary>Grid row/column attached data, stored on the control so the grid's per-child
         /// lookups during layout are a field read instead of a weak-table lookup.</summary>
         internal object? GridPositionSlot;
+        /// <summary>Canvas position attached data (see <see cref="Canvas"/>).</summary>
+        internal object? CanvasPositionSlot;
         private sbyte _hasCustomDescendants;
         private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, bool> OverridesGetDescendants = new();
 
