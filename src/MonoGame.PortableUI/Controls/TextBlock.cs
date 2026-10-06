@@ -184,6 +184,45 @@ namespace MonoGame.PortableUI.Controls
         /// 0 draws one sharp copy (a translucent colour keeps its alpha).</summary>
         public float ShadowBlur { get; set; } = 2f;
 
+        private Brush? _textFill;
+        private Vector2 _textFillSpan = new Vector2(0, 1);
+
+        /// <summary>
+        ///     Fills the glyphs with a brush instead of <see cref="TextColor"/>: a <see cref="LinearGradientBrush"/>
+        ///     runs across each line (vertical or horizontal; diagonal angles use the nearer axis, hard steps stay
+        ///     sharp), a <see cref="SolidColorBrush"/> is a plain colour; other brushes fall back to TextColor.
+        ///     Works with every font. Drawn in up to 64 bands, one batch each - meant for titles and logos, not
+        ///     for long body text. Outline, glow and shadow keep their own colours.
+        /// </summary>
+        public Brush? TextFill
+        {
+            get => _textFill;
+            set
+            {
+                if (ReferenceEquals(_textFill, value))
+                    return;
+                _textFill = value;
+                InvalidateLayout(false);
+            }
+        }
+
+        /// <summary>
+        ///     Where a gradient <see cref="TextFill"/> runs, as fractions of the line box (vertical) or of the
+        ///     text width (horizontal): (0, 1) the whole line; e.g. (0.25, 0.8) roughly the cap height, so the
+        ///     gradient's stops land on the letters. Outside it the end colours continue.
+        /// </summary>
+        public Vector2 TextFillSpan
+        {
+            get => _textFillSpan;
+            set
+            {
+                if (_textFillSpan == value)
+                    return;
+                _textFillSpan = value;
+                InvalidateLayout(false);
+            }
+        }
+
         private TextStroke? _stroke;
         private bool _strokeSet;
         private TextGlow? _glow;
@@ -622,7 +661,73 @@ namespace MonoGame.PortableUI.Controls
             if (stroke != null && stroke.Color.A > 0 && stroke.Width > 0)
                 DrawStroke(spriteBatch, text, offset, stroke);
 
-            DrawText(spriteBatch, text, offset, Brush.ApplyOpacity(TextColor, RenderOpacity));
+            if (_textFill is LinearGradientBrush gradient && gradient.Stops.Count > 1)
+                DrawGradientFill(spriteBatch, text, offset, gradient);
+            else
+                DrawText(spriteBatch, text, offset, Brush.ApplyOpacity(_textFill is SolidColorBrush solid ? solid.Color : TextColor, RenderOpacity));
+        }
+
+        private const int MaxFillBands = 64;
+
+        // The fill drawn once per band: each band is a scissor slice across the gradient axis, drawn in the
+        // gradient's colour at its centre (one render pixel per band up to 64 pixels, so steps stay sharp).
+        private void DrawGradientFill(SpriteBatch spriteBatch, string text, Vector2 offset, LinearGradientBrush gradient)
+        {
+            var radians = MathHelper.ToRadians(gradient.AngleDegrees);
+            var direction = new Vector2(MathF.Cos(radians), MathF.Sin(radians));
+            var vertical = Math.Abs(direction.Y) >= Math.Abs(direction.X);
+            var reversed = vertical ? direction.Y < 0 : direction.X < 0;
+            float boxStart, boxLength;
+            if (vertical)
+            {
+                var lineHeight = LineHeight * RenderScale.Y;
+                boxStart = offset.Y + lineHeight * _textFillSpan.X;
+                boxLength = lineHeight * (_textFillSpan.Y - _textFillSpan.X);
+            }
+            else
+            {
+                var width = MeasureText(text).X * RenderScale.X;
+                boxStart = offset.X + width * _textFillSpan.X;
+                boxLength = width * (_textFillSpan.Y - _textFillSpan.X);
+            }
+
+            var device = spriteBatch.GraphicsDevice;
+            var clip = device.ScissorRectangle;
+            var clipStart = vertical ? clip.Top : clip.Left;
+            var clipEnd = vertical ? clip.Bottom : clip.Right;
+            var bands = Math.Clamp((int)MathF.Ceiling(Math.Abs(boxLength)), 1, MaxFillBands);
+            // Draws the stroke/shadow queued so far before the scissor changes.
+            spriteBatch.End();
+            for (var band = -1; band <= bands; band++)
+            {
+                if (!FillBand(band, bands, boxStart, boxLength, clipStart, clipEnd, out var low, out var high, out var t))
+                    continue;
+                device.ScissorRectangle = vertical
+                    ? new Rectangle(clip.X, low, clip.Width, high - low)
+                    : new Rectangle(low, clip.Y, high - low, clip.Height);
+                Screen.ResumeControlBatch(spriteBatch);
+                DrawText(spriteBatch, text, offset, Brush.ApplyOpacity(gradient.ColorAt(reversed ? 1 - t : t), RenderOpacity));
+                spriteBatch.End();
+            }
+            device.ScissorRectangle = clip;
+            Screen.ResumeControlBatch(spriteBatch);
+        }
+
+        /// <summary>
+        ///     Pixel range [<paramref name="low"/>, <paramref name="high"/>) of fill band <paramref name="band"/> of
+        ///     <paramref name="bands"/> along the gradient axis, clipped to the control's scissor, and the
+        ///     gradient offset drawn there. Band -1 is everything before the span (offset 0), band
+        ///     <paramref name="bands"/> everything after it (offset 1). False when the band is empty.
+        /// </summary>
+        internal static bool FillBand(int band, int bands, float boxStart, float boxLength, int clipStart, int clipEnd,
+            out int low, out int high, out float t)
+        {
+            low = band < 0 ? clipStart : (int)MathF.Round(boxStart + boxLength * band / bands);
+            high = band >= bands ? clipEnd : (int)MathF.Round(boxStart + boxLength * (band + 1) / bands);
+            t = band < 0 ? 0f : band >= bands ? 1f : (band + 0.5f) / bands;
+            low = Math.Max(low, clipStart);
+            high = Math.Min(high, clipEnd);
+            return high > low;
         }
 
         private void DrawShadow(SpriteBatch spriteBatch, string text, Vector2 offset)

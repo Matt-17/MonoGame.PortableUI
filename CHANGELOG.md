@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Gradient text (#115):** `TextBlock.TextFill` fills the glyphs with a brush: a `LinearGradientBrush` runs down each line (or across it for horizontal angles) with hard steps kept sharp - chrome logos with a horizon - and a `SolidColorBrush` is a plain colour. `TextFillSpan` places the gradient on part of the line box, e.g. the cap height. Works with SpriteFonts and every `UIFont`; outline, glow and shadow keep their colours. It draws in up to 64 scissor bands, so it is meant for titles, not body text. `LinearGradientBrush.ColorAt(offset)` samples a gradient without allocating.
+
 - **App-defined style slots (#118):** `PortableTheme.Styles` holds named `ControlStyle`s for the app's own controls; `Control.StyleKey = "menu-row"` takes the style from the current theme, live, so switching themes restyles custom menu rows and HUD pills too (an explicit `Style` still wins, a missing key falls back to the built-in slot). `CornerRadius.Full` rounds every corner by half the control's shorter side - pills at any height, in a `StateStyle` or on a control.
 
 - **Fractional text sizes (#116):** `TextBlock.TextSize`, `PortableTheme.TextSize` and `Typography.TextSize`/`HeadingSize` are `float`, so a design sized in scaled pixels (48.4 = 1.1 x 44) renders exactly instead of rounding to 48. Assigning integers keeps working; code that reads `TextSize` into an `int` needs a cast.
