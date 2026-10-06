@@ -724,6 +724,8 @@ namespace MonoGame.PortableUI.Demo
                 }
             };
             _liveProgressLabel = Label("0%", Palette.Text);
+            // A live value: its auto column was measured for "0%", so it must not shorten to "..".
+            _liveProgressLabel.TextTrimming = TextTrimming.None;
             liveHeader.AddChild(Label("Live + indeterminate", Palette.MutedText));
             liveHeader.AddChild(_liveProgressLabel, column: 1);
             panel.AddChild(liveHeader);
@@ -1595,7 +1597,9 @@ namespace MonoGame.PortableUI.Demo
                 Text = text,
                 TextColor = color,
                 TextSize = size,
-                Margin = margin
+                Margin = margin,
+                // Wide pixel fonts (C64, NES) would otherwise run into the next column.
+                TextTrimming = TextTrimming.Ellipsis
             };
         }
     }
