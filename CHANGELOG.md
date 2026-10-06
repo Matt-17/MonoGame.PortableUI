@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Image shows part of a texture (#124):** `Image.SourceRectangle` picks the texels to show (a sprite-sheet cell, a crop); measuring, stretching and alignment use its size. `Stretch.UniformToFill` (and `None` on a smaller box) now crops the source to the box, keeping the alignment - centred shows the middle band, top-aligned the top part - instead of drawing past it.
+
 - **Changes always show, unchanged values cost nothing (#125):** several setters did not ask for a frame or a layout, so with `RenderMode.OnDemand`, `UISurface.DrawIfNeeded` or a cached layer the change stayed invisible: `Image.TintColor`/`Source`/`Stretch`/`SamplerState`, `Control.Margin` (now re-lays out), and brush properties (`SolidColorBrush.Color`, gradient angle/centre/radii, image/tile/nine-tile brush source and tint, `BevelBrush.Sunken`, `CrossFadeBrush`). A brush remembers the engine that drew it and redraws only that one (with its cached layers); a brush shown by several engines or outside one redraws all of them once, a brush never drawn redraws nothing. Custom brushes use the protected `SetProperty`/`OnChanged`/`MarkDrawn`. Conversely `IsVisible`/`IsGone` no longer invalidate when set to their current value, so hosts can sync visibility every frame without a layout pass each time. `Thickness` implements `IEquatable<Thickness>` and `==`.
 - **No lock per surface update (#112):** `ScreenEngine.Update` took a lock every frame just to see that no inset change was pending; with 50 surfaces that showed up as ~0.4 ms per frame in a profile. It now checks a volatile flag first.
 
