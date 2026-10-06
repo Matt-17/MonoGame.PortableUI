@@ -21,9 +21,16 @@ namespace MonoGame.PortableUI.Media
             }
         }
 
+        private Color _color;
+
         /// <summary>Fill colour, straight alpha: <c>Color.White.WithAlpha(0.07f)</c> is white at 7 %.
-        /// MonoGame's <c>Color.White * 0.07f</c> is premultiplied and would draw at 0.5 % (see <see cref="ColorAlpha"/>).</summary>
-        public Color Color { get; set; }
+        /// MonoGame's <c>Color.White * 0.07f</c> is premultiplied and would draw at 0.5 % (see <see cref="ColorAlpha"/>).
+        /// Changing it redraws the screens that show the brush.</summary>
+        public Color Color
+        {
+            get => _color;
+            set => SetProperty(ref _color, value);
+        }
 
         public SolidColorBrush()
         {
@@ -37,16 +44,19 @@ namespace MonoGame.PortableUI.Media
 
         public override void Draw(SpriteBatch spriteBatch, Rect rect)
         {
+            MarkDrawn();
             spriteBatch.Draw(Primitives.Pixel(spriteBatch), rect, Premultiply(Color));
         }
 
         public override void Draw(SpriteBatch spriteBatch, Rect rect, float opacity)
         {
+            MarkDrawn();
             spriteBatch.Draw(Primitives.Pixel(spriteBatch), rect, ApplyOpacity(Color, opacity));
         }
 
         public override void Draw(SpriteBatch spriteBatch, in BrushContext context)
         {
+            MarkDrawn();
             RoundedRectRenderer.DrawSolid(spriteBatch, context.Rect, context.Radius, ApplyOpacity(Color, context.Opacity));
         }
     }

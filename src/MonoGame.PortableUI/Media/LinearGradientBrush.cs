@@ -28,20 +28,28 @@ namespace MonoGame.PortableUI.Media
 
         public List<GradientStop> Stops { get; }
 
-        public float AngleDegrees { get; set; } = 90;
+        private float _angleDegrees = 90;
+        public float AngleDegrees
+        {
+            get => _angleDegrees;
+            set => SetProperty(ref _angleDegrees, value);
+        }
 
         public override void Draw(SpriteBatch spriteBatch, Rect rect)
         {
+            MarkDrawn();
             Draw(spriteBatch, rect, 1);
         }
 
         public override void Draw(SpriteBatch spriteBatch, Rect rect, float opacity)
         {
+            MarkDrawn();
             Draw(spriteBatch, new BrushContext(rect, 0, opacity, spriteBatch.GraphicsDevice));
         }
 
         public override void Draw(SpriteBatch spriteBatch, in BrushContext context)
         {
+            MarkDrawn();
             if (context.Rect.Width <= 0 || context.Rect.Height <= 0)
                 return;
 
