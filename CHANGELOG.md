@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **App-defined style slots (#118):** `PortableTheme.Styles` holds named `ControlStyle`s for the app's own controls; `Control.StyleKey = "menu-row"` takes the style from the current theme, live, so switching themes restyles custom menu rows and HUD pills too (an explicit `Style` still wins, a missing key falls back to the built-in slot). `CornerRadius.Full` rounds every corner by half the control's shorter side - pills at any height, in a `StateStyle` or on a control.
+
 - **Fractional text sizes (#116):** `TextBlock.TextSize`, `PortableTheme.TextSize` and `Typography.TextSize`/`HeadingSize` are `float`, so a design sized in scaled pixels (48.4 = 1.1 x 44) renders exactly instead of rounding to 48. Assigning integers keeps working; code that reads `TextSize` into an `int` needs a cast.
 
 - **Game-menu focus (#120):** `Screen.FocusFollowsPointer` lets the pointer select: moving over a focusable control focuses it, the hover look merges into the focused look (one highlight, not two) and the focus visual shows for pointer focus too. `Screen.WrapFocusNavigation` makes arrow keys and the D-pad wrap around (last entry -> first). Space now activates buttons and check boxes as a key (`KeyDown`), so it works on surfaces without window text input and with gamepad hosts; a typed space from the same key press is ignored, an on-screen keyboard's space still activates. Custom controls can use the protected `ShowsHoverLook`.

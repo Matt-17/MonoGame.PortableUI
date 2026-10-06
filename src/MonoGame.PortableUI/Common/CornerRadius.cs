@@ -34,6 +34,24 @@ namespace MonoGame.PortableUI.Common
             return new CornerRadius(radius);
         }
 
+        /// <summary>
+        ///     Fully rounded: every corner gets half the control's shorter side (pills, round buttons), whatever
+        ///     size it ends up with. Use it in a <c>StateStyle</c> or on a control.
+        /// </summary>
+        public static CornerRadius Full { get; } = new CornerRadius(float.PositiveInfinity);
+
+        /// <summary>True when any corner is <see cref="Full"/> (resolved against the control size when drawn).</summary>
+        public bool HasFullCorner => float.IsPositiveInfinity(TopLeft) || float.IsPositiveInfinity(TopRight)
+            || float.IsPositiveInfinity(BottomRight) || float.IsPositiveInfinity(BottomLeft);
+
+        /// <summary>The radius with <see cref="Full"/> corners (and any larger than fits) limited to half the
+        /// shorter side of a <paramref name="width"/> x <paramref name="height"/> box.</summary>
+        public CornerRadius ClampTo(float width, float height)
+        {
+            var max = Math.Max(0, Math.Min(width, height) / 2);
+            return new CornerRadius(Math.Min(TopLeft, max), Math.Min(TopRight, max), Math.Min(BottomRight, max), Math.Min(BottomLeft, max));
+        }
+
         public bool Equals(CornerRadius other)
         {
             return TopLeft.Equals(other.TopLeft)

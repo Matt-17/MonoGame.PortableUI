@@ -183,6 +183,14 @@ namespace MonoGame.PortableUI
         public ThemeMetrics Metrics { get; set; } = new ThemeMetrics();
         public ControlStyle Button { get; set; } = new ControlStyle();
 
+        /// <summary>
+        ///     App-defined style slots, by name: a control with <see cref="Control.StyleKey"/> set takes its
+        ///     style from here, so a theme can describe the app's own controls (menu rows, HUD pills) and a
+        ///     theme switch restyles them. Empty by default; a key missing from a theme falls back to the
+        ///     control's built-in slot.
+        /// </summary>
+        public Dictionary<string, ControlStyle> Styles { get; } = new Dictionary<string, ControlStyle>(StringComparer.Ordinal);
+
         /// <summary>Chrome of <see cref="Controls.ButtonVariant.Primary"/> buttons (palette default: Primary fill).</summary>
         public ControlStyle PrimaryButton { get; set; } = ControlStyleBuilder.Variant(new Color(20, 126, 133), Color.White, new Color(210, 216, 222));
 

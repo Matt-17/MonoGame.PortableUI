@@ -572,7 +572,12 @@ namespace MonoGame.PortableUI.Controls
 
         public CornerRadius CornerRadius
         {
-            get => _cornerRadiusOverride ?? ResolveStateStyle()?.CornerRadius ?? default;
+            get
+            {
+                var radius = _cornerRadiusOverride ?? ResolveStateStyle()?.CornerRadius ?? default;
+                // CornerRadius.Full: half the shorter side of the box the control was laid out in.
+                return radius.HasFullCorner ? radius.ClampTo(ClippingRect.Width, ClippingRect.Height) : radius;
+            }
             set
             {
                 _cornerRadiusOverride = value;
@@ -619,8 +624,28 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        private string? _styleKey;
+
         /// <summary>Per-control style override; when null the control uses its theme style slot.</summary>
         public ControlStyle? Style { get; set; }
+
+        /// <summary>
+        ///     Name of an app-defined slot in the theme's <see cref="PortableTheme.Styles"/>: the control takes
+        ///     that style (live, so theme switches restyle it) instead of its built-in slot. An explicit
+        ///     <see cref="Style"/> still wins; a theme without the key falls back to the built-in slot.
+        /// </summary>
+        public string? StyleKey
+        {
+            get => _styleKey;
+            set
+            {
+                if (_styleKey == value)
+                    return;
+                _styleKey = value;
+                ChangeVisualState();
+                InvalidateLayout(true);
+            }
+        }
 
         /// <summary>The theme style slot this control consumes (e.g. Button → theme.Button); null = unstyled.</summary>
         protected virtual ControlStyle? GetThemeStyle(PortableTheme theme) => null;
@@ -646,7 +671,12 @@ namespace MonoGame.PortableUI.Controls
 
         internal ControlStyle? ResolveStyle()
         {
-            return Style ?? GetThemeStyle(ResolveTheme());
+            if (Style != null)
+                return Style;
+            var theme = ResolveTheme();
+            if (_styleKey != null && theme.Styles.TryGetValue(_styleKey, out var keyed))
+                return keyed;
+            return GetThemeStyle(theme);
         }
 
         protected StateStyle? ResolveStateStyle()
