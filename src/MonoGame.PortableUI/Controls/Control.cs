@@ -380,7 +380,20 @@ namespace MonoGame.PortableUI.Controls
         /// </summary>
         protected internal virtual bool HandlesDirection(FocusDirection direction) => false;
 
-        public Thickness Margin { get; set; }
+        private Thickness _margin;
+
+        /// <summary>Space around the control, outside its box; inert for hit testing. Changing it re-lays out.</summary>
+        public Thickness Margin
+        {
+            get => _margin;
+            set
+            {
+                if (_margin.Equals(value))
+                    return;
+                _margin = value;
+                InvalidateLayout(true);
+            }
+        }
 
         public Vector2 Scale
         {

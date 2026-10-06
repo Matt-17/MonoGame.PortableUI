@@ -1,8 +1,9 @@
+using System;
 using Microsoft.Xna.Framework;
 
 namespace MonoGame.PortableUI.Common
 {
-    public struct Thickness
+    public struct Thickness : IEquatable<Thickness>
     {
         public float Left { get; set; }
         public float Top { get; set; }
@@ -28,6 +29,17 @@ namespace MonoGame.PortableUI.Common
             Right = right;
             Bottom = bottom;
         }
+
+        public bool Equals(Thickness other)
+            => Left.Equals(other.Left) && Top.Equals(other.Top) && Right.Equals(other.Right) && Bottom.Equals(other.Bottom);
+
+        public override bool Equals(object? obj) => obj is Thickness other && Equals(other);
+
+        public override int GetHashCode() => HashCode.Combine(Left, Top, Right, Bottom);
+
+        public static bool operator ==(Thickness a, Thickness b) => a.Equals(b);
+
+        public static bool operator !=(Thickness a, Thickness b) => !a.Equals(b);
 
         public override string ToString()
         {
