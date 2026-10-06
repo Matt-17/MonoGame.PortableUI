@@ -1243,11 +1243,14 @@ namespace MonoGame.PortableUI
             {
                 var transform = CreateControlTransform(control) * _transform;
                 var renderRect = TransformRect(control.ClippingRect, transform);
-                // Drop shadows and the focus ring render outside the control's bounds; widen the
-                // scissor so they survive.
-                var shadowExtent = VisualOverflow(control);
-                // Shadow sizes are layout lengths; the render rect is already scaled.
-                var scissorSource = shadowExtent > 0 ? renderRect + new Thickness(shadowExtent * Math.Max(Scale.X, Scale.Y)) : renderRect;
+                // Drop shadows, the focus ring and ink (text outlines, glows) render outside the
+                // control's bounds; widen the scissor so they survive.
+                var overflow = VisualOverflow(control);
+                // Overflow is in layout lengths; the render rect is already scaled.
+                var overflowScale = Math.Max(Scale.X * control.Scale.X, Scale.Y * control.Scale.Y);
+                var scissorSource = HasOverflow(overflow)
+                    ? renderRect + new Thickness(overflow.Left * overflowScale, overflow.Top * overflowScale, overflow.Right * overflowScale, overflow.Bottom * overflowScale)
+                    : renderRect;
                 var scissorRect = ChildClipRect ^ scissorSource;
                 // Only controls that clip their content (e.g. ScrollViewer) shrink the clip for
                 // descendants; everything else inherits it so overflowing shadows survive.
@@ -1257,9 +1260,9 @@ namespace MonoGame.PortableUI
                 return new RenderContext(transform, scale, opacity, scissorRect, childClipRect, renderRect);
             }
 
-            /// <summary>How far a control draws past its own rect, in layout units: drop shadows and the
-            /// focus ring (offset ring, glow).</summary>
-            public static float VisualOverflow(Control control)
+            /// <summary>How far a control draws past its own rect, in layout units: drop shadows, the
+            /// focus ring (offset ring, glow) and its ink overflow (<see cref="Control.GetInkOverflow"/>).</summary>
+            public static Thickness VisualOverflow(Control control)
             {
                 var extent = 0f;
                 for (var shadow = control.Shadow; shadow != null; shadow = shadow.Also)
@@ -1269,8 +1272,14 @@ namespace MonoGame.PortableUI
                 }
                 if (control.IsFocusVisualShown)
                     extent = Math.Max(extent, 2 + control.FocusBorderWidth * 4);
-                return extent;
+                var ink = control.GetInkOverflow();
+                return new Thickness(
+                    Math.Max(extent, ink.Left), Math.Max(extent, ink.Top),
+                    Math.Max(extent, ink.Right), Math.Max(extent, ink.Bottom));
             }
+
+            public static bool HasOverflow(Thickness overflow)
+                => overflow.Left > 0 || overflow.Top > 0 || overflow.Right > 0 || overflow.Bottom > 0;
 
             /// <summary>A layout rect in this context's render space.</summary>
             public Rect ToRender(Rect layoutRect) => TransformRect(layoutRect, _transform);
