@@ -32,6 +32,14 @@ namespace MonoGame.PortableUI.Text
         public abstract void DrawString(SpriteBatch spriteBatch, string text, Vector2 position, Color color, float pixelSize, Vector2 scale);
 
         public abstract void DrawString(SpriteBatch spriteBatch, StringBuilder text, Vector2 position, Color color, float pixelSize, Vector2 scale);
+
+        /// <summary>
+        ///     How far glyph ink can reach outside the <see cref="MeasureString(string, float)"/> box at
+        ///     <paramref name="pixelSize"/>, in pixels: e.g. descenders and commas of a font that measures only
+        ///     the cap height, or an outline the font stamps itself. Text controls widen their drawing clip by it
+        ///     (see <see cref="Controls.Control.InkOverflow"/>); layout is unaffected. Default: none.
+        /// </summary>
+        public virtual Common.Thickness GetInkOverflow(float pixelSize) => default;
     }
 
     /// <summary><see cref="UIFont"/> over a baked <see cref="SpriteFont"/>: sizes other than the baked one are scaled.</summary>

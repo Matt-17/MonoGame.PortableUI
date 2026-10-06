@@ -223,7 +223,7 @@ namespace MonoGame.PortableUI
             if (addToLayout)
             {
                 var overflow = RenderContext.VisualOverflow(control);
-                var rect = overflow > 0 ? control.ClippingRect + new Thickness(overflow) : control.ClippingRect;
+                var rect = RenderContext.HasOverflow(overflow) ? control.ClippingRect + overflow : control.ClippingRect;
                 if (rect.Width > 0 && rect.Height > 0)
                 {
                     layout = hasLayout ? Union(layout, rect) : rect;

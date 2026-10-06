@@ -547,6 +547,28 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        private Thickness _inkOverflow;
+
+        /// <summary>
+        ///     How far this control draws past its box (<see cref="ClippingRect"/>), in design pixels: drawing is
+        ///     clipped to the box widened by this, the drop <see cref="Shadow"/> and the focus ring. Set it for
+        ///     custom drawing (outlines, glows, gauges) that reaches outside the layout box; layout and hit
+        ///     testing are unaffected. Subclasses add their own ink through <see cref="GetInkOverflow"/>.
+        /// </summary>
+        public Thickness InkOverflow
+        {
+            get => _inkOverflow;
+            set
+            {
+                _inkOverflow = value;
+                InvalidateLayout(false);
+            }
+        }
+
+        /// <summary>The ink overflow in effect: <see cref="InkOverflow"/> plus what the control itself draws
+        /// outside its box (text strokes, glows, font ink). Read at draw time.</summary>
+        protected internal virtual Thickness GetInkOverflow() => _inkOverflow;
+
         public ShadowStyle? Shadow
         {
             get
