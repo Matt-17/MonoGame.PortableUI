@@ -352,6 +352,13 @@ namespace MonoGame.PortableUI
             Engine.RecordFrame(true);
         }
 
+        /// <summary>
+        ///     Layer-cache pixels (<see cref="Controls.CacheMode.Bitmap"/>) all surfaces of a game share;
+        ///     surfaces drawn now evict the caches of those not drawn for the longest time. Default: three
+        ///     1920x1080 screens (~25 MB).
+        /// </summary>
+        public static long SharedLayerCacheBudgetPixels { get; set; } = 1920L * 1080L * 3;
+
         /// <summary>Resolution factor of the last draw: 1 for <see cref="Draw"/> and full-size tiles,
         /// a <see cref="DrawToResolutionSteps"/> value for smaller ones.</summary>
         public float LastDrawResolution { get; private set; } = 1f;

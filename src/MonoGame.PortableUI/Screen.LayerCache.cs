@@ -67,6 +67,7 @@ namespace MonoGame.PortableUI
             if (cache != null && engine.DrawFrameNumber < cache.LiveUntilFrame)
             {
                 cache.LastUsedFrame = engine.DrawFrameNumber;
+                cache.LastUsedTick = engine.LayerCacheTick;
                 return false;
             }
 
@@ -111,6 +112,7 @@ namespace MonoGame.PortableUI
 
             cache = control.LayerCache!;
             cache.LastUsedFrame = engine.DrawFrameNumber;
+            cache.LastUsedTick = engine.LayerCacheTick;
 
             // Composite: the texture already carries the subtree's own clipping and opacity; only the
             // ancestors' clip and opacity apply.

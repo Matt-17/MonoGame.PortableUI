@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Shared layer-cache budget for surfaces (#102):** layer caches (`CacheMode.Bitmap`) age only while their engine draws, so a `UISurface` that is no longer drawn kept its cached textures for good - with many surfaces drawn only while in view, memory crept up. All surfaces of a game now share one budget (`UISurface.SharedLayerCacheBudgetPixels`, default three 1920×1080 screens, ~25 MB); a surface in view evicts the caches of the surfaces drawn least recently, never ones on screen in the current frame. The main engine keeps its own budget. (A per-engine clock was considered and left out: hosts pass the same monotonic `GameTime` to all surfaces.)
+
 ## 0.4.0-alpha.1
 
 Shader visuals become an optional package: the core draws flat and needs no shaders; post effects, backdrop blur and glass come with **CodeIX.PortableUI.Effects**.

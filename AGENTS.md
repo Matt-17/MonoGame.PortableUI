@@ -106,7 +106,10 @@ property changes in handlers show even where a setter does not invalidate - per-
 game code still must call `RequestRedraw()`. Layer render targets must use `PreserveContents`: nested
 layers and clip passes switch targets mid-render. `ListBox.ItemCacheMode` caches rows. Global changes bump `ScreenEngine.LayerCacheGeneration`. Subtrees with backdrop (glass) brushes,
 post-FX islands or overscroll stretch, and transient scales, are drawn live. Unused caches are freed
-after 120 frames; budget three screens of pixels.
+after 120 frames of their engine; budget three screens of pixels. Surface engines share one budget per `Game`
+(`UISurface.SharedLayerCacheBudgetPixels`, 3×1080p): an unseen surface never ages its caches, so a surface in
+view evicts the least recently drawn caches of others (global tick; never caches drawn in the current tick; a
+nested surface draw does not advance the tick).
 
 **Render quality:** `ScreenEngineOptions.RenderQuality` (Auto = Low in Android battery saver, else High)
 resolves to `ScreenEngine.EffectiveRenderQuality` each update. Drawing code reads it through the static
