@@ -28,6 +28,7 @@ namespace MonoGame.PortableUI.Controls
             ShowFocusVisual = true;
             Click += CheckBoxClick;
             KeyPressed += ActivateOnKeyPressed;
+            KeyDown += ActivateOnKeyDown;
         }
 
         protected override void OnThemeChanged(PortableTheme oldTheme, PortableTheme newTheme)

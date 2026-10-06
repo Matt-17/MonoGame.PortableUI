@@ -45,6 +45,7 @@ namespace MonoGame.PortableUI.Controls
             TextAlignment = TextAlignment.Center;
             ShowFocusVisual = true;
             KeyPressed += ActivateOnKeyPressed;
+            KeyDown += ActivateOnKeyDown;
         }
 
         /// <summary>Internal chrome buttons (list items, tab headers, menu entries) opt out.</summary>
@@ -96,7 +97,7 @@ namespace MonoGame.PortableUI.Controls
                 return ControlVisualState.Disabled;
             if (IsPressedVisualState())
                 return ControlVisualState.Pressed;
-            if (HoverState == HoverStates.Hovering)
+            if (ShowsHoverLook)
                 return ControlVisualState.Hover;
             if (IsFocused)
                 return ControlVisualState.Focused;
@@ -137,7 +138,7 @@ namespace MonoGame.PortableUI.Controls
             var theme = _variant != ButtonVariant.Standard ? ResolveTheme() : null;
             if (IsPressedVisualState())
                 DrawStateOverlay(spriteBatch, theme != null && ReferenceEquals(PressedColor, theme.ButtonPressedBrush) ? theme.VariantButtonPressedBrush : PressedColor, in context);
-            else if (HoverState == HoverStates.Hovering)
+            else if (ShowsHoverLook)
                 DrawStateOverlay(spriteBatch, theme != null && ReferenceEquals(HoverColor, theme.ButtonHoverBrush) ? theme.VariantButtonHoverBrush : HoverColor, in context);
         }
 
@@ -294,7 +295,7 @@ namespace MonoGame.PortableUI.Controls
             }
             if (!IsEnabled && DisabledTextColor != null)
                 color = (Color)DisabledTextColor;
-            else if (HoverState == HoverStates.Hovering && HoverTextColor != null)
+            else if (ShowsHoverLook && HoverTextColor != null)
                 color = (Color)HoverTextColor;
             if (IsEnabled && isPressed && PressedTextColor != null)
                 color = (Color)PressedTextColor;
