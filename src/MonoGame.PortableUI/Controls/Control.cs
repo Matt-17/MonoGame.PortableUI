@@ -183,6 +183,26 @@ namespace MonoGame.PortableUI.Controls
         private TouchStates _touchState;
         internal bool IsMouseHovering => HoverState == HoverStates.Hovering;
 
+        /// <summary>Whether to draw the hover look: hovering, unless the screen merges hover into focus
+        /// (<see cref="PortableUI.Screen.FocusFollowsPointer"/>).</summary>
+        protected bool ShowsHoverLook => HoverState == HoverStates.Hovering && Screen is not { FocusFollowsPointer: true };
+
+        // FocusFollowsPointer: the pointer selects the focusable control under it. Events bubble from the
+        // innermost control, so a focusable container never takes focus from a focusable child.
+        private void FocusFromPointer()
+        {
+            if (!IsFocusable || !IsEffectiveTabStop || !IsEffectivelyInteractive)
+                return;
+            if (ScreenEngine.For(this) is not { } engine)
+                return;
+            for (var focused = engine.FocusedControl; focused != null; focused = focused.Parent as Control)
+            {
+                if (ReferenceEquals(focused, this))
+                    return;
+            }
+            Focus();
+        }
+
         public override FrameworkElement? Parent
         {
             get { return _parent; }
@@ -904,9 +924,22 @@ namespace MonoGame.PortableUI.Controls
             if (args.Modifiers != KeyboardModifiers.None)
                 return;
 
-            if ((args.InputType == InputType.Command && args.Command == KeyboardCommand.Enter)
-                || (args.InputType == InputType.Char && args.Char == ' '))
+            if (args.InputType == InputType.Command && args.Command == KeyboardCommand.Enter)
                 OnClick();
+            // A typed space activates only when no Space key is down: a physical Space already activated
+            // through KeyDown (ActivateOnKeyDown); this path is for on-screen keyboards and IMEs.
+            else if (args.InputType == InputType.Char && args.Char == ' '
+                     && Screen?.InputSource.KeyboardState.IsKeyDown(Keys.Space) != true)
+                OnClick();
+        }
+
+        /// <summary>Space activates as a key, so it works without window text input (surfaces, gamepad hosts).</summary>
+        private protected void ActivateOnKeyDown(object? sender, KeyEventArgs args)
+        {
+            if (args.Key != Keys.Space || args.IsRepeat || args.Modifiers != KeyboardModifiers.None || args.Handled)
+                return;
+            args.Handled = true;
+            OnClick();
         }
 
         public virtual void OnRightClick()
@@ -1091,7 +1124,7 @@ namespace MonoGame.PortableUI.Controls
         /// </summary>
         internal bool IsFocusVisualShown =>
             ShowFocusVisual && IsFocused && FocusBorderWidth > 0 && FocusBorderBrush != null
-            && (ShowsFocusVisualForPointer || ScreenEngine.For(this)?.KeyboardNavigationActive != false);
+            && (ShowsFocusVisualForPointer || Screen is { FocusFollowsPointer: true } || ScreenEngine.For(this)?.KeyboardNavigationActive != false);
 
         protected internal virtual void OnDrawOverlay(SpriteBatch spriteBatch, Rect rect)
         {
@@ -1266,6 +1299,8 @@ namespace MonoGame.PortableUI.Controls
         internal void OnMouseEnter(MouseEventArgs args)
         {
             HoverState = HoverStates.Hovering;
+            if (Screen is { FocusFollowsPointer: true })
+                FocusFromPointer();
             foreach (var button in AllMouseButtons)
             {
                 if (MouseButtonStates[button] == ButtonState.Pressed && !args.Buttons.Contains(button))
@@ -1426,6 +1461,8 @@ namespace MonoGame.PortableUI.Controls
 
         internal void OnMouseMove(MouseEventArgs args)
         {
+            if (Screen is { FocusFollowsPointer: true })
+                FocusFromPointer();
             _lastToolTipAnchorPosition = args.Position;
             Screen?.UpdateToolTip(this, args.Position);
             MouseMove?.Invoke(this, args);

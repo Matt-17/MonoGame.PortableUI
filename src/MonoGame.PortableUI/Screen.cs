@@ -128,6 +128,19 @@ namespace MonoGame.PortableUI
 
         public bool Initialized { get; set; }
 
+        /// <summary>
+        ///     Game-menu focus: moving the pointer over a focusable control focuses it, so pointer and
+        ///     keyboard/gamepad drive one selection. The hover look merges into the focused look (no second
+        ///     highlight) and the focus visual shows for pointer focus too. Default false (desktop behaviour).
+        /// </summary>
+        public bool FocusFollowsPointer { get; set; }
+
+        /// <summary>
+        ///     Arrow keys / D-pad wrap around: with nothing further in a direction, focus jumps to the
+        ///     control furthest the other way (the last menu entry goes to the first). Default false.
+        /// </summary>
+        public bool WrapFocusNavigation { get; set; }
+
         public Rect ScreenRect => ScreenEngine?.ScreenRect ?? Rect.Empty;
 
         /// <summary>The screen in render pixels: equal to <see cref="ScreenRect"/> unless the engine
@@ -1948,6 +1961,9 @@ namespace MonoGame.PortableUI
                 bestScore = score;
             }
 
+            if (best == null && WrapFocusNavigation)
+                best = FindWrapTarget(current, from, direction);
+
             _focusCandidates.Clear();
             if (best == null)
                 return false;
@@ -1955,6 +1971,49 @@ namespace MonoGame.PortableUI
             best.Focus();
             BringIntoView(best);
             return true;
+        }
+
+        // Nothing beyond the current control: the candidate furthest the other way, preferring the
+        // ones in the same row/column (the first entry of a menu after its last).
+        private Control? FindWrapTarget(Control current, Rect from, FocusDirection direction)
+        {
+            const float sidewaysWeight = 2f;
+            Control? best = null;
+            var bestScore = float.MaxValue;
+            foreach (var candidate in _focusCandidates)
+            {
+                if (ReferenceEquals(candidate, current) || !candidate.IsEffectiveTabStop || !candidate.IsEffectivelyInteractive)
+                    continue;
+                var to = candidate.ClippingRect;
+                if (to.Width <= 0 || to.Height <= 0)
+                    continue;
+                float position, sideways;
+                switch (direction)
+                {
+                    case FocusDirection.Down:
+                        position = to.Top;
+                        sideways = Gap(from.Left, from.Right, to.Left, to.Right);
+                        break;
+                    case FocusDirection.Up:
+                        position = -to.Bottom;
+                        sideways = Gap(from.Left, from.Right, to.Left, to.Right);
+                        break;
+                    case FocusDirection.Right:
+                        position = to.Left;
+                        sideways = Gap(from.Top, from.Bottom, to.Top, to.Bottom);
+                        break;
+                    default:
+                        position = -to.Right;
+                        sideways = Gap(from.Top, from.Bottom, to.Top, to.Bottom);
+                        break;
+                }
+                var score = position + sidewaysWeight * sideways;
+                if (score >= bestScore)
+                    continue;
+                best = candidate;
+                bestScore = score;
+            }
+            return best;
         }
 
         internal static bool TryScoreFocusCandidate(Rect from, Rect to, FocusDirection direction, out float score)
