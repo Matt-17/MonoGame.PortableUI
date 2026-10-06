@@ -48,6 +48,40 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        private Rectangle? _sourceRectangle;
+
+        /// <summary>
+        ///     The part of <see cref="Source"/> to show, in texels (a sprite-sheet cell, a crop); null shows the
+        ///     whole texture. Measuring, stretching and alignment use its size. Clamped to the texture.
+        /// </summary>
+        public Rectangle? SourceRectangle
+        {
+            get => _sourceRectangle;
+            set
+            {
+                if (_sourceRectangle == value)
+                    return;
+                var sizeChanged = SourceRect.Size != Clamp(value).Size;
+                _sourceRectangle = value;
+                InvalidateLayout(sizeChanged);
+                RequestRedraw();
+            }
+        }
+
+        private Rectangle Clamp(Rectangle? rectangle)
+        {
+            if (_source == null)
+                return Rectangle.Empty;
+            return rectangle is { } r ? Rectangle.Intersect(r, _source.Bounds) : _source.Bounds;
+        }
+
+        /// <summary>The texels drawn: <see cref="SourceRectangle"/> within the texture, or the whole texture.</summary>
+        private Rectangle SourceRect => Clamp(_sourceRectangle);
+
+        private int SourceWidth => SourceRect.Width;
+
+        private int SourceHeight => SourceRect.Height;
+
         public Stretch Stretch
         {
             get => _stretch;
@@ -105,10 +139,40 @@ namespace MonoGame.PortableUI.Controls
                     break;
             }
 
-            var destinationRectangle = new Rect(new PointF(x,y), imageSize);
+            var source = SourceRect;
+            if (source.Width <= 0 || source.Height <= 0 || imageSize.Width <= 0 || imageSize.Height <= 0)
+                return;
+            var destination = new Rect(new PointF(x, y), imageSize);
             var tintColor = TintColor == Color.Transparent ? Color.White : TintColor;
 
-            spriteBatch.Draw(Source, destinationRectangle, Brush.ApplyOpacity(tintColor, RenderOpacity));
+            if (!CropToBox(ref source, ref destination, rect))
+                return;
+            spriteBatch.Draw(Source, destination, source, Brush.ApplyOpacity(tintColor, RenderOpacity));
+        }
+
+        /// <summary>
+        ///     UniformToFill (or None on a small box) draws larger than the box: crops <paramref name="source"/>
+        ///     to the texels inside <paramref name="box"/> and shrinks <paramref name="destination"/> to match, so
+        ///     nothing is drawn past the box and the alignment is kept. False when nothing is visible.
+        /// </summary>
+        internal static bool CropToBox(ref Rectangle source, ref Rect destination, Rect box)
+        {
+            var visible = destination ^ box;
+            if (visible.Width <= 0 || visible.Height <= 0)
+                return false;
+            if (visible.Width >= destination.Width - 0.01f && visible.Height >= destination.Height - 0.01f)
+                return true;
+
+            var texelsX = source.Width / destination.Width;
+            var texelsY = source.Height / destination.Height;
+            var left = source.X + (visible.Left - destination.Left) * texelsX;
+            var top = source.Y + (visible.Top - destination.Top) * texelsY;
+            var cropped = new Rectangle(
+                (int)MathF.Round(left), (int)MathF.Round(top),
+                Math.Max(1, (int)MathF.Round(visible.Width * texelsX)), Math.Max(1, (int)MathF.Round(visible.Height * texelsY)));
+            source = Rectangle.Intersect(cropped, source);
+            destination = visible;
+            return source.Width > 0 && source.Height > 0;
         }
 
         public override Size MeasureLayout()
@@ -122,23 +186,23 @@ namespace MonoGame.PortableUI.Controls
 
             // One fixed side with a uniform stretch: the other side follows the aspect ratio
             // (Width=400 on a 100x100 texture measures 400x400, as in WPF).
-            if (Source != null && Source.Width > 0 && Source.Height > 0
+            if (Source != null && SourceWidth > 0 && SourceHeight > 0
                 && (Stretch == Stretch.Uniform || Stretch == Stretch.UniformToFill)
                 && Width.IsFixed() != Height.IsFixed())
             {
                 if (Width.IsFixed())
-                    size.Height = Width * Source.Height / Source.Width;
+                    size.Height = Width * SourceHeight / SourceWidth;
                 else
-                    size.Width = Height * Source.Width / Source.Height;
+                    size.Width = Height * SourceWidth / SourceHeight;
                 return ApplyConstraints(size) + Margin;
             }
 
             if (Source != null && (size.Width == 0 || size.Height == 0))
             {
                 if (size.Height == 0)
-                    size.Height = Source.Height;
+                    size.Height = SourceHeight;
                 if (size.Width == 0)
-                    size.Width = Source.Width;
+                    size.Width = SourceWidth;
 
                 size = GetImageSize(size);
 
@@ -156,11 +220,11 @@ namespace MonoGame.PortableUI.Controls
             if (Source == null)
                 return Size.Empty;
 
-            if (Source.Width == 0 || Source.Height == 0 || size.Width == 0 || size.Height == 0)
+            if (SourceWidth == 0 || SourceHeight == 0 || size.Width == 0 || size.Height == 0)
                 return Size.Empty;
 
-            var widthGap = size.Width / Source.Width;
-            var heightGap = size.Height / Source.Height;
+            var widthGap = size.Width / SourceWidth;
+            var heightGap = size.Height / SourceHeight;
 
             float newWidth;
             float newHeight;
@@ -168,36 +232,36 @@ namespace MonoGame.PortableUI.Controls
             switch (Stretch)
             {
                 case Stretch.None:
-                    newWidth = Source.Width;
-                    newHeight = Source.Height;
+                    newWidth = SourceWidth;
+                    newHeight = SourceHeight;
                     break;
                 case Stretch.Uniform:
 
                     if (widthGap < heightGap)
                     {
                         newWidth = size.Width;
-                        var scalingFactor = newWidth / Source.Width;
-                        newHeight = Source.Height * scalingFactor;
+                        var scalingFactor = newWidth / SourceWidth;
+                        newHeight = SourceHeight * scalingFactor;
                     }
                     else
                     {
                         newHeight = size.Height;
-                        var scalingFactor = newHeight / Source.Height;
-                        newWidth = Source.Width * scalingFactor;
+                        var scalingFactor = newHeight / SourceHeight;
+                        newWidth = SourceWidth * scalingFactor;
                     }
                     break;
                 case Stretch.UniformToFill:
                     if (widthGap > heightGap)
                     {
                         newWidth = size.Width;
-                        var scalingFactor = newWidth / Source.Width;
-                        newHeight = Source.Height * scalingFactor;
+                        var scalingFactor = newWidth / SourceWidth;
+                        newHeight = SourceHeight * scalingFactor;
                     }
                     else
                     {
                         newHeight = size.Height;
-                        var scalingFactor = newHeight / Source.Height;
-                        newWidth = Source.Width * scalingFactor;
+                        var scalingFactor = newHeight / SourceHeight;
+                        newWidth = SourceWidth * scalingFactor;
                     }
                     return new Size(newWidth, newHeight);
                 case Stretch.Fill:

@@ -600,6 +600,9 @@ namespace MonoGame.PortableUI.Demo
                 Glow = new TextGlow(Palette.Primary.WithAlpha(0.6f), 8),
                 DynamicFont = DemoFonts.Selawik
             });
+            // Image.SourceRectangle (left half of the icon) and UniformToFill cropped to a wide box.
+            effects.AddChild(new Image { Source = _deleteIcon, SourceRectangle = new Rectangle(0, 0, _deleteIcon.Width / 2, _deleteIcon.Height), Height = 36, VerticalAlignment = VerticalAlignment.Center });
+            effects.AddChild(new Image { Source = _deleteIcon, Stretch = Stretch.UniformToFill, Width = 72, Height = 20, VerticalAlignment = VerticalAlignment.Center });
             panel.AddChild(effects);
             return panel;
         }
