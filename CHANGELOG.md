@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Explicit text sizes and colours survive theme switches (#113):** `TextBlock` (and `TextBox`) told seeded theme values from app values only by comparing with the old theme, so `new TextBlock { TextSize = 14 }` grew to 15 when moved into a theme with `TextSize = 15`. Each block now remembers whether `TextSize`/`TextColor` were set explicitly; only seeded values (constructor, `IsHeading`) follow the theme. Subclasses re-seed through `SeedThemeTextColor` and pick their slot with `GetThemeTextColor`.
+
 ## 0.4.0-alpha.2
 
 - **Tab headers never overlap (#58):** with wide pixel fonts (C64, NES, Game Boy) the `TabControl` squeezed its headers below their text width, so labels ran into each other. Headers now keep a gap; when the strip gets tight the gaps shrink first (down to 6 units), and only when even that does not fit the longest labels shorten with an ellipsis while short ones stay whole. Strips with room to spare are unchanged.

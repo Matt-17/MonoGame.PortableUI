@@ -154,7 +154,7 @@ namespace MonoGame.PortableUI.Controls
             var theme = PortableTheme.ResolveCurrent();
 
             IsFocusable = true; // TextBlock disables this; text input needs focus back
-            TextColor = theme.TextBoxTextColor;
+            SeedThemeTextColor(theme.TextBoxTextColor);
             CursorColor = theme.TextBoxCursorBrush;
             CaretStyle = theme.TextBoxCaretStyle;
             CaretBlinkInterval = theme.TextBoxCaretBlinkInterval;
@@ -181,6 +181,8 @@ namespace MonoGame.PortableUI.Controls
             return theme.TextBox;
         }
 
+        protected override Color GetThemeTextColor(PortableTheme theme) => theme.TextBoxTextColor;
+
         protected override Brush? GetThemeBackgroundBrush(PortableTheme theme)
         {
             return theme.TextBoxBackgroundBrush;
@@ -188,14 +190,9 @@ namespace MonoGame.PortableUI.Controls
 
         protected override void OnThemeChanged(PortableTheme oldTheme, PortableTheme newTheme)
         {
-            // TextBlock re-seeds TextColor from the generic text color first; capture whether it was
-            // the TextBox slot before that, or the comparison below never matches.
-            var textWasThemeDefault = TextColor.Equals(oldTheme.TextBoxTextColor);
-
+            // TextBlock re-seeds a theme-driven TextColor through GetThemeTextColor.
             base.OnThemeChanged(oldTheme, newTheme);
 
-            if (textWasThemeDefault)
-                TextColor = newTheme.TextBoxTextColor;
             if (ReferenceEquals(CursorColor, oldTheme.TextBoxCursorBrush))
                 CursorColor = newTheme.TextBoxCursorBrush;
             if (CaretStyle == oldTheme.TextBoxCaretStyle)
