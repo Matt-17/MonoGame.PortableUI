@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **Tab headers never overlap (#58):** with wide pixel fonts (C64, NES, Game Boy) the `TabControl` squeezed its headers below their text width, so labels ran into each other. Headers now keep a gap; when the strip gets tight the gaps shrink first (down to 6 units), and only when even that does not fit the longest labels shorten with an ellipsis while short ones stay whole. Strips with room to spare are unchanged.
+- **Theme review (#58):** Windows XP Luna buttons get the real two-tone "candy" gloss and XP's beige disabled look (no dark overlay). The earlier rework of E-Ink, Game Boy, Luna, Aero, Aqua, Mac 1-bit and Neumorphism and the five game themes covered the rest of the review; the demo's labels shorten instead of overlapping with wide fonts.
+
 - **Shared layer-cache budget for surfaces (#102):** layer caches (`CacheMode.Bitmap`) age only while their engine draws, so a `UISurface` that is no longer drawn kept its cached textures for good - with many surfaces drawn only while in view, memory crept up. All surfaces of a game now share one budget (`UISurface.SharedLayerCacheBudgetPixels`, default three 1920×1080 screens, ~25 MB); a surface in view evicts the caches of the surfaces drawn least recently, never ones on screen in the current frame. The main engine keeps its own budget. (A per-engine clock was considered and left out: hosts pass the same monotonic `GameTime` to all surfaces.)
 
 ## 0.4.0-alpha.1
