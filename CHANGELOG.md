@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.4.0-alpha.3
+
+Drawing and text effects for game HUDs: a drawing canvas, an absolute-position canvas panel, text outline and glow, drawing past the layout box, and fixes from the Arcade integration.
+
 - **Canvas panel (#127):** `Canvas` places real controls at coordinates: `Canvas.SetLeft/SetTop` (or `SetRight/SetBottom` from the far edges), `SetPosition` for both at once, and `SetAnchor` to choose which point of the child sits there - `(0.5, 0.5)` centres a clickable marker on a map point or a label on a projected 3D position. As in WPF the canvas keeps its own size and does not clip. Moving a child does not run a layout pass: while no size changed it shifts the arranged child like scrolling, without allocating, so markers can follow objects every frame.
 
 - **Drawing canvas (#123):** `DrawingCanvas` is a control you draw on every frame through a `DrawingContext` (override `OnRender` or handle the `Render` event): lines and polylines with mitred joins and flat/square caps, arcs and rings with any sweep, pie slices, circles, ellipses, (rotated) rectangles, convex polygons, text anchored at points and (rotated) images. Shapes are triangles built into reused buffers - no textures, no allocations when the picture changes, one draw call per run - with one-pixel anti-aliased edges (`AntiAlias = false` for pixel art). Coordinates are design pixels; `DrawingContext.Transform` maps world coordinates for pan/zoom (stroke widths and text sizes stay in design pixels). Opacity, layout scale and HiDPI apply; call `Invalidate()` when the content changes. The Visual FX demo tab shows a ring gauge, a rotated floor plan and the new text outline and glow.
