@@ -47,6 +47,10 @@ namespace MonoGame.PortableUI.Media
         public long LiveUntilFrame;
         public long LastUsedFrame;
 
+        /// <summary>Tick of the shared surface budget when last drawn (comparable across surface
+        /// engines, unlike <see cref="LastUsedFrame"/>), for least-recently-used eviction.</summary>
+        public long LastUsedTick;
+
         public long Pixels => (long)Width * Height;
 
         public void Dispose()

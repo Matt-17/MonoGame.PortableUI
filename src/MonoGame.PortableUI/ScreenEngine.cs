@@ -30,6 +30,8 @@ namespace MonoGame.PortableUI
             // a hall of surfaces would otherwise add one handler per surface to every keystroke.
             if (!isSurfaceEngine)
                 SubscribeWindowTextInput(true);
+            else
+                JoinSharedLayerBudget();
             if (options.AddComponentToGame && !game.Components.Contains(Component))
                 game.Components.Add(Component);
         }
@@ -572,6 +574,10 @@ namespace MonoGame.PortableUI
         internal void DrawStack(Microsoft.Xna.Framework.Graphics.SpriteBatch spriteBatch)
         {
             var previous = EnterDraw();
+            // A surface drawn inside another surface's draw shares its tick: the outer one's caches
+            // still sit in its batches and must not look old enough to evict.
+            if (previous == null)
+                AdvanceLayerCacheTick();
             try
             {
                 var screens = VisibleScreens;
