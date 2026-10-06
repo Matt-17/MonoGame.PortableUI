@@ -488,7 +488,10 @@ namespace MonoGame.PortableUI
             CurrentKeyboard = null;
         }
 
-        public void SetScreenSize(int width, int height)
+        public void SetScreenSize(int width, int height) => SetScreenSize((float)width, height);
+
+        /// <summary>Layout size in (possibly fractional) layout units, e.g. a window's pixels divided by a scale.</summary>
+        public void SetScreenSize(float width, float height)
         {
             ScreenRect = new Rect(width, height);
             ActiveScreen?.InvalidateLayout(true);
