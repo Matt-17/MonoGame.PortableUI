@@ -41,7 +41,7 @@ dotnet run --project benchmarks/MonoGame.PortableUI.Benchmarks -c Release -- --f
 (IsVisible/IsGone) → `Control` (the workhorse: sizing, margin/alignment, input events, theming,
 animations, tooltips, context menu). Specializations: `Panel` → `Grid`/`StackPanel`/`SwipePresenter`;
 `ContentControl` → `Button` (→ `ToggleButton` → `RadioButton`), `Border`, `CheckBox`, `ScrollViewer`,
-`FlyOut`, `Badge`; `TextBlock` → `TextBox`; direct: `ListBox`, `DataGrid`, `Slider`, `ProgressBar`,
+`FlyOut`, `Badge`; `TextBlock` → `TextBox`; direct: `ListBox`, `DataGrid`, `Slider`, `ProgressBar`, `DrawingCanvas` (immediate `DrawingContext`: triangles via `BasicEffect` between `End`/`ResumeControlBatch`),
 `ToggleSwitch`, `TabControl`, `ThemeIsland`. `ContextMenu`/`MenuItem`/`TabItem` are plain objects, not controls.
 
 **Top level:** `ScreenEngine` owns navigation, focus, viewport scaling (`ReferenceSize` letter-boxing),

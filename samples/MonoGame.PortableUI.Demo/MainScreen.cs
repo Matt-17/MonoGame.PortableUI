@@ -536,8 +536,63 @@ namespace MonoGame.PortableUI.Demo
             }));
 
             grid.AddChild(controls);
-            grid.AddChild(sample, column: 1);
+            var right = new StackPanel { Spacing = 16 };
+            right.AddChild(sample);
+            right.AddChild(CreateCanvasSample());
+            grid.AddChild(right, column: 1);
             return grid;
+        }
+
+        // DrawingCanvas: a ring gauge, a rotated floor plan with labels, and outlined/glowing text.
+        private Control CreateCanvasSample()
+        {
+            var panel = new StackPanel { Margin = new Thickness(18, 0, 0, 0), Spacing = 8 };
+            panel.AddChild(Label("DrawingCanvas, text stroke and glow", Palette.MutedText));
+            var canvas = new DrawingCanvas { Height = 170, HorizontalAlignment = HorizontalAlignment.Stretch };
+            canvas.Render += (_, dc) =>
+            {
+                var gauge = new Vector2(80, 85);
+                dc.DrawCircle(gauge, 60, Palette.MutedText.WithAlpha(0.35f), 10);
+                dc.DrawArc(gauge, 60, -MathHelper.PiOver2, MathHelper.TwoPi * 0.7f, Palette.Primary, 10);
+                dc.FillPie(gauge, 36, -MathHelper.PiOver2, MathHelper.TwoPi * 0.3f, Palette.Secondary.WithAlpha(0.6f));
+                dc.DrawText("70%", gauge, Palette.Text, 18, new Vector2(0.5f, 0.5f));
+
+                dc.Transform = Matrix.CreateScale(0.8f) * Matrix.CreateRotationZ(0.2f) * Matrix.CreateTranslation(270, 15, 0);
+                dc.FillRectangle(new Rect(0, 0, 200, 120), Palette.Secondary.WithAlpha(0.25f));
+                dc.DrawRectangle(new Rect(0, 0, 200, 120), Palette.Text, 4);
+                dc.DrawLine(new Vector2(90, 0), new Vector2(90, 80), Palette.Text, 4, LineCap.Square);
+                for (var i = 0; i < 5; i++)
+                    dc.FillRectangle(new Vector2(30 + i * 30, 100), new Vector2(18, 8), i * 0.4f, Palette.Danger);
+                dc.FillCircle(new Vector2(150, 40), 6, Palette.Info);
+                dc.DrawText("Hall", new Vector2(45, 40), Palette.Text, 14, new Vector2(0.5f, 0.5f));
+                dc.Transform = Matrix.Identity;
+                dc.DrawLine(new Vector2(500, 10), new Vector2(600, 160), Palette.Text, 0.5f);
+                dc.DrawLine(new Vector2(510, 10), new Vector2(610, 160), Palette.Text, 1f);
+                dc.DrawLine(new Vector2(520, 10), new Vector2(620, 160), Palette.Text, 2.5f);
+            };
+            panel.AddChild(canvas);
+            var effects = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 28 };
+            effects.AddChild(new TextBlock
+            {
+                Text = "CASH 2,000",
+                TextSize = 28,
+                TextColor = Color.White,
+                Stroke = new TextStroke(Color.Black, 2.5f),
+                ShadowColor = Color.Black.WithAlpha(0.55f),
+                ShadowOffset = new Vector2(0, 4),
+                ShadowBlur = 0,
+                DynamicFont = DemoFonts.Selawik
+            });
+            effects.AddChild(new TextBlock
+            {
+                Text = "INSERT COIN",
+                TextSize = 28,
+                TextColor = Palette.Text,
+                Glow = new TextGlow(Palette.Primary.WithAlpha(0.6f), 8),
+                DynamicFont = DemoFonts.Selawik
+            });
+            panel.AddChild(effects);
+            return panel;
         }
 
         private Control CreateMotionTab()
