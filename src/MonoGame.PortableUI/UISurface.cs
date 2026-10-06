@@ -45,8 +45,12 @@ namespace MonoGame.PortableUI
         private bool _frameValid;
         private GraphicsDevice? _watchedDevice;
         private RenderTargetBinding[]? _previousTargets;
-        private int _width;
-        private int _height;
+        // Layout size; fractional when sized by pixels (SetPixelSize).
+        private float _width;
+        private float _height;
+        // Exact target size set by SetPixelSize, 0 = derived from layout size x LayoutScale.
+        private int _pixelWidth;
+        private int _pixelHeight;
         private float _layoutScale = 1f;
 
         public UISurface(Game game, Screen screen, int width, int height, PortableTheme? theme = null)
@@ -126,14 +130,21 @@ namespace MonoGame.PortableUI
                 if (_layoutScale.Equals(value))
                     return;
                 _layoutScale = value;
+                _pixelWidth = _pixelHeight = 0;
                 Engine.SetNativeRenderScale(value);
                 DropTarget();
                 _frameValid = false;
             }
         }
 
-        private int PixelWidth => Math.Max(1, (int)Math.Ceiling(_width * _layoutScale));
-        private int PixelHeight => Math.Max(1, (int)Math.Ceiling(_height * _layoutScale));
+        private int PixelWidth => _pixelWidth > 0 ? _pixelWidth : Math.Max(1, (int)Math.Ceiling(_width * _layoutScale));
+        private int PixelHeight => _pixelHeight > 0 ? _pixelHeight : Math.Max(1, (int)Math.Ceiling(_height * _layoutScale));
+
+        /// <summary>Layout size in layout units (fractional after <see cref="SetPixelSize"/>).</summary>
+        public Vector2 LayoutSize => new Vector2(_width, _height);
+
+        /// <summary>Size of <see cref="Target"/> in pixels.</summary>
+        public Point PixelSize => new Point(PixelWidth, PixelHeight);
 
         public bool IsInteractive { get; set; } = true;
         /// <summary>
@@ -212,18 +223,50 @@ namespace MonoGame.PortableUI
             Engine.RequestRedraw();
         }
 
+        /// <summary>Lays the surface out at <paramref name="width"/> x <paramref name="height"/> layout units; the
+        /// target is that times <see cref="LayoutScale"/>, rounded up.</summary>
         public void Resize(int width, int height)
         {
             width = Math.Max(1, width);
             height = Math.Max(1, height);
-            if (_width == width && _height == height)
+            if (_width == width && _height == height && _pixelWidth == 0)
                 return;
 
             _width = width;
             _height = height;
+            _pixelWidth = _pixelHeight = 0;
             DropTarget();
             _frameValid = false;
             Engine.SetScreenSize(width, height);
+        }
+
+        /// <summary>
+        ///     Sizes the surface by pixels: <see cref="Target"/> becomes exactly <paramref name="pixelWidth"/> x
+        ///     <paramref name="pixelHeight"/> and the layout gets <c>pixels / layoutScale</c> units, fractional if
+        ///     need be - for an overlay that must match the window pixel for pixel while the UI is designed at a
+        ///     fixed height: <c>hud.SetPixelSize(w, h, h / 1080f)</c> lays a 1366x768 window out at 1920.9 x 1080
+        ///     and renders 1366x768. Sets <see cref="LayoutScale"/>.
+        /// </summary>
+        public void SetPixelSize(int pixelWidth, int pixelHeight, float layoutScale)
+        {
+            pixelWidth = Math.Max(1, pixelWidth);
+            pixelHeight = Math.Max(1, pixelHeight);
+            layoutScale = layoutScale > 0 ? layoutScale : 1f;
+            if (_pixelWidth == pixelWidth && _pixelHeight == pixelHeight && _layoutScale.Equals(layoutScale))
+                return;
+
+            if (!_layoutScale.Equals(layoutScale))
+            {
+                _layoutScale = layoutScale;
+                Engine.SetNativeRenderScale(layoutScale);
+            }
+            _pixelWidth = pixelWidth;
+            _pixelHeight = pixelHeight;
+            _width = pixelWidth / layoutScale;
+            _height = pixelHeight / layoutScale;
+            DropTarget();
+            _frameValid = false;
+            Engine.SetScreenSize(_width, _height);
         }
 
         public void Update(GameTime gameTime)
