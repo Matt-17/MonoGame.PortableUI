@@ -9,6 +9,31 @@ using MonoGame.PortableUI.Input;
 
 namespace MonoGame.PortableUI
 {
+    /// <summary>
+    ///     A UI stack rendered offscreen: into its own <see cref="Target"/> (<see cref="Draw"/>,
+    ///     <see cref="DrawIfNeeded"/>) or into a tile of a host's target (<see cref="DrawTo"/>), for in-world
+    ///     screens and HUD overlays. The host composites the picture itself.
+    ///     <para>
+    ///         <b>Draw surfaces before the frame, composite them after.</b> Drawing a surface binds render
+    ///         targets and then rebinds the one that was bound before. MonoGame clears a target with
+    ///         <see cref="RenderTargetUsage.DiscardContents"/> - the default of the back buffer and of new
+    ///         render targets - whenever it is bound, so a surface drawn after the host drew its scene leaves
+    ///         only the UI (the scene is gone). Update and draw the surfaces first (or whenever their
+    ///         <see cref="NeedsRedraw"/> says so), then draw the scene and blit <see cref="Target"/> on top
+    ///         with <c>BlendState.AlphaBlend</c> (the picture is premultiplied):
+    ///     </para>
+    ///     <code>
+    ///     hud.DrawIfNeeded(gameTime);          // binds hud.Target, then the back buffer again
+    ///     DrawScene();                         // the host's 3D/2D frame
+    ///     batch.Begin(blendState: BlendState.AlphaBlend);
+    ///     batch.Draw(hud.Target, viewport.Bounds, Color.White);
+    ///     batch.End();
+    ///     </code>
+    ///     A host that must draw a surface mid-frame renders its scene into a
+    ///     <see cref="RenderTargetUsage.PreserveContents"/> target (or sets the back buffer's
+    ///     <c>PresentationParameters.RenderTargetUsage</c> to <c>PreserveContents</c> in
+    ///     <c>GraphicsDeviceManager.PreparingDeviceSettings</c>, which costs a copy on some platforms).
+    /// </summary>
     public sealed class UISurface : IDisposable
     {
         private readonly Game _game;
@@ -209,7 +234,9 @@ namespace MonoGame.PortableUI
             Engine.Update(gameTime);
         }
 
-        /// <summary>Draws the surface into <see cref="Target"/> unconditionally and returns it.</summary>
+        /// <summary>Draws the surface into <see cref="Target"/> unconditionally and returns it. Rebinds the
+        /// previously bound target afterwards, which clears it unless it preserves its contents - draw
+        /// surfaces before the host's frame (see <see cref="UISurface"/>).</summary>
         public RenderTarget2D Draw(GameTime gameTime)
         {
             Engine.ConsumeRedrawRequest();
@@ -222,6 +249,7 @@ namespace MonoGame.PortableUI
         ///     Draws into <see cref="Target"/> only when <see cref="NeedsRedraw"/>; otherwise the previous
         ///     picture stays (the target preserves its contents). Returns whether it drew. Call it for the
         ///     surfaces that are seen: the requests of unseen ones stay pending until they are drawn.
+        ///     Like <see cref="Draw"/>, call it before drawing the host's frame.
         /// </summary>
         public bool DrawIfNeeded(GameTime gameTime)
         {
