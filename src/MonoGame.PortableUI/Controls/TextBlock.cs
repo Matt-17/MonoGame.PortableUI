@@ -18,6 +18,10 @@ namespace MonoGame.PortableUI.Controls
         private string _text = "";
         private int _textSize;
         private Color _textColor;
+        // True while TextSize/TextColor hold the theme's value (seeded, not set by the app): only
+        // those follow theme switches, so an explicit value equal to the old default survives.
+        private bool _textSizeFromTheme = true;
+        private bool _textColorFromTheme = true;
         private TextWrapping _textWrapping;
 
         // Wrapped-line cache: wrapping measures every word, so it only recomputes when the
@@ -138,17 +142,35 @@ namespace MonoGame.PortableUI.Controls
         /// <summary>NoWrap only: trim overflowing text with an ellipsis instead of overdrawing.</summary>
         public TextTrimming TextTrimming { get; set; }
 
+        /// <summary>Text colour (straight alpha). Follows the theme until set explicitly.</summary>
         public Color TextColor
         {
             get { return _textColor; }
             set
             {
-                if (_textColor == value)
-                    return;
-                _textColor = value;
-                InvalidateLayout(false);
+                _textColorFromTheme = false;
+                ApplyTextColor(value);
             }
         }
+
+        private void ApplyTextColor(Color value)
+        {
+            if (_textColor == value)
+                return;
+            _textColor = value;
+            InvalidateLayout(false);
+        }
+
+        /// <summary>Sets <see cref="TextColor"/> to a theme value, keeping it theme-driven so the
+        /// next theme switch replaces it with <see cref="GetThemeTextColor"/> of the new theme.</summary>
+        protected void SeedThemeTextColor(Color value)
+        {
+            _textColorFromTheme = true;
+            ApplyTextColor(value);
+        }
+
+        /// <summary>The theme's text colour for this kind of block (<see cref="PortableTheme.TextColor"/>).</summary>
+        protected virtual Color GetThemeTextColor(PortableTheme theme) => theme.TextColor;
         public Vector2 MeasuredText { get; private set; }
 
         /// <summary>Soft drop-shadow colour; fully transparent (the default) disables the shadow.</summary>
@@ -189,23 +211,34 @@ namespace MonoGame.PortableUI.Controls
                 if (_isHeading == value)
                     return;
                 _isHeading = value;
-                var typography = ResolveTheme().Typography;
-                TextSize = value ? typography.HeadingSize : typography.TextSize;
+                _textSizeFromTheme = true;
+                ApplyTextSize(ThemeTextSize(ResolveTheme()));
             }
         }
 
+        /// <summary>Text size in design pixels. Follows the theme (<see cref="Typography.TextSize"/> or
+        /// <see cref="Typography.HeadingSize"/>) until set explicitly.</summary>
         public int TextSize
         {
             get { return _textSize; }
             set
             {
-                if (_textSize == value)
-                    return;
-                _textSize = value;
-                MeasuredText = MeasureText(Text);
-                InvalidateLayout(true);
+                _textSizeFromTheme = false;
+                ApplyTextSize(value);
             }
         }
+
+        private void ApplyTextSize(int value)
+        {
+            if (_textSize == value)
+                return;
+            _textSize = value;
+            MeasuredText = MeasureText(Text);
+            InvalidateLayout(true);
+        }
+
+        private int ThemeTextSize(PortableTheme theme)
+            => _isHeading ? theme.Typography.HeadingSize : theme.TextSize;
 
         /// <summary>
         ///     Scale applied to the (bitmap) font so it renders at <see cref="TextSize"/> rather than
@@ -374,8 +407,8 @@ namespace MonoGame.PortableUI.Controls
             IsFocusable = false; // plain labels must not steal focus; TextBox re-enables this
             Font = FontManager.DefaultFont;
             _textMeasurer = Font != null ? new SpriteFontTextMeasurer(Font) : ApproximateTextMeasurer.Default;
-            TextColor = theme.TextColor;
-            TextSize = theme.TextSize;
+            ApplyTextColor(theme.TextColor);
+            ApplyTextSize(theme.TextSize);
             TextAlignment = TextAlignment.Left;
         }
 
@@ -383,17 +416,10 @@ namespace MonoGame.PortableUI.Controls
         {
             base.OnThemeChanged(oldTheme, newTheme);
 
-            if (TextColor.Equals(oldTheme.TextColor))
-                TextColor = newTheme.TextColor;
-            if (IsHeading)
-            {
-                if (TextSize == oldTheme.Typography.HeadingSize)
-                    TextSize = newTheme.Typography.HeadingSize;
-            }
-            else if (TextSize == oldTheme.TextSize)
-            {
-                TextSize = newTheme.TextSize;
-            }
+            if (_textColorFromTheme)
+                ApplyTextColor(GetThemeTextColor(newTheme));
+            if (_textSizeFromTheme)
+                ApplyTextSize(ThemeTextSize(newTheme));
 
             var font = TryResolveThemeFont(newTheme);
             if (_fontOverride == null && font != null && !ReferenceEquals(Font, font))
