@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Fractional text sizes (#116):** `TextBlock.TextSize`, `PortableTheme.TextSize` and `Typography.TextSize`/`HeadingSize` are `float`, so a design sized in scaled pixels (48.4 = 1.1 x 44) renders exactly instead of rounding to 48. Assigning integers keeps working; code that reads `TextSize` into an `int` needs a cast.
+
 - **Game-menu focus (#120):** `Screen.FocusFollowsPointer` lets the pointer select: moving over a focusable control focuses it, the hover look merges into the focused look (one highlight, not two) and the focus visual shows for pointer focus too. `Screen.WrapFocusNavigation` makes arrow keys and the D-pad wrap around (last entry -> first). Space now activates buttons and check boxes as a key (`KeyDown`), so it works on surfaces without window text input and with gamepad hosts; a typed space from the same key press is ignored, an on-screen keyboard's space still activates. Custom controls can use the protected `ShowsHoverLook`.
 
 - **Pixel-exact overlay surfaces (#121):** `UISurface.SetPixelSize(pixelWidth, pixelHeight, layoutScale)` makes `Target` exactly the window's size and lays the UI out at `pixels / layoutScale` units, fractional if need be - `hud.SetPixelSize(w, h, h / 1080f)` designs at 1080 high on any window (1366x768 lays out at 1920.9 x 1080). Integer layout sizes could leave the overlay a pixel off the window. New `UISurface.LayoutSize`/`PixelSize`, and `ScreenEngine.SetScreenSize(float, float)`.

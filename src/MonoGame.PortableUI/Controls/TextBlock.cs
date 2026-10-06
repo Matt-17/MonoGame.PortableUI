@@ -16,7 +16,7 @@ namespace MonoGame.PortableUI.Controls
         private SpriteFont? _fontOverride;
         private ITextMeasurer _textMeasurer;
         private string _text = "";
-        private int _textSize;
+        private float _textSize;
         private Color _textColor;
         // True while TextSize/TextColor hold the theme's value (seeded, not set by the app): only
         // those follow theme switches, so an explicit value equal to the old default survives.
@@ -286,7 +286,7 @@ namespace MonoGame.PortableUI.Controls
 
         /// <summary>Text size in design pixels. Follows the theme (<see cref="Typography.TextSize"/> or
         /// <see cref="Typography.HeadingSize"/>) until set explicitly.</summary>
-        public int TextSize
+        public float TextSize
         {
             get { return _textSize; }
             set
@@ -296,7 +296,7 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
-        private void ApplyTextSize(int value)
+        private void ApplyTextSize(float value)
         {
             if (_textSize == value)
                 return;
@@ -305,7 +305,7 @@ namespace MonoGame.PortableUI.Controls
             InvalidateLayout(true);
         }
 
-        private int ThemeTextSize(PortableTheme theme)
+        private float ThemeTextSize(PortableTheme theme)
             => _isHeading ? theme.Typography.HeadingSize : theme.TextSize;
 
         /// <summary>
