@@ -180,8 +180,75 @@ namespace MonoGame.PortableUI.Controls
         /// <summary>Offset of the drop shadow from the text, in design pixels.</summary>
         public Vector2 ShadowOffset { get; set; } = new Vector2(0, 3);
 
-        /// <summary>Extra soft-spread radius; the shadow is stamped around the offset to blur it.</summary>
+        /// <summary>Extra soft-spread radius; the shadow is stamped around the offset to blur it.
+        /// 0 draws one sharp copy (a translucent colour keeps its alpha).</summary>
         public float ShadowBlur { get; set; } = 2f;
+
+        private TextStroke? _stroke;
+        private bool _strokeSet;
+        private TextGlow? _glow;
+        private bool _glowSet;
+
+        /// <summary>
+        ///     Round outline around the glyphs (colour, width). Unset, it follows the theme's
+        ///     <see cref="Typography.TextStroke"/>; set null to switch a theme outline off for this block.
+        ///     The outline draws outside the layout box (see <see cref="Control.InkOverflow"/>).
+        /// </summary>
+        public TextStroke? Stroke
+        {
+            get => _strokeSet ? _stroke : ResolveTheme().Typography?.TextStroke;
+            set
+            {
+                _stroke = value;
+                _strokeSet = true;
+                InvalidateLayout(false);
+            }
+        }
+
+        /// <summary>
+        ///     Soft outer glow behind the text (colour, radius). Unset, it follows the theme's
+        ///     <see cref="Typography.TextGlow"/>; set null to switch a theme glow off for this block.
+        /// </summary>
+        public TextGlow? Glow
+        {
+            get => _glowSet ? _glow : ResolveTheme().Typography?.TextGlow;
+            set
+            {
+                _glow = value;
+                _glowSet = true;
+                InvalidateLayout(false);
+            }
+        }
+
+        /// <summary>Ink outside the layout box: the font's own overflow, then outline, glow and shadow around it.</summary>
+        protected internal override Thickness GetInkOverflow()
+        {
+            var own = base.GetInkOverflow();
+            if (_text.Length == 0)
+                return own;
+
+            var font = ActiveDynamicFont is { } dynamicFont ? dynamicFont.GetInkOverflow(DynamicPixelSize(dynamicFont)) : default;
+            var around = 0f;
+            var stroke = Stroke;
+            if (stroke != null && stroke.Width > 0 && stroke.Color.A > 0)
+                around = stroke.Width;
+            var glow = Glow;
+            if (glow != null && glow.Radius > 0 && glow.Color.A > 0)
+                around += glow.Radius;
+            float left = around, top = around, right = around, bottom = around;
+            if (ShadowColor.A > 0)
+            {
+                var blur = MathHelper.Clamp(ShadowBlur, 0f, 6f);
+                left = Math.Max(left, blur - ShadowOffset.X);
+                right = Math.Max(right, blur + ShadowOffset.X);
+                top = Math.Max(top, blur - ShadowOffset.Y);
+                bottom = Math.Max(bottom, blur + ShadowOffset.Y);
+            }
+
+            return new Thickness(
+                Math.Max(own.Left, font.Left + left), Math.Max(own.Top, font.Top + top),
+                Math.Max(own.Right, font.Right + right), Math.Max(own.Bottom, font.Bottom + bottom));
+        }
 
         public string Text
         {
@@ -544,30 +611,93 @@ namespace MonoGame.PortableUI.Controls
             if (SnapToPixel)
                 offset = offset.ToInts();
 
+            var glow = Glow;
+            if (glow != null && glow.Color.A > 0 && glow.Radius > 0)
+                DrawGlow(spriteBatch, text, offset, glow);
+
             if (ShadowColor.A > 0)
-            {
-                var shadow = Brush.ApplyOpacity(ShadowColor, RenderOpacity);
-                var blur = MathHelper.Clamp(ShadowBlur, 0f, 6f);
-                // A ring of low-alpha stamps around the offset reads as a soft blurred shadow
-                // without a render target; the axis-aligned base stamp anchors it.
-                Span<Vector2> spread = stackalloc Vector2[]
-                {
-                    Vector2.Zero,
-                    new Vector2(blur, 0), new Vector2(-blur, 0),
-                    new Vector2(0, blur), new Vector2(0, -blur),
-                    new Vector2(blur, blur), new Vector2(-blur, blur),
-                    new Vector2(blur, -blur), new Vector2(-blur, -blur),
-                };
-                foreach (var d in spread)
-                {
-                    var pos = offset + ShadowOffset * RenderScale + d;
-                    if (SnapToPixel)
-                        pos = pos.ToInts();
-                    DrawText(spriteBatch, text, pos, shadow);
-                }
-            }
+                DrawShadow(spriteBatch, text, offset);
+
+            var stroke = Stroke;
+            if (stroke != null && stroke.Color.A > 0 && stroke.Width > 0)
+                DrawStroke(spriteBatch, text, offset, stroke);
 
             DrawText(spriteBatch, text, offset, Brush.ApplyOpacity(TextColor, RenderOpacity));
+        }
+
+        private void DrawShadow(SpriteBatch spriteBatch, string text, Vector2 offset)
+        {
+            var shadow = Brush.ApplyOpacity(ShadowColor, RenderOpacity);
+            var blur = MathHelper.Clamp(ShadowBlur, 0f, 6f);
+            if (blur < 0.01f)
+            {
+                // One sharp copy: nine stamps on one spot would turn a translucent shadow opaque.
+                var at = offset + ShadowOffset * RenderScale;
+                DrawText(spriteBatch, text, SnapToPixel ? at.ToInts() : at, shadow);
+                return;
+            }
+
+            // A ring of low-alpha stamps around the offset reads as a soft blurred shadow
+            // without a render target; the axis-aligned base stamp anchors it.
+            Span<Vector2> spread = stackalloc Vector2[]
+            {
+                Vector2.Zero,
+                new Vector2(blur, 0), new Vector2(-blur, 0),
+                new Vector2(0, blur), new Vector2(0, -blur),
+                new Vector2(blur, blur), new Vector2(-blur, blur),
+                new Vector2(blur, -blur), new Vector2(-blur, -blur),
+            };
+            foreach (var d in spread)
+            {
+                var pos = offset + ShadowOffset * RenderScale + d;
+                if (SnapToPixel)
+                    pos = pos.ToInts();
+                DrawText(spriteBatch, text, pos, shadow);
+            }
+        }
+
+        // Stamps the glyphs on rings every 1.5 render pixels from the outline width inwards, with a stamp
+        // every Quality pixels of circumference, so the edge stays round at any scale (no shader needed).
+        private void DrawStroke(SpriteBatch spriteBatch, string text, Vector2 offset, TextStroke stroke)
+        {
+            var color = Brush.ApplyOpacity(stroke.Color, RenderOpacity);
+            var width = stroke.Width * Math.Max(RenderScale.X, RenderScale.Y);
+            var spacing = Math.Max(0.5f, stroke.Quality);
+            for (var radius = width; radius > 0.01f; radius -= 1.5f)
+            {
+                var count = Math.Max(8, (int)MathF.Ceiling(MathHelper.TwoPi * radius / spacing));
+                for (var i = 0; i < count; i++)
+                {
+                    var angle = MathHelper.TwoPi * i / count;
+                    DrawText(spriteBatch, text, offset + new Vector2(MathF.Cos(angle) * radius, MathF.Sin(angle) * radius), color);
+                }
+            }
+        }
+
+        private const int GlowRings = 3;
+        private const int GlowStampsPerRing = 8;
+
+        // Soft copies on three rings up to the radius; each stamp's alpha is chosen so the full overlap at
+        // the glyphs reaches the glow colour's alpha, and the edge fades where fewer copies overlap.
+        private void DrawGlow(SpriteBatch spriteBatch, string text, Vector2 offset, TextGlow glow)
+        {
+            var strength = Math.Min(glow.Color.A / 255f, 0.999f);
+            var perStamp = 1f - MathF.Pow(1f - strength, 1f / (GlowRings * GlowStampsPerRing));
+            var color = Brush.ApplyOpacity(glow.Color.WithAlpha(perStamp), RenderOpacity);
+            var stroke = Stroke;
+            var inner = stroke != null && stroke.Color.A > 0 ? Math.Max(0f, stroke.Width) : 0f;
+            var scale = Math.Max(RenderScale.X, RenderScale.Y);
+            for (var ring = 1; ring <= GlowRings; ring++)
+            {
+                var radius = (inner + glow.Radius * ring / GlowRings) * scale;
+                // Rings are rotated against each other so the copies do not line up into spokes.
+                var phase = ring * MathHelper.Pi / (GlowStampsPerRing * GlowRings);
+                for (var i = 0; i < GlowStampsPerRing; i++)
+                {
+                    var angle = phase + MathHelper.TwoPi * i / GlowStampsPerRing;
+                    DrawText(spriteBatch, text, offset + new Vector2(MathF.Cos(angle) * radius, MathF.Sin(angle) * radius), color);
+                }
+            }
         }
     }
 }

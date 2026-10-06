@@ -183,6 +183,9 @@ namespace MonoGame.PortableUI.Controls
 
         protected override Color GetThemeTextColor(PortableTheme theme) => theme.TextBoxTextColor;
 
+        // The editor clips its text to the box and draws no outline, glow or shadow.
+        protected internal override Thickness GetInkOverflow() => InkOverflow;
+
         protected override Brush? GetThemeBackgroundBrush(PortableTheme theme)
         {
             return theme.TextBoxBackgroundBrush;

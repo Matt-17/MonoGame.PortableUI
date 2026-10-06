@@ -153,7 +153,7 @@ without window text input.
 
 Override as needed: `MeasureLayout`/`UpdateLayout` (custom layout), `OnDraw`/`OnDrawOverlay` (visuals),
 `GetDescendants` **and** `VisualChildCount`/`GetVisualChild(i)` (children — the per-frame walks use the
-indexed pair; a control overriding only `GetDescendants` falls back to a materialized list), `GetThemeStyle`/`GetThemeBackgroundBrush`/`OnThemeChanged` (theming),
+indexed pair; a control overriding only `GetDescendants` falls back to a materialized list), `GetThemeStyle`/`GetThemeBackgroundBrush`/`OnThemeChanged` (theming), `GetInkOverflow` (drawing that reaches past the box - the clip is the box plus shadow, focus ring and this),
 `GetVisualState`/`ChangeVisualState` (state visuals), `CapturesInputBeforeDescendants` (claim input
 before children, e.g. scrollbar), `ClipsDescendants`. Wire behavior to events (`Click`, `MouseDown`,
 `TouchDown`, `KeyPressed`, …) in the constructor. Interactive drag behaviors must wire **both** mouse

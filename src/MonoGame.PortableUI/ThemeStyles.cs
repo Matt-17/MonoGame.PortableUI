@@ -14,6 +14,12 @@ namespace MonoGame.PortableUI
         /// <summary>Text size of <see cref="Controls.TextBlock"/>s with <c>IsHeading</c> set.</summary>
         public int HeadingSize { get; set; } = 16;
 
+        /// <summary>Outline of every text block under this theme that sets no <see cref="Controls.TextBlock.Stroke"/> itself (null = none).</summary>
+        public Media.TextStroke? TextStroke { get; set; }
+
+        /// <summary>Outer glow of every text block under this theme that sets no <see cref="Controls.TextBlock.Glow"/> itself (null = none).</summary>
+        public Media.TextGlow? TextGlow { get; set; }
+
         private Text.UIFont? _dynamicFont;
 
         /// <summary>
