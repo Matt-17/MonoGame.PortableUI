@@ -570,7 +570,16 @@ namespace MonoGame.PortableUI.Demo
                 dc.DrawLine(new Vector2(510, 10), new Vector2(610, 160), Palette.Text, 1f);
                 dc.DrawLine(new Vector2(520, 10), new Vector2(620, 160), Palette.Text, 2.5f);
             };
-            panel.AddChild(canvas);
+            // A Canvas panel on top places real controls at points: a clickable marker centred on the gauge.
+            var markers = new Canvas { HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
+            var pin = new TextButton { Text = "Pin", Padding = new Thickness(6, 2) };
+            pin.Click += (_, _) => _status.Text = "Canvas marker clicked";
+            Canvas.SetAnchor(pin, new Vector2(0.5f, 0.5f));
+            markers.AddChild(pin, 80, 150);
+            var layers = new Grid { Height = 170 };
+            layers.AddChild(canvas);
+            layers.AddChild(markers);
+            panel.AddChild(layers);
             var effects = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 28 };
             effects.AddChild(new TextBlock
             {
