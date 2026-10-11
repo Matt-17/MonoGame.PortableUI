@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.4.0-alpha.5
+
+- **Whole-target tiles draw directly:** `UISurface.DrawTo`/`DrawIfNeededTo` with a destination that is the whole target, at the surface's own pixel size, now draw the stack straight into the target instead of into a pooled scratch target that was then copied 1:1. Hosts that give every surface a target of its own (a picture per arcade cabinet) save a full-size copy and two render target switches per frame; measured about 8% of a cabinet picture's redraw time. Smaller tiles still draw at reduced resolution through the scratch.
+
 ## 0.4.0-alpha.4
 
 The rest of the Arcade feedback: changes always show (and unchanged values cost nothing), game-menu focus, pixel-exact overlays, theme slots for app controls, image crops, gradient text and fractional text sizes. **Breaking:** `TextSize` is `float` - code reading it into an `int` needs a cast.
