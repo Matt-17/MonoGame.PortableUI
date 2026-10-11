@@ -373,8 +373,12 @@ namespace MonoGame.PortableUI
             WatchDevice(device);
             // One batch per device for all surfaces, not one each (rented: a surface may draw another).
             var spriteBatch = SharedSpriteBatches.Rent(device);
-            var resolution = destination is { } tile ? DrawResolutionFor(tile.Width, tile.Height) : 1f;
-            var scratch = destination.HasValue
+            // A destination that is the whole target at the surface's own pixel size needs no scratch: the stack is drawn
+            // straight into it (the scratch would be copied 1:1 with point sampling), which saves a full-size copy and two
+            // render target switches per frame for hosts that give every surface a target of its own.
+            var whole = destination is { } area && area == target.Bounds && target.Width == PixelWidth && target.Height == PixelHeight;
+            var resolution = destination is { } tile && !whole ? DrawResolutionFor(tile.Width, tile.Height) : 1f;
+            var scratch = destination.HasValue && !whole
                 ? RenderTargetPool.Rent(device, ScaledPixels(PixelWidth, resolution), ScaledPixels(PixelHeight, resolution))
                 : null;
             try
