@@ -36,7 +36,14 @@ namespace MonoGame.PortableUI.Media
                 return pixel;
             }
 
-            pixel = new Texture2D(device, 1, 1);
+            return CreatePixel(device);
+        }
+
+        // Apart from Pixel: the reset handler's lambda captures the device, and a captured parameter makes the compiler
+        // allocate the closure on entry to the method - on every call, the cached hot path included.
+        private static Texture2D CreatePixel(GraphicsDevice device)
+        {
+            var pixel = new Texture2D(device, 1, 1);
             pixel.SetData(new[] { Color.White });
             if (!PixelPerDevice.TryGetValue(device, out _))
             {
