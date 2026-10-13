@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.4.0-alpha.6
+
+- **No allocation per solid fill:** `Primitives.Pixel(GraphicsDevice)` - behind every `SolidColorBrush`, rounded rectangle and `Primitives.Fill` - allocated a closure on every call, the cached path included: the lambda registered for device resets captured the device parameter, and C# allocates such a closure on entry to the method. A host with 50 surfaces made a few kilobytes of garbage per frame from it. The first-use path now lives in a method of its own.
+
 ## 0.4.0-alpha.5
 
 - **Whole-target tiles draw directly:** `UISurface.DrawTo`/`DrawIfNeededTo` with a destination that is the whole target, at the surface's own pixel size, now draw the stack straight into the target instead of into a pooled scratch target that was then copied 1:1. Hosts that give every surface a target of its own (a picture per arcade cabinet) save a full-size copy and two render target switches per frame; measured about 8% of a cabinet picture's redraw time. Smaller tiles still draw at reduced resolution through the scratch.
