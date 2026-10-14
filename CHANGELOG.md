@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Springs:** `Animate().Spring(SpringSpec)` moves a property with a damped spring instead of a duration and easing (presets `Gentle`, `Snappy`, `Bouncy`, `Wobbly`, or `SpringSpec.FromResponse(seconds, dampingRatio)`); `Spring(x, y)` gives the two axes of scale and translation their own springs, which swing out of phase. The exact solution is used, so the motion does not depend on the frame rate; the animation ends when the spring rests and lands exactly on the target. A spring that takes over a running animation of the same property keeps its velocity, so retargeting mid-flight stays smooth. No allocation per frame.
+- **Fix:** `ScreenEngine.RequestRedraw`/`WakeUp` from another thread after the engine was disposed threw `ObjectDisposedException`; they are ignored now.
 - **`Control.TransformOrigin`:** the pivot of `Scale`, relative to the control's box (default `(0.5, 0.5)`, the centre; `(0.5, 1)` squashes toward the bottom edge). The drop-down flyout now grows from its top edge through the origin instead of a compensating `Translation`.
 
 ## 0.4.0-alpha.7
