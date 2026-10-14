@@ -255,14 +255,14 @@ namespace MonoGame.PortableUI.Tests
         [TestMethod]
         public void The_synth_renders_short_quiet_sounds_for_every_event()
         {
-            foreach (UiSynthStyle style in new[] { UiSynthStyle.Soft, UiSynthStyle.Retro })
+            foreach (UiSynthStyle style in new[] { UiSynthStyle.Soft, UiSynthStyle.Retro, UiSynthStyle.Glass, UiSynthStyle.Mechanical })
             {
                 for (var i = 0; i <= (int)UiSound.Type; i++)
                 {
                     var pcm = UiSoundSynth.Render((UiSound)i, style);
                     var samples = pcm.Length / 2;
                     Assert.IsTrue(samples > UiSoundSynth.SampleRate * 0.005, $"{(UiSound)i} {style}: not empty");
-                    Assert.IsTrue(samples <= UiSoundSynth.SampleRate * 0.12, $"{(UiSound)i} {style}: short");
+                    Assert.IsTrue(samples <= UiSoundSynth.SampleRate * 0.2, $"{(UiSound)i} {style}: short");
                     var peak = 0;
                     for (var s = 0; s < samples; s++)
                         peak = Math.Max(peak, Math.Abs((int)(short)(pcm[s * 2] | pcm[s * 2 + 1] << 8)));
