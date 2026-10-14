@@ -95,7 +95,7 @@ namespace MonoGame.PortableUI.Controls
         /// <summary>The dynamic font in effect, or null for the SpriteFont path: this block's own, else its
         /// theme's (<see cref="Typography.DynamicFont"/>, per surface/island), else the app default.</summary>
         protected UIFont? ActiveDynamicFont
-            => _dynamicFont ?? (_fontOverride == null ? ResolveTheme().Typography?.DynamicFont ?? FontManager.DefaultDynamicFont : null);
+            => _dynamicFont ?? (_fontOverride == null ? ResolveTheme().Typography?.ResolveDynamicFont() ?? FontManager.DefaultDynamicFont : null);
 
         /// <summary>Pixel size text is measured and drawn at with a dynamic font.</summary>
         protected float DynamicPixelSize(UIFont font) => (_textSize > 0 ? _textSize : font.DefaultSize) * TextScaling.Factor;
@@ -107,7 +107,9 @@ namespace MonoGame.PortableUI.Controls
         protected void DrawText(SpriteBatch spriteBatch, string text, Vector2 position, Color color)
         {
             var dynamicFont = ActiveDynamicFont;
-            if (dynamicFont != null)
+            if (dynamicFont != null && DrawsSubpixel)
+                dynamicFont.DrawString(spriteBatch, text, position, color, DynamicPixelSize(dynamicFont), RenderScale, RestRenderScale);
+            else if (dynamicFont != null)
                 dynamicFont.DrawString(spriteBatch, text, position, color, DynamicPixelSize(dynamicFont), RenderScale);
             else if (Font != null && DrawsSubpixel)
                 SubpixelSpriteText.DrawString(spriteBatch, Font, text, position, color, RenderScale * FontScale);
@@ -118,7 +120,9 @@ namespace MonoGame.PortableUI.Controls
         protected void DrawText(SpriteBatch spriteBatch, System.Text.StringBuilder text, Vector2 position, Color color)
         {
             var dynamicFont = ActiveDynamicFont;
-            if (dynamicFont != null)
+            if (dynamicFont != null && DrawsSubpixel)
+                dynamicFont.DrawString(spriteBatch, text, position, color, DynamicPixelSize(dynamicFont), RenderScale, RestRenderScale);
+            else if (dynamicFont != null)
                 dynamicFont.DrawString(spriteBatch, text, position, color, DynamicPixelSize(dynamicFont), RenderScale);
             else if (Font != null && DrawsSubpixel)
                 SubpixelSpriteText.DrawString(spriteBatch, Font, text, position, color, RenderScale * FontScale);
@@ -608,7 +612,7 @@ namespace MonoGame.PortableUI.Controls
                 InvalidateLayout(true);
             }
             // Moving into a theme (surface, island) with another dynamic font re-measures the text.
-            if (_dynamicFont == null && !ReferenceEquals(oldTheme.Typography?.DynamicFont, newTheme.Typography?.DynamicFont))
+            if (_dynamicFont == null && !ReferenceEquals(oldTheme.Typography?.ResolveDynamicFont(), newTheme.Typography?.ResolveDynamicFont()))
                 OnTextScaleChanged();
         }
 

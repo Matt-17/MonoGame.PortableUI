@@ -40,6 +40,30 @@ namespace MonoGame.PortableUI
                 FontManager.NotifyDynamicFontChanged();
             }
         }
+
+        private Text.UIFont? _resolvedFont;
+        private string? _resolvedName;
+        private long _resolvedVersion = -1;
+
+        /// <summary>
+        ///     The runtime font text under this theme draws with: <see cref="DynamicFont"/>, else the font
+        ///     registered for <see cref="FontName"/> (<see cref="FontManager.RegisterDynamicFont(string, Text.UIFont)"/>),
+        ///     else null (the SpriteFont path). Cached until a registration changes.
+        /// </summary>
+        public Text.UIFont? ResolveDynamicFont()
+        {
+            if (_dynamicFont != null)
+                return _dynamicFont;
+            var version = FontManager.DynamicFontVersion;
+            if (_resolvedVersion != version || !ReferenceEquals(_resolvedName, FontName))
+            {
+                _resolvedFont = FontManager.GetDynamicFont(FontName);
+                _resolvedName = FontName;
+                _resolvedVersion = version;
+            }
+
+            return _resolvedFont;
+        }
     }
 
     public sealed class ThemeMetrics

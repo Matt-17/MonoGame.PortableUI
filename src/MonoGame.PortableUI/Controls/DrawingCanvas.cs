@@ -58,7 +58,7 @@ namespace MonoGame.PortableUI.Controls
         {
             _context.Begin(spriteBatch, rect, RenderScale, RenderOpacity);
             _context.SpriteFont = FontManager.DefaultFont;
-            _context.DefaultDynamicFont = _font ?? ResolveTheme().Typography?.DynamicFont ?? FontManager.DefaultDynamicFont;
+            _context.DefaultDynamicFont = _font ?? ResolveTheme().Typography?.ResolveDynamicFont() ?? FontManager.DefaultDynamicFont;
             try
             {
                 OnRender(_context);

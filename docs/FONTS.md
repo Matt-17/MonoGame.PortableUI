@@ -1,5 +1,27 @@
 # Bundled fonts
 
+## Runtime TTF fonts for themes
+
+Themes name their font (`Typography.FontName`, e.g. `atkinsonhyperlegible`). Register a TTF/OTF under that name
+and every theme naming it draws with a runtime font (FontStashSharp) instead of the baked SpriteFont:
+
+```csharp
+FontManager.RegisterDynamicFontFile("atkinsonhyperlegible", "Content/Fonts/AtkinsonHyperlegible-Regular.ttf");
+```
+
+- Sharp at any size, `TextScaling` and HiDPI factor; any character the font has (no baked character set).
+- Sizes are em sizes like a SpriteFont's (`TextSize 14` = 14 pt), so layouts match; `sizeScale` adjusts fonts whose
+  SpriteFont was baked at another size than its name says (the demo: Press Start 2P 11/14, VT323 16/14).
+- **Pixel fonts** (outlines on a coarse grid: Press Start 2P, Px437, Jersey 10, Silkscreen) are detected and drawn
+  only at whole multiples of their pixel grid, never resampled - crisp, no anti-aliased edges. Sizes in between round
+  to the nearest multiple, so headings and body text of a pixel theme may end up the same size.
+- Text in motion (breathing, pop) keeps the glyphs of its resting size and scales them, so it glides instead of
+  re-rasterizing at every intermediate size.
+- A theme's own `Typography.DynamicFont` and a control's `DynamicFont` win; unregistered or unloadable names keep the
+  SpriteFont. The demo registers all fonts below (`DemoFonts.RegisterThemeFonts`); `--sprite-fonts` compares.
+
+## Licenses
+
 All fonts shipped with the demo (`samples/MonoGame.PortableUI.Demo/Content/Fonts`) are free and
 open licensed — usable in commercial projects. None of them require payment or restrict
 distribution; the OFL/Apache/CC licenses require keeping their license notice with the font files.
