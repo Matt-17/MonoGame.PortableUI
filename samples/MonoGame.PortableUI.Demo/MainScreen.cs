@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI.Animation;
+using ControlAnimation = MonoGame.PortableUI.Animation.Animation;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
 using MonoGame.PortableUI.Localization;
@@ -751,6 +752,31 @@ namespace MonoGame.PortableUI.Demo
                 .TranslateTo(Vector2.Zero).Duration(TimeSpan.FromMilliseconds(220)).Ease(Easings.QuadIn)
                 .OnCompleted(() => hop.Squash(0.32f))
                 .Start();
+            // Loop + Yoyo: the box swings to and fro until toggled off.
+            ControlAnimation? swing = null;
+            _motionActions["loop"] = () =>
+            {
+                if (swing is { IsRunning: true })
+                {
+                    swing.Cancel();
+                    box.Animate().TranslateTo(Vector2.Zero).Spring(SpringSpec.Gentle).Start();
+                    return;
+                }
+                swing = box.Animate()
+                    .TranslateTo(new Vector2(240, 0)).Duration(TimeSpan.FromMilliseconds(700)).Ease(Easings.CubicInOut)
+                    .Loop().Yoyo()
+                    .Start();
+            };
+            // Stagger: the cards drop in one after another.
+            _motionActions["stagger"] = () => cards.Children.Stagger(TimeSpan.FromMilliseconds(90), card =>
+            {
+                card.Opacity = 0;
+                card.Translation = new Vector2(0, -60);
+                return card.Animate()
+                    .FadeTo(1).Duration(TimeSpan.FromMilliseconds(200))
+                    .With()
+                    .TranslateTo(Vector2.Zero).Spring(SpringSpec.Bouncy);
+            });
             _motionActions["throw"] = () =>
             {
                 var far = Math.Max(0, lane.ClippingRect.Width - ball.Width - 24);
@@ -765,6 +791,7 @@ namespace MonoGame.PortableUI.Demo
             buttons.AddChild(MotionButton("Elastic", box, Easings.ElasticOut));
             buttons.AddChild(MotionButton("Bounce", box, Easings.BounceOut));
             buttons.AddChild(MotionDemoButton("Spring", _motionActions["spring"]));
+            buttons.AddChild(MotionDemoButton("Loop + Yoyo", _motionActions["loop"]));
             grid.AddChild(buttons, row: 1);
 
             var organicButtons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Thickness(0, 10, 0, 0) };
@@ -773,6 +800,7 @@ namespace MonoGame.PortableUI.Demo
             organicButtons.AddChild(MotionDemoButton("Jelly", _motionActions["jelly"]));
             organicButtons.AddChild(MotionDemoButton("Shake", _motionActions["shake"]));
             organicButtons.AddChild(MotionDemoButton("Hop (Then + Squash)", _motionActions["hop"]));
+            organicButtons.AddChild(MotionDemoButton("Stagger", _motionActions["stagger"]));
             grid.AddChild(organicButtons, row: 3);
             return grid;
         }
