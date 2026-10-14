@@ -102,30 +102,16 @@ namespace MonoGame.PortableUI.Demo
                 return;
             }
 
-            // UI sounds: soft clicks, square-wave bleeps for the pixel-art themes (ApplyTheme picks).
-            if (!_runOptions.Mute)
-            {
-                _softSounds = SoundEffectUiSoundPlayer.CreateDefault(UiSynthStyle.Soft);
-                _retroSounds = SoundEffectUiSoundPlayer.CreateDefault(UiSynthStyle.Retro);
-                ApplyTheme(_activeThemePreset);
-            }
+            // UI sounds in each theme's own set (soft clicks, glass pings, terminal clacks, 8-bit bleeps).
+            if (_screenEngine != null)
+                _screenEngine.Sounds.UseThemeSounds = !_runOptions.Mute;
 
             _screenEngine?.NavigateToScreen(new MainScreen(deleteIcon, _activeThemePreset, ApplyTheme));
         }
 
-        private SoundEffectUiSoundPlayer? _softSounds;
-        private SoundEffectUiSoundPlayer? _retroSounds;
-
-        protected override void UnloadContent()
-        {
-            _softSounds?.Dispose();
-            _retroSounds?.Dispose();
-            base.UnloadContent();
-        }
-
         private void RunSoundTest()
         {
-            foreach (var style in new[] { UiSynthStyle.Soft, UiSynthStyle.Retro })
+            foreach (var style in new[] { UiSynthStyle.Soft, UiSynthStyle.Retro, UiSynthStyle.Glass, UiSynthStyle.Mechanical })
             {
                 using var player = SoundEffectUiSoundPlayer.CreateDefault(style);
                 if (player == null)
@@ -160,7 +146,6 @@ namespace MonoGame.PortableUI.Demo
             if (_screenEngine != null)
             {
                 _screenEngine.Options.Theme = _activeThemePreset.CreateTheme();
-                _screenEngine.Sounds.Player = _screenEngine.Options.Theme.PixelMotion ? _retroSounds ?? _softSounds : _softSounds;
             }
             if (_fontsLoaded)
                 FontManager.DefaultFont = FontManager.GetFont(_activeThemePreset.FontName);

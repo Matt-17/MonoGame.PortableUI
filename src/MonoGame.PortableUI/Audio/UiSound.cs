@@ -112,8 +112,11 @@ namespace MonoGame.PortableUI.Audio
         private float _masterVolume = 1;
         private uint _random = 0x9E3779B9;
 
-        internal UiSoundService()
+        private readonly ScreenEngine? _engine;
+
+        internal UiSoundService(ScreenEngine? engine = null)
         {
+            _engine = engine;
             for (var i = 0; i < Count; i++)
             {
                 _volumes[i] = 0.8f;
@@ -131,9 +134,16 @@ namespace MonoGame.PortableUI.Audio
             SetMinInterval(UiSound.FocusMove, TimeSpan.FromMilliseconds(40));
         }
 
-        /// <summary>The backend; null (default) plays nothing. <see cref="SoundEffectUiSoundPlayer.CreateDefault"/>
-        /// gives a built-in synthesized set.</summary>
+        /// <summary>A fixed backend for every sound of this engine; it wins over <see cref="UseThemeSounds"/>.
+        /// <see cref="SoundEffectUiSoundPlayer.CreateDefault"/> gives a built-in synthesized set.</summary>
         public IUiSoundPlayer? Player { get; set; }
+
+        /// <summary>
+        ///     Plays each sound in the set of the theme that styles its control (<see cref="PortableTheme.Sounds"/>;
+        ///     a <c>ThemeIsland</c> sounds like its own theme) when no <see cref="Player"/> is set. The players
+        ///     are synthesized once per set and shared. Off by default.
+        /// </summary>
+        public bool UseThemeSounds { get; set; }
 
         /// <summary>Master volume 0..1 for all UI sounds of this engine.</summary>
         public float MasterVolume
@@ -160,11 +170,25 @@ namespace MonoGame.PortableUI.Audio
         /// </summary>
         public bool Play(UiSound sound, Control? source = null)
         {
-            if (IsMuted || Player == null || _masterVolume <= 0)
+            if (IsMuted || _masterVolume <= 0)
                 return false;
 
             var volume = 1f;
             var pitch = 0f;
+            var player = Player;
+            if (player == null)
+            {
+                if (!UseThemeSounds)
+                    return false;
+                var theme = source != null ? source.ResolveTheme() : _engine?.Options.Theme ?? PortableTheme.ResolveCurrent();
+                var set = theme.ResolveSounds();
+                player = UiSoundSet.GetPlayer(set);
+                if (player == null)
+                    return false;
+                volume = set.Volume;
+                pitch = set.Pitch;
+            }
+
             var mapped = false;
             for (var element = (FrameworkElement?)source; element != null; element = element.Parent)
             {
@@ -204,7 +228,7 @@ namespace MonoGame.PortableUI.Audio
             if (sound is UiSound.Type or UiSound.Tick or UiSound.Hover)
                 pitch += (NextRandom() - 0.5f) * 0.08f;
 
-            Player.Play(sound, Math.Min(1, volume), Math.Clamp(pitch, -1, 1), PanOf(source));
+            player.Play(sound, Math.Min(1, volume), Math.Clamp(pitch, -1, 1), PanOf(source));
             return true;
         }
 

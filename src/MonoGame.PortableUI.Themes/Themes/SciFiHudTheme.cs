@@ -1,3 +1,4 @@
+using MonoGame.PortableUI.Audio;
 using Microsoft.Xna.Framework;
 
 using MonoGame.PortableUI.Media;
@@ -23,6 +24,7 @@ public static class SciFiHudTheme
             surfaceBrush: new ChamferBrush(new Color(14, 30, 44, 235), new Color(8, 18, 27, 235), line, 12, 1),
             styleTheme: theme =>
             {
+                theme.Sounds = UiSoundSet.Glass.With(pitch: 0.15f); // bright console chirps
                 theme.Cursor = CursorStyle.ModernArrow(ThemeBuilder.Hex("#3FD0FF"), ThemeBuilder.Hex("#03121A"));
                 ChamferBrush Plate(string top, string bottom, string border, float chamfer = 7) =>
                     new(ThemeBuilder.Hex(top), ThemeBuilder.Hex(bottom), ThemeBuilder.Hex(border), chamfer, 1);

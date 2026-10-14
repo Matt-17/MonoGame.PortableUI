@@ -1,3 +1,4 @@
+using MonoGame.PortableUI.Audio;
 using Microsoft.Xna.Framework;
 
 using MonoGame.PortableUI.Media;
@@ -14,6 +15,7 @@ public static class CyberpunkTheme
             primary: "#00F0FF", secondary: "#FF003C", selection: "#FCEE0A", selectionText: "#000000",
             styleTheme: theme =>
             {
+                theme.Sounds = UiSoundSet.Glass.With(pitch: 0.1f, volume: 0.7f); // neon pings
                 theme.Cursor = CursorStyle.ModernArrow(ThemeBuilder.Hex("#FCEE0A"), Color.Black);
                 ThemeBuilder.Chrome(theme.Button, null, ThemeBuilder.Solid(theme.Palette.Primary), 1, 0);
                 theme.ButtonShadow = new ShadowStyle { Color = new Color(0, 240, 255, 90), Offset = Vector2.Zero, Blur = 10, Spread = 1 };
