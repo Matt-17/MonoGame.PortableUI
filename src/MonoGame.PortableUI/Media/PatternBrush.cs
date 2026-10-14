@@ -85,8 +85,13 @@ namespace MonoGame.PortableUI.Media
             var width = _patternWidth * repeatX;
             var height = _patternHeight * repeatY;
             var key = new BrushTextureCacheKey("pattern-v2", _hash, width, height);
-            if (BrushTextureCache.TryGet(device, key, out var cached))
-                return cached;
+            return BrushTextureCache.TryGet(device, key, out var cached) ? cached : CreateTexture(device, key, width, height);
+        }
+
+        // Miss path only: the factory closure captures the size, and a closure over locals is allocated on entry to the
+        // method that declares them - in GetTexture that was on every draw.
+        private Texture2D CreateTexture(GraphicsDevice device, BrushTextureCacheKey key, int width, int height)
+        {
             return BrushTextureCache.GetOrCreate(device, key, graphicsDevice =>
             {
                 var data = new Color[width * height];

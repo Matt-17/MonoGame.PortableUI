@@ -298,8 +298,12 @@ namespace MonoGame.PortableUI.Controls
                 if (_text == value)
                     return;
                 _text = value;
+                var previous = MeasuredText;
                 MeasuredText = MeasureText(_text);
-                InvalidateLayout(true);
+                // A text of the same size on one line (a clock, a score, a counter) moves nothing around it: redraw only.
+                // A full layout pass of the whole tree, and the hover refresh after it, ran every time such a label
+                // changed, every frame for a HUD.
+                InvalidateLayout(MeasuredText != previous || TextWrapping != TextWrapping.NoWrap);
             }
         }
 
