@@ -1370,6 +1370,11 @@ namespace MonoGame.PortableUI
                 var scissorSource = HasOverflow(overflow)
                     ? renderRect + new Thickness(overflow.Left * overflowScale, overflow.Top * overflowScale, overflow.Right * overflowScale, overflow.Bottom * overflowScale)
                     : renderRect;
+                var moving = Moving || control.IsInMotion;
+                // In motion, edges are drawn anti-aliased at fractional positions: their soft last pixel
+                // reaches up to one pixel past the box and must not be cut off (it would pop in and out).
+                if (moving)
+                    scissorSource += new Thickness(1);
                 var scissorRect = ChildClipRect ^ scissorSource;
                 // Only controls that clip their content (e.g. ScrollViewer) shrink the clip for
                 // descendants; everything else inherits it so overflowing shadows survive.
@@ -1377,7 +1382,7 @@ namespace MonoGame.PortableUI
                 var stretch = control.StretchDiagonal;
                 var scale = new Vector2(Scale.X * control.ShownScale.X * stretch.X, Scale.Y * control.ShownScale.Y * stretch.Y);
                 var opacity = Opacity * MathHelper.Clamp((float)control.ShownOpacity, 0, 1);
-                return new RenderContext(transform, scale, opacity, scissorRect, childClipRect, renderRect, Moving || control.IsInMotion, RestScale);
+                return new RenderContext(transform, scale, opacity, scissorRect, childClipRect, renderRect, moving, RestScale);
             }
 
             /// <summary>How far a control draws past its own rect, in layout units: drop shadows, the
@@ -1775,12 +1780,29 @@ namespace MonoGame.PortableUI
 
         private void UpdateTimersForTree(Control control)
         {
-            _visualTreeScratch.Clear();
-            VisualTreeHelper.AppendVisualTree(control, _visualTreeScratch, false);
-            foreach (var visual in _visualTreeScratch)
-                visual.UpdateTimers();
-            _visualTreeScratch.Clear();
+            // Its own list: timer callbacks (animation completions, long press, tooltips) may reach code
+            // that walks the tree with the shared scratch list (focus, navigation, theme refresh) and
+            // would clear it under this loop. A nested call (a callback updating another tree) takes
+            // a fresh list.
+            var list = _updatingTimers ? new List<Control>() : _timerTreeScratch;
+            var nested = _updatingTimers;
+            _updatingTimers = true;
+            try
+            {
+                list.Clear();
+                VisualTreeHelper.AppendVisualTree(control, list, false);
+                for (var i = 0; i < list.Count; i++)
+                    list[i].UpdateTimers();
+            }
+            finally
+            {
+                list.Clear();
+                _updatingTimers = nested;
+            }
         }
+
+        private readonly List<Control> _timerTreeScratch = new List<Control>();
+        private bool _updatingTimers;
 
         private void RefreshThemeForTree(Control control)
         {
