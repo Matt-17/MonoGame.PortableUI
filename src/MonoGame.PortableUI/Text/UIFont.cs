@@ -34,6 +34,18 @@ namespace MonoGame.PortableUI.Text
         public abstract void DrawString(SpriteBatch spriteBatch, StringBuilder text, Vector2 position, Color color, float pixelSize, Vector2 scale);
 
         /// <summary>
+        ///     Like <see cref="DrawString(SpriteBatch, string, Vector2, Color, float, Vector2)"/>, rasterizing glyphs at
+        ///     <paramref name="rasterScale"/> instead of <paramref name="scale"/>: text in motion (a breathing or
+        ///     popping control) keeps the glyphs of its resting size and scales them, instead of re-rasterizing
+        ///     at every intermediate size - which makes glyphs hop between pixels.
+        /// </summary>
+        public virtual void DrawString(SpriteBatch spriteBatch, string text, Vector2 position, Color color, float pixelSize, Vector2 scale, Vector2 rasterScale)
+            => DrawString(spriteBatch, text, position, color, pixelSize, scale);
+
+        public virtual void DrawString(SpriteBatch spriteBatch, StringBuilder text, Vector2 position, Color color, float pixelSize, Vector2 scale, Vector2 rasterScale)
+            => DrawString(spriteBatch, text, position, color, pixelSize, scale);
+
+        /// <summary>
         ///     How far glyph ink can reach outside the <see cref="MeasureString(string, float)"/> box at
         ///     <paramref name="pixelSize"/>, in pixels: e.g. descenders and commas of a font that measures only
         ///     the cap height, or an outline the font stamps itself. Text controls widen their drawing clip by it

@@ -63,6 +63,95 @@ namespace MonoGame.PortableUI
 
         internal static void NotifyDynamicFontChanged() => System.Threading.Interlocked.Increment(ref _dynamicFontVersion);
 
+        private sealed class DynamicFontEntry
+        {
+            public Func<Stream>? Open;
+            public float DefaultSize;
+            public float SizeScale = 1;
+            public Text.UIFont? Font;
+            public bool Failed;
+        }
+
+        private static readonly Dictionary<string, DynamicFontEntry> DynamicFonts = new Dictionary<string, DynamicFontEntry>(StringComparer.OrdinalIgnoreCase);
+        private static readonly object DynamicFontsLock = new object();
+
+        /// <summary>
+        ///     Registers a runtime font under a theme font name (<see cref="Typography.FontName"/>, e.g.
+        ///     "atkinsonhyperlegible"): every theme naming it draws with this font instead of the baked
+        ///     SpriteFont of that name - sharp at any size, text scale and HiDPI factor. A theme's own
+        ///     <see cref="Typography.DynamicFont"/> and a control's <c>DynamicFont</c> still win.
+        /// </summary>
+        public static void RegisterDynamicFont(string name, Text.UIFont font)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                throw new ArgumentException("A font needs a name.", nameof(name));
+            lock (DynamicFontsLock)
+                DynamicFonts[name] = new DynamicFontEntry { Font = font ?? throw new ArgumentNullException(nameof(font)) };
+            NotifyDynamicFontChanged();
+        }
+
+        /// <summary>
+        ///     Registers TTF/OTF data under a theme font name, loaded on first use into a
+        ///     <see cref="Text.FontStashUIFont"/> (pixel-art fonts are detected and kept crisp). Pass e.g.
+        ///     <c>() =&gt; TitleContainer.OpenStream("Content/Fonts/Inter.ttf")</c>, which also reads Android assets.
+        ///     <paramref name="sizeScale"/> scales every text size of the font, to match a SpriteFont that was
+        ///     baked at another size than its name says.
+        /// </summary>
+        public static void RegisterDynamicFont(string name, Func<Stream> open, float defaultSize = DefaultSize, float sizeScale = 1)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                throw new ArgumentException("A font needs a name.", nameof(name));
+            lock (DynamicFontsLock)
+                DynamicFonts[name] = new DynamicFontEntry { Open = open ?? throw new ArgumentNullException(nameof(open)), DefaultSize = defaultSize, SizeScale = sizeScale > 0 ? sizeScale : 1 };
+            NotifyDynamicFontChanged();
+        }
+
+        /// <summary><see cref="RegisterDynamicFont(string, Func{Stream}, float, float)"/> for a file read through
+        /// <see cref="TitleContainer"/> (relative to the app; Android assets).</summary>
+        public static void RegisterDynamicFontFile(string name, string titleContainerPath, float defaultSize = DefaultSize, float sizeScale = 1)
+            => RegisterDynamicFont(name, () => TitleContainer.OpenStream(titleContainerPath), defaultSize, sizeScale);
+
+        public static bool UnregisterDynamicFont(string name)
+        {
+            bool removed;
+            lock (DynamicFontsLock)
+                removed = DynamicFonts.Remove(name);
+            if (removed)
+                NotifyDynamicFontChanged();
+            return removed;
+        }
+
+        /// <summary>The runtime font registered under <paramref name="name"/> (loading it on first use), or null.</summary>
+        public static Text.UIFont? GetDynamicFont(string? name)
+        {
+            if (string.IsNullOrEmpty(name))
+                return null;
+            DynamicFontEntry? entry;
+            lock (DynamicFontsLock)
+            {
+                if (!DynamicFonts.TryGetValue(name, out entry))
+                    return null;
+            }
+
+            if (entry.Font != null || entry.Failed)
+                return entry.Font;
+
+            try
+            {
+                using var stream = entry.Open!();
+                var font = Text.FontStashUIFont.FromStreams(entry.DefaultSize, stream);
+                entry.Font = entry.SizeScale == 1 ? font : font.WithSizeScale(entry.SizeScale);
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or NotSupportedException or ArgumentException or InvalidOperationException)
+            {
+                // A missing or broken file keeps the baked SpriteFont of that name.
+                entry.Failed = true;
+                System.Diagnostics.Debug.WriteLine($"PortableUI: runtime font '{name}' could not be loaded ({exception.Message}); using the SpriteFont.");
+            }
+
+            return entry.Font;
+        }
+
         public static SpriteFont? DefaultFont
         {
             get => _defaultFont;

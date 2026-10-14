@@ -166,7 +166,8 @@ control's theme (`PortableTheme.Haptics` / `ResolveHaptics()`, era defaults in `
 **App-wide services** (all on `ScreenEngine` unless noted; screens pick changes up on their next update via
 version counters, never by rebuilding): `TextScaling` (static, text size factor), `Localizer.Default`
 (static, string catalogues; bind with `control.Localize(...)`), `FontManager.DefaultDynamicFont` (UIFont
-backend; a theme's `Typography.DynamicFont` overrides it per screen/surface/island), `SafeAreaInsets` (+ `SafeAreaPanel`), `OnScreenKeyboard`, `AccessibilityBridge`, `Toasts`,
+backend; a theme's `Typography.ResolveDynamicFont()` - its `DynamicFont` or the TTF registered for its `FontName` via
+`FontManager.RegisterDynamicFont` - overrides it per screen/surface/island; pixel fonts snap to their grid, `PixelFontDetector`), `SafeAreaInsets` (+ `SafeAreaPanel`), `OnScreenKeyboard`, `AccessibilityBridge`, `Toasts`,
 `ShowModal`. Platform hooks for Android live in the core's `#if ANDROID` files (`AndroidWindowInsets`,
 `AndroidOnScreenKeyboard`, `AndroidTextScaling`, `AndroidAccessibilityBridge`, `AndroidHaptics`); they are compiled but not
 device-tested. There is no iOS head. Platform callbacks must go through `InvokeOnGameThread`.

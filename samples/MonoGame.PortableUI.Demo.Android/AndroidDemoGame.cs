@@ -91,6 +91,7 @@ namespace MonoGame.PortableUI.Demo.Android
         protected override void LoadContent()
         {
             FontManager.LoadFonts(this, "default", "Segoe");
+            DemoFonts.RegisterThemeFonts();
             FontManager.DefaultFont = FontManager.GetFontOrDefault("default");
             // Text is scaled by the display density (TextScaling.DensityScale); a runtime-rasterized
             // font keeps it sharp where the 14 pt SpriteFont would be stretched.
