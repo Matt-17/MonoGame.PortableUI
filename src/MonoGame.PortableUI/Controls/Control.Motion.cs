@@ -83,10 +83,11 @@ namespace MonoGame.PortableUI.Controls
         public float CurrentStretch => _stretch;
 
         /// <summary>
-        ///     Deforms the control at once and lets <see cref="SquashStretchSpring"/> swing it back - an
-        ///     impact (landing, press, bump). <paramref name="amount"/> &gt; 0 compresses along
-        ///     <paramref name="axis"/> (default vertical) and widens across it, &lt; 0 stretches. Works without
-        ///     <see cref="SquashStretch"/>.
+        ///     An impact (landing, press, bump): kicks the <see cref="SquashStretchSpring"/> so the control
+        ///     squashes by about <paramref name="amount"/> along <paramref name="axis"/> (default vertical)
+        ///     and widens across it within a fraction of a second, then swings back. &gt; 0 compresses,
+        ///     &lt; 0 stretches. The shape stays continuous: a control still stretched from a fall flows
+        ///     from the stretch into the squash instead of jumping. Works without <see cref="SquashStretch"/>.
         /// </summary>
         public void Squash(float amount, Vector2? axis = null)
         {
@@ -94,11 +95,63 @@ namespace MonoGame.PortableUI.Controls
             if (direction.LengthSquared() < 1e-8f)
                 direction = Vector2.UnitY;
             direction.Normalize();
+
+            if (_stretchAtRest)
+            {
+                _stretch = 1;
+                _stretchVelocity = 0;
+            }
+            else if (Math.Abs(Vector2.Dot(direction, _stretchAxis)) < 0.7071f)
+            {
+                // The same deformation seen from the other axis: k along one is 1/k along the other.
+                _stretchVelocity = -_stretchVelocity / (_stretch * _stretch);
+                _stretch = 1 / _stretch;
+            }
+
             _stretchAxis = direction;
-            _stretch = MathHelper.Clamp(1 - amount, MinStretch, MaxStretch);
-            _stretchVelocity = 0;
+            // An impulse, not a jump: the velocity kick that makes the spring, from the shape and
+            // velocity it has now, swing out to 1 - amount.
+            _stretchVelocity = SolveKick(_squashStretchSpring, _stretch - 1, _stretchVelocity, -amount);
             _stretchAtRest = false;
             RequestRedraw();
+        }
+
+        // The start velocity for which a spring at displacement d0 first swings to `peak` (bisection on
+        // the first extreme of its motion; the extreme grows monotonically with the velocity).
+        private static float SolveKick(in SpringSpec spring, float d0, float v0, float peak)
+        {
+            if (Math.Abs(peak) < 1e-5f)
+                return v0;
+            var sign = Math.Sign(peak);
+            double low = 0, high = 1;
+            while (FirstExtreme(spring, d0, sign * high) * sign < Math.Abs(peak) && high < 1e4)
+                high *= 2;
+            for (var i = 0; i < 30; i++)
+            {
+                var mid = (low + high) / 2;
+                if (FirstExtreme(spring, d0, sign * mid) * sign < Math.Abs(peak))
+                    low = mid;
+                else
+                    high = mid;
+            }
+
+            return (float)(sign * high);
+        }
+
+        // Displacement where the motion first turns around (or the start, if it heads the other way).
+        private static double FirstExtreme(in SpringSpec spring, double d0, double v0)
+        {
+            var extreme = d0;
+            for (var t = 1 / 240.0; t < 2; t += 1 / 240.0)
+            {
+                spring.Evaluate(d0, v0, t, out var displacement, out var velocity);
+                if (v0 >= 0 ? displacement > extreme : displacement < extreme)
+                    extreme = displacement;
+                if (Math.Sign(velocity) != Math.Sign(v0))
+                    break;
+            }
+
+            return extreme;
         }
 
         /// <summary>True while squash &amp; stretch deforms the control (a cached layer is drawn live then).</summary>

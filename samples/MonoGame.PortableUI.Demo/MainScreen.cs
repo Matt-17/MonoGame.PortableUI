@@ -841,7 +841,7 @@ namespace MonoGame.PortableUI.Demo
                     new RowDefinition { Height = GridLength.Auto }
                 }
             };
-            layers.AddChild(Label("Transitions: chip.Translation = ...", Palette.MutedText, 14, new Thickness(0)));
+            layers.AddChild(Label("Set moves the chip; buttons fade on hover/press", Palette.MutedText, 14, new Thickness(0)));
 
             var chipLabel = Label("SET", Color.White, 14, new Thickness(0));
             chipLabel.TextTrimming = TextTrimming.None;
@@ -883,8 +883,8 @@ namespace MonoGame.PortableUI.Demo
 
             var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
             var set = MotionDemoButton("Set", _motionActions["set"]);
-            var hoverA = ThemedButton("Hover");
-            var hoverB = ThemedButton("fades");
+            var hoverA = ThemedButton("Hover me");
+            var hoverB = ThemedButton("Press me");
             buttons.AddChild(set);
             buttons.AddChild(hoverA);
             buttons.AddChild(hoverB);

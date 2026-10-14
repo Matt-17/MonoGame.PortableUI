@@ -109,6 +109,8 @@ namespace MonoGame.PortableUI.Controls
             var dynamicFont = ActiveDynamicFont;
             if (dynamicFont != null)
                 dynamicFont.DrawString(spriteBatch, text, position, color, DynamicPixelSize(dynamicFont), RenderScale);
+            else if (Font != null && DrawsSubpixel)
+                SubpixelSpriteText.DrawString(spriteBatch, Font, text, position, color, RenderScale * FontScale);
             else if (Font != null)
                 spriteBatch.DrawString(Font, text, position, color, 0, Vector2.Zero, RenderScale * FontScale, SpriteEffects.None, 0);
         }
@@ -118,6 +120,8 @@ namespace MonoGame.PortableUI.Controls
             var dynamicFont = ActiveDynamicFont;
             if (dynamicFont != null)
                 dynamicFont.DrawString(spriteBatch, text, position, color, DynamicPixelSize(dynamicFont), RenderScale);
+            else if (Font != null && DrawsSubpixel)
+                SubpixelSpriteText.DrawString(spriteBatch, Font, text, position, color, RenderScale * FontScale);
             else if (Font != null)
                 spriteBatch.DrawString(Font, text, position, color, 0, Vector2.Zero, RenderScale * FontScale, SpriteEffects.None, 0);
         }
