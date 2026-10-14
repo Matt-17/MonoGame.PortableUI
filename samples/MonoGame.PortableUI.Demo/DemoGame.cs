@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using MonoGame.PortableUI.Audio;
 
 namespace MonoGame.PortableUI.Demo
 {
@@ -94,7 +95,57 @@ namespace MonoGame.PortableUI.Demo
                 return;
             }
 
+            if (_runOptions.SoundTest)
+            {
+                RunSoundTest();
+                Exit();
+                return;
+            }
+
+            // UI sounds: soft clicks, square-wave bleeps for the pixel-art themes (ApplyTheme picks).
+            if (!_runOptions.Mute)
+            {
+                _softSounds = SoundEffectUiSoundPlayer.CreateDefault(UiSynthStyle.Soft);
+                _retroSounds = SoundEffectUiSoundPlayer.CreateDefault(UiSynthStyle.Retro);
+                ApplyTheme(_activeThemePreset);
+            }
+
             _screenEngine?.NavigateToScreen(new MainScreen(deleteIcon, _activeThemePreset, ApplyTheme));
+        }
+
+        private SoundEffectUiSoundPlayer? _softSounds;
+        private SoundEffectUiSoundPlayer? _retroSounds;
+
+        protected override void UnloadContent()
+        {
+            _softSounds?.Dispose();
+            _retroSounds?.Dispose();
+            base.UnloadContent();
+        }
+
+        private void RunSoundTest()
+        {
+            foreach (var style in new[] { UiSynthStyle.Soft, UiSynthStyle.Retro })
+            {
+                using var player = SoundEffectUiSoundPlayer.CreateDefault(style);
+                if (player == null)
+                {
+                    Console.WriteLine($"sound-test {style}: no audio device");
+                    continue;
+                }
+
+                var count = 0;
+                for (var i = 0; i <= (int)UiSound.Type; i++)
+                {
+                    if (player[(UiSound)i] == null)
+                        continue;
+                    player.Play((UiSound)i, 0.5f, 0, 0);
+                    count++;
+                    System.Threading.Thread.Sleep(150);
+                }
+
+                Console.WriteLine($"sound-test {style}: played {count} sounds");
+            }
         }
 
         protected override void Draw(GameTime gameTime)
@@ -107,7 +158,10 @@ namespace MonoGame.PortableUI.Demo
         {
             _activeThemePreset = themePreset ?? DemoThemeRegistry.Default;
             if (_screenEngine != null)
+            {
                 _screenEngine.Options.Theme = _activeThemePreset.CreateTheme();
+                _screenEngine.Sounds.Player = _screenEngine.Options.Theme.PixelMotion ? _retroSounds ?? _softSounds : _softSounds;
+            }
             if (_fontsLoaded)
                 FontManager.DefaultFont = FontManager.GetFont(_activeThemePreset.FontName);
             UpdateWindowTitle();

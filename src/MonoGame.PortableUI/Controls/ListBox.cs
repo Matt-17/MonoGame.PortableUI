@@ -813,7 +813,15 @@ namespace MonoGame.PortableUI.Controls
             if (args.InputType != InputType.Command || Items.Count == 0)
                 return;
 
-            switch (args.Command)
+            var selectedBefore = SelectedIndex;
+            HandleSelectionCommand(args.Command);
+            if (SelectedIndex != selectedBefore)
+                PlaySound(Audio.UiSound.Select);
+        }
+
+        private void HandleSelectionCommand(KeyboardCommand command)
+        {
+            switch (command)
             {
                 case KeyboardCommand.CursorUp:
                     SelectedIndex = SelectedIndex < 0 ? 0 : Math.Max(0, SelectedIndex - 1);

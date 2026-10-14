@@ -394,6 +394,17 @@ namespace MonoGame.PortableUI.Controls
 
         protected internal virtual void HandleKeyPressed(object? sender, KeyEventArgs args)
         {
+            var before = Text;
+            DispatchKeyPressed(args);
+            if (!ReferenceEquals(before, Text) && before != Text)
+                PlaySound(Audio.UiSound.Type);
+            // A typed character that did not fit: the box is full.
+            else if (args.InputType == InputType.Char && !IsReadOnly && MaxLength > 0 && Text.Length >= MaxLength && !char.IsControl(args.Char))
+                PlaySound(Audio.UiSound.Error);
+        }
+
+        private void DispatchKeyPressed(KeyEventArgs args)
+        {
             switch (args.InputType)
             {
                 case InputType.Char:

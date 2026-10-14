@@ -266,6 +266,8 @@ namespace MonoGame.PortableUI
                 if (value != null && !hadFlyOut)
                     _focusBeforeFlyOut = FocusEngine?.FocusedControl;
                 _flyOut = value;
+                if (_flyOut != null && !hadFlyOut)
+                    ScreenEngine?.Sounds.Play(Audio.UiSound.Open, _flyOut);
                 if (_flyOut != null)
                 {
                     // While a popup is open only it receives pointer input, so the main tree would
@@ -1744,6 +1746,10 @@ namespace MonoGame.PortableUI
         }
 
         private PointF _activityMousePosition;
+
+        /// <summary>The mouse moved in this update (hover sounds only for real pointer moves, not for
+        /// content scrolling under a resting pointer).</summary>
+        internal bool PointerMovedThisUpdate { get; private set; }
         private int _activityPressedButtons;
         private int _activityPressedKeys;
         private int _activityScrollWheel;
@@ -1756,6 +1762,7 @@ namespace MonoGame.PortableUI
             var scrollWheel = inputSource.ScrollWheelValue;
             var horizontalScrollWheel = inputSource.HorizontalScrollWheelValue;
             var gamePad = inputSource.GamePad;
+            PointerMovedThisUpdate = mousePosition != _activityMousePosition;
             var active = hasTouch || pressedMouseButtonCount > 0
                 || mousePosition != _activityMousePosition
                 || scrollWheel != _activityScrollWheel
@@ -2085,6 +2092,7 @@ namespace MonoGame.PortableUI
 
             best.Focus();
             BringIntoView(best);
+            ScreenEngine?.Sounds.Play(Audio.UiSound.FocusMove, best);
             return true;
         }
 
@@ -2272,6 +2280,8 @@ namespace MonoGame.PortableUI
                 return;
             }
 
+            if (BackRequested != null)
+                ScreenEngine?.Sounds.Play(Audio.UiSound.Back, FocusEngine?.FocusedControl);
             BackRequested?.Invoke(this, new System.ComponentModel.HandledEventArgs());
         }
 
@@ -2333,6 +2343,7 @@ namespace MonoGame.PortableUI
                 ? index <= 0 ? ordered.Count - 1 : index - 1
                 : index < 0 || index == ordered.Count - 1 ? 0 : index + 1;
             ordered[next].Focus();
+            ScreenEngine?.Sounds.Play(Audio.UiSound.FocusMove, ordered[next]);
             BringIntoView(ordered[next]);
         }
 
@@ -2642,6 +2653,7 @@ namespace MonoGame.PortableUI
             var flyOut = _flyOut;
             var contextMenu = _activeContextMenu;
             var animationStyle = _activeFlyOutAnimationStyle;
+            ScreenEngine?.Sounds.Play(Audio.UiSound.Close, flyOut);
             _flyOut = null;
             ResyncMainTreeHover();
             RestoreFocusAfterFlyOut(flyOut);
