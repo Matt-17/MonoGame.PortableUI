@@ -270,5 +270,53 @@ namespace MonoGame.PortableUI.Tests
                 }
             }
         }
+
+        [TestMethod]
+        public void The_mouse_clicks_on_the_press_and_a_finger_on_the_release()
+        {
+            var button = new Button { Width = 100, Height = 40, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top };
+            var clicks = 0;
+            button.Click += (_, _) => clicks++;
+            var (_, screen, source, player) = Create(button);
+
+            source.SetPointer(new PointF(20, 20));
+            screen.Update();
+            Later(100);
+            var beforePress = player.Played.Count;
+            source.SetPointer(new PointF(20, 20), leftDown: true);
+            screen.Update();
+            Assert.AreEqual(beforePress + 1, player.Played.Count, "the press clicks");
+            Assert.AreEqual(UiSound.Click, player.Played[^1].Sound);
+            Assert.AreEqual(0, clicks, "the action waits for the release");
+
+            Later(120);
+            source.SetPointer(new PointF(20, 20));
+            screen.Update();
+            Assert.AreEqual(1, clicks);
+            Assert.AreEqual(beforePress + 1, player.Played.Count, "no second click on the release");
+
+            // Keyboard activation (no press) still sounds.
+            Later(200);
+            button.OnClick();
+            Assert.AreEqual(beforePress + 2, player.Played.Count);
+        }
+
+        [TestMethod]
+        public void A_check_box_sounds_its_coming_state_on_the_mouse_press()
+        {
+            var check = new CheckBox { Text = "Music", HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top };
+            var (_, screen, source, player) = Create(check);
+            source.SetPointer(new PointF(8, 8));
+            screen.Update();
+            Later(100);
+            source.SetPointer(new PointF(8, 8), leftDown: true);
+            screen.Update();
+            Assert.AreEqual(UiSound.ToggleOn, player.Played[^1].Sound, "about to turn on");
+            Later(100);
+            source.SetPointer(new PointF(8, 8));
+            screen.Update();
+            Assert.IsTrue(check.IsChecked);
+            Assert.AreEqual(UiSound.ToggleOn, player.Played[^1].Sound);
+        }
     }
 }
