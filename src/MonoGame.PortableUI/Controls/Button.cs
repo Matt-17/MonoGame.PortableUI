@@ -282,6 +282,8 @@ namespace MonoGame.PortableUI.Controls
             if (textBlock == null)
                 return;
 
+            // The label fades between state colours with the face (theme style's TransitionDuration).
+            textBlock.OwnerTextColorTransition = ResolveStyle()?.TransitionDuration ?? TimeSpan.Zero;
             var color = TextColor;
             if (_variant != ButtonVariant.Standard && _textColorFromTheme)
             {

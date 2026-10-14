@@ -1356,7 +1356,7 @@ namespace MonoGame.PortableUI
                 // control's bounds; widen the scissor so they survive.
                 var overflow = VisualOverflow(control);
                 // Overflow is in layout lengths; the render rect is already scaled.
-                var overflowScale = Math.Max(Scale.X * control.Scale.X, Scale.Y * control.Scale.Y);
+                var overflowScale = Math.Max(Scale.X * control.ShownScale.X, Scale.Y * control.ShownScale.Y);
                 var scissorSource = HasOverflow(overflow)
                     ? renderRect + new Thickness(overflow.Left * overflowScale, overflow.Top * overflowScale, overflow.Right * overflowScale, overflow.Bottom * overflowScale)
                     : renderRect;
@@ -1365,8 +1365,8 @@ namespace MonoGame.PortableUI
                 // descendants; everything else inherits it so overflowing shadows survive.
                 var childClipRect = control.ClipsDescendants ? ChildClipRect ^ renderRect : ChildClipRect;
                 var stretch = control.StretchDiagonal;
-                var scale = new Vector2(Scale.X * control.Scale.X * stretch.X, Scale.Y * control.Scale.Y * stretch.Y);
-                var opacity = Opacity * MathHelper.Clamp((float)control.Opacity, 0, 1);
+                var scale = new Vector2(Scale.X * control.ShownScale.X * stretch.X, Scale.Y * control.ShownScale.Y * stretch.Y);
+                var opacity = Opacity * MathHelper.Clamp((float)control.ShownOpacity, 0, 1);
                 return new RenderContext(transform, scale, opacity, scissorRect, childClipRect, renderRect);
             }
 

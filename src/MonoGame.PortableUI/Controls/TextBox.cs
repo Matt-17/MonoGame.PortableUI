@@ -952,7 +952,7 @@ namespace MonoGame.PortableUI.Controls
             var lines = cache.Lines;
             var displayText = cache.DisplayText;
             var lineHeight = GetLineHeight() * RenderScale.Y;
-            var color = Brush.ApplyOpacity(TextColor, RenderOpacity);
+            var color = Brush.ApplyOpacity(DrawnTextColor, RenderOpacity);
             var selectedColor = HasSelection ? GetSelectedTextColor() : null;
             var selectionStart = SelectionStart;
             var selectionEnd = selectionStart + SelectionLength;

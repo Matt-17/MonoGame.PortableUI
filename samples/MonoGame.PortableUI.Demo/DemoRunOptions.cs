@@ -37,6 +37,9 @@ namespace MonoGame.PortableUI.Demo
         /// <summary>--record-motion dir: renders the Motion tab playing its demos as numbered PNG frames (30 fps).</summary>
         public string? MotionRecordDirectory { get; init; }
 
+        /// <summary>--record-timeline transitions: records the implicit-transition demo (with a scripted pointer) instead.</summary>
+        public string? MotionRecordTimeline { get; init; }
+
         public static DemoRunOptions Parse(string[]? args)
         {
             // --text-scale 1.5 sets the app text size (TextScaling.AppScale) before anything is built.
@@ -58,6 +61,7 @@ namespace MonoGame.PortableUI.Demo
                 SurfaceBenchmarkFile = TryParseValue(args, "--benchmark-surfaces"),
                 GarbageBenchmarkFile = TryParseValue(args, "--benchmark-garbage"),
                 MotionRecordDirectory = TryParseValue(args, "--record-motion"),
+                MotionRecordTimeline = TryParseValue(args, "--record-timeline"),
                 SurfaceCount = int.TryParse(TryParseValue(args, "--surface-count"), out var surfaceCount) && surfaceCount > 0 ? surfaceCount : 100,
                 ScreenshotTabs = int.TryParse(TryParseValue(args, "--screenshot-tabs"), out var tabs) ? tabs : 0,
                 ScreenshotCursor = ParsePoint(TryParseValue(args, "--screenshot-cursor")),
