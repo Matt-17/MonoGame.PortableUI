@@ -43,6 +43,43 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void Tooltip_popup_is_reused_and_shown_in_full_again_when_its_fade_out_is_interrupted()
+        {
+            var screen = new TestScreen();
+            var button = AttachButton(screen);
+            var popupField = typeof(Screen).GetField("_toolTip", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+            button.ToolTip = "First";
+
+            button.OnMouseEnter(new MouseEventArgs(new PointF(12, 8), new List<MouseButton>()));
+            ScreenSystem.TotalTime = TimeSpan.FromMilliseconds(500);
+            button.UpdateTimers();
+            var first = (ToolTipPopup)popupField.GetValue(screen)!;
+            ScreenSystem.TotalTime = TimeSpan.FromMilliseconds(700);
+            first.UpdateTimers();
+            Assert.AreEqual(1, first.Opacity, 1e-6);
+
+            // Leave, and come back while the popup is still fading out.
+            button.OnMouseLeave(new MouseEventArgs(new PointF(220, 8), new List<MouseButton>()));
+            ScreenSystem.TotalTime = TimeSpan.FromMilliseconds(740);
+            first.UpdateTimers();
+            Assert.IsTrue(first.Opacity is > 0 and < 1, $"fading out, opacity {first.Opacity}");
+            button.ToolTip = "Second";
+            button.OnMouseEnter(new MouseEventArgs(new PointF(12, 8), new List<MouseButton>()));
+            ScreenSystem.TotalTime = TimeSpan.FromMilliseconds(1240);
+            button.UpdateTimers();
+
+            var second = (ToolTipPopup)popupField.GetValue(screen)!;
+            Assert.AreSame(first, second);
+            Assert.AreEqual("Second", ((TextBlock)second.Content!).Text);
+            ScreenSystem.TotalTime = TimeSpan.FromMilliseconds(1500);
+            second.UpdateTimers();
+            Assert.AreEqual(1, second.Opacity, 1e-6);
+            Assert.AreEqual(Microsoft.Xna.Framework.Vector2.One, second.Scale);
+            Assert.AreEqual(Microsoft.Xna.Framework.Vector2.Zero, second.Translation);
+            Assert.IsTrue(screen.IsToolTipVisibleFor(button));
+        }
+
+        [TestMethod]
         public void Tooltip_touch_long_press_shows_tooltip_and_suppresses_click()
         {
             var screen = new TestScreen();

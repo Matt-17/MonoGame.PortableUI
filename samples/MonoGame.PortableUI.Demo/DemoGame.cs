@@ -184,6 +184,8 @@ namespace MonoGame.PortableUI.Demo
         {
             const int frames = 600;
             var allTabs = Array.IndexOf(Environment.GetCommandLineArgs(), "--garbage-all-tabs") >= 0;
+            // --garbage-frames: also print each measured frame that allocated, to tell a one-off event from a per-frame cost.
+            var logFrames = Array.IndexOf(Environment.GetCommandLineArgs(), "--garbage-frames") >= 0;
             var lines = new List<string> { "theme,tab,bytes_per_frame_resting,bytes_per_frame_moving,layout_passes_per_100_frames" };
             var first = true;
             foreach (var preset in DemoThemeRegistry.Presets)
@@ -231,12 +233,21 @@ namespace MonoGame.PortableUI.Demo
                     pointer.SetPointer(new PortableUI.Common.PointF(590, 380));
                     for (var i = 0; i < 30; i++) Frame(false);
                     layoutPasses = 0;
-                    var start = GC.GetAllocatedBytesForCurrentThread();
-                    for (var i = 0; i < frames; i++) Frame(false);
-                    var resting = (GC.GetAllocatedBytesForCurrentThread() - start) / (double)frames;
-                    start = GC.GetAllocatedBytesForCurrentThread();
-                    for (var i = 0; i < frames; i++) Frame(true);
-                    var moving = (GC.GetAllocatedBytesForCurrentThread() - start) / (double)frames;
+                    long Measure(bool moving)
+                    {
+                        var first = GC.GetAllocatedBytesForCurrentThread();
+                        for (var i = 0; i < frames; i++)
+                        {
+                            var before = GC.GetAllocatedBytesForCurrentThread();
+                            Frame(moving);
+                            var bytes = GC.GetAllocatedBytesForCurrentThread() - before;
+                            if (logFrames && bytes > 0)
+                                Console.WriteLine($"  {preset.Id} {tab} {(moving ? "moving" : "resting")} frame {i}: {bytes} bytes");
+                        }
+                        return GC.GetAllocatedBytesForCurrentThread() - first;
+                    }
+                    var resting = Measure(false) / (double)frames;
+                    var moving = Measure(true) / (double)frames;
                     GraphicsDevice.SetRenderTarget(null);
                     var line = string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0},{1},{2:0},{3:0},{4:0}", preset.Id, tab, resting, moving, layoutPasses * 100.0 / (2 * frames));
                     lines.Add(line);
