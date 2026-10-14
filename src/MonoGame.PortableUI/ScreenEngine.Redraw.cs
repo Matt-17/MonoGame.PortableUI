@@ -44,7 +44,7 @@ namespace MonoGame.PortableUI
             // From another thread the loop may be idling: wake it. (Game-thread calls are frequent and
             // never happen while the loop waits.)
             if (Environment.CurrentManagedThreadId != _gameThreadId)
-                _wake.Set();
+                SignalWake();
         }
 
         /// <summary>
@@ -52,7 +52,21 @@ namespace MonoGame.PortableUI
         ///     on another thread (e.g. the Android input bridge) is handled without waiting out
         ///     <see cref="ScreenEngineOptions.IdleUpdateInterval"/>. Thread-safe.
         /// </summary>
-        public void WakeUp() => _wake.Set();
+        public void WakeUp() => SignalWake();
+
+        // A platform callback may still arrive after Dispose (the event is gone then): ignore it.
+        private void SignalWake()
+        {
+            if (_disposed)
+                return;
+            try
+            {
+                _wake.Set();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+        }
 
         /// <summary>The idle loop's wait: returns after <paramref name="timeout"/>, at <see cref="WakeUp"/>,
         /// or right away when woken since the last wait.</summary>

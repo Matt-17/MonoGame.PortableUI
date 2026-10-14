@@ -1625,6 +1625,7 @@ namespace MonoGame.PortableUI.Controls
         {
             for (var i = _animations.Count - 1; i >= 0; i--)
             {
+                animation.InheritVelocity(_animations[i]);
                 if (_animations[i].RemoveConflictingTweens(animation))
                     _animations.RemoveAt(i);
             }
