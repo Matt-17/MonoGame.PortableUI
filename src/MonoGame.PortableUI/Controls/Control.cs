@@ -439,6 +439,22 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        /// <summary>
+        ///     Pivot of <see cref="Scale"/>, relative to the control's box: (0, 0) is the top-left corner,
+        ///     (0.5, 0.5) the centre (default), (0.5, 1) the bottom edge. Render-only, like Scale.
+        /// </summary>
+        public Vector2 TransformOrigin
+        {
+            get => _transformOrigin;
+            set
+            {
+                if (_transformOrigin == value)
+                    return;
+                _transformOrigin = value;
+                InvalidateLayout(false);
+            }
+        }
+
         public double Opacity
         {
             get => _opacity;
@@ -453,7 +469,24 @@ namespace MonoGame.PortableUI.Controls
 
         private Vector2 _scale;
         private Vector2 _translation;
+        private Vector2 _transformOrigin = new Vector2(0.5f, 0.5f);
         private double _opacity;
+
+        /// <summary>
+        ///     This control's own render transform in layout space: <see cref="Scale"/> about
+        ///     <see cref="TransformOrigin"/> within <see cref="ClippingRect"/>, then <see cref="Translation"/>.
+        /// </summary>
+        internal Matrix GetRenderTransform()
+        {
+            if (_scale == Vector2.One && _translation == Vector2.Zero)
+                return Matrix.Identity;
+
+            var rect = ClippingRect;
+            var origin = new Vector2(rect.Left + rect.Width * _transformOrigin.X, rect.Top + rect.Height * _transformOrigin.Y);
+            return Matrix.CreateTranslation(-origin.X, -origin.Y, 0)
+                * Matrix.CreateScale(_scale.X, _scale.Y, 1)
+                * Matrix.CreateTranslation(origin.X + _translation.X, origin.Y + _translation.Y, 0);
+        }
 
         /// <summary>
         ///     <see cref="Controls.CacheMode.Bitmap"/> renders this control and its subtree into a texture and

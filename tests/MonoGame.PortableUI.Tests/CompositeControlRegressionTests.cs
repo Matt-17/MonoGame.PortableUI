@@ -313,11 +313,13 @@ namespace MonoGame.PortableUI.Tests
             Assert.IsNotNull(listBox);
 
             var expectedStartScaleY = 0.96f;
-            var expectedStartTranslationY = -listBox.ClippingRect.Height * (1 - expectedStartScaleY) / 2;
             Assert.AreEqual(1, listBox.Scale.X, 0.001f);
             Assert.AreEqual(expectedStartScaleY, listBox.Scale.Y, 0.001f);
-            Assert.AreEqual(0, listBox.Translation.X, 0.001f);
-            Assert.AreEqual(expectedStartTranslationY, listBox.Translation.Y, 0.001f);
+            Assert.AreEqual(new Vector2(0.5f, 0), listBox.TransformOrigin);
+            // The top edge stays in place while the list grows downward.
+            var rect = listBox.ClippingRect;
+            var top = Vector2.Transform(new Vector2(rect.Left, rect.Top), listBox.GetRenderTransform());
+            Assert.AreEqual(rect.Top, top.Y, 0.001f);
 
             ScreenSystem.TotalTime = TimeSpan.FromMilliseconds(120);
             listBox.UpdateTimers();
