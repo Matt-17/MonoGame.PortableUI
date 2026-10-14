@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **UI sound on the mouse press:** buttons and toggles click (and buzz) when the mouse button goes down instead of when it is released, so the sound no longer trails the press by the length of the click; toggles play the state the click will give them. The action still happens on the release. Touch keeps sounding on the release (a finger going down may start a scroll); keyboard and gamepad sound on activation as before.
 - **Soft-body deformation (`Control.Deformation`):** a control can be drawn as a texture on a grid whose points move on their own (`new Deformation(columns, rows)`). While its `Translation` moves, the tail lags (`Trail`) and the front swells while the tail narrows (`Taper`) - a thrown ball becomes a drop -, and when it stops every point springs back on `Spring` (default Wobbly) and the shape wobbles out. `Wobble(amount)` kicks it on demand; `Bulge`, `Bend` and `Wave` (travelling, `WaveLength`, `WaveSpeed`) deform it statically. The control's rest pose renders into a pooled texture each frame (content stays live), the mesh carries its transform and opacity; layout and hit testing keep the rectangle; skipped at `RenderQuality.Low`. No allocation per frame. The demo's ball, Jelly card, transition chip and a new "Wobble + Wave" button show it.
 
 ## 0.4.0-alpha.8

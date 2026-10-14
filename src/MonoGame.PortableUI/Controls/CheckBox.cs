@@ -33,6 +33,8 @@ namespace MonoGame.PortableUI.Controls
 
         protected override Audio.UiSound? GetClickSound() => IsChecked ? Audio.UiSound.ToggleOn : Audio.UiSound.ToggleOff;
 
+        protected override Audio.UiSound? GetPressSound() => IsChecked ? Audio.UiSound.ToggleOff : Audio.UiSound.ToggleOn;
+
         protected override void OnThemeChanged(PortableTheme oldTheme, PortableTheme newTheme)
         {
             base.OnThemeChanged(oldTheme, newTheme);

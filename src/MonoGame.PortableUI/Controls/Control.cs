@@ -995,10 +995,18 @@ namespace MonoGame.PortableUI.Controls
             Click?.Invoke(this, EventArgs.Empty);
             if (IsDoubleClick(ref _lastClickAt))
                 DoubleClick?.Invoke(this, EventArgs.Empty);
-            // After the handlers: a toggle sounds its new state.
-            if (GetClickSound() is { } sound)
+            // After the handlers: a toggle sounds its new state - unless the mouse press already clicked.
+            if (_clickSoundPlayed)
+                _clickSoundPlayed = false;
+            else if (GetClickSound() is { } sound)
                 PlaySound(sound);
         }
+
+        private bool _clickSoundPlayed;
+
+        /// <summary>The sound when the mouse presses this control (the click comes on the press, not the
+        /// release): <see cref="GetClickSound"/>; toggles answer with the state the click will give them.</summary>
+        protected virtual Audio.UiSound? GetPressSound() => GetClickSound();
 
         private Audio.UiSoundOverrides? _sounds;
 
@@ -1448,6 +1456,13 @@ namespace MonoGame.PortableUI.Controls
                 Focus();
             MouseDown?.Invoke(this, args);
             ChangeVisualState();
+            // The mouse clicks when the button goes down, like a physical key - the action still waits
+            // for the release. (A finger may be starting a scroll: touch sounds on release.)
+            if (IsEnabled && args.Buttons.Contains(MouseButton.Left) && GetPressSound() is { } pressSound)
+            {
+                PlaySound(pressSound);
+                _clickSoundPlayed = true;
+            }
             if ((Click != null && args.Buttons.Contains(MouseButton.Left)) || (RightClick != null && args.Buttons.Contains(MouseButton.Right)))
                 args.Handled = true;
         }
@@ -1480,6 +1495,8 @@ namespace MonoGame.PortableUI.Controls
                 OnRightClick();
                 args.Handled = true;
             }
+            if (leftReleased)
+                _clickSoundPlayed = false;
         }
 
         /// <summary>
