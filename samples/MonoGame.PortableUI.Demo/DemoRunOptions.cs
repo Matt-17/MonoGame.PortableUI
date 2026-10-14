@@ -40,6 +40,12 @@ namespace MonoGame.PortableUI.Demo
         /// <summary>--record-timeline transitions: records the implicit-transition demo (with a scripted pointer) instead.</summary>
         public string? MotionRecordTimeline { get; init; }
 
+        /// <summary>--sound-test: builds the synthesized UI sound sets, plays each sound once and exits.</summary>
+        public bool SoundTest { get; init; }
+
+        /// <summary>--mute: the demo starts without UI sounds.</summary>
+        public bool Mute { get; init; }
+
         public static DemoRunOptions Parse(string[]? args)
         {
             // --text-scale 1.5 sets the app text size (TextScaling.AppScale) before anything is built.
@@ -62,6 +68,8 @@ namespace MonoGame.PortableUI.Demo
                 GarbageBenchmarkFile = TryParseValue(args, "--benchmark-garbage"),
                 MotionRecordDirectory = TryParseValue(args, "--record-motion"),
                 MotionRecordTimeline = TryParseValue(args, "--record-timeline"),
+                SoundTest = args != null && Array.IndexOf(args, "--sound-test") >= 0,
+                Mute = args != null && Array.IndexOf(args, "--mute") >= 0,
                 SurfaceCount = int.TryParse(TryParseValue(args, "--surface-count"), out var surfaceCount) && surfaceCount > 0 ? surfaceCount : 100,
                 ScreenshotTabs = int.TryParse(TryParseValue(args, "--screenshot-tabs"), out var tabs) ? tabs : 0,
                 ScreenshotCursor = ParsePoint(TryParseValue(args, "--screenshot-cursor")),

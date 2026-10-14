@@ -68,6 +68,8 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        protected override Audio.UiSound? GetClickSound() => Audio.UiSound.Click;
+
         protected override ControlStyle? GetThemeStyle(PortableTheme theme)
         {
             if (!UseThemeStyle)

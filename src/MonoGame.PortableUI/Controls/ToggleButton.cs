@@ -87,6 +87,8 @@ namespace MonoGame.PortableUI.Controls
             IsChecked = !IsChecked;
         }
 
+        protected override Audio.UiSound? GetClickSound() => IsChecked ? Audio.UiSound.ToggleOn : Audio.UiSound.ToggleOff;
+
         protected override ControlStyle? GetThemeStyle(PortableTheme theme)
         {
             return UseThemeStyle ? theme.ToggleButton : null;

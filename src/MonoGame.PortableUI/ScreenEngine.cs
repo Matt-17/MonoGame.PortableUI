@@ -575,6 +575,10 @@ namespace MonoGame.PortableUI
         /// <summary>Self-dismissing messages shown above every screen (see <see cref="ToastService"/>).</summary>
         public ToastService Toasts => _toasts ??= new ToastService(this);
 
+        /// <summary>UI sounds of this engine: set <see cref="Audio.UiSoundService.Player"/> (e.g.
+        /// <see cref="Audio.SoundEffectUiSoundPlayer.CreateDefault"/>) and controls click, tick and whoosh.</summary>
+        public Audio.UiSoundService Sounds { get; } = new Audio.UiSoundService();
+
         internal ToastService? ToastsIfCreated => _toasts;
 
         /// <summary>Draws the visible screen stack bottom to top (overlays over what they cover), a
@@ -691,6 +695,7 @@ namespace MonoGame.PortableUI
         {
             var modal = new ModalScreen(content, options);
             PushOverlay(modal, modal.PresentationTransition);
+            Sounds.Play(Audio.UiSound.Open, content);
             return modal;
         }
 
