@@ -14,6 +14,7 @@ public static class NesTheme
             primary: "#3CBCFC", secondary: "#F83800", selection: "#FCFCFC", selectionText: "#000000",
             styleTheme: theme =>
             {
+                theme.PixelMotion = true; // motion steps in whole pixels, like sprites
                 theme.Cursor = CursorStyle.PixelArrow(Color.White, Color.Black);
                 ThemeBuilder.Chrome(theme.Button, null, ThemeBuilder.Solid(theme.Palette.Primary), 2, 0);
             });

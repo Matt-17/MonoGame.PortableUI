@@ -526,7 +526,7 @@ namespace MonoGame.PortableUI.Controls
                 var offset = textRect.Offset;
                 if (!IsMultiline)
                     offset.Y += (textRect.Height - scaledHint.Y) / 2;
-                if (SnapToPixel)
+                if (SnapsDrawing)
                     offset = offset.ToInts();
                 DrawText(spriteBatch, HintText, offset, Brush.ApplyOpacity(HintTextColor, RenderOpacity));
             }
@@ -974,7 +974,7 @@ namespace MonoGame.PortableUI.Controls
                 // The run starts where the whole line would (snapped once); later runs are placed by
                 // their unsnapped width from it, so glyphs land exactly where an undivided line puts them.
                 var origin = new PointF(textRect.Left + (metric.GetWidth(visibleRange.Start) - _horizontalScrollOffset) * RenderScale.X, lineTop);
-                if (SnapToPixel)
+                if (SnapsDrawing)
                     origin = origin.ToInts();
                 if (selectedColor is not { } selected || selectionEnd <= start || selectionStart >= end)
                 {
