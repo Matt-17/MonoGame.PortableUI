@@ -49,7 +49,7 @@ Themes whose fonts are not built still render correctly with your default font (
 Regenerate the gallery images from the demo:
 
 ```powershell
-dotnet run --project samples/MonoGame.PortableUI.Demo -- --theme glass --screenshot docs/themes --screenshot-screen gallery
+dotnet run --project samples/MonoGame.PortableUI.Demo -- --screenshot docs/themes --screenshot-screen controls
 ```
 
 The `default` theme shows the library's built-in styling when no theme is applied; the `demo` theme is the demo's own [`DemoTheme.cs`](samples/MonoGame.PortableUI.Demo/DemoTheme.cs), a commented template for writing your own theme with just the core package:
