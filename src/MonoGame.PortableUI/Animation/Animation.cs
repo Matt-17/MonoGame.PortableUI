@@ -6,27 +6,37 @@ using MonoGame.PortableUI.Controls;
 
 namespace MonoGame.PortableUI.Animation
 {
+    /// <summary>
+    ///     A fluent animation of one control. Tweens (<see cref="Scale(Vector2)"/>, <see cref="FadeTo"/>, ...)
+    ///     and timing (<see cref="Duration"/>, <see cref="Ease"/>, <see cref="Spring(SpringSpec)"/>,
+    ///     <see cref="Delay"/>) apply to the current track. <see cref="With"/> adds a track that runs in
+    ///     parallel with its own timing; <see cref="Then()"/> starts a step that begins when every track of
+    ///     the previous one has finished and animates from wherever the previous step left the control.
+    ///     An animation can be started again after it finished (<see cref="Restart"/>), so a hover or press
+    ///     effect is built once.
+    /// </summary>
     public class Animation
     {
-        // A spring that never comes to rest (no damping) still ends after this long.
-        private const double MaxSpringSeconds = 30;
-
         private readonly Control _control;
-        private readonly List<IAnimationTween> _tweens = new List<IAnimationTween>();
-        private TimeSpan _duration = TimeSpan.FromMilliseconds(150);
-        private Easing _easing = Easings.CubicOut;
-        private bool _useSpring;
-        private SpringSpec _springX;
-        private SpringSpec _springY;
+        private readonly List<Step> _steps = new List<Step>();
+        private Track _current;
         private Action? _completed;
-        private TimeSpan _startedAt;
+        private int _stepIndex;
+        private bool _stepStarted;
+        private TimeSpan _stepStartedAt;
         private bool _isRunning;
         private bool _isFinished;
 
         internal Animation(Control control)
         {
             _control = control;
+            var step = new Step();
+            _steps.Add(step);
+            _current = step.AddTrack();
         }
+
+        /// <summary>True from <see cref="Start"/> until it completes or is cancelled.</summary>
+        public bool IsRunning => _isRunning;
 
         public Animation Scale(double scaleTo)
         {
@@ -35,7 +45,7 @@ namespace MonoGame.PortableUI.Animation
 
         public Animation Scale(Vector2 scaleTo)
         {
-            ReplaceTween(new Vector2AnimationTween(
+            _current.Replace(new Vector2AnimationTween(
                 AnimationProperty.Scale,
                 control => control.Scale,
                 (control, value) => control.Scale = value,
@@ -46,7 +56,7 @@ namespace MonoGame.PortableUI.Animation
 
         public Animation TranslateTo(Vector2 translationTo)
         {
-            ReplaceTween(new Vector2AnimationTween(
+            _current.Replace(new Vector2AnimationTween(
                 AnimationProperty.Translation,
                 control => control.Translation,
                 (control, value) => control.Translation = value,
@@ -57,7 +67,7 @@ namespace MonoGame.PortableUI.Animation
 
         public Animation FadeTo(double opacityTo)
         {
-            ReplaceTween(new DoubleAnimationTween(
+            _current.Replace(new DoubleAnimationTween(
                 AnimationProperty.Opacity,
                 control => control.Opacity,
                 (control, value) => control.Opacity = value,
@@ -68,7 +78,7 @@ namespace MonoGame.PortableUI.Animation
 
         public Animation ColorTo(Func<Control, Color> getValue, Action<Control, Color> setValue, Color colorTo)
         {
-            ReplaceTween(new ColorAnimationTween(
+            _current.Replace(new ColorAnimationTween(
                 AnimationProperty.Color,
                 getValue,
                 setValue,
@@ -88,22 +98,24 @@ namespace MonoGame.PortableUI.Animation
                 colorTo);
         }
 
+        /// <summary>Duration of the current track (default 150 ms).</summary>
         public Animation Duration(TimeSpan duration)
         {
-            _duration = duration < TimeSpan.Zero ? TimeSpan.Zero : duration;
+            _current.Duration = duration < TimeSpan.Zero ? TimeSpan.Zero : duration;
             return this;
         }
 
+        /// <summary>Easing of the current track (default <see cref="Easings.CubicOut"/>).</summary>
         public Animation Ease(Easing easing)
         {
-            _easing = easing ?? Easings.Linear;
+            _current.Easing = easing ?? Easings.Linear;
             return this;
         }
 
         /// <summary>
-        ///     Moves every property with a damped spring instead of <see cref="Duration"/> and
-        ///     <see cref="Ease"/>: the animation ends when the spring has come to rest, and it starts
-        ///     with the velocity of an animation of the same property it interrupts.
+        ///     Moves the current track's properties with a damped spring instead of <see cref="Duration"/>
+        ///     and <see cref="Ease"/>: the track ends when the spring has come to rest, and it starts with
+        ///     the velocity the property had (from an animation it interrupts or the previous step).
         /// </summary>
         public Animation Spring(SpringSpec spring)
         {
@@ -119,9 +131,44 @@ namespace MonoGame.PortableUI.Animation
         {
             if (!(springX.Stiffness > 0) || !(springY.Stiffness > 0))
                 throw new ArgumentException("Use a SpringSpec preset or constructor; default(SpringSpec) has no stiffness.");
-            _useSpring = true;
-            _springX = springX;
-            _springY = springY;
+            _current.UseSpring = true;
+            _current.SpringX = springX;
+            _current.SpringY = springY;
+            return this;
+        }
+
+        /// <summary>Waits <paramref name="delay"/> after its step began before the current track moves.</summary>
+        public Animation Delay(TimeSpan delay)
+        {
+            _current.Delay = delay < TimeSpan.Zero ? TimeSpan.Zero : delay;
+            return this;
+        }
+
+        /// <summary>
+        ///     Starts a new step: the tweens after it run once every track before it has finished, from the
+        ///     values the control has then. Timing starts fresh (150 ms, <see cref="Easings.CubicOut"/>).
+        /// </summary>
+        public Animation Then()
+        {
+            var step = new Step();
+            _steps.Add(step);
+            _current = step.AddTrack();
+            return this;
+        }
+
+        /// <summary><see cref="Then()"/> with a pause of <paramref name="delay"/> before the next step moves.</summary>
+        public Animation Then(TimeSpan delay)
+        {
+            return Then().Delay(delay);
+        }
+
+        /// <summary>
+        ///     Adds a track to the current step that runs in parallel with the others, with its own
+        ///     duration, easing, spring and delay; the step ends when its slowest track ends.
+        /// </summary>
+        public Animation With()
+        {
+            _current = _steps[_steps.Count - 1].AddTrack();
             return this;
         }
 
@@ -133,20 +180,28 @@ namespace MonoGame.PortableUI.Animation
 
         public Animation Start()
         {
-            if (_tweens.Count == 0 || _isRunning)
+            if (_isRunning || !HasWork())
                 return this;
 
             _isFinished = false;
             _isRunning = true;
-            _startedAt = ScreenSystem.TotalTime;
-            foreach (var tween in _tweens)
-            {
-                tween.CaptureStart(_control);
-            }
+            _stepIndex = 0;
+            _stepStarted = false;
+            _stepStartedAt = ScreenSystem.TotalTime;
+            foreach (var step in _steps)
+                step.Reset();
 
             _control.StartAnimation(this);
             Update();
             return this;
+        }
+
+        /// <summary>Starts again from the control's current values, cancelling a run in progress.</summary>
+        public Animation Restart()
+        {
+            if (_isRunning)
+                Cancel();
+            return Start();
         }
 
         public void Cancel(bool complete = false)
@@ -169,28 +224,20 @@ namespace MonoGame.PortableUI.Animation
         /// properties, so a spring continues an interrupted motion instead of starting from rest.</summary>
         internal void InheritVelocity(Animation other)
         {
-            if (!_useSpring)
-                return;
-
-            foreach (var tween in _tweens)
-            {
-                foreach (var previous in other._tweens)
-                {
-                    if (previous.Property == tween.Property)
-                        tween.InheritVelocity(previous);
-                }
-            }
+            if (other._stepIndex < other._steps.Count)
+                _steps[0].InheritVelocity(other._steps[other._stepIndex]);
         }
 
         internal bool RemoveConflictingTweens(Animation other)
         {
-            for (var i = _tweens.Count - 1; i >= 0; i--)
+            var remaining = false;
+            foreach (var step in _steps)
             {
-                if (other.Animates(_tweens[i].Property))
-                    _tweens.RemoveAt(i);
+                if (step.RemoveTweensAnimatedBy(other))
+                    remaining = true;
             }
 
-            if (_tweens.Count > 0)
+            if (remaining)
                 return false;
 
             CancelFromControl();
@@ -211,70 +258,49 @@ namespace MonoGame.PortableUI.Animation
             if (!_isRunning)
                 return _isFinished;
 
-            var elapsed = ScreenSystem.TotalTime - _startedAt;
-            if (_useSpring)
-                return UpdateSpring(Math.Max(0, elapsed.TotalSeconds));
-
-            var progress = _duration == TimeSpan.Zero
-                ? 1
-                : elapsed.TotalMilliseconds / _duration.TotalMilliseconds;
-            progress = Math.Max(0, Math.Min(1, progress));
-            var eased = Math.Max(0, Math.Min(1, _easing(progress)));
-            var easedPerSecond = progress < 1 ? EasedSlope(progress) / _duration.TotalSeconds : 0;
-
-            foreach (var tween in _tweens)
+            var now = ScreenSystem.TotalTime;
+            while (true)
             {
-                tween.Apply(_control, eased, easedPerSecond);
+                var step = _steps[_stepIndex];
+                if (!_stepStarted)
+                {
+                    _stepStarted = true;
+                    step.Begin(_stepIndex > 0 ? _steps[_stepIndex - 1] : null);
+                }
+
+                if (!step.Update(_control, now, _stepStartedAt, out var finishedAt))
+                    return false;
+
+                _stepIndex++;
+                if (_stepIndex >= _steps.Count)
+                {
+                    _stepIndex = _steps.Count - 1;
+                    Complete();
+                    return true;
+                }
+
+                // The next step starts when this one ended, so leftover frame time is not lost.
+                _stepStarted = false;
+                _stepStartedAt = finishedAt;
             }
-
-            if (progress < 1)
-                return false;
-
-            Complete();
-            return true;
         }
 
-        private bool UpdateSpring(double seconds)
+        private bool HasWork()
         {
-            var settled = true;
-            foreach (var tween in _tweens)
+            foreach (var step in _steps)
             {
-                if (!tween.ApplySpring(_control, _springX, _springY, seconds))
-                    settled = false;
+                if (step.HasWork)
+                    return true;
             }
 
-            if (!settled && seconds < MaxSpringSeconds)
-                return false;
-
-            Complete();
-            return true;
-        }
-
-        // Slope of the easing curve, for the velocity a spring inherits from an eased tween.
-        private double EasedSlope(double progress)
-        {
-            const double h = 0.001;
-            var from = Math.Max(0, progress - h);
-            var to = Math.Min(1, progress + h);
-            return (_easing(to) - _easing(from)) / (to - from);
-        }
-
-        private void ReplaceTween(IAnimationTween tween)
-        {
-            for (var i = _tweens.Count - 1; i >= 0; i--)
-            {
-                if (_tweens[i].Property == tween.Property)
-                    _tweens.RemoveAt(i);
-            }
-
-            _tweens.Add(tween);
+            return false;
         }
 
         private bool Animates(AnimationProperty property)
         {
-            foreach (var tween in _tweens)
+            foreach (var step in _steps)
             {
-                if (tween.Property == property)
+                if (step.Animates(property))
                     return true;
             }
 
@@ -286,16 +312,270 @@ namespace MonoGame.PortableUI.Animation
             if (_isFinished)
                 return;
 
-            foreach (var tween in _tweens)
-            {
-                tween.ApplyEnd(_control);
-            }
+            // Remaining steps in order, so each property ends at its last target.
+            for (var i = _stepIndex; i < _steps.Count; i++)
+                _steps[i].ApplyEnd(_control);
 
             _isRunning = false;
             _isFinished = true;
             _control.RemoveAnimation(this);
             _completed?.Invoke();
         }
+
+        /// <summary>Tracks that run in parallel; the step ends with its slowest track.</summary>
+        private sealed class Step
+        {
+            private readonly List<Track> _tracks = new List<Track>(1);
+
+            public Track AddTrack()
+            {
+                var track = new Track();
+                _tracks.Add(track);
+                return track;
+            }
+
+            public bool HasWork
+            {
+                get
+                {
+                    foreach (var track in _tracks)
+                    {
+                        if (track.Tweens.Count > 0 || track.Delay > TimeSpan.Zero)
+                            return true;
+                    }
+
+                    return false;
+                }
+            }
+
+            public void Begin(Step? previous)
+            {
+                foreach (var track in _tracks)
+                {
+                    track.Begin();
+                    if (previous != null)
+                        track.InheritVelocity(previous);
+                }
+            }
+
+            public bool Update(Control control, TimeSpan now, TimeSpan startedAt, out TimeSpan finishedAt)
+            {
+                var done = true;
+                finishedAt = startedAt;
+                foreach (var track in _tracks)
+                {
+                    if (!track.Update(control, now, startedAt, out var trackFinishedAt))
+                        done = false;
+                    else if (trackFinishedAt > finishedAt)
+                        finishedAt = trackFinishedAt;
+                }
+
+                return done;
+            }
+
+            public void ApplyEnd(Control control)
+            {
+                foreach (var track in _tracks)
+                    track.ApplyEnd(control);
+            }
+
+            public void Reset()
+            {
+                foreach (var track in _tracks)
+                    track.Reset();
+            }
+
+            public void InheritVelocity(Step previous)
+            {
+                foreach (var track in _tracks)
+                    track.InheritVelocity(previous);
+            }
+
+            public bool Animates(AnimationProperty property)
+            {
+                foreach (var track in _tracks)
+                {
+                    if (track.Animates(property))
+                        return true;
+                }
+
+                return false;
+            }
+
+            public bool RemoveTweensAnimatedBy(Animation other)
+            {
+                var remaining = false;
+                foreach (var track in _tracks)
+                {
+                    var tweens = track.Tweens;
+                    for (var i = tweens.Count - 1; i >= 0; i--)
+                    {
+                        if (other.Animates(tweens[i].Property))
+                            tweens.RemoveAt(i);
+                    }
+
+                    if (tweens.Count > 0)
+                        remaining = true;
+                }
+
+                return remaining;
+            }
+
+            internal List<Track> Tracks => _tracks;
+        }
+
+        /// <summary>Tweens sharing one timing: duration + easing, or a spring; optionally delayed.</summary>
+        private sealed class Track
+        {
+            public readonly List<IAnimationTween> Tweens = new List<IAnimationTween>();
+            public TimeSpan Duration = TimeSpan.FromMilliseconds(150);
+            public Easing Easing = Easings.CubicOut;
+            public TimeSpan Delay;
+            public bool UseSpring;
+            public SpringSpec SpringX;
+            public SpringSpec SpringY;
+            private bool _captured;
+            private bool _done;
+            private TimeSpan _finishedAt;
+
+            public void Replace(IAnimationTween tween)
+            {
+                for (var i = Tweens.Count - 1; i >= 0; i--)
+                {
+                    if (Tweens[i].Property == tween.Property)
+                        Tweens.RemoveAt(i);
+                }
+
+                Tweens.Add(tween);
+            }
+
+            public void Begin()
+            {
+                _captured = false;
+                _done = false;
+            }
+
+            /// <summary>Before a run: nothing captured or finished, no inherited velocity.</summary>
+            public void Reset()
+            {
+                Begin();
+                foreach (var tween in Tweens)
+                    tween.ResetVelocity();
+            }
+
+            public bool Animates(AnimationProperty property)
+            {
+                foreach (var tween in Tweens)
+                {
+                    if (tween.Property == property)
+                        return true;
+                }
+
+                return false;
+            }
+
+            public void InheritVelocity(Step previous)
+            {
+                if (!UseSpring)
+                    return;
+
+                foreach (var tween in Tweens)
+                {
+                    foreach (var track in previous.Tracks)
+                    {
+                        foreach (var earlier in track.Tweens)
+                        {
+                            if (earlier.Property == tween.Property)
+                                tween.InheritVelocity(earlier);
+                        }
+                    }
+                }
+            }
+
+            public bool Update(Control control, TimeSpan now, TimeSpan stepStartedAt, out TimeSpan finishedAt)
+            {
+                var movesAt = stepStartedAt + Delay;
+                if (_done)
+                {
+                    finishedAt = _finishedAt;
+                    return true;
+                }
+
+                finishedAt = now;
+                if (now < movesAt)
+                    return false;
+
+                // A pure pause (Delay or Then(delay) without tweens) ends when it would start moving.
+                if (Tweens.Count == 0)
+                {
+                    _done = true;
+                    finishedAt = _finishedAt = movesAt;
+                    return true;
+                }
+
+                if (!_captured)
+                {
+                    _captured = true;
+                    foreach (var tween in Tweens)
+                        tween.CaptureStart(control);
+                }
+
+                if (UseSpring)
+                {
+                    var seconds = (now - movesAt).TotalSeconds;
+                    var settled = true;
+                    foreach (var tween in Tweens)
+                    {
+                        if (!tween.ApplySpring(control, SpringX, SpringY, seconds))
+                            settled = false;
+                    }
+
+                    if (!settled && seconds < MaxSpringSeconds)
+                        return false;
+
+                    ApplyEnd(control);
+                    _finishedAt = now;
+                    return true;
+                }
+
+                var progress = Duration == TimeSpan.Zero
+                    ? 1
+                    : (now - movesAt).TotalMilliseconds / Duration.TotalMilliseconds;
+                progress = Math.Max(0, Math.Min(1, progress));
+                var eased = Math.Max(0, Math.Min(1, Easing(progress)));
+                var easedPerSecond = Duration == TimeSpan.Zero ? 0 : EasedSlope(progress) / Duration.TotalSeconds;
+                foreach (var tween in Tweens)
+                    tween.Apply(control, eased, easedPerSecond);
+
+                if (progress < 1)
+                    return false;
+
+                ApplyEnd(control);
+                finishedAt = _finishedAt = movesAt + Duration;
+                return true;
+            }
+
+            public void ApplyEnd(Control control)
+            {
+                if (_done)
+                    return;
+                _done = true;
+                foreach (var tween in Tweens)
+                    tween.ApplyEnd(control);
+            }
+
+            // Slope of the easing curve, for the velocity a spring inherits from an eased tween.
+            private double EasedSlope(double progress)
+            {
+                const double h = 0.001;
+                var from = Math.Max(0, progress - h);
+                var to = Math.Min(1, progress + h);
+                return (Easing(to) - Easing(from)) / (to - from);
+            }
+        }
+
+        // A spring that never comes to rest (no damping) still ends after this long.
+        private const double MaxSpringSeconds = 30;
 
         // A spring rests once it is this close to its target and slower than ten times that per second.
         private const double ScaleRestDelta = 0.0005;
@@ -316,7 +596,10 @@ namespace MonoGame.PortableUI.Animation
             /// <summary>Spring tween after <paramref name="seconds"/>; true once at rest.</summary>
             bool ApplySpring(Control control, in SpringSpec springX, in SpringSpec springY, double seconds);
 
+            void ResetVelocity();
             void InheritVelocity(IAnimationTween previous);
+
+            /// <summary>Sets the target; the velocity stays, for a spring of a following step.</summary>
             void ApplyEnd(Control control);
         }
 
@@ -367,6 +650,12 @@ namespace MonoGame.PortableUI.Animation
                 return AtRest(dx, vx, _restDelta) && AtRest(dy, vy, _restDelta);
             }
 
+            public void ResetVelocity()
+            {
+                _initialVelocity = Vector2.Zero;
+                _velocity = Vector2.Zero;
+            }
+
             public void InheritVelocity(IAnimationTween previous)
             {
                 if (previous is Vector2AnimationTween tween)
@@ -375,7 +664,6 @@ namespace MonoGame.PortableUI.Animation
 
             public void ApplyEnd(Control control)
             {
-                _velocity = Vector2.Zero;
                 _setValue(control, _target);
             }
         }
@@ -426,6 +714,12 @@ namespace MonoGame.PortableUI.Animation
                 return AtRest(d, v, _restDelta);
             }
 
+            public void ResetVelocity()
+            {
+                _initialVelocity = 0;
+                _velocity = 0;
+            }
+
             public void InheritVelocity(IAnimationTween previous)
             {
                 if (previous is DoubleAnimationTween tween)
@@ -434,7 +728,6 @@ namespace MonoGame.PortableUI.Animation
 
             public void ApplyEnd(Control control)
             {
-                _velocity = 0;
                 _setValue(control, _target);
             }
         }
@@ -476,6 +769,10 @@ namespace MonoGame.PortableUI.Animation
                 springX.Evaluate(1, 0, seconds, out var remaining, out var v);
                 _setValue(control, Color.Lerp(_start, _target, (float)Math.Max(0, Math.Min(1, 1 - remaining))));
                 return AtRest(remaining, v, ProgressRestDelta);
+            }
+
+            public void ResetVelocity()
+            {
             }
 
             public void InheritVelocity(IAnimationTween previous)
