@@ -26,6 +26,7 @@ namespace MonoGame.PortableUI.Haptics
         private (int Start, int Length, float Left, float Right)[] _pattern = Patterns[0];
         private TimeSpan _startedAt;
         private float _intensity;
+        private float _length = 1;
         private Vector2 _applied;
 
         public GamePadRumbleHaptics(PlayerIndex playerIndex = PlayerIndex.One)
@@ -40,11 +41,12 @@ namespace MonoGame.PortableUI.Haptics
 
         public bool Supports(UiInputDevice device) => device == UiInputDevice.GamePad;
 
-        public void Play(UiHaptic haptic, float intensity)
+        public void Play(UiHaptic haptic, float intensity, float length)
         {
             _pattern = Patterns[(int)haptic];
             _startedAt = ScreenSystem.TotalTime;
             _intensity = intensity;
+            _length = length > 0 ? length : 1;
             Update(_startedAt);
         }
 
@@ -53,7 +55,8 @@ namespace MonoGame.PortableUI.Haptics
 
         public void Update(TimeSpan now)
         {
-            var elapsed = (now - _startedAt).TotalMilliseconds;
+            // A theme's length factor stretches the whole pattern (pauses included).
+            var elapsed = (now - _startedAt).TotalMilliseconds / _length;
             var motors = Vector2.Zero;
             foreach (var segment in _pattern)
             {
