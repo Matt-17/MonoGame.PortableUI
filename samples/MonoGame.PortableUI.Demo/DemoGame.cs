@@ -356,10 +356,10 @@ namespace MonoGame.PortableUI.Demo
             [
                 (0.3, "throw"), (0.5, "pop"), (1.2, "jelly"), (2.0, "shake"), (2.6, "hop"), (2.8, "spring"),
                 (3.7, "throw"), (4.3, "jelly"), (4.5, "pop"), (5.0, "spring"), (5.2, "hop"),
-                (6.2, "loop"), (6.6, "stagger"), (8.4, "loop")
+                (6.2, "loop"), (6.6, "stagger"), (8.4, "loop"), (9.0, "wobble"), (9.4, "throw"), (10.4, "jelly"), (10.8, "throw")
             ];
             const int fps = 30;
-            const double seconds = 9.6;
+            const double seconds = 12.4;
             var step = TimeSpan.FromSeconds(1.0 / fps);
             var time = TimeSpan.FromSeconds(1);
             for (var i = 0; i < 3; i++)

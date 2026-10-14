@@ -713,7 +713,9 @@ namespace MonoGame.PortableUI.Demo
                 VerticalAlignment = VerticalAlignment.Center,
                 CornerRadius = 20,
                 BackgroundBrush = new SolidColorBrush(Palette.Danger),
-                SquashStretch = 1.4f
+                SquashStretch = 0.6f,
+                // Soft body: the tail lags and thins, the front swells; it wobbles out when it stops.
+                Deformation = new Deformation { Trail = 1.2f, Taper = 1.2f }
             };
             lane.AddChild(ball);
             layers.AddChild(lane);
@@ -728,6 +730,7 @@ namespace MonoGame.PortableUI.Demo
             var pop = MotionCard("Pop", Palette.Primary);
             var jelly = MotionCard("Jelly", Palette.Secondary);
             jelly.TransformOrigin = new Vector2(0.5f, 1);
+            jelly.Deformation = new Deformation();
             var shake = MotionCard("Shake", Palette.Danger);
             var hop = MotionCard("Hop", Palette.Info);
             hop.TransformOrigin = new Vector2(0.5f, 1);
@@ -759,7 +762,20 @@ namespace MonoGame.PortableUI.Demo
                 .Spring(SpringSpec.Bouncy)
                 .Start();
             _motionActions["pop"] = () => pop.Pop();
-            _motionActions["jelly"] = () => jelly.Jelly();
+            _motionActions["jelly"] = () =>
+            {
+                jelly.Jelly();
+                jelly.Deformation!.Wobble(0.6f);
+            };
+            // Mesh deformers: a wobble kick, then a wave running through the card for two seconds.
+            pop.Deformation = new Deformation();
+            _motionActions["wobble"] = () =>
+            {
+                pop.Deformation!.Wobble();
+                pop.Deformation.Wave = 0.08f;
+                pop.Deformation.WaveSpeed = 1.5f;
+                pop.Animate().Delay(TimeSpan.FromSeconds(2)).OnCompleted(() => pop.Deformation.Wave = 0).Start();
+            };
             _motionActions["shake"] = () => shake.Shake();
             _motionActions["hop"] = () => hop.Animate()
                 .TranslateTo(new Vector2(0, -70)).Duration(TimeSpan.FromMilliseconds(260)).Ease(Easings.QuadOut)
@@ -816,6 +832,7 @@ namespace MonoGame.PortableUI.Demo
             organicButtons.AddChild(MotionDemoButton("Shake", _motionActions["shake"]));
             organicButtons.AddChild(MotionDemoButton("Hop (Then + Squash)", _motionActions["hop"]));
             organicButtons.AddChild(MotionDemoButton("Stagger", _motionActions["stagger"]));
+            organicButtons.AddChild(MotionDemoButton("Wobble + Wave", _motionActions["wobble"]));
             grid.AddChild(organicButtons, row: 3);
             return grid;
         }
@@ -863,6 +880,7 @@ namespace MonoGame.PortableUI.Demo
                 CornerRadius = 18,
                 BackgroundBrush = chipBrushes[0],
                 SquashStretch = 0.8f,
+                Deformation = new Deformation { Trail = 0.8f, Taper = 0.8f },
                 Content = chipLabel
             };
             // Declared once; every set below animates. X and Y springs differ slightly: organic.

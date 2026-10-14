@@ -124,6 +124,11 @@ off text snapping (`SnapsDrawing`) and `RoundedRectRenderer.Subpixel` draws frac
 9-slice masks with linear filtering; whole-pixel rects keep the snapped path, so static output never changes.
 With `PixelMotion` the motion part of `RenderScale` is rounded to whole multiples (`PixelStep`).
 
+**Deformation:** `Control.Deformation` (soft-body grid, `Animation/Deformation.cs`) is updated in `UpdateMotion` from the
+translation velocity; while `IsActive`, `Screen.TryDrawDeformed` renders the control with `RenderTransformSuppressed`
+(rest pose, no own transform) into a `RenderTargetPool` texture and draws it as a BasicEffect mesh moved by
+`GetRenderTransform() * parent`. Counts as motion (`IsMotionDeformed`), so ancestors' layer caches draw live.
+
 **Render quality:** `ScreenEngineOptions.RenderQuality` (Auto = Low in Android battery saver, else High)
 resolves to `ScreenEngine.EffectiveRenderQuality` each update. Drawing code reads it through the static
 `ScreenEngine.DrawingQuality` / `AnimatesDecorations` (the engine currently drawing). New expensive or
