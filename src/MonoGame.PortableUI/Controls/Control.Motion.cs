@@ -155,7 +155,7 @@ namespace MonoGame.PortableUI.Controls
         }
 
         /// <summary>True while squash &amp; stretch deforms the control (a cached layer is drawn live then).</summary>
-        internal bool IsMotionDeformed => !_stretchAtRest || _breath != Vector2.One;
+        internal bool IsMotionDeformed => !_stretchAtRest || _breath != Vector2.One || _deformation is { IsActive: true };
 
         /// <summary>Axis-aligned part of the deformation, folded into the render scale (line widths, and
         /// cached layers below are drawn live while it is not 1).</summary>
@@ -219,10 +219,31 @@ namespace MonoGame.PortableUI.Controls
         private static float BreathWave(double t)
             => (float)(0.7 * Math.Sin(MathHelper.TwoPi * t) + 0.3 * Math.Sin(MathHelper.TwoPi * 1.618 * t + 1.3));
 
+        private Deformation? _deformation;
+
+        /// <summary>
+        ///     Soft-body deformation: the control is drawn as a texture on a grid whose points lag, swell, wobble
+        ///     and bend (<see cref="Animation.Deformation"/>). Null (default) = a plain rectangle.
+        /// </summary>
+        public Deformation? Deformation
+        {
+            get => _deformation;
+            set
+            {
+                if (ReferenceEquals(_deformation, value))
+                    return;
+                _deformation = value;
+                RequestRedraw();
+            }
+        }
+
+        /// <summary>The control's own rest pose is being rendered into a deformation texture: no own transform.</summary>
+        internal bool RenderTransformSuppressed;
+
         private void UpdateMotion()
         {
             UpdateBreath();
-            if (_squashStretch == 0 && _stretchAtRest)
+            if (_squashStretch == 0 && _stretchAtRest && _deformation == null)
             {
                 _motionTracked = false;
                 return;
@@ -245,6 +266,29 @@ namespace MonoGame.PortableUI.Controls
             var delta = _translation - _lastMotionTranslation;
             _lastMotionTranslation = _translation;
             _lastMotionTime = now;
+
+            if (_deformation != null)
+            {
+                var engine = ScreenEngine.For(this);
+                if (engine != null && engine.EffectiveRenderQuality == RenderQuality.Low)
+                {
+                    if (_deformation.IsActive)
+                    {
+                        _deformation.Reset();
+                        RequestRedraw();
+                    }
+                }
+                else
+                {
+                    var wasActive = _deformation.IsActive;
+                    _deformation.Update(new Vector2(ClippingRect.Width, ClippingRect.Height), delta / (float)seconds, seconds);
+                    if (_deformation.IsAnimating || wasActive != _deformation.IsActive)
+                        RequestRedraw();
+                }
+            }
+
+            if (_squashStretch == 0 && _stretchAtRest)
+                return;
 
             var target = 1f;
             if (_squashStretch > 0)

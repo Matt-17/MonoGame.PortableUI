@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **Soft-body deformation (`Control.Deformation`):** a control can be drawn as a texture on a grid whose points move on their own (`new Deformation(columns, rows)`). While its `Translation` moves, the tail lags (`Trail`) and the front swells while the tail narrows (`Taper`) - a thrown ball becomes a drop -, and when it stops every point springs back on `Spring` (default Wobbly) and the shape wobbles out. `Wobble(amount)` kicks it on demand; `Bulge`, `Bend` and `Wave` (travelling, `WaveLength`, `WaveSpeed`) deform it statically. The control's rest pose renders into a pooled texture each frame (content stays live), the mesh carries its transform and opacity; layout and hit testing keep the rectangle; skipped at `RenderQuality.Low`. No allocation per frame. The demo's ball, Jelly card, transition chip and a new "Wobble + Wave" button show it.
+
 ## 0.4.0-alpha.8
 
 Motion, sound and fonts: springs, squash & stretch, chained and implicit animations that glide with subpixel precision (or step in whole pixels for pixel-art themes); UI sound and haptics as first-class events with per-theme sets; and themes on runtime TTF fonts with crisp pixel fonts. Behaviour changes: theme state colours (hover, pressed) now fade over the style's `TransitionDuration`; `Squash()` is a spring impulse instead of a jump; runtime (`FontStashUIFont`) text sizes now match SpriteFont em sizes (about 20 % larger than before); `IUiHapticPlayer.Play` and the new APIs are still preview-quality.

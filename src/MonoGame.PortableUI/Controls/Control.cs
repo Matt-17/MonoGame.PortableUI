@@ -493,6 +493,8 @@ namespace MonoGame.PortableUI.Controls
         /// </summary>
         internal Matrix GetRenderTransform()
         {
+            if (RenderTransformSuppressed)
+                return Matrix.Identity;
             if (_scale == Vector2.One && _translation == Vector2.Zero && !IsMotionDeformed)
                 return Matrix.Identity;
 
