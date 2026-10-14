@@ -58,6 +58,9 @@ namespace MonoGame.PortableUI.Audio
         /// <summary>Silences this control and its subtree.</summary>
         public bool IsMuted { get; set; }
 
+        /// <summary>No haptic feedback (vibration, rumble) from this control and its subtree; sounds still play.</summary>
+        public bool MuteHaptics { get; set; }
+
         /// <summary>Volume factor for this subtree (default 1).</summary>
         public float Volume { get; set; } = 1;
 

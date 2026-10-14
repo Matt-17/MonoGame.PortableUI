@@ -581,6 +581,22 @@ namespace MonoGame.PortableUI
 
         private Audio.UiSoundService? _sounds;
 
+        /// <summary>Haptic feedback for the same events: add <see cref="Haptics.GamePadRumbleHaptics"/> or
+        /// <c>AndroidHaptics</c> to <see cref="Haptics.UiHapticService.Players"/>.</summary>
+        public Haptics.UiHapticService Haptics => _haptics ??= new Haptics.UiHapticService(this);
+
+        private Haptics.UiHapticService? _haptics;
+
+        /// <summary>The kind of input the user used last (haptics answer on that device).</summary>
+        public Haptics.UiInputDevice LastInputDevice { get; internal set; }
+
+        /// <summary>Sound and haptic feedback for a UI event of <paramref name="source"/> (a user action).</summary>
+        public bool PlayFeedback(Audio.UiSound sound, Controls.Control? source = null)
+        {
+            _haptics?.Play(sound, source, LastInputDevice);
+            return Sounds.Play(sound, source);
+        }
+
         internal ToastService? ToastsIfCreated => _toasts;
 
         /// <summary>Draws the visible screen stack bottom to top (overlays over what they cover), a
@@ -697,7 +713,7 @@ namespace MonoGame.PortableUI
         {
             var modal = new ModalScreen(content, options);
             PushOverlay(modal, modal.PresentationTransition);
-            Sounds.Play(Audio.UiSound.Open, content);
+            PlayFeedback(Audio.UiSound.Open, content);
             return modal;
         }
 
@@ -877,6 +893,7 @@ namespace MonoGame.PortableUI
             UpdateTransition();
             ApplyPendingInsets(force: false);
             ActiveScreen?.Update();
+            _haptics?.Update(ScreenSystem.TotalTime);
             _toasts?.Update();
             UpdateAccessibility();
             ApplyDiscreteInputToLayerCaches();
