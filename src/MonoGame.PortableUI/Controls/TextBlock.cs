@@ -37,12 +37,20 @@ namespace MonoGame.PortableUI.Controls
         private readonly List<float> _wrappedLineWidths = new List<float>();
         // Ellipsis result for the last (text, width, font, scale): trimming re-measures per
         // removed character, which must not run every frame.
-        private string? _trimCacheText;
-        private SpriteFont? _trimCacheFont;
-        private float _trimCacheWidth = -1f;
-        private float _trimCacheScale = -1f;
-        private string _trimmedText = "";
-        private Vector2 _trimmedSize;
+        // The last few trims: a layout that alternates between widths (a neighbour whose text grows and shrinks) finds its
+        // trimmed text again instead of building it anew.
+        private TrimEntry[]? _trimCache;
+        private int _trimCacheNext;
+
+        private struct TrimEntry
+        {
+            public string? Text;
+            public SpriteFont? Font;
+            public float Width;
+            public float Scale;
+            public string Trimmed;
+            public Vector2 Size;
+        }
 
         /// <summary>
         ///     Explicit SpriteFont for this block (e.g. a specific size/weight loaded via
@@ -482,21 +490,32 @@ namespace MonoGame.PortableUI.Controls
         private void GetTrimmedText(float maxWidth, out string text, out Vector2 size)
         {
             var scale = FontScale;
-            if (!ReferenceEquals(_trimCacheText, _text)
-                || !ReferenceEquals(_trimCacheFont, Font)
-                || Math.Abs(_trimCacheWidth - maxWidth) >= 0.5f
-                || Math.Abs(_trimCacheScale - scale) >= 0.0001f)
+            var font = Font;
+            var cache = _trimCache ??= new TrimEntry[4];
+            for (var i = 0; i < cache.Length; i++)
             {
-                _trimmedText = TrimWithEllipsis(_text, maxWidth);
-                _trimmedSize = ReferenceEquals(_trimmedText, _text) ? MeasuredText : MeasureText(_trimmedText);
-                _trimCacheText = _text;
-                _trimCacheFont = Font;
-                _trimCacheWidth = maxWidth;
-                _trimCacheScale = scale;
+                ref var entry = ref cache[i];
+                if (ReferenceEquals(entry.Text, _text)
+                    && ReferenceEquals(entry.Font, font)
+                    && Math.Abs(entry.Width - maxWidth) < 0.5f
+                    && Math.Abs(entry.Scale - scale) < 0.0001f)
+                {
+                    text = entry.Trimmed;
+                    size = entry.Size;
+                    return;
+                }
             }
 
-            text = _trimmedText;
-            size = _trimmedSize;
+            ref var slot = ref cache[_trimCacheNext];
+            _trimCacheNext = (_trimCacheNext + 1) % cache.Length;
+            slot.Trimmed = TrimWithEllipsis(_text, maxWidth);
+            slot.Size = ReferenceEquals(slot.Trimmed, _text) ? MeasuredText : MeasureText(slot.Trimmed);
+            slot.Text = _text;
+            slot.Font = font;
+            slot.Width = maxWidth;
+            slot.Scale = scale;
+            text = slot.Trimmed;
+            size = slot.Size;
         }
 
         private string TrimWithEllipsis(string text, float maxWidth)
@@ -505,10 +524,18 @@ namespace MonoGame.PortableUI.Controls
             if (maxWidth <= 0 || MeasureText(text).X <= maxWidth)
                 return text;
 
-            var cut = text.Length;
-            while (cut > 0 && MeasureText(text[..cut] + ellipsis).X > maxWidth)
-                cut--;
-            return cut <= 0 ? ellipsis : text[..cut] + ellipsis;
+            // The longest prefix that fits with the ellipsis, by bisection: a measured candidate is a string, and a
+            // character-by-character walk made one per character.
+            int fits = 0, fails = text.Length;
+            while (fails - fits > 1)
+            {
+                var cut = (fits + fails) / 2;
+                if (MeasureText(string.Concat(text.AsSpan(0, cut), ellipsis)).X > maxWidth)
+                    fails = cut;
+                else
+                    fits = cut;
+            }
+            return fits <= 0 ? ellipsis : string.Concat(text.AsSpan(0, fits), ellipsis);
         }
 
         public TextBlock()
@@ -582,7 +609,8 @@ namespace MonoGame.PortableUI.Controls
         internal virtual void OnTextScaleChanged()
         {
             _wrappedLines = null;
-            _trimCacheText = null;
+            if (_trimCache != null)
+                Array.Clear(_trimCache);
             MeasuredText = MeasureText(Text);
             InvalidateLayout(true);
         }

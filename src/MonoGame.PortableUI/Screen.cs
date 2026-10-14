@@ -45,6 +45,10 @@ namespace MonoGame.PortableUI
         private FlyOut? _dismissingFlyOut;
         private ToolTipPopup? _toolTip;
         private ToolTipPopup? _dismissingToolTip;
+        // One popup and its two animations serve every tooltip of the screen: showing and hiding one makes no garbage.
+        private ToolTipPopup? _toolTipPopup;
+        private MonoGame.PortableUI.Animation.Animation? _toolTipIn, _toolTipOut;
+        private long _toolTipPopupThemeVersion, _toolTipPopupTextScaleVersion;
         private readonly List<Control> _visualTreeScratch = new List<Control>();
         // Per call site so nested snapshots (island inside the post-FX pass) never share a buffer.
         private RenderTargetBinding[]? _postFxPreviousTargets;
@@ -762,10 +766,7 @@ namespace MonoGame.PortableUI
             var created = _toolTip == null;
             if (created)
             {
-                _dismissingToolTip = null;
-                _toolTip = new ToolTipPopup(text);
-                _toolTip.ThemeOwner = owner;
-                _toolTip.Parent = this;
+                _toolTip = TakeToolTipPopup(owner, text);
                 _toolTipOwner = owner;
                 _toolTipText = text;
             }
@@ -773,7 +774,52 @@ namespace MonoGame.PortableUI
             _toolTipAnchorPosition = anchorPosition;
             UpdateToolTipLayout();
             if (created)
-                AnimatePopupIn(_toolTip!, 0.98, new Vector2(0, 4), TimeSpan.FromMilliseconds(100));
+            {
+                var popup = _toolTip!;
+                popup.Opacity = 0;
+                popup.Scale = new Vector2(0.98f, 0.98f);
+                popup.Translation = new Vector2(0, 4);
+                (_toolTipIn ??= popup.Animate()
+                    .FadeTo(1)
+                    .Scale(1)
+                    .TranslateTo(Vector2.Zero)
+                    .Duration(TimeSpan.FromMilliseconds(100))
+                    .Ease(Easings.CubicOut)).Start();
+            }
+        }
+
+        private ToolTipPopup TakeToolTipPopup(Control owner, string text)
+        {
+            var textScaleVersion = MonoGame.PortableUI.Text.TextScaling.Version + FontManager.DynamicFontVersion;
+            var popup = _toolTipPopup;
+            if (popup == null)
+            {
+                popup = _toolTipPopup = new ToolTipPopup(text);
+                _toolTipPopupThemeVersion = ThemeVersion.Current;
+                _toolTipPopupTextScaleVersion = textScaleVersion;
+            }
+            else
+            {
+                // A popup still fading out is taken back at once; it is the only one.
+                _toolTipOut?.Cancel();
+                _toolTipIn?.Cancel();
+                popup.Apply(text);
+            }
+            _dismissingToolTip = null;
+            popup.ThemeOwner = owner;
+            popup.Parent = this;
+            // The popup missed the theme and text scale refreshes while it was hidden.
+            if (_toolTipPopupThemeVersion != ThemeVersion.Current)
+            {
+                _toolTipPopupThemeVersion = ThemeVersion.Current;
+                RefreshThemeForTree(popup);
+            }
+            if (_toolTipPopupTextScaleVersion != textScaleVersion)
+            {
+                _toolTipPopupTextScaleVersion = textScaleVersion;
+                RefreshTextScaleForTree(popup);
+            }
+            return popup;
         }
 
         internal void UpdateToolTip(Control owner, PointF anchorPosition)
@@ -797,17 +843,19 @@ namespace MonoGame.PortableUI
             _toolTipText = null;
         }
 
-        // Apart from ClearToolTip, which every pointer leave calls: the completion lambda captures the tooltip, and the
-        // compiler allocated its closure on entry to the method that declares it, a tooltip shown or not.
         private void DismissToolTip(ToolTipPopup toolTip)
         {
             toolTip.Parent = null;
             _dismissingToolTip = toolTip;
-            AnimatePopupOut(toolTip, 0.98, new Vector2(0, 4), TimeSpan.FromMilliseconds(80), () =>
-            {
-                if (_dismissingToolTip == toolTip)
-                    _dismissingToolTip = null;
-            });
+            // Cancelled rather than overridden: a starting animation strips the tweens it conflicts with for good.
+            _toolTipIn?.Cancel();
+            (_toolTipOut ??= toolTip.Animate()
+                .FadeTo(0)
+                .Scale(0.98)
+                .TranslateTo(new Vector2(0, 4))
+                .Duration(TimeSpan.FromMilliseconds(80))
+                .Ease(Easings.CubicOut)
+                .OnCompleted(() => _dismissingToolTip = null)).Start();
         }
 
         internal bool IsToolTipVisibleFor(Control owner)
