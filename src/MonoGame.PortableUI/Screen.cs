@@ -1364,7 +1364,8 @@ namespace MonoGame.PortableUI
                 // Only controls that clip their content (e.g. ScrollViewer) shrink the clip for
                 // descendants; everything else inherits it so overflowing shadows survive.
                 var childClipRect = control.ClipsDescendants ? ChildClipRect ^ renderRect : ChildClipRect;
-                var scale = new Vector2(Scale.X * control.Scale.X, Scale.Y * control.Scale.Y);
+                var stretch = control.StretchDiagonal;
+                var scale = new Vector2(Scale.X * control.Scale.X * stretch.X, Scale.Y * control.Scale.Y * stretch.Y);
                 var opacity = Opacity * MathHelper.Clamp((float)control.Opacity, 0, 1);
                 return new RenderContext(transform, scale, opacity, scissorRect, childClipRect, renderRect);
             }
