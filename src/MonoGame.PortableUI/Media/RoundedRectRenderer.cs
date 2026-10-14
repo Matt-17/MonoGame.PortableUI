@@ -60,6 +60,7 @@ namespace MonoGame.PortableUI.Media
             if (rect.Width <= 0 || rect.Height <= 0 || color.A == 0)
                 return;
 
+            SnapToPixels(ref rect, ref radius);
             radius = Clamp(radius, rect);
             if (radius.IsEmpty)
                 return;
@@ -94,6 +95,7 @@ namespace MonoGame.PortableUI.Media
             if (rect.Width <= 0 || rect.Height <= 0)
                 return;
 
+            SnapToPixels(ref rect, ref radius);
             radius = Clamp(radius, rect);
             if (radius.IsEmpty)
                 return;
@@ -205,6 +207,7 @@ namespace MonoGame.PortableUI.Media
             if (rect.Width <= 0 || rect.Height <= 0 || color.A == 0)
                 return;
 
+            SnapToPixels(ref rect, ref radius);
             radius = Clamp(radius, rect);
             if (radius.IsEmpty)
             {
@@ -372,6 +375,21 @@ namespace MonoGame.PortableUI.Media
             rects[0] = new Rect(rect.Left + l, rect.Top, Math.Max(0, rect.Width - l - r), rect.Height);
             rects[1] = new Rect(rect.Left, rect.Top + t, left, Math.Max(0, rect.Height - t - b));
             rects[2] = new Rect(rect.Right - right, rect.Top + t, right, Math.Max(0, rect.Height - t - b));
+        }
+
+        // The pieces become integer Rectangles one by one (Rect -> Rectangle truncates). On a
+        // fractional rect (any scale animation, HiDPI) corners and strips truncated separately end up
+        // to 2 px apart. Snapping the whole rect first, the way a plain fill of it would land
+        // (Rectangle conversion), and using whole-pixel radii keeps every piece on the same pixels.
+        private static void SnapToPixels(ref Rect rect, ref CornerRadius radius)
+        {
+            Rectangle pixels = rect;
+            rect = new Rect(pixels.X, pixels.Y, Math.Max(0, pixels.Width), Math.Max(0, pixels.Height));
+            radius = new CornerRadius(
+                MathF.Round(radius.TopLeft),
+                MathF.Round(radius.TopRight),
+                MathF.Round(radius.BottomRight),
+                MathF.Round(radius.BottomLeft));
         }
 
         private static CornerRadius Clamp(CornerRadius radius, Rect rect)

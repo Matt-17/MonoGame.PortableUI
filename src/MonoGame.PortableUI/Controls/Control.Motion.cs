@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 using Microsoft.Xna.Framework;
 using MonoGame.PortableUI.Animation;
 using MonoGame.PortableUI.Common;
@@ -23,6 +24,36 @@ namespace MonoGame.PortableUI.Controls
         private bool _motionTracked;
         private Vector2 _lastMotionTranslation;
         private TimeSpan _lastMotionTime;
+        private float _breathe;
+        private TimeSpan _breathePeriod = TimeSpan.FromSeconds(3.2);
+        // Current breathing scale per axis; One while still or frozen.
+        private Vector2 _breath = Vector2.One;
+
+        /// <summary>
+        ///     Idle "breathing": a slow, irregular pulse of the size by this fraction (0.03 = 3 %; 0 = off),
+        ///     the two axes slightly out of phase, each control in its own rhythm. A decoration: it runs only
+        ///     at <see cref="RenderQuality.High"/> and rests below. Requests a frame every update while it runs.
+        /// </summary>
+        public float Breathe
+        {
+            get => _breathe;
+            set
+            {
+                _breathe = Math.Max(0, value);
+                if (_breathe == 0 && _breath != Vector2.One)
+                {
+                    _breath = Vector2.One;
+                    InvalidateLayout(false);
+                }
+            }
+        }
+
+        /// <summary>Length of one breath (default 3.2 s).</summary>
+        public TimeSpan BreathePeriod
+        {
+            get => _breathePeriod;
+            set => _breathePeriod = value > TimeSpan.Zero ? value : TimeSpan.FromSeconds(3.2);
+        }
 
         /// <summary>
         ///     Squash & stretch strength: while <see cref="Translation"/> moves, the control stretches along
@@ -71,7 +102,7 @@ namespace MonoGame.PortableUI.Controls
         }
 
         /// <summary>True while squash & stretch deforms the control (a cached layer is drawn live then).</summary>
-        internal bool IsMotionDeformed => !_stretchAtRest;
+        internal bool IsMotionDeformed => !_stretchAtRest || _breath != Vector2.One;
 
         /// <summary>Axis-aligned part of the deformation, folded into the render scale (line widths, and
         /// cached layers below are drawn live while it is not 1).</summary>
@@ -80,19 +111,19 @@ namespace MonoGame.PortableUI.Controls
             get
             {
                 if (_stretchAtRest)
-                    return Vector2.One;
+                    return _breath;
                 var inverse = 1 / _stretch;
                 var c = _stretchAxis.X;
                 var s = _stretchAxis.Y;
-                return new Vector2(_stretch * c * c + inverse * s * s, _stretch * s * s + inverse * c * c);
+                return new Vector2(_stretch * c * c + inverse * s * s, _stretch * s * s + inverse * c * c) * _breath;
             }
         }
 
-        /// <summary>The squash & stretch matrix about the origin (identity at rest).</summary>
+        /// <summary>The squash & stretch and breathing matrix about the origin (identity at rest).</summary>
         private Matrix GetStretchMatrix()
         {
             if (_stretchAtRest)
-                return Matrix.Identity;
+                return _breath == Vector2.One ? Matrix.Identity : Matrix.CreateScale(_breath.X, _breath.Y, 1);
 
             // Scale by k along the axis and 1/k across it: R(θ) · diag(k, 1/k) · R(-θ), symmetric.
             var k = _stretch;
@@ -103,14 +134,41 @@ namespace MonoGame.PortableUI.Controls
             var m22 = k * s * s + inverse * c * c;
             var m12 = (k - inverse) * c * s;
             return new Matrix(
-                m11, m12, 0, 0,
-                m12, m22, 0, 0,
+                m11 * _breath.X, m12 * _breath.Y, 0, 0,
+                m12 * _breath.X, m22 * _breath.Y, 0, 0,
                 0, 0, 1, 0,
                 0, 0, 0, 1);
         }
 
+        private void UpdateBreath()
+        {
+            if (_breathe == 0)
+                return;
+
+            var engine = ScreenEngine.For(this);
+            if (engine != null && engine.EffectiveRenderQuality != RenderQuality.High)
+            {
+                if (_breath != Vector2.One)
+                {
+                    _breath = Vector2.One;
+                    RequestRedraw();
+                }
+                return;
+            }
+
+            // Two incommensurate waves read as irregular; the phase differs per control.
+            var phase = (RuntimeHelpers.GetHashCode(this) & 1023) / 1024.0;
+            var t = ScreenSystem.TotalTime.TotalSeconds / _breathePeriod.TotalSeconds + phase;
+            _breath = new Vector2(1 + _breathe * BreathWave(t), 1 + _breathe * BreathWave(t - 0.12));
+            RequestRedraw();
+        }
+
+        private static float BreathWave(double t)
+            => (float)(0.7 * Math.Sin(MathHelper.TwoPi * t) + 0.3 * Math.Sin(MathHelper.TwoPi * 1.618 * t + 1.3));
+
         private void UpdateMotion()
         {
+            UpdateBreath();
             if (_squashStretch == 0 && _stretchAtRest)
             {
                 _motionTracked = false;

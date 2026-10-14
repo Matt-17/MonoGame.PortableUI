@@ -479,7 +479,7 @@ namespace MonoGame.PortableUI.Controls
         /// </summary>
         internal Matrix GetRenderTransform()
         {
-            if (_scale == Vector2.One && _translation == Vector2.Zero && _stretchAtRest)
+            if (_scale == Vector2.One && _translation == Vector2.Zero && !IsMotionDeformed)
                 return Matrix.Identity;
 
             var rect = ClippingRect;
