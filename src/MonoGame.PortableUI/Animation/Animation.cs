@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Microsoft.Xna.Framework;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
@@ -12,6 +13,7 @@ namespace MonoGame.PortableUI.Animation
     ///     <see cref="Delay"/>) apply to the current track. <see cref="With"/> adds a track that runs in
     ///     parallel with its own timing; <see cref="Then()"/> starts a step that begins when every track of
     ///     the previous one has finished and animates from wherever the previous step left the control.
+    ///     <see cref="Repeat"/>, <see cref="Loop"/> and <see cref="Yoyo"/> replay the whole sequence.
     ///     An animation can be started again after it finished (<see cref="Restart"/>), so a hover or press
     ///     effect is built once.
     /// </summary>
@@ -21,9 +23,16 @@ namespace MonoGame.PortableUI.Animation
         private readonly List<Step> _steps = new List<Step>();
         private Track _current;
         private Action? _completed;
+        private TaskCompletionSource<bool>? _completion;
+        private TimeSpan _startDelay;
+        private int _iterations = 1;
+        private bool _yoyo;
+        private int _iteration;
+        private bool _reversed;
         private int _stepIndex;
         private bool _stepStarted;
         private TimeSpan _stepStartedAt;
+        private TimeSpan _iterationStartedAt;
         private bool _isRunning;
         private bool _isFinished;
 
@@ -144,6 +153,14 @@ namespace MonoGame.PortableUI.Animation
             return this;
         }
 
+        /// <summary>Waits <paramref name="delay"/> after <see cref="Start"/> before anything moves (once,
+        /// not per repetition). Values are captured when the motion begins.</summary>
+        public Animation DelayStart(TimeSpan delay)
+        {
+            _startDelay = delay < TimeSpan.Zero ? TimeSpan.Zero : delay;
+            return this;
+        }
+
         /// <summary>
         ///     Starts a new step: the tweens after it run once every track before it has finished, from the
         ///     values the control has then. Timing starts fresh (150 ms, <see cref="Easings.CubicOut"/>).
@@ -172,6 +189,36 @@ namespace MonoGame.PortableUI.Animation
             return this;
         }
 
+        /// <summary>
+        ///     Plays the whole sequence <paramref name="times"/> times in total. Without <see cref="Yoyo"/>,
+        ///     every repetition jumps back to the values the first one started from (like CSS).
+        /// </summary>
+        public Animation Repeat(int times)
+        {
+            if (times < 1)
+                throw new ArgumentOutOfRangeException(nameof(times), "An animation plays at least once.");
+            _iterations = times;
+            return this;
+        }
+
+        /// <summary>Repeats until <see cref="Cancel"/>; never completes on its own.</summary>
+        public Animation Loop()
+        {
+            _iterations = 0;
+            return this;
+        }
+
+        /// <summary>
+        ///     Every second repetition plays the sequence backwards in time (steps in reverse order, each
+        ///     eased track along its own curve reversed, springs back to where they started), so a loop
+        ///     swings to and fro without a jump. Use with <see cref="Repeat"/> or <see cref="Loop"/>.
+        /// </summary>
+        public Animation Yoyo()
+        {
+            _yoyo = true;
+            return this;
+        }
+
         public Animation OnCompleted(Action completed)
         {
             _completed += completed;
@@ -180,20 +227,39 @@ namespace MonoGame.PortableUI.Animation
 
         public Animation Start()
         {
-            if (_isRunning || !HasWork())
+            if (_isRunning)
                 return this;
+            if (!HasWork())
+            {
+                SignalCompletion(true);
+                return this;
+            }
 
             _isFinished = false;
             _isRunning = true;
+            _iteration = 0;
+            _reversed = false;
             _stepIndex = 0;
             _stepStarted = false;
-            _stepStartedAt = ScreenSystem.TotalTime;
+            _stepStartedAt = _iterationStartedAt = ScreenSystem.TotalTime + _startDelay;
             foreach (var step in _steps)
                 step.Reset();
 
             _control.StartAnimation(this);
             Update();
             return this;
+        }
+
+        /// <summary>
+        ///     <see cref="Start"/> and a task that completes with true when the animation completes, or false
+        ///     when it is cancelled or replaced by another animation of all its properties. The continuation
+        ///     of an <c>await</c> runs on the game thread, in the update that ended the animation.
+        /// </summary>
+        public Task<bool> StartAsync()
+        {
+            var completion = _completion ??= new TaskCompletionSource<bool>();
+            Start();
+            return completion.Task;
         }
 
         /// <summary>Starts again from the control's current values, cancelling a run in progress.</summary>
@@ -218,6 +284,7 @@ namespace MonoGame.PortableUI.Animation
             _isRunning = false;
             _isFinished = true;
             _control.RemoveAnimation(this);
+            SignalCompletion(false);
         }
 
         /// <summary>Takes over the current velocity of <paramref name="other"/>'s tweens of the same
@@ -225,7 +292,7 @@ namespace MonoGame.PortableUI.Animation
         internal void InheritVelocity(Animation other)
         {
             if (other._stepIndex < other._steps.Count)
-                _steps[0].InheritVelocity(other._steps[other._stepIndex]);
+                _steps[0].InheritVelocity(other.StepAt(other._stepIndex));
         }
 
         internal bool RemoveConflictingTweens(Animation other)
@@ -251,6 +318,7 @@ namespace MonoGame.PortableUI.Animation
 
             _isRunning = false;
             _isFinished = true;
+            SignalCompletion(false);
         }
 
         internal bool Update()
@@ -259,31 +327,60 @@ namespace MonoGame.PortableUI.Animation
                 return _isFinished;
 
             var now = ScreenSystem.TotalTime;
+            if (now < _stepStartedAt && _stepIndex == 0 && _iteration == 0)
+                return false; // DelayStart
+
             while (true)
             {
-                var step = _steps[_stepIndex];
+                var step = StepAt(_stepIndex);
                 if (!_stepStarted)
                 {
                     _stepStarted = true;
-                    step.Begin(_stepIndex > 0 ? _steps[_stepIndex - 1] : null);
+                    step.Begin(_stepIndex > 0 && !_reversed ? StepAt(_stepIndex - 1) : null);
                 }
 
-                if (!step.Update(_control, now, _stepStartedAt, out var finishedAt))
+                if (!step.Update(_control, now, _stepStartedAt, _reversed, out var finishedAt))
                     return false;
 
+                // The next step starts when this one ended, so leftover frame time is not lost.
+                _stepStarted = false;
+                _stepStartedAt = finishedAt;
                 _stepIndex++;
-                if (_stepIndex >= _steps.Count)
+                if (_stepIndex < _steps.Count)
+                    continue;
+
+                _iteration++;
+                if (_iterations != 0 && _iteration >= _iterations)
                 {
                     _stepIndex = _steps.Count - 1;
                     Complete();
                     return true;
                 }
 
-                // The next step starts when this one ended, so leftover frame time is not lost.
-                _stepStarted = false;
-                _stepStartedAt = finishedAt;
+                _stepIndex = 0;
+                if (_yoyo)
+                {
+                    _reversed = !_reversed;
+                }
+                else
+                {
+                    // Jump back to where the first run started, latest steps first so the earliest wins.
+                    for (var i = _steps.Count - 1; i >= 0; i--)
+                        _steps[i].ApplyOrigin(_control);
+                }
+
+                // A sequence that takes no time would loop forever within this update: one per update.
+                if (finishedAt <= _iterationStartedAt)
+                {
+                    _stepStartedAt = _iterationStartedAt = now;
+                    return false;
+                }
+
+                _iterationStartedAt = finishedAt;
             }
         }
+
+        private Step StepAt(int index) => _reversed ? _steps[_steps.Count - 1 - index] : _steps[index];
 
         private bool HasWork()
         {
@@ -312,14 +409,24 @@ namespace MonoGame.PortableUI.Animation
             if (_isFinished)
                 return;
 
-            // Remaining steps in order, so each property ends at its last target.
+            // Remaining steps in playing order, so each property ends at its last target.
             for (var i = _stepIndex; i < _steps.Count; i++)
-                _steps[i].ApplyEnd(_control);
+                StepAt(i).ApplyEnd(_control, _reversed);
 
             _isRunning = false;
             _isFinished = true;
             _control.RemoveAnimation(this);
             _completed?.Invoke();
+            SignalCompletion(true);
+        }
+
+        private void SignalCompletion(bool completed)
+        {
+            var completion = _completion;
+            if (completion == null)
+                return;
+            _completion = null;
+            completion.TrySetResult(completed);
         }
 
         /// <summary>Tracks that run in parallel; the step ends with its slowest track.</summary>
@@ -358,13 +465,13 @@ namespace MonoGame.PortableUI.Animation
                 }
             }
 
-            public bool Update(Control control, TimeSpan now, TimeSpan startedAt, out TimeSpan finishedAt)
+            public bool Update(Control control, TimeSpan now, TimeSpan startedAt, bool reversed, out TimeSpan finishedAt)
             {
                 var done = true;
                 finishedAt = startedAt;
                 foreach (var track in _tracks)
                 {
-                    if (!track.Update(control, now, startedAt, out var trackFinishedAt))
+                    if (!track.Update(control, now, startedAt, reversed, out var trackFinishedAt))
                         done = false;
                     else if (trackFinishedAt > finishedAt)
                         finishedAt = trackFinishedAt;
@@ -373,10 +480,16 @@ namespace MonoGame.PortableUI.Animation
                 return done;
             }
 
-            public void ApplyEnd(Control control)
+            public void ApplyEnd(Control control, bool reversed)
             {
                 foreach (var track in _tracks)
-                    track.ApplyEnd(control);
+                    track.ApplyEnd(control, reversed);
+            }
+
+            public void ApplyOrigin(Control control)
+            {
+                foreach (var track in _tracks)
+                    track.ApplyOrigin(control);
             }
 
             public void Reset()
@@ -435,6 +548,7 @@ namespace MonoGame.PortableUI.Animation
             public SpringSpec SpringX;
             public SpringSpec SpringY;
             private bool _captured;
+            private bool _hasOrigin;
             private bool _done;
             private TimeSpan _finishedAt;
 
@@ -459,6 +573,7 @@ namespace MonoGame.PortableUI.Animation
             public void Reset()
             {
                 Begin();
+                _hasOrigin = false;
                 foreach (var tween in Tweens)
                     tween.ResetVelocity();
             }
@@ -492,7 +607,7 @@ namespace MonoGame.PortableUI.Animation
                 }
             }
 
-            public bool Update(Control control, TimeSpan now, TimeSpan stepStartedAt, out TimeSpan finishedAt)
+            public bool Update(Control control, TimeSpan now, TimeSpan stepStartedAt, bool reversed, out TimeSpan finishedAt)
             {
                 var movesAt = stepStartedAt + Delay;
                 if (_done)
@@ -513,11 +628,13 @@ namespace MonoGame.PortableUI.Animation
                     return true;
                 }
 
-                if (!_captured)
+                // Played backwards, a track returns to the start it captured going forwards.
+                if (!_captured && !reversed)
                 {
                     _captured = true;
                     foreach (var tween in Tweens)
-                        tween.CaptureStart(control);
+                        tween.CaptureStart(control, !_hasOrigin);
+                    _hasOrigin = true;
                 }
 
                 if (UseSpring)
@@ -526,14 +643,14 @@ namespace MonoGame.PortableUI.Animation
                     var settled = true;
                     foreach (var tween in Tweens)
                     {
-                        if (!tween.ApplySpring(control, SpringX, SpringY, seconds))
+                        if (!tween.ApplySpring(control, SpringX, SpringY, seconds, reversed))
                             settled = false;
                     }
 
                     if (!settled && seconds < MaxSpringSeconds)
                         return false;
 
-                    ApplyEnd(control);
+                    ApplyEnd(control, reversed);
                     _finishedAt = now;
                     return true;
                 }
@@ -542,26 +659,38 @@ namespace MonoGame.PortableUI.Animation
                     ? 1
                     : (now - movesAt).TotalMilliseconds / Duration.TotalMilliseconds;
                 progress = Math.Max(0, Math.Min(1, progress));
-                var eased = Math.Max(0, Math.Min(1, Easing(progress)));
-                var easedPerSecond = Duration == TimeSpan.Zero ? 0 : EasedSlope(progress) / Duration.TotalSeconds;
+                // Backwards in time: the forward curve read from its end.
+                var curveAt = reversed ? 1 - progress : progress;
+                var eased = Math.Max(0, Math.Min(1, Easing(curveAt)));
+                var easedPerSecond = Duration == TimeSpan.Zero ? 0 : EasedSlope(curveAt) / Duration.TotalSeconds;
+                if (reversed)
+                    easedPerSecond = -easedPerSecond;
                 foreach (var tween in Tweens)
                     tween.Apply(control, eased, easedPerSecond);
 
                 if (progress < 1)
                     return false;
 
-                ApplyEnd(control);
+                ApplyEnd(control, reversed);
                 finishedAt = _finishedAt = movesAt + Duration;
                 return true;
             }
 
-            public void ApplyEnd(Control control)
+            public void ApplyEnd(Control control, bool reversed)
             {
                 if (_done)
                     return;
                 _done = true;
                 foreach (var tween in Tweens)
-                    tween.ApplyEnd(control);
+                    tween.ApplyEnd(control, reversed);
+            }
+
+            public void ApplyOrigin(Control control)
+            {
+                if (!_hasOrigin)
+                    return;
+                foreach (var tween in Tweens)
+                    tween.ApplyOrigin(control);
             }
 
             // Slope of the easing curve, for the velocity a spring inherits from an eased tween.
@@ -588,19 +717,26 @@ namespace MonoGame.PortableUI.Animation
         private interface IAnimationTween
         {
             AnimationProperty Property { get; }
-            void CaptureStart(Control control);
 
-            /// <summary>Eased tween: <paramref name="progress"/> 0..1 and its rate per second.</summary>
+            /// <summary>Takes the current value as the start; <paramref name="origin"/>: also as the value
+            /// a repetition jumps back to.</summary>
+            void CaptureStart(Control control, bool origin);
+
+            /// <summary>Eased tween: <paramref name="progress"/> 0..1 along start→target and its rate per second.</summary>
             void Apply(Control control, double progress, double progressPerSecond);
 
-            /// <summary>Spring tween after <paramref name="seconds"/>; true once at rest.</summary>
-            bool ApplySpring(Control control, in SpringSpec springX, in SpringSpec springY, double seconds);
+            /// <summary>Spring tween after <paramref name="seconds"/> (back to the start when
+            /// <paramref name="reversed"/>); true once at rest.</summary>
+            bool ApplySpring(Control control, in SpringSpec springX, in SpringSpec springY, double seconds, bool reversed);
 
             void ResetVelocity();
             void InheritVelocity(IAnimationTween previous);
 
-            /// <summary>Sets the target; the velocity stays, for a spring of a following step.</summary>
-            void ApplyEnd(Control control);
+            /// <summary>Sets the target (the start when <paramref name="reversed"/>); the velocity stays,
+            /// for a spring of a following step.</summary>
+            void ApplyEnd(Control control, bool reversed);
+
+            void ApplyOrigin(Control control);
         }
 
         private sealed class Vector2AnimationTween : IAnimationTween
@@ -610,6 +746,7 @@ namespace MonoGame.PortableUI.Animation
             private readonly Vector2 _target;
             private readonly double _restDelta;
             private Vector2 _start;
+            private Vector2 _origin;
             private Vector2 _initialVelocity;
             private Vector2 _velocity;
 
@@ -629,9 +766,11 @@ namespace MonoGame.PortableUI.Animation
 
             public AnimationProperty Property { get; }
 
-            public void CaptureStart(Control control)
+            public void CaptureStart(Control control, bool origin)
             {
                 _start = _getValue(control);
+                if (origin)
+                    _origin = _start;
                 _velocity = _initialVelocity;
             }
 
@@ -641,12 +780,15 @@ namespace MonoGame.PortableUI.Animation
                 _setValue(control, Vector2.Lerp(_start, _target, (float)progress));
             }
 
-            public bool ApplySpring(Control control, in SpringSpec springX, in SpringSpec springY, double seconds)
+            public bool ApplySpring(Control control, in SpringSpec springX, in SpringSpec springY, double seconds, bool reversed)
             {
-                springX.Evaluate(_start.X - _target.X, _initialVelocity.X, seconds, out var dx, out var vx);
-                springY.Evaluate(_start.Y - _target.Y, _initialVelocity.Y, seconds, out var dy, out var vy);
+                var from = reversed ? _target : _start;
+                var to = reversed ? _start : _target;
+                var velocity0 = reversed ? Vector2.Zero : _initialVelocity;
+                springX.Evaluate(from.X - to.X, velocity0.X, seconds, out var dx, out var vx);
+                springY.Evaluate(from.Y - to.Y, velocity0.Y, seconds, out var dy, out var vy);
                 _velocity = new Vector2((float)vx, (float)vy);
-                _setValue(control, new Vector2(_target.X + (float)dx, _target.Y + (float)dy));
+                _setValue(control, new Vector2(to.X + (float)dx, to.Y + (float)dy));
                 return AtRest(dx, vx, _restDelta) && AtRest(dy, vy, _restDelta);
             }
 
@@ -662,9 +804,14 @@ namespace MonoGame.PortableUI.Animation
                     _initialVelocity = tween._velocity;
             }
 
-            public void ApplyEnd(Control control)
+            public void ApplyEnd(Control control, bool reversed)
             {
-                _setValue(control, _target);
+                _setValue(control, reversed ? _start : _target);
+            }
+
+            public void ApplyOrigin(Control control)
+            {
+                _setValue(control, _origin);
             }
         }
 
@@ -675,6 +822,7 @@ namespace MonoGame.PortableUI.Animation
             private readonly double _target;
             private readonly double _restDelta;
             private double _start;
+            private double _origin;
             private double _initialVelocity;
             private double _velocity;
 
@@ -694,9 +842,11 @@ namespace MonoGame.PortableUI.Animation
 
             public AnimationProperty Property { get; }
 
-            public void CaptureStart(Control control)
+            public void CaptureStart(Control control, bool origin)
             {
                 _start = _getValue(control);
+                if (origin)
+                    _origin = _start;
                 _velocity = _initialVelocity;
             }
 
@@ -706,11 +856,13 @@ namespace MonoGame.PortableUI.Animation
                 _setValue(control, _start + (_target - _start) * progress);
             }
 
-            public bool ApplySpring(Control control, in SpringSpec springX, in SpringSpec springY, double seconds)
+            public bool ApplySpring(Control control, in SpringSpec springX, in SpringSpec springY, double seconds, bool reversed)
             {
-                springX.Evaluate(_start - _target, _initialVelocity, seconds, out var d, out var v);
+                var from = reversed ? _target : _start;
+                var to = reversed ? _start : _target;
+                springX.Evaluate(from - to, reversed ? 0 : _initialVelocity, seconds, out var d, out var v);
                 _velocity = v;
-                _setValue(control, _target + d);
+                _setValue(control, to + d);
                 return AtRest(d, v, _restDelta);
             }
 
@@ -726,9 +878,14 @@ namespace MonoGame.PortableUI.Animation
                     _initialVelocity = tween._velocity;
             }
 
-            public void ApplyEnd(Control control)
+            public void ApplyEnd(Control control, bool reversed)
             {
-                _setValue(control, _target);
+                _setValue(control, reversed ? _start : _target);
+            }
+
+            public void ApplyOrigin(Control control)
+            {
+                _setValue(control, _origin);
             }
         }
 
@@ -738,6 +895,7 @@ namespace MonoGame.PortableUI.Animation
             private readonly Action<Control, Color> _setValue;
             private readonly Color _target;
             private Color _start;
+            private Color _origin;
 
             public ColorAnimationTween(
                 AnimationProperty property,
@@ -753,9 +911,11 @@ namespace MonoGame.PortableUI.Animation
 
             public AnimationProperty Property { get; }
 
-            public void CaptureStart(Control control)
+            public void CaptureStart(Control control, bool origin)
             {
                 _start = _getValue(control);
+                if (origin)
+                    _origin = _start;
             }
 
             public void Apply(Control control, double progress, double progressPerSecond)
@@ -764,10 +924,11 @@ namespace MonoGame.PortableUI.Animation
             }
 
             // Colours spring along the start-to-target progress (an overshoot clamps at the target).
-            public bool ApplySpring(Control control, in SpringSpec springX, in SpringSpec springY, double seconds)
+            public bool ApplySpring(Control control, in SpringSpec springX, in SpringSpec springY, double seconds, bool reversed)
             {
                 springX.Evaluate(1, 0, seconds, out var remaining, out var v);
-                _setValue(control, Color.Lerp(_start, _target, (float)Math.Max(0, Math.Min(1, 1 - remaining))));
+                var progress = (float)Math.Max(0, Math.Min(1, 1 - remaining));
+                _setValue(control, reversed ? Color.Lerp(_target, _start, progress) : Color.Lerp(_start, _target, progress));
                 return AtRest(remaining, v, ProgressRestDelta);
             }
 
@@ -779,9 +940,14 @@ namespace MonoGame.PortableUI.Animation
             {
             }
 
-            public void ApplyEnd(Control control)
+            public void ApplyEnd(Control control, bool reversed)
             {
-                _setValue(control, _target);
+                _setValue(control, reversed ? _start : _target);
+            }
+
+            public void ApplyOrigin(Control control)
+            {
+                _setValue(control, _origin);
             }
         }
     }
