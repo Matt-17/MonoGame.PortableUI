@@ -51,12 +51,22 @@ public static class ThemeBuilder
                 ApplyEraCaret(theme, era);
                 styleTheme?.Invoke(theme);
                 theme.Sounds ??= DefaultSounds(era, theme);
+                theme.Haptics ??= DefaultHaptics(era, theme);
                 return theme;
             },
             ClearColor = clearColor,
             BackgroundColor = palette.Background
         };
     }
+
+    /// <summary>The era's haptic set: subtle for glass, clacky for terminals, punchy for retro and pixel-art themes.</summary>
+    public static Haptics.UiHapticSet DefaultHaptics(ThemeEra era, PortableTheme theme) => era switch
+    {
+        ThemeEra.Glass => Haptics.UiHapticSet.Subtle,
+        ThemeEra.Terminal => Haptics.UiHapticSet.Clacky,
+        ThemeEra.Retro => Haptics.UiHapticSet.Punchy,
+        _ => theme.ResolveHaptics()
+    };
 
     /// <summary>The era's sound set: bells for glass, key switches for terminals, bleeps for retro and pixel-art themes.</summary>
     public static UiSoundSet DefaultSounds(ThemeEra era, PortableTheme theme) => era switch
@@ -155,6 +165,7 @@ public static class ThemeBuilder
                     theme.TextBox.TransitionDuration = TimeSpan.Zero;
                 }
                 theme.Sounds ??= DefaultSounds(era, theme);
+                theme.Haptics ??= DefaultHaptics(era, theme);
                 return theme;
             },
             ClearColor = backgroundColor,

@@ -159,7 +159,9 @@ set comes from `control.ResolveTheme().ResolveSounds()` (`PortableTheme.Sounds`,
 players are cached per `UiSoundSet` in a static table (`UiSoundSet.PlayerFactory` is swappable for tests). Controls and Screen
 raise events through `ScreenEngine.PlayFeedback`, which also fires `engine.Haptics` (`UiHapticService`) on the
 device in `engine.LastInputDevice` (tracked in `Screen.TrackInputActivity`); backends `GamePadRumbleHaptics`,
-`AndroidHaptics` (`#if ANDROID`, `View.PerformHapticFeedback`, not device-tested).
+`AndroidHaptics` (`#if ANDROID`, `View.PerformHapticFeedback`, not device-tested). The pulse per event comes from the
+control's theme (`PortableTheme.Haptics` / `ResolveHaptics()`, era defaults in `ThemeBuilder.DefaultHaptics`) unless
+`engine.Haptics.SetHaptic` overrides it.
 
 **App-wide services** (all on `ScreenEngine` unless noted; screens pick changes up on their next update via
 version counters, never by rebuilding): `TextScaling` (static, text size factor), `Localizer.Default`

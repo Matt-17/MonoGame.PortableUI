@@ -194,6 +194,16 @@ namespace MonoGame.PortableUI
         /// </summary>
         public Audio.UiSoundSet? Sounds { get; set; }
 
+        /// <summary>
+        ///     How the UI feels in this theme: the haptic pulse per event, strength and rumble length. Null:
+        ///     derived - <see cref="Haptics.UiHapticSet.Punchy"/> for <see cref="PixelMotion"/> themes, otherwise
+        ///     <see cref="Haptics.UiHapticSet.Default"/>. Catalog themes pick by era.
+        /// </summary>
+        public Haptics.UiHapticSet? Haptics { get; set; }
+
+        /// <summary>The haptic set in effect: <see cref="Haptics"/> or the derived default.</summary>
+        public Haptics.UiHapticSet ResolveHaptics() => Haptics ?? (PixelMotion ? MonoGame.PortableUI.Haptics.UiHapticSet.Punchy : MonoGame.PortableUI.Haptics.UiHapticSet.Default);
+
         /// <summary>The sound set in effect: <see cref="Sounds"/> or the derived default.</summary>
         public Audio.UiSoundSet ResolveSounds() => Sounds ?? (PixelMotion ? Audio.UiSoundSet.Retro : Audio.UiSoundSet.Soft);
         public ThemePalette Palette { get; set; } = ThemePalette.Empty;

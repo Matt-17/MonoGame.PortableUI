@@ -146,7 +146,7 @@ namespace MonoGame.PortableUI.Demo
                 {
                     var start = DateTime.UtcNow;
                     var origin = MonoGame.PortableUI.Common.ScreenSystem.TotalTime;
-                    rumble.Play(haptic, 1);
+                    rumble.Play(haptic, 1, 1);
                     while (rumble.IsActive)
                     {
                         System.Threading.Thread.Sleep(5);

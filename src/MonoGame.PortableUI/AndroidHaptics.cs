@@ -32,7 +32,7 @@ namespace MonoGame.PortableUI
 
         public bool IsActive => false;
 
-        public void Play(UiHaptic haptic, float intensity)
+        public void Play(UiHaptic haptic, float intensity, float length)
         {
             if (intensity <= 0 || _feedback[(int)haptic] is not { } feedback)
                 return;
