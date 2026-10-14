@@ -1350,7 +1350,7 @@ namespace MonoGame.PortableUI
 
             public RenderContext ForControl(Control control)
             {
-                var transform = CreateControlTransform(control) * _transform;
+                var transform = control.GetRenderTransform() * _transform;
                 var renderRect = TransformRect(control.ClippingRect, transform);
                 // Drop shadows, the focus ring and ink (text outlines, glows) render outside the
                 // control's bounds; widen the scissor so they survive.
@@ -1415,21 +1415,6 @@ namespace MonoGame.PortableUI
             {
                 var layer = new Rect(0, 0, width, height);
                 return new RenderContext(_transform * Matrix.CreateTranslation(offsetX, offsetY, 0), Scale, 1, layer, layer, layer);
-            }
-
-            private static Matrix CreateControlTransform(Control control)
-            {
-                var transform = Matrix.Identity;
-                if (control.Scale != Vector2.One || control.Translation != Vector2.Zero)
-                {
-                    var rect = control.ClippingRect;
-                    var origin = new Vector2(rect.Left + rect.Width / 2, rect.Top + rect.Height / 2);
-                    transform = Matrix.CreateTranslation(-origin.X, -origin.Y, 0)
-                        * Matrix.CreateScale(control.Scale.X, control.Scale.Y, 1)
-                        * Matrix.CreateTranslation(origin.X + control.Translation.X, origin.Y + control.Translation.Y, 0);
-                }
-
-                return transform;
             }
 
             private static Rect TransformRect(Rect rect, Matrix transform)
@@ -2691,12 +2676,12 @@ namespace MonoGame.PortableUI
         private static void AnimateDropDownIn(Control control, float startScaleY, TimeSpan duration)
         {
             control.Opacity = 0;
+            control.TransformOrigin = new Vector2(0.5f, 0);
             control.Scale = new Vector2(1, startScaleY);
-            control.Translation = GetTopAnchoredScaleTranslation(control, startScaleY);
+            control.Translation = Vector2.Zero;
             control.Animate()
                 .FadeTo(1)
                 .Scale(Vector2.One)
-                .TranslateTo(Vector2.Zero)
                 .Duration(duration)
                 .Ease(Easings.CubicOut)
                 .Start();
@@ -2704,20 +2689,14 @@ namespace MonoGame.PortableUI
 
         private static void AnimateDropDownOut(Control control, float targetScaleY, TimeSpan duration, Action completed)
         {
+            control.TransformOrigin = new Vector2(0.5f, 0);
             control.Animate()
                 .FadeTo(0)
                 .Scale(new Vector2(1, targetScaleY))
-                .TranslateTo(GetTopAnchoredScaleTranslation(control, targetScaleY))
                 .Duration(duration)
                 .Ease(Easings.CubicOut)
                 .OnCompleted(completed)
                 .Start();
-        }
-
-        private static Vector2 GetTopAnchoredScaleTranslation(Control control, float scaleY)
-        {
-            var height = control.ClippingRect.Height > 0 ? control.ClippingRect.Height : control.BoundingRect.Height;
-            return new Vector2(0, -height * (1 - scaleY) / 2);
         }
 
         private static void AnimatePopupOut(Control control, double targetScale, Vector2 targetTranslation, TimeSpan duration, Action completed)
