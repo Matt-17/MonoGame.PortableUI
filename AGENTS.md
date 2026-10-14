@@ -154,7 +154,9 @@ Navigation: `NavigateToScreen` / `PushOverlay` (screens below stay drawn, frozen
 (`SoundEffectUiSoundPlayer`, synthesized defaults in `UiSoundSynth`). Controls raise them: `Control.OnClick` plays
 `GetClickSound()` (Click when a Click handler exists; toggles override with their new state), hover only on a real
 pointer move (`Screen.PointerMovedThisUpdate`), Screen plays FocusMove/Open/Close/Back. Sound only for user
-actions, never for programmatic property sets. `control.Sounds` overrides apply to the subtree.
+actions, never for programmatic property sets. `control.Sounds` overrides apply to the subtree. With `UseThemeSounds` the
+set comes from `control.ResolveTheme().ResolveSounds()` (`PortableTheme.Sounds`, era defaults set in `ThemeBuilder`);
+players are cached per `UiSoundSet` in a static table (`UiSoundSet.PlayerFactory` is swappable for tests).
 
 **App-wide services** (all on `ScreenEngine` unless noted; screens pick changes up on their next update via
 version counters, never by rebuilding): `TextScaling` (static, text size factor), `Localizer.Default`

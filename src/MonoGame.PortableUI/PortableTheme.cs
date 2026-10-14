@@ -186,6 +186,16 @@ namespace MonoGame.PortableUI
         ///     edges, so motion glides; at rest everything stays pixel-snapped either way.
         /// </summary>
         public bool PixelMotion { get; set; }
+
+        /// <summary>
+        ///     What the UI sounds like in this theme (with <c>engine.Sounds.UseThemeSounds</c>). Null: derived -
+        ///     <see cref="Audio.UiSoundSet.Retro"/> bleeps for <see cref="PixelMotion"/> themes, otherwise
+        ///     <see cref="Audio.UiSoundSet.Soft"/>. Catalog themes pick by era (glass, terminal, retro).
+        /// </summary>
+        public Audio.UiSoundSet? Sounds { get; set; }
+
+        /// <summary>The sound set in effect: <see cref="Sounds"/> or the derived default.</summary>
+        public Audio.UiSoundSet ResolveSounds() => Sounds ?? (PixelMotion ? Audio.UiSoundSet.Retro : Audio.UiSoundSet.Soft);
         public ThemePalette Palette { get; set; } = ThemePalette.Empty;
         public Typography Typography { get; set; } = new Typography();
         public ThemeMetrics Metrics { get; set; } = new ThemeMetrics();

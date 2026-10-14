@@ -577,7 +577,9 @@ namespace MonoGame.PortableUI
 
         /// <summary>UI sounds of this engine: set <see cref="Audio.UiSoundService.Player"/> (e.g.
         /// <see cref="Audio.SoundEffectUiSoundPlayer.CreateDefault"/>) and controls click, tick and whoosh.</summary>
-        public Audio.UiSoundService Sounds { get; } = new Audio.UiSoundService();
+        public Audio.UiSoundService Sounds => _sounds ??= new Audio.UiSoundService(this);
+
+        private Audio.UiSoundService? _sounds;
 
         internal ToastService? ToastsIfCreated => _toasts;
 

@@ -1,6 +1,7 @@
 using System;
 
 using Microsoft.Xna.Framework;
+using MonoGame.PortableUI.Audio;
 
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Media;
@@ -49,12 +50,22 @@ public static class ThemeBuilder
                 theme.Cursor = DefaultCursor(era, palette);
                 ApplyEraCaret(theme, era);
                 styleTheme?.Invoke(theme);
+                theme.Sounds ??= DefaultSounds(era, theme);
                 return theme;
             },
             ClearColor = clearColor,
             BackgroundColor = palette.Background
         };
     }
+
+    /// <summary>The era's sound set: bells for glass, key switches for terminals, bleeps for retro and pixel-art themes.</summary>
+    public static UiSoundSet DefaultSounds(ThemeEra era, PortableTheme theme) => era switch
+    {
+        ThemeEra.Glass => UiSoundSet.Glass,
+        ThemeEra.Terminal => UiSoundSet.Mechanical,
+        ThemeEra.Retro => UiSoundSet.Retro,
+        _ => theme.ResolveSounds()
+    };
 
     /// <summary>
     ///     Compact builder for hex-based catalog themes: derives the full 19-slot palette
@@ -143,6 +154,7 @@ public static class ThemeBuilder
                     theme.Button.TransitionDuration = TimeSpan.Zero;
                     theme.TextBox.TransitionDuration = TimeSpan.Zero;
                 }
+                theme.Sounds ??= DefaultSounds(era, theme);
                 return theme;
             },
             ClearColor = backgroundColor,

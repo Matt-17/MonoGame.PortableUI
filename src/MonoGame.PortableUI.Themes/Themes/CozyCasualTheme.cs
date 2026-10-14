@@ -1,3 +1,4 @@
+using MonoGame.PortableUI.Audio;
 using Microsoft.Xna.Framework;
 
 using MonoGame.PortableUI.Media;
@@ -22,6 +23,7 @@ public static class CozyCasualTheme
             backgroundBrush: ThemeBuilder.Gloss((0, "#8FD3FF"), (0.6f, "#C8ECFF"), (1, "#EAF8FF")),
             styleTheme: theme =>
             {
+                theme.Sounds = UiSoundSet.Soft.With(pitch: 0.1f); // light and friendly
                 theme.Cursor = CursorStyle.ModernArrow(Color.White, ThemeBuilder.Hex("#7A5230"));
                 const float radius = 16;
                 Candy(theme.Button, ThemeBuilder.Gloss((0, "#FFFFFF"), (0.5f, "#FFFDF6"), (1, "#F6E7C8")), brown, ThemeBuilder.Hex("#C9A27A"), ThemeBuilder.Hex("#5A3E2B"), radius);
