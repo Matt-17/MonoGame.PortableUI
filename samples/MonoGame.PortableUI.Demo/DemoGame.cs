@@ -55,6 +55,9 @@ namespace MonoGame.PortableUI.Demo
         {
             FontManager.LoadFonts(this, GetFontNamesToLoad());
             _fontsLoaded = true;
+            // Themes draw with runtime TTF fonts; --sprite-fonts keeps the baked SpriteFonts for comparison.
+            if (!_runOptions.SpriteFonts)
+                DemoFonts.RegisterThemeFonts();
             _whitePixel = new Texture2D(GraphicsDevice, 1, 1);
             _whitePixel.SetData(new[] { Color.White });
             ApplyTheme(_activeThemePreset);

@@ -46,6 +46,9 @@ namespace MonoGame.PortableUI.Demo
         /// <summary>--mute: the demo starts without UI sounds.</summary>
         public bool Mute { get; init; }
 
+        /// <summary>--sprite-fonts: themes draw with their baked SpriteFonts instead of the runtime TTF fonts.</summary>
+        public bool SpriteFonts { get; init; }
+
         public static DemoRunOptions Parse(string[]? args)
         {
             // --text-scale 1.5 sets the app text size (TextScaling.AppScale) before anything is built.
@@ -70,6 +73,7 @@ namespace MonoGame.PortableUI.Demo
                 MotionRecordTimeline = TryParseValue(args, "--record-timeline"),
                 SoundTest = args != null && Array.IndexOf(args, "--sound-test") >= 0,
                 Mute = args != null && Array.IndexOf(args, "--mute") >= 0,
+                SpriteFonts = args != null && Array.IndexOf(args, "--sprite-fonts") >= 0,
                 SurfaceCount = int.TryParse(TryParseValue(args, "--surface-count"), out var surfaceCount) && surfaceCount > 0 ? surfaceCount : 100,
                 ScreenshotTabs = int.TryParse(TryParseValue(args, "--screenshot-tabs"), out var tabs) ? tabs : 0,
                 ScreenshotCursor = ParsePoint(TryParseValue(args, "--screenshot-cursor")),

@@ -1697,6 +1697,7 @@ namespace MonoGame.PortableUI.Controls
         {
             RenderOpacity = opacity;
             RenderScale = scale;
+            RestRenderScale = restScale ?? scale;
             DrawsSubpixel = false;
             if (!moving)
                 return;
@@ -1728,6 +1729,10 @@ namespace MonoGame.PortableUI.Controls
         ///     positions (anti-aliased) instead of snapping to whole pixels, so motion glides.
         /// </summary>
         protected internal bool DrawsSubpixel { get; private set; }
+
+        /// <summary>The render scale without the motion of this control and its ancestors (layout scale,
+        /// popup zoom): text in motion rasterizes its glyphs at this size and scales them.</summary>
+        protected Vector2 RestRenderScale { get; private set; } = Vector2.One;
 
         /// <summary>Whether drawing snaps to whole pixels now: <see cref="SnapToPixel"/>, except while the
         /// control moves with subpixel precision (<see cref="DrawsSubpixel"/>).</summary>
