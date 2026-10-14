@@ -14,7 +14,7 @@ using ControlAnimation = MonoGame.PortableUI.Animation.Animation;
 
 namespace MonoGame.PortableUI.Controls
 {
-    public abstract class Control : UIElement
+    public abstract partial class Control : UIElement
     {
         private readonly Timer _longPressTimer;
         private readonly Timer _toolTipHoverTimer;
@@ -474,17 +474,19 @@ namespace MonoGame.PortableUI.Controls
 
         /// <summary>
         ///     This control's own render transform in layout space: <see cref="Scale"/> about
-        ///     <see cref="TransformOrigin"/> within <see cref="ClippingRect"/>, then <see cref="Translation"/>.
+        ///     <see cref="TransformOrigin"/> within <see cref="ClippingRect"/> (with squash & stretch), then
+        ///     <see cref="Translation"/>.
         /// </summary>
         internal Matrix GetRenderTransform()
         {
-            if (_scale == Vector2.One && _translation == Vector2.Zero)
+            if (_scale == Vector2.One && _translation == Vector2.Zero && _stretchAtRest)
                 return Matrix.Identity;
 
             var rect = ClippingRect;
             var origin = new Vector2(rect.Left + rect.Width * _transformOrigin.X, rect.Top + rect.Height * _transformOrigin.Y);
             return Matrix.CreateTranslation(-origin.X, -origin.Y, 0)
                 * Matrix.CreateScale(_scale.X, _scale.Y, 1)
+                * GetStretchMatrix()
                 * Matrix.CreateTranslation(origin.X + _translation.X, origin.Y + _translation.Y, 0);
         }
 
@@ -1599,6 +1601,7 @@ namespace MonoGame.PortableUI.Controls
                 // Tweens write render state directly; also draws the frame a tween finished on.
                 RequestRedraw();
             }
+            UpdateMotion();
             OnFrameUpdate();
         }
 
