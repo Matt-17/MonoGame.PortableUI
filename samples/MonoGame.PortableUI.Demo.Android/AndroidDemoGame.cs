@@ -75,6 +75,10 @@ namespace MonoGame.PortableUI.Demo.Android
                 AndroidInputBridge.Attach(view, _engine);
                 _engine.OnScreenKeyboard = new AndroidOnScreenKeyboard(view, _engine);
                 _engine.AccessibilityBridge = new MonoGame.PortableUI.Accessibility.AndroidAccessibilityBridge(view, _engine);
+                // Feedback: the phone's own haptics for touch, rumble for a paired gamepad, theme sounds.
+                _engine.Haptics.Players.Add(new AndroidHaptics(view));
+                _engine.Haptics.Players.Add(new MonoGame.PortableUI.Haptics.GamePadRumbleHaptics());
+                _engine.Sounds.UseThemeSounds = true;
             }
         }
 

@@ -104,7 +104,11 @@ namespace MonoGame.PortableUI.Demo
 
             // UI sounds in each theme's own set (soft clicks, glass pings, terminal clacks, 8-bit bleeps).
             if (_screenEngine != null)
+            {
                 _screenEngine.Sounds.UseThemeSounds = !_runOptions.Mute;
+                // A gamepad rumbles on clicks, toggles and focus moves made with it.
+                _screenEngine.Haptics.Players.Add(new MonoGame.PortableUI.Haptics.GamePadRumbleHaptics());
+            }
 
             _screenEngine?.NavigateToScreen(new MainScreen(deleteIcon, _activeThemePreset, ApplyTheme));
         }
@@ -131,6 +135,25 @@ namespace MonoGame.PortableUI.Demo
                 }
 
                 Console.WriteLine($"sound-test {style}: played {count} sounds");
+            }
+
+            var pad = Microsoft.Xna.Framework.Input.GamePad.GetState(PlayerIndex.One);
+            Console.WriteLine($"gamepad: {(pad.IsConnected ? "connected, rumbling a click and an error" : "none connected")}");
+            if (pad.IsConnected)
+            {
+                var rumble = new MonoGame.PortableUI.Haptics.GamePadRumbleHaptics();
+                foreach (var haptic in new[] { MonoGame.PortableUI.Haptics.UiHaptic.Click, MonoGame.PortableUI.Haptics.UiHaptic.Double })
+                {
+                    var start = DateTime.UtcNow;
+                    var origin = MonoGame.PortableUI.Common.ScreenSystem.TotalTime;
+                    rumble.Play(haptic, 1);
+                    while (rumble.IsActive)
+                    {
+                        System.Threading.Thread.Sleep(5);
+                        rumble.Update(origin + (DateTime.UtcNow - start));
+                    }
+                    System.Threading.Thread.Sleep(400);
+                }
             }
         }
 

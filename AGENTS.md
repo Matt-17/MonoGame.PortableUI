@@ -156,14 +156,17 @@ Navigation: `NavigateToScreen` / `PushOverlay` (screens below stay drawn, frozen
 pointer move (`Screen.PointerMovedThisUpdate`), Screen plays FocusMove/Open/Close/Back. Sound only for user
 actions, never for programmatic property sets. `control.Sounds` overrides apply to the subtree. With `UseThemeSounds` the
 set comes from `control.ResolveTheme().ResolveSounds()` (`PortableTheme.Sounds`, era defaults set in `ThemeBuilder`);
-players are cached per `UiSoundSet` in a static table (`UiSoundSet.PlayerFactory` is swappable for tests).
+players are cached per `UiSoundSet` in a static table (`UiSoundSet.PlayerFactory` is swappable for tests). Controls and Screen
+raise events through `ScreenEngine.PlayFeedback`, which also fires `engine.Haptics` (`UiHapticService`) on the
+device in `engine.LastInputDevice` (tracked in `Screen.TrackInputActivity`); backends `GamePadRumbleHaptics`,
+`AndroidHaptics` (`#if ANDROID`, `View.PerformHapticFeedback`, not device-tested).
 
 **App-wide services** (all on `ScreenEngine` unless noted; screens pick changes up on their next update via
 version counters, never by rebuilding): `TextScaling` (static, text size factor), `Localizer.Default`
 (static, string catalogues; bind with `control.Localize(...)`), `FontManager.DefaultDynamicFont` (UIFont
 backend; a theme's `Typography.DynamicFont` overrides it per screen/surface/island), `SafeAreaInsets` (+ `SafeAreaPanel`), `OnScreenKeyboard`, `AccessibilityBridge`, `Toasts`,
 `ShowModal`. Platform hooks for Android live in the core's `#if ANDROID` files (`AndroidWindowInsets`,
-`AndroidOnScreenKeyboard`, `AndroidTextScaling`, `AndroidAccessibilityBridge`); they are compiled but not
+`AndroidOnScreenKeyboard`, `AndroidTextScaling`, `AndroidAccessibilityBridge`, `AndroidHaptics`); they are compiled but not
 device-tested. There is no iOS head. Platform callbacks must go through `InvokeOnGameThread`.
 Desktop window text input reaches exactly one engine per `Game`: the `UISurface` with
 `HasKeyboardFocus` (set directly or via `SurfaceFocusManager`), otherwise the regular engine(s);
