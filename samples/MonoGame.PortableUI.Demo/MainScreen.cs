@@ -635,6 +635,17 @@ namespace MonoGame.PortableUI.Demo
             return panel;
         }
 
+        // Named motion demos, also played by the --record-motion capture.
+        private readonly Dictionary<string, Action> _motionActions = new Dictionary<string, Action>(StringComparer.OrdinalIgnoreCase);
+
+        internal bool PlayMotion(string name)
+        {
+            if (!_motionActions.TryGetValue(name, out var action))
+                return false;
+            action();
+            return true;
+        }
+
         private Control CreateMotionTab()
         {
             var grid = new Grid
@@ -642,11 +653,14 @@ namespace MonoGame.PortableUI.Demo
                 Margin = 16,
                 RowDefinitions =
                 {
-                    new RowDefinition { Height = new GridLength(130) },
-                    new RowDefinition()
+                    new RowDefinition { Height = new GridLength(100) },
+                    new RowDefinition { Height = GridLength.Auto },
+                    new RowDefinition { Height = new GridLength(240) },
+                    new RowDefinition { Height = GridLength.Auto }
                 }
             };
 
+            // Easing curves and a spring, side by side.
             var stage = new Border
             {
                 BackgroundBrush = SurfaceBrush,
@@ -658,6 +672,7 @@ namespace MonoGame.PortableUI.Demo
             {
                 Width = 96,
                 Height = 58,
+                HorizontalAlignment = HorizontalAlignment.Left,
                 BackgroundBrush = SelectionBrush,
                 BorderBrush = Palette.Secondary,
                 BorderThickness = 2,
@@ -666,18 +681,128 @@ namespace MonoGame.PortableUI.Demo
             stage.Content = box;
             grid.AddChild(stage);
 
-            var buttons = new StackPanel
+            // Organic motion: presets, squash & stretch, a chained hop, breathing.
+            var organic = new Border
             {
-                Orientation = Orientation.Vertical,
-                Margin = new Thickness(0, 14, 0, 0)
+                BackgroundBrush = SurfaceBrush,
+                BorderBrush = Palette.Primary,
+                BorderThickness = 1,
+                Padding = 16
             };
+            var layers = new Grid
+            {
+                RowDefinitions =
+                {
+                    new RowDefinition { Height = new GridLength(56) },
+                    new RowDefinition()
+                }
+            };
+
+            var lane = new Grid { HorizontalAlignment = HorizontalAlignment.Stretch };
+            var ball = new Border
+            {
+                Width = 40,
+                Height = 40,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Center,
+                CornerRadius = 20,
+                BackgroundBrush = new SolidColorBrush(Palette.Danger),
+                SquashStretch = 1.4f
+            };
+            lane.AddChild(ball);
+            layers.AddChild(lane);
+
+            var cards = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 26,
+                VerticalAlignment = VerticalAlignment.Bottom,
+                Margin = new Thickness(6, 0, 0, 6)
+            };
+            var pop = MotionCard("Pop", Palette.Primary);
+            var jelly = MotionCard("Jelly", Palette.Secondary);
+            jelly.TransformOrigin = new Vector2(0.5f, 1);
+            var shake = MotionCard("Shake", Palette.Danger);
+            var hop = MotionCard("Hop", Palette.Info);
+            hop.TransformOrigin = new Vector2(0.5f, 1);
+            hop.SquashStretch = 1.2f;
+            var breathe = MotionCard("Breathe", Palette.Primary);
+            breathe.CornerRadius = 42;
+            breathe.Breathe = 0.05f;
+            cards.AddChild(pop);
+            cards.AddChild(jelly);
+            cards.AddChild(shake);
+            cards.AddChild(hop);
+            cards.AddChild(breathe);
+            layers.AddChild(cards, row: 1);
+            organic.Content = layers;
+            grid.AddChild(organic, row: 2);
+
+            _motionActions["spring"] = () => box.Animate()
+                .TranslateTo(new Vector2(box.Translation.X < 80 ? 160 : 0, 0))
+                .Spring(SpringSpec.Bouncy)
+                .Start();
+            _motionActions["pop"] = () => pop.Pop();
+            _motionActions["jelly"] = () => jelly.Jelly();
+            _motionActions["shake"] = () => shake.Shake();
+            _motionActions["hop"] = () => hop.Animate()
+                .TranslateTo(new Vector2(0, -70)).Duration(TimeSpan.FromMilliseconds(260)).Ease(Easings.QuadOut)
+                .Then()
+                .TranslateTo(Vector2.Zero).Duration(TimeSpan.FromMilliseconds(220)).Ease(Easings.QuadIn)
+                .OnCompleted(() => hop.Squash(0.32f))
+                .Start();
+            _motionActions["throw"] = () =>
+            {
+                var far = Math.Max(0, lane.ClippingRect.Width - ball.Width - 24);
+                var target = ball.Translation.X < far / 2 ? far : 0;
+                ball.Animate().TranslateTo(new Vector2(target, 0)).Spring(SpringSpec.FromResponse(0.55, 0.75)).Start();
+            };
+
+            var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Thickness(0, 10, 0, 16) };
             buttons.AddChild(MotionButton("Linear", box, Easings.Linear));
             buttons.AddChild(MotionButton("Quad", box, Easings.QuadOut));
             buttons.AddChild(MotionButton("Back", box, Easings.BackOut));
             buttons.AddChild(MotionButton("Elastic", box, Easings.ElasticOut));
             buttons.AddChild(MotionButton("Bounce", box, Easings.BounceOut));
+            buttons.AddChild(MotionDemoButton("Spring", _motionActions["spring"]));
             grid.AddChild(buttons, row: 1);
+
+            var organicButtons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Thickness(0, 10, 0, 0) };
+            organicButtons.AddChild(MotionDemoButton("Throw ball", _motionActions["throw"]));
+            organicButtons.AddChild(MotionDemoButton("Pop", _motionActions["pop"]));
+            organicButtons.AddChild(MotionDemoButton("Jelly", _motionActions["jelly"]));
+            organicButtons.AddChild(MotionDemoButton("Shake", _motionActions["shake"]));
+            organicButtons.AddChild(MotionDemoButton("Hop (Then + Squash)", _motionActions["hop"]));
+            grid.AddChild(organicButtons, row: 3);
             return grid;
+        }
+
+        private Border MotionCard(string text, Color color)
+        {
+            var label = Label(text, Color.White, 14, new Thickness(0));
+            label.TextTrimming = TextTrimming.None;
+            label.HorizontalAlignment = HorizontalAlignment.Center;
+            label.VerticalAlignment = VerticalAlignment.Center;
+            return new Border
+            {
+                Width = 84,
+                Height = 84,
+                VerticalAlignment = VerticalAlignment.Bottom,
+                CornerRadius = 16,
+                BackgroundBrush = new SolidColorBrush(color),
+                Content = label
+            };
+        }
+
+        private TextButton MotionDemoButton(string label, Action play)
+        {
+            var button = ThemedButton(label);
+            button.Click += (sender, args) =>
+            {
+                play();
+                _status.Text = $"Motion: {label}";
+            };
+            return button;
         }
 
         private Control CreateInputPanel()

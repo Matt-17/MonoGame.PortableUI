@@ -80,6 +80,13 @@ namespace MonoGame.PortableUI.Demo
                 return;
             }
 
+            if (_runOptions.MotionRecordDirectory != null)
+            {
+                RecordMotion(_runOptions.MotionRecordDirectory, deleteIcon);
+                Exit();
+                return;
+            }
+
             if (_runOptions.IsScreenshotMode)
             {
                 SaveThemeScreenshots(_runOptions.ScreenshotDirectory!, _runOptions.ScreenshotScreen, deleteIcon, _runOptions.ScreenshotOverlay);
@@ -256,6 +263,54 @@ namespace MonoGame.PortableUI.Demo
                 first = false;
             }
             File.WriteAllLines(file, lines);
+        }
+
+        /// <summary>
+        ///     --record-motion dir: plays the Motion tab's demos on a fixed timeline and saves every frame
+        ///     (30 fps, deterministic clock) as frame_0000.png... - turn them into a GIF or video afterwards.
+        /// </summary>
+        private void RecordMotion(string directory, Texture2D deleteIcon)
+        {
+            Directory.CreateDirectory(directory);
+            var preset = _activeThemePreset;
+            ApplyTheme(preset);
+            var screen = new MainScreen(deleteIcon, preset, _ => { });
+            using var surface = new UISurface(this, screen, 1180, 760, preset.CreateTheme())
+            {
+                ShowSoftwareCursor = false,
+                InputSource = PortableUI.Input.NullInputSource.Instance
+            };
+            screen.TrySelectTab("motion");
+
+            (double At, string Motion)[] timeline =
+            [
+                (0.3, "throw"), (0.5, "pop"), (1.2, "jelly"), (2.0, "shake"), (2.6, "hop"), (2.8, "spring"),
+                (3.7, "throw"), (4.3, "jelly"), (4.5, "pop"), (5.0, "spring"), (5.2, "hop")
+            ];
+            const int fps = 30;
+            const double seconds = 6.6;
+            var step = TimeSpan.FromSeconds(1.0 / fps);
+            var time = TimeSpan.FromSeconds(1);
+            for (var i = 0; i < 3; i++)
+            {
+                time += step;
+                surface.Update(new GameTime(time, step));
+            }
+
+            var start = time;
+            var next = 0;
+            for (var frame = 0; frame < seconds * fps; frame++)
+            {
+                var elapsed = (time - start).TotalSeconds;
+                while (next < timeline.Length && timeline[next].At <= elapsed)
+                    screen.PlayMotion(timeline[next++].Motion);
+                time += step;
+                surface.Update(new GameTime(time, step));
+                var target = surface.Draw(new GameTime(time, step));
+                GraphicsDevice.SetRenderTarget(null);
+                using var stream = File.Create(Path.Combine(directory, $"frame_{frame:D4}.png"));
+                target.SaveAsPng(stream, target.Width, target.Height);
+            }
         }
 
         private void SaveThemeScreenshots(string directory, string screenName, Texture2D deleteIcon, string? overlay)
