@@ -978,6 +978,10 @@ namespace MonoGame.PortableUI
             if (control.OverscrollScale != Vector2.One && TryDrawStretched(spriteBatch, control, parentContext))
                 return;
 
+            if (control.Deformation is { IsActive: true } && !ReferenceEquals(control, _deformInProgress)
+                && ScreenEngine.DrawingQuality != RenderQuality.Low && TryDrawDeformed(spriteBatch, control, parentContext))
+                return;
+
             // Before the clip shape: a cached layer bakes its clip in once instead of composing the
             // clip passes every frame.
             if (cached && TryDrawLayer(spriteBatch, control, parentContext, context))
@@ -1372,7 +1376,8 @@ namespace MonoGame.PortableUI
                 var scissorSource = HasOverflow(overflow)
                     ? renderRect + new Thickness(overflow.Left * overflowScale, overflow.Top * overflowScale, overflow.Right * overflowScale, overflow.Bottom * overflowScale)
                     : renderRect;
-                var moving = Moving || control.IsInMotion;
+                // The rest pose of a deformed control renders still; the mesh carries the motion.
+                var moving = Moving || (control.IsInMotion && !control.RenderTransformSuppressed);
                 // In motion, edges are drawn anti-aliased at fractional positions: their soft last pixel
                 // reaches up to one pixel past the box and must not be cut off (it would pop in and out).
                 if (moving)
@@ -1381,8 +1386,9 @@ namespace MonoGame.PortableUI
                 // Only controls that clip their content (e.g. ScrollViewer) shrink the clip for
                 // descendants; everything else inherits it so overflowing shadows survive.
                 var childClipRect = control.ClipsDescendants ? ChildClipRect ^ renderRect : ChildClipRect;
-                var stretch = control.StretchDiagonal;
-                var scale = new Vector2(Scale.X * control.ShownScale.X * stretch.X, Scale.Y * control.ShownScale.Y * stretch.Y);
+                var stretch = control.RenderTransformSuppressed ? Vector2.One : control.StretchDiagonal;
+                var ownScale = control.RenderTransformSuppressed ? Vector2.One : control.ShownScale;
+                var scale = new Vector2(Scale.X * ownScale.X * stretch.X, Scale.Y * ownScale.Y * stretch.Y);
                 var opacity = Opacity * MathHelper.Clamp((float)control.ShownOpacity, 0, 1);
                 return new RenderContext(transform, scale, opacity, scissorRect, childClipRect, renderRect, moving, RestScale);
             }
