@@ -64,7 +64,8 @@ namespace MonoGame.PortableUI.Tests
         public void A_scheduled_frame_is_reported_as_the_next_due_time_until_it_is_reached()
         {
             using var game = new Game();
-            using var surface = new UISurface(game, new TestScreen(), 320, 200);
+            // No real device input: a mouse moved during the test run counts as activity and keeps frames coming.
+            using var surface = new UISurface(game, new TestScreen(), 320, 200) { InputSource = Input.NullInputSource.Instance };
             var engine = surface.Engine;
             Advance(surface, 16);
             engine.ConsumeRedrawRequest();
