@@ -73,6 +73,13 @@ namespace MonoGame.PortableUI.Demo
                 return;
             }
 
+            if (_runOptions.GarbageBenchmarkFile != null)
+            {
+                BenchmarkGarbage(_runOptions.GarbageBenchmarkFile, deleteIcon);
+                Exit();
+                return;
+            }
+
             if (_runOptions.IsScreenshotMode)
             {
                 SaveThemeScreenshots(_runOptions.ScreenshotDirectory!, _runOptions.ScreenshotScreen, deleteIcon, _runOptions.ScreenshotOverlay);
@@ -161,6 +168,81 @@ namespace MonoGame.PortableUI.Demo
                     (after.SpriteCount - before.SpriteCount) / frames, flushes / frames);
                 lines.Add(line);
                 Console.WriteLine(line);
+            }
+            File.WriteAllLines(file, lines);
+        }
+
+        private static readonly string[] DemoTabs = ["Gallery", "Inspector", "Controls", "Visual FX", "Motion", "Layout", "Drag & drop", "Scroll", "Data grid", "Stress"];
+
+        /// <summary>
+        ///     --benchmark-garbage out.csv: managed bytes allocated per frame (Update + Draw) on the game thread, for every tab
+        ///     of the first theme and the controls tab of every theme (--screenshot-themes limits them; --garbage-all-tabs
+        ///     measures every tab of every theme). Two phases after a warm-up that lets the JIT optimise: the pointer resting
+        ///     on the surface, then circling over it. A game runs for hours, so anything above zero adds up to collections.
+        /// </summary>
+        private void BenchmarkGarbage(string file, Texture2D deleteIcon)
+        {
+            const int frames = 600;
+            var allTabs = Array.IndexOf(Environment.GetCommandLineArgs(), "--garbage-all-tabs") >= 0;
+            var lines = new List<string> { "theme,tab,bytes_per_frame_resting,bytes_per_frame_moving,layout_passes_per_100_frames" };
+            var first = true;
+            foreach (var preset in DemoThemeRegistry.Presets)
+            {
+                if (_runOptions.ScreenshotThemes is { Length: > 0 } only && Array.IndexOf(only, preset.Id) < 0)
+                    continue;
+                foreach (var tab in DemoTabs)
+                {
+                    if (!first && !allTabs && tab != "Controls")
+                        continue;
+                    ApplyTheme(preset);
+                    var pointer = new PortableUI.Input.VirtualInputSource();
+                    var screen = new MainScreen(deleteIcon, preset, _ => { });
+                    using var surface = new UISurface(this, screen, 1180, 760, preset.CreateTheme())
+                    {
+                        ShowSoftwareCursor = true,
+                        InputSource = pointer
+                    };
+                    screen.TrySelectTab(tab);
+                    // --garbage-no-tooltips: tooltips never open, to tell their show/hide events from the per-frame cost.
+                    if (Array.IndexOf(Environment.GetCommandLineArgs(), "--garbage-no-tooltips") >= 0)
+                        surface.Engine.Options.ToolTipHoverDelay = TimeSpan.FromDays(1);
+                    var time = new GameTime(TimeSpan.FromSeconds(1), TimeSpan.FromMilliseconds(16));
+                    var angle = 0f;
+                    var layoutPasses = 0L;
+                    void Frame(bool moving)
+                    {
+                        time.TotalGameTime += time.ElapsedGameTime;
+                        if (moving)
+                        {
+                            angle += .05f;
+                            pointer.SetPointer(new PortableUI.Common.PointF(590 + MathF.Cos(angle) * 450, 380 + MathF.Sin(angle * 1.3f) * 300));
+                        }
+                        surface.Update(time);
+                        layoutPasses += surface.Engine.LayoutPassesThisFrame;
+                        surface.Draw(time);
+                    }
+                    pointer.SetPointer(new PortableUI.Common.PointF(590, 380));
+                    // Warm up both phases; the JIT optimises hot methods in the background after their first calls.
+                    for (var round = 0; round < 3; round++)
+                    {
+                        for (var i = 0; i < 150; i++) Frame(i % 2 == 0);
+                        System.Threading.Thread.Sleep(150);
+                    }
+                    pointer.SetPointer(new PortableUI.Common.PointF(590, 380));
+                    for (var i = 0; i < 30; i++) Frame(false);
+                    layoutPasses = 0;
+                    var start = GC.GetAllocatedBytesForCurrentThread();
+                    for (var i = 0; i < frames; i++) Frame(false);
+                    var resting = (GC.GetAllocatedBytesForCurrentThread() - start) / (double)frames;
+                    start = GC.GetAllocatedBytesForCurrentThread();
+                    for (var i = 0; i < frames; i++) Frame(true);
+                    var moving = (GC.GetAllocatedBytesForCurrentThread() - start) / (double)frames;
+                    GraphicsDevice.SetRenderTarget(null);
+                    var line = string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0},{1},{2:0},{3:0},{4:0}", preset.Id, tab, resting, moving, layoutPasses * 100.0 / (2 * frames));
+                    lines.Add(line);
+                    Console.WriteLine(line);
+                }
+                first = false;
             }
             File.WriteAllLines(file, lines);
         }

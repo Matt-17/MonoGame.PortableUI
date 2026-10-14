@@ -14,6 +14,7 @@ namespace MonoGame.PortableUI.Controls
     internal sealed class VirtualItemsPanel : Control
     {
         private readonly List<Control> _realized = new List<Control>();
+        private readonly List<Control> _previousRows = new List<Control>();
         private readonly Stack<Control> _pool = new Stack<Control>();
         private readonly Func<int> _count;
         private readonly Func<Control> _create;
@@ -64,6 +65,10 @@ namespace MonoGame.PortableUI.Controls
 
         /// <summary>Realized row controls in item order (contiguous from <see cref="FirstRealizedIndex"/>).</summary>
         public IReadOnlyList<Control> Realized => _realized;
+
+        /// <summary>The same rows as the list itself, for loops inside the library: a foreach over the interface boxes
+        /// its enumerator, which happened on every layout pass and pointer move over a list.</summary>
+        internal List<Control> RealizedRows => _realized;
 
         /// <summary>The realized row for <paramref name="index"/>, or null when it is not in view.</summary>
         public Control? RowFor(int index)
@@ -245,15 +250,17 @@ namespace MonoGame.PortableUI.Controls
             if (from == _first && to == _first + _realized.Count)
                 return;
 
-            // Rows outside [from, to) go back to the pool; rows inside keep their control.
-            var kept = new Dictionary<int, Control>();
-            for (var i = 0; i < _realized.Count; i++)
+            // Rows outside [from, to) go back to the pool; rows inside keep their control. Both ranges are contiguous, so
+            // the kept rows are found by position in a reused list (a dictionary per call was garbage on every scroll step).
+            var previous = _previousRows;
+            previous.Clear();
+            previous.AddRange(_realized);
+            var oldFirst = _first;
+            for (var i = 0; i < previous.Count; i++)
             {
-                var index = _first + i;
-                if (index >= from && index < to)
-                    kept[index] = _realized[i];
-                else
-                    Release(_realized[i]);
+                var index = oldFirst + i;
+                if (index < from || index >= to)
+                    Release(previous[i]);
             }
 
             _realized.Clear();
@@ -264,7 +271,9 @@ namespace MonoGame.PortableUI.Controls
             {
                 for (var index = from; index < to; index++)
                 {
-                    if (!kept.TryGetValue(index, out var row))
+                    var keptAt = index - oldFirst;
+                    var row = keptAt >= 0 && keptAt < previous.Count ? previous[keptAt] : null;
+                    if (row == null)
                     {
                         row = _pool.Count > 0 ? _pool.Pop() : _create();
                         row.Parent = this;
@@ -276,6 +285,7 @@ namespace MonoGame.PortableUI.Controls
             finally
             {
                 _realizing = false;
+                previous.Clear();
             }
 
             _first = from;

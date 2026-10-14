@@ -1068,7 +1068,8 @@ namespace MonoGame.PortableUI.Controls
             {
                 // The cell of the character at the caret: a 2-of-16-scanline underline when inserting,
                 // the whole cell when overwriting.
-                var cellWidth = MeasureText(CursorPosition < Text.Length && Text[CursorPosition] != '\n' ? Text.Substring(CursorPosition, 1) : "M").X * RenderScale.X;
+                // One character measured without a one-character string (drawn every frame while focused).
+                var cellWidth = MeasureCharWidth(CursorPosition < Text.Length && Text[CursorPosition] != '\n' ? Text[CursorPosition] : 'M') * RenderScale.X;
                 var cell = new Rect(cursorRect.Left, cursorRect.Top, Math.Max(1, cellWidth), cursorRect.Height);
                 if (!IsOverwriteMode)
                 {

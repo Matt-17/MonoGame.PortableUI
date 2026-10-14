@@ -306,10 +306,54 @@ namespace MonoGame.PortableUI
         /// </summary>
         internal void MarkHoverStale() => _hoverStale = true;
 
+        // Pointer, touch and drag arguments that come every frame are reused (no garbage per frame): an argument object is
+        // valid only while its handler runs; a handler that needs a value later copies it (Position is a struct).
+        private readonly List<MouseButton> _moveButtons = new List<MouseButton>(3);
+        private readonly List<MouseButton> _hoverButtons = new List<MouseButton>(1);
+        private readonly List<MouseButton> _capturedButtons = new List<MouseButton>(3);
+        private MouseEventArgs? _moveArgs, _hoverArgs, _capturedArgs;
+        private TouchEventArgs? _touchMoveArgs;
+        private DragEventArgs? _dragArgs;
+        private Control? _dropTarget;
+        private Action<Control, DragEventArgs>? _dropTargetAction;
+        private Func<Control, TouchEventArgs, bool>? _touchMovePredicate;
+
+        private static MouseEventArgs ReusePointerArgs(ref MouseEventArgs? args, List<MouseButton> buttons, PointF position, List<MouseButton>? pressed)
+        {
+            buttons.Clear();
+            if (pressed != null)
+                for (var i = 0; i < pressed.Count; i++)
+                    buttons.Add(pressed[i]);
+            args ??= new MouseEventArgs(position, buttons);
+            args.Position = position;
+            args.Buttons = buttons;
+            args.Handled = false;
+            return args;
+        }
+
+        private TouchEventArgs ReuseTouchArgs(PointF position)
+        {
+            var args = _touchMoveArgs ??= new TouchEventArgs(position);
+            args.Position = position;
+            args.Handled = false;
+            return args;
+        }
+
+        /// <summary>The drag's reused argument object for the per-frame probe, over and moved calls.</summary>
+        private DragEventArgs ReuseDragArgs(DragOperation drag, PointF position, DragDropEffects effect)
+        {
+            if (_dragArgs == null || !ReferenceEquals(_dragArgs.Operation, drag))
+                _dragArgs = new DragEventArgs(drag);
+            _dragArgs.Position = position;
+            _dragArgs.Effect = effect;
+            _dragArgs.Handled = false;
+            return _dragArgs;
+        }
+
         /// <summary>Leave what is no longer under the pointer, enter what now is — by hover state, not by edge crossing.</summary>
         private void RefreshHoverInPlace(Control content, PointF position)
         {
-            var args = new MouseEventArgs(position, new List<MouseButton>());
+            var args = ReusePointerArgs(ref _hoverArgs, _hoverButtons, position, null);
             LeaveControlsNotUnder(content, args);
             VisualTreeHelper.IterateVisualTree(content, args,
                 (c, a) => c.ClippingRect.Contains(a.Position) && !c.IsMouseHovering,
@@ -747,19 +791,23 @@ namespace MonoGame.PortableUI
                 return;
 
             if (_toolTip != null)
-            {
-                var toolTip = _toolTip;
-                toolTip.Parent = null;
-                _dismissingToolTip = toolTip;
-                AnimatePopupOut(toolTip, 0.98, new Vector2(0, 4), TimeSpan.FromMilliseconds(80), () =>
-                {
-                    if (_dismissingToolTip == toolTip)
-                        _dismissingToolTip = null;
-                });
-            }
+                DismissToolTip(_toolTip);
             _toolTip = null;
             _toolTipOwner = null;
             _toolTipText = null;
+        }
+
+        // Apart from ClearToolTip, which every pointer leave calls: the completion lambda captures the tooltip, and the
+        // compiler allocated its closure on entry to the method that declares it, a tooltip shown or not.
+        private void DismissToolTip(ToolTipPopup toolTip)
+        {
+            toolTip.Parent = null;
+            _dismissingToolTip = toolTip;
+            AnimatePopupOut(toolTip, 0.98, new Vector2(0, 4), TimeSpan.FromMilliseconds(80), () =>
+            {
+                if (_dismissingToolTip == toolTip)
+                    _dismissingToolTip = null;
+            });
         }
 
         internal bool IsToolTipVisibleFor(Control owner)
@@ -1502,8 +1550,7 @@ namespace MonoGame.PortableUI
             {
                 if (!RouteCapturedMouseMove(mousePosition, pressedMouseButtons))
                 {
-                    // Copy the scratch snapshot: args may be retained by handlers beyond this frame.
-                    var args = new MouseEventArgs(mousePosition, new List<MouseButton>(pressedMouseButtons));
+                    var args = ReusePointerArgs(ref _moveArgs, _moveButtons, mousePosition, pressedMouseButtons);
                     // Enter by hover state, not by crossing an edge: a list row recycled under the
                     // pointer (reset, then re-used for another item) must hover on the next move
                     // even though the pointer never left its rectangle.
@@ -1572,7 +1619,7 @@ namespace MonoGame.PortableUI
                 }
                 else
                 {
-                    var capturedArgs = new TouchEventArgs(touchPosition);
+                    var capturedArgs = ReuseTouchArgs(touchPosition);
                     if (touchState.State == TouchLocationState.Released)
                     {
                         scrollOwner.OnTouchUp(capturedArgs);
@@ -1598,9 +1645,11 @@ namespace MonoGame.PortableUI
             }
             if (hasTouch && touchState.State == TouchLocationState.Moved && touchPosition != LastTouchPosition)
             {
-                var args = new TouchEventArgs(touchPosition);
+                var args = ReuseTouchArgs(touchPosition);
+                // Made once: it reads LastTouchPosition through this screen, so an inline lambda was a new delegate per move.
+                _touchMovePredicate ??= (c, a) => c.ClippingRect.Contains(a.Position) || c.ClippingRect.Contains(LastTouchPosition);
                 VisualTreeHelper.IterateVisualTree(content, args,
-                    (c, a) => c.ClippingRect.Contains(a.Position) || c.ClippingRect.Contains(LastTouchPosition),
+                    _touchMovePredicate,
                     (c, a) =>
                     {
                         if (c.ClippingRect.Contains(a.Position))
@@ -2390,17 +2439,21 @@ namespace MonoGame.PortableUI
 
         internal void UpdateDrag(DragOperation drag, PointF position, Control content)
         {
-            Control? target = null;
-            var probe = new DragEventArgs(drag) { Position = position };
+            // The deepest AllowDrop control under the pointer (descendants are visited before their parents). The
+            // predicates read the position from the args and the action writes a field: made once, no closures per frame.
+            _dropTarget = null;
+            var probe = ReuseDragArgs(drag, position, DragDropEffects.None);
+            _dropTargetAction ??= (c, a) =>
+            {
+                _dropTarget = c;
+                a.Handled = true;
+            };
             VisualTreeHelper.IterateVisualTree(content, probe,
-                (c, a) => c.AllowDrop && c.ClippingRect.Contains(position),
-                (c, a) =>
-                {
-                    // Descendants are visited before their parents, so the deepest AllowDrop wins.
-                    target = c;
-                    a.Handled = true;
-                },
-                (c, a) => c.ClippingRect.Contains(position));
+                static (c, a) => c.AllowDrop && c.ClippingRect.Contains(a.Position),
+                _dropTargetAction,
+                static (c, a) => c.ClippingRect.Contains(a.Position));
+            var target = _dropTarget;
+            _dropTarget = null;
 
             if (!ReferenceEquals(target, drag.CurrentTarget))
             {
@@ -2417,7 +2470,7 @@ namespace MonoGame.PortableUI
 
             if (drag.CurrentTarget is { } current)
             {
-                var over = new DragEventArgs(drag) { Position = position, Effect = drag.LastEffect };
+                var over = ReuseDragArgs(drag, position, drag.LastEffect);
                 current.OnDragOver(over);
                 drag.LastEffect = over.Effect & drag.AllowedEffects;
             }
@@ -2426,7 +2479,7 @@ namespace MonoGame.PortableUI
                 drag.LastEffect = DragDropEffects.None;
             }
 
-            drag.RaiseMoved(new DragEventArgs(drag) { Position = position, Effect = drag.LastEffect });
+            drag.RaiseMoved(ReuseDragArgs(drag, position, drag.LastEffect));
 
             if (drag.DragVisual is { } ghost)
             {
@@ -2486,8 +2539,7 @@ namespace MonoGame.PortableUI
             if (_capturedMouseControl == null)
                 return false;
 
-            // Copy: `buttons` is the per-frame scratch list, but handlers may retain the args.
-            var args = new MouseEventArgs(position, new List<MouseButton>(buttons));
+            var args = ReusePointerArgs(ref _capturedArgs, _capturedButtons, position, buttons);
             return RouteCapturedMouseInput(args, MouseMoveAction);
         }
 

@@ -245,7 +245,9 @@ namespace MonoGame.PortableUI.Controls
                 var item = Items[i];
                 item.Parent = i == SelectedIndex ? this : null;
                 var button = _headerButtons[i];
-                button.Tag = i;
+                // Boxed only when the index changed: this runs on every layout pass.
+                if (button.Tag is not int tagged || tagged != i)
+                    button.Tag = i;
                 var headerText = string.IsNullOrEmpty(item.Header) ? $"Tab {i + 1}" : item.Header;
                 if (button.Text != headerText)
                     button.Text = headerText;

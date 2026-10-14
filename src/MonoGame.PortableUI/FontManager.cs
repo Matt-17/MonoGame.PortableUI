@@ -23,6 +23,12 @@ namespace MonoGame.PortableUI
         private const int DefaultSize = 14;
 
         private static Dictionary<string, SpriteFont>? Fonts { get; set; }
+
+        // The same fonts by (name, style, size), and the ones known to be missing: controls look their font up on every
+        // draw, and building the string key ("name-regular-14") was three strings per lookup, every frame.
+        private static readonly Dictionary<(string Font, FontStyle Style, int Size), SpriteFont> FontsByKey = new();
+        private static readonly HashSet<(string Font, FontStyle Style, int Size)> MissingFonts = new();
+        private static readonly HashSet<(string Font, FontStyle Style, int Size)> FallbackFonts = new();
         // Baked pixel size per loaded SpriteFont, so TextBlock can scale glyphs to its TextSize.
         private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<SpriteFont, object> FontSizes = new();
         private static readonly HashSet<string> RegisteredFonts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -109,6 +115,9 @@ namespace MonoGame.PortableUI
         public static void Reset()
         {
             Fonts = null;
+            FontsByKey.Clear();
+            MissingFonts.Clear();
+            FallbackFonts.Clear();
             DefaultFont = null;
             FontSizes.Clear();
             FontGame = null;
@@ -209,6 +218,12 @@ namespace MonoGame.PortableUI
             if (TryGetFont(font, out var spriteFont, style, size))
                 return spriteFont;
 
+            // A missing font is asked for every frame: after the first warning, fall back without building its key again.
+            if (font != null && !FallbackFonts.Add((font, style, size)))
+            {
+                EnsureDefaultFont();
+                return DefaultFont;
+            }
             var fontKey = CreateFontKey(font!, style, size);
             if (WarnedMissingFonts.Add(fontKey))
                 System.Diagnostics.Trace.TraceWarning($"MonoGame.PortableUI: font asset 'Fonts/{fontKey}' is not built; falling back to the default font. See the MonoGame.PortableUI.Themes ThemeContent/README.md for font setup.");
@@ -239,6 +254,15 @@ namespace MonoGame.PortableUI
 
         private static bool TryLoadFont(string font, FontStyle style, int size, out SpriteFont spriteFont)
         {
+            if (FontsByKey.TryGetValue((font, style, size), out var known))
+            {
+                spriteFont = known;
+                return true;
+            }
+            spriteFont = null!;
+            if (FontGame != null && MissingFonts.Contains((font, style, size)))
+                return false;
+
             if (Fonts == null)
                 Fonts = new Dictionary<string, SpriteFont>();
 
@@ -246,28 +270,33 @@ namespace MonoGame.PortableUI
             if (Fonts.TryGetValue(fontKey, out var cachedFont))
             {
                 spriteFont = cachedFont;
+                FontsByKey[(font, style, size)] = cachedFont;
                 return true;
             }
 
-            spriteFont = null!;
             if (FontGame == null)
                 return false;
 
             var assetName = $"Fonts/{fontKey}";
             if (CanProbeContentRoot && ContentRoot != null && !ContentAssetExists(ContentRoot, assetName))
+            {
+                MissingFonts.Add((font, style, size));
                 return false;
+            }
 
             try
             {
                 spriteFont = FontGame.Content.Load<SpriteFont>(assetName);
                 EnsureFallbackCharacter(spriteFont);
                 Fonts[fontKey] = spriteFont;
+                FontsByKey[(font, style, size)] = spriteFont;
                 FontSizes.AddOrUpdate(spriteFont, size);
                 return true;
             }
             catch when (!CanProbeContentRoot)
             {
                 // Some platforms do not expose content as files, so keep the legacy fallback there.
+                MissingFonts.Add((font, style, size));
                 return false;
             }
         }

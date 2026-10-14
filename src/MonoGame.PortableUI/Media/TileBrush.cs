@@ -52,27 +52,77 @@ namespace MonoGame.PortableUI.Media
                 yield return tile.DestinationRect;
         }
 
-        internal static IEnumerable<TileSegment> GetTileSegments(Rect targetRect, int sourceWidth, int sourceHeight, float scale)
+        /// <summary>
+        /// The tiles covering <paramref name="targetRect"/>, row by row. A struct enumerator, not an iterator: tile and
+        /// pattern brushes draw every frame, and an iterator was a new object per draw.
+        /// </summary>
+        internal static TileSegments GetTileSegments(Rect targetRect, int sourceWidth, int sourceHeight, float scale) =>
+            new TileSegments(targetRect, sourceWidth, sourceHeight, scale);
+
+        internal struct TileSegments
         {
-            if (targetRect.Width <= 0 || targetRect.Height <= 0 || sourceWidth <= 0 || sourceHeight <= 0)
-                yield break;
+            private readonly Rect _target;
+            private readonly int _sourceWidth, _sourceHeight;
+            private readonly float _scaleFactor, _tileWidth, _tileHeight;
+            private readonly bool _empty;
+            private float _top, _left;
+            private bool _started;
 
-            var scaleFactor = Math.Max(0.001f, scale);
-            var tileWidth = Math.Max(0.001f, sourceWidth * scaleFactor);
-            var tileHeight = Math.Max(0.001f, sourceHeight * scaleFactor);
-
-            for (var top = targetRect.Top; top < targetRect.Bottom; top += tileHeight)
+            public TileSegments(Rect targetRect, int sourceWidth, int sourceHeight, float scale)
             {
-                var height = Math.Min(tileHeight, targetRect.Bottom - top);
-                var sourceRectangleHeight = Math.Min(sourceHeight, Math.Max(1, (int)Math.Ceiling(height / scaleFactor)));
-                for (var left = targetRect.Left; left < targetRect.Right; left += tileWidth)
+                _target = targetRect;
+                _sourceWidth = sourceWidth;
+                _sourceHeight = sourceHeight;
+                _empty = targetRect.Width <= 0 || targetRect.Height <= 0 || sourceWidth <= 0 || sourceHeight <= 0;
+                _scaleFactor = Math.Max(0.001f, scale);
+                _tileWidth = Math.Max(0.001f, sourceWidth * _scaleFactor);
+                _tileHeight = Math.Max(0.001f, sourceHeight * _scaleFactor);
+                _top = targetRect.Top;
+                _left = targetRect.Left;
+                _started = false;
+                Current = default;
+            }
+
+            public TileSegment Current { get; private set; }
+
+            public readonly TileSegments GetEnumerator() => this;
+
+            /// <summary>All tiles at once (tests and one-off callers; drawing loops over the struct instead).</summary>
+            public readonly TileSegment[] ToArray()
+            {
+                var tiles = new List<TileSegment>();
+                foreach (var tile in this)
+                    tiles.Add(tile);
+                return tiles.ToArray();
+            }
+
+            // The rows from the top, each from the left edge, as nested loops would visit them.
+            public bool MoveNext()
+            {
+                if (_empty)
+                    return false;
+                while (true)
                 {
-                    var width = Math.Min(tileWidth, targetRect.Right - left);
-                    var sourceRectangleWidth = Math.Min(sourceWidth, Math.Max(1, (int)Math.Ceiling(width / scaleFactor)));
-                    if (width > 0 && height > 0)
-                        yield return new TileSegment(
-                            new Rectangle(0, 0, sourceRectangleWidth, sourceRectangleHeight),
-                            new Rect(left, top, width, height));
+                    if (_started)
+                        _left += _tileWidth;
+                    _started = true;
+                    if (_left >= _target.Right)
+                    {
+                        _top += _tileHeight;
+                        _left = _target.Left;
+                    }
+                    if (_top >= _target.Bottom)
+                        return false;
+                    if (_left >= _target.Right)
+                        continue;
+                    var height = Math.Min(_tileHeight, _target.Bottom - _top);
+                    var width = Math.Min(_tileWidth, _target.Right - _left);
+                    if (width <= 0 || height <= 0)
+                        continue;
+                    var sourceRectangleHeight = Math.Min(_sourceHeight, Math.Max(1, (int)Math.Ceiling(height / _scaleFactor)));
+                    var sourceRectangleWidth = Math.Min(_sourceWidth, Math.Max(1, (int)Math.Ceiling(width / _scaleFactor)));
+                    Current = new TileSegment(new Rectangle(0, 0, sourceRectangleWidth, sourceRectangleHeight), new Rect(_left, _top, width, height));
+                    return true;
                 }
             }
         }

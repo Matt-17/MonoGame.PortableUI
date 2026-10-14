@@ -129,6 +129,9 @@ namespace MonoGame.PortableUI
             return true;
         }
 
+        private readonly System.Collections.Generic.List<RenderTargetBinding[]?> _layerTargetBuffers = new System.Collections.Generic.List<RenderTargetBinding[]?>();
+        private int _layerDepth;
+
         private bool RenderLayer(SpriteBatch spriteBatch, ScreenEngine engine, Control control, RenderContext parentContext, int left, int top, int width, int height)
         {
             var cache = engine.AcquireLayerCache(control);
@@ -146,8 +149,14 @@ namespace MonoGame.PortableUI
                 cache.Height = height;
             }
 
-            RenderTargetBinding[]? buffer = null; // per call: layers nest
+            // One snapshot buffer per nesting depth (layers nest), kept: a new one per re-render was garbage per frame for
+            // an animated layer.
+            if (_layerTargetBuffers.Count <= _layerDepth)
+                _layerTargetBuffers.Add(null);
+            var buffer = _layerTargetBuffers[_layerDepth];
             var previousTargets = RenderTargetHelper.SnapshotRenderTargets(device, ref buffer);
+            _layerTargetBuffers[_layerDepth] = buffer;
+            _layerDepth++;
             var oldScissor = device.ScissorRectangle;
             var requestsBefore = engine.AnimationFrameRequests;
             var outerEarliest = engine.EarliestAnimationFrameAt;
@@ -163,6 +172,7 @@ namespace MonoGame.PortableUI
             }
             finally
             {
+                _layerDepth--;
                 _layerInProgress = outerLayer;
                 if (previousTargets.Length == 0)
                     device.SetRenderTarget(null);

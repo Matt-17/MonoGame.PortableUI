@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+## 0.4.0-alpha.7
+
+No garbage per frame: a game runs for hours, and a UI that allocates every frame brings garbage collections and their stutter. Measured with the new demo mode `--benchmark-garbage` (every theme and tab, pointer resting and moving) and guarded by `NoGarbageTests` (update path with a moving pointer: 0 bytes). Before, the bundled themes made 0.3-19 KB per frame (Aqua 19 KB, Fantasy and Luna 11 KB, Glass 7 KB). **Breaking:** pointer, touch and drag event arguments are reused (see below).
+
+- **Gradient brushes:** the cache key of every linear and radial gradient sorted its stops through LINQ on every draw (several objects per gradient per frame, the bulk of it). The stops are now hashed in offset order on the stack.
+- **Event arguments are reused (breaking):** the `MouseEventArgs` of pointer moves, hover refreshes and captured moves, the `TouchEventArgs` of touch moves and the `DragEventArgs` of drag probes, over and moved calls are one object per screen, valid only while the handler runs. A handler that keeps a value copies it (`Position` is a struct; copy `Buttons` if needed). Button, wheel, key and enter/leave edges still get fresh arguments.
+- **Layout pass only when needed:** setting `TextBlock.Text` to a text of the same measured size on one line (a clock, a score) no longer re-lays out the whole tree; it only redraws. A HUD label changing every frame ran a full layout pass and a hover refresh every frame.
+- **Children enumerate without boxing:** `ControlCollection.GetEnumerator()` returns `List<Control>.Enumerator` (the interfaces stay implemented), so `foreach` over a panel's children allocates nothing; the library's own loops over realized list rows use the list directly.
+- **Brushes and glyphs:** tile, pattern and nine-tile brushes and the check box mark compute their pieces without iterators; the pattern brush's cache lookup no longer allocates the miss-path closure; shadows at a render scale other than 1 (HiDPI, pressed buttons, zooming popups) no longer copy their style; `DrawingContext` and `Primitives.Pixel` no longer allocate their first-use closures on every call.
+- **Fonts:** looked-up fonts are cached by (name, style, size) instead of a string key built per lookup; a missing font falls back without rebuilding its key every frame (it still warns once).
+- **Smaller ones:** text-mode caret width without a one-character string; layer re-renders keep one render-target snapshot buffer per nesting depth; list virtualization keeps rows without a dictionary per scroll step; list selection cleanup without a lambda; list rows box their index only when it changes; the touch-move hit predicate is made once.
+
 ## 0.4.0-alpha.6
 
 - **No allocation per solid fill:** `Primitives.Pixel(GraphicsDevice)` - behind every `SolidColorBrush`, rounded rectangle and `Primitives.Fill` - allocated a closure on every call, the cached path included: the lambda registered for device resets captured the device parameter, and C# allocates such a closure on entry to the method. A host with 50 surfaces made a few kilobytes of garbage per frame from it. The first-use path now lives in a method of its own.

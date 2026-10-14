@@ -42,14 +42,25 @@ namespace MonoGame.PortableUI.Media
                 return;
 
             var tint = ApplyOpacity(TintColor, opacity);
-            foreach (var segment in GetSegments(rect, Source.Width, Source.Height, SliceMargins))
-                spriteBatch.Draw(Source, segment.DestinationRect, segment.SourceRectangle, tint);
+            // On the stack: a nine-tile brush draws every frame, and an iterator with its slice tables was garbage per draw.
+            Span<NineTileSegment> segments = stackalloc NineTileSegment[9];
+            var count = FillSegments(rect, Source.Width, Source.Height, SliceMargins, segments);
+            for (var i = 0; i < count; i++)
+                spriteBatch.Draw(Source, segments[i].DestinationRect, segments[i].SourceRectangle, tint);
         }
 
-        internal static IEnumerable<NineTileSegment> GetSegments(Rect targetRect, int sourceWidth, int sourceHeight, Thickness sliceMargins)
+        /// <summary>The segments as an array (tests and one-off callers).</summary>
+        internal static NineTileSegment[] GetSegments(Rect targetRect, int sourceWidth, int sourceHeight, Thickness sliceMargins)
+        {
+            Span<NineTileSegment> segments = stackalloc NineTileSegment[9];
+            return segments[..FillSegments(targetRect, sourceWidth, sourceHeight, sliceMargins, segments)].ToArray();
+        }
+
+        /// <summary>Writes the up to nine segments into <paramref name="segments"/>, row by row; returns how many.</summary>
+        internal static int FillSegments(Rect targetRect, int sourceWidth, int sourceHeight, Thickness sliceMargins, Span<NineTileSegment> segments)
         {
             if (targetRect.Width <= 0 || targetRect.Height <= 0 || sourceWidth <= 0 || sourceHeight <= 0)
-                yield break;
+                return 0;
 
             var sourceLeft = Clamp(sliceMargins.Left, 0, sourceWidth);
             var sourceRight = Clamp(sliceMargins.Right, 0, sourceWidth - sourceLeft);
@@ -59,31 +70,32 @@ namespace MonoGame.PortableUI.Media
             var targetHorizontal = FitEdges(sourceLeft, sourceRight, targetRect.Width);
             var targetVertical = FitEdges(sourceTop, sourceBottom, targetRect.Height);
 
-            var sourceColumns = new[]
-            {
+            ReadOnlySpan<SourceSlice> sourceColumns =
+            [
                 new SourceSlice(0, sourceLeft),
                 new SourceSlice(sourceLeft, sourceWidth - sourceLeft - sourceRight),
                 new SourceSlice(sourceWidth - sourceRight, sourceRight)
-            };
-            var sourceRows = new[]
-            {
+            ];
+            ReadOnlySpan<SourceSlice> sourceRows =
+            [
                 new SourceSlice(0, sourceTop),
                 new SourceSlice(sourceTop, sourceHeight - sourceTop - sourceBottom),
                 new SourceSlice(sourceHeight - sourceBottom, sourceBottom)
-            };
-            var targetColumns = new[]
-            {
+            ];
+            ReadOnlySpan<TargetSlice> targetColumns =
+            [
                 new TargetSlice(targetRect.Left, targetHorizontal.First),
                 new TargetSlice(targetRect.Left + targetHorizontal.First, targetRect.Width - targetHorizontal.First - targetHorizontal.Second),
                 new TargetSlice(targetRect.Right - targetHorizontal.Second, targetHorizontal.Second)
-            };
-            var targetRows = new[]
-            {
+            ];
+            ReadOnlySpan<TargetSlice> targetRows =
+            [
                 new TargetSlice(targetRect.Top, targetVertical.First),
                 new TargetSlice(targetRect.Top + targetVertical.First, targetRect.Height - targetVertical.First - targetVertical.Second),
                 new TargetSlice(targetRect.Bottom - targetVertical.Second, targetVertical.Second)
-            };
+            ];
 
+            var count = 0;
             for (var row = 0; row < 3; row++)
             {
                 if (sourceRows[row].Length <= 0 || targetRows[row].Length <= 0)
@@ -94,7 +106,7 @@ namespace MonoGame.PortableUI.Media
                     if (sourceColumns[column].Length <= 0 || targetColumns[column].Length <= 0)
                         continue;
 
-                    yield return new NineTileSegment(
+                    segments[count++] = new NineTileSegment(
                         new Rectangle(
                             (int)Math.Round(sourceColumns[column].Start),
                             (int)Math.Round(sourceRows[row].Start),
@@ -107,6 +119,7 @@ namespace MonoGame.PortableUI.Media
                             targetRows[row].Length));
                 }
             }
+            return count;
         }
 
         private static EdgePair FitEdges(float first, float second, float available)
