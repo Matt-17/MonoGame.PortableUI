@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **`Control.TransformOrigin`:** the pivot of `Scale`, relative to the control's box (default `(0.5, 0.5)`, the centre; `(0.5, 1)` squashes toward the bottom edge). The drop-down flyout now grows from its top edge through the origin instead of a compensating `Translation`.
+
 ## 0.4.0-alpha.7
 
 No garbage per frame: a game runs for hours, and a UI that allocates every frame brings garbage collections and their stutter. Measured with the new demo mode `--benchmark-garbage` (every theme and tab, pointer resting and moving) and guarded by `NoGarbageTests` (update path with a moving pointer: 0 bytes). Before, the bundled themes made 0.3-19 KB per frame (Aqua 19 KB, Fantasy and Luna 11 KB, Glass 7 KB). **Breaking:** pointer, touch and drag event arguments are reused (see below).
