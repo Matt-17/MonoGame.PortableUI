@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.4.0-alpha.8
+
+Motion, sound and fonts: springs, squash & stretch, chained and implicit animations that glide with subpixel precision (or step in whole pixels for pixel-art themes); UI sound and haptics as first-class events with per-theme sets; and themes on runtime TTF fonts with crisp pixel fonts. Behaviour changes: theme state colours (hover, pressed) now fade over the style's `TransitionDuration`; `Squash()` is a spring impulse instead of a jump; runtime (`FontStashUIFont`) text sizes now match SpriteFont em sizes (about 20 % larger than before); `IUiHapticPlayer.Play` and the new APIs are still preview-quality.
 
 - **Themes on runtime TTF fonts:** `FontManager.RegisterDynamicFont(name, ...)` / `RegisterDynamicFontFile(name, path)` maps a theme font name to a TTF/OTF, loaded on first use; every theme naming it then draws with FontStashSharp instead of its baked SpriteFont (sharp at any size, text scale and HiDPI; any character the font has). `Typography.ResolveDynamicFont()` resolves it (a theme's `DynamicFont` and a control's own still win; unregistered names keep the SpriteFont). The demo registers all bundled fonts (`--sprite-fonts` for the old path) and the Android demo ships them as assets.
 - **Font sizes match the SpriteFonts:** `FontStashUIFont` now converts em sizes to FontStashSharp's full-height sizes (`HeightPerEm`, read from the font) - before, runtime text was about 20 % smaller than the same `TextSize` in a SpriteFont.
