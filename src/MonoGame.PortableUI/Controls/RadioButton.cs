@@ -61,6 +61,9 @@ namespace MonoGame.PortableUI.Controls
 
         protected override ShadowStyle? GetThemeShadow(PortableTheme theme) => null;
 
+        // A radio button only ever turns on.
+        protected override Audio.UiSound? GetPressSound() => Audio.UiSound.ToggleOn;
+
         protected override void OnToggleClick()
         {
             // Clicking the selected radio keeps it selected; only an unchecked one toggles on.
