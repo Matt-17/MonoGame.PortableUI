@@ -1669,11 +1669,48 @@ namespace MonoGame.PortableUI.Controls
             _animations.Remove(animation);
         }
 
-        internal void SetRenderState(float opacity, Vector2 scale)
+        internal void SetRenderState(float opacity, Vector2 scale, bool moving = false, Vector2? restScale = null)
         {
             RenderOpacity = opacity;
             RenderScale = scale;
+            DrawsSubpixel = false;
+            if (!moving)
+                return;
+            if (!ResolveTheme().PixelMotion)
+            {
+                DrawsSubpixel = true;
+                return;
+            }
+
+            // Pixel motion: the motion's share of the scale in whole multiples, so pixel fonts and
+            // line widths stay crisp (a pixel font at 1.03x is smeared, at 1x or 2x it is sharp).
+            var rest = restScale ?? scale;
+            RenderScale = new Vector2(PixelStep(scale.X, rest.X), PixelStep(scale.Y, rest.Y));
         }
+
+        private static float PixelStep(float scale, float rest)
+        {
+            if (rest <= 0)
+                return scale;
+            var motion = scale / rest;
+            // Shrinking away (a pop-out, a fade to nothing) keeps its smooth scale.
+            return motion < 0.75f ? scale : rest * Math.Max(1, MathF.Round(motion));
+        }
+
+        /// <summary>
+        ///     True while this frame draws the control in motion with subpixel precision: it or an ancestor
+        ///     animates, transitions, squashes or breathes, and the theme does not ask for
+        ///     <see cref="PortableTheme.PixelMotion"/>. Shapes and text then sit at their exact fractional
+        ///     positions (anti-aliased) instead of snapping to whole pixels, so motion glides.
+        /// </summary>
+        protected internal bool DrawsSubpixel { get; private set; }
+
+        /// <summary>Whether drawing snaps to whole pixels now: <see cref="SnapToPixel"/>, except while the
+        /// control moves with subpixel precision (<see cref="DrawsSubpixel"/>).</summary>
+        protected bool SnapsDrawing => SnapToPixel && !DrawsSubpixel;
+
+        /// <summary>A render-only motion is running on this control right now.</summary>
+        internal bool IsInMotion => _animations.Count > 0 || IsTransitioning || IsMotionDeformed;
 
         protected internal virtual void OnGotFocus(GotFocusEventArgs args)
         {

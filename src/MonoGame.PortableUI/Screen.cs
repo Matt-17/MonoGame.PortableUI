@@ -986,13 +986,15 @@ namespace MonoGame.PortableUI
                 return;
 
             var oldRect = new Rect(spriteBatch.GraphicsDevice.ScissorRectangle);
-            control.SetRenderState(context.Opacity, context.Scale);
+            control.SetRenderState(context.Opacity, context.Scale, context.Moving, context.RestScale);
             spriteBatch.GraphicsDevice.ScissorRectangle = ToScissorRectangle(context.ScissorRect);
             if (control.NeedsDrawPass)
             {
+                RoundedRectRenderer.Subpixel = control.DrawsSubpixel;
                 _controlBatchEffect = ScreenEngine?.Options.Effect;
                 spriteBatch.Begin(SpriteSortMode.Deferred, samplerState: SamplerStateFor(control), rasterizerState: ScissorRasterizer, effect: ScreenEngine?.Options.Effect);
                 control.OnDraw(spriteBatch, context.RenderRect);
+                RoundedRectRenderer.Subpixel = false;
                 spriteBatch.End();
                 ScreenEngine?.RecordBatchFlush();
             }
@@ -1004,9 +1006,11 @@ namespace MonoGame.PortableUI
 
             if (control.NeedsOverlayPass)
             {
+                RoundedRectRenderer.Subpixel = control.DrawsSubpixel;
                 spriteBatch.GraphicsDevice.ScissorRectangle = ToScissorRectangle(context.ScissorRect);
                 spriteBatch.Begin(SpriteSortMode.Deferred, samplerState: SamplerStateFor(control), rasterizerState: ScissorRasterizer, effect: ScreenEngine?.Options.Effect);
                 control.OnDrawOverlay(spriteBatch, context.RenderRect);
+                RoundedRectRenderer.Subpixel = false;
                 spriteBatch.End();
                 ScreenEngine?.RecordBatchFlush();
             }
@@ -1322,8 +1326,10 @@ namespace MonoGame.PortableUI
         {
             private readonly Matrix _transform;
 
-            private RenderContext(Matrix transform, Vector2 scale, float opacity, Rect scissorRect, Rect childClipRect, Rect renderRect)
+            private RenderContext(Matrix transform, Vector2 scale, float opacity, Rect scissorRect, Rect childClipRect, Rect renderRect, bool moving = false, Vector2? restScale = null)
             {
+                Moving = moving;
+                RestScale = restScale ?? scale;
                 _transform = transform;
                 Scale = scale;
                 Opacity = opacity;
@@ -1334,6 +1340,10 @@ namespace MonoGame.PortableUI
 
             public Vector2 Scale { get; }
             public float Opacity { get; }
+            /// <summary>This control or an ancestor is in motion (animation, transition, squash, breathing).</summary>
+            public bool Moving { get; }
+            /// <summary>The scale without the controls' own Scale and squash (layout scale, popup zoom).</summary>
+            public Vector2 RestScale { get; }
             public Matrix Transform => _transform;
             public Rect ScissorRect { get; }
             public Rect ChildClipRect { get; }
@@ -1367,7 +1377,7 @@ namespace MonoGame.PortableUI
                 var stretch = control.StretchDiagonal;
                 var scale = new Vector2(Scale.X * control.ShownScale.X * stretch.X, Scale.Y * control.ShownScale.Y * stretch.Y);
                 var opacity = Opacity * MathHelper.Clamp((float)control.ShownOpacity, 0, 1);
-                return new RenderContext(transform, scale, opacity, scissorRect, childClipRect, renderRect);
+                return new RenderContext(transform, scale, opacity, scissorRect, childClipRect, renderRect, Moving || control.IsInMotion, RestScale);
             }
 
             /// <summary>How far a control draws past its own rect, in layout units: drop shadows, the
@@ -1403,7 +1413,7 @@ namespace MonoGame.PortableUI
             {
                 var layer = new Rect(0, 0, width, height);
                 return new RenderContext(_transform * Matrix.CreateTranslation(offsetX, offsetY, 0), Scale, Opacity,
-                    Shift(ScissorRect, offsetX, offsetY) ^ layer, Shift(ChildClipRect, offsetX, offsetY) ^ layer, Shift(RenderRect, offsetX, offsetY));
+                    Shift(ScissorRect, offsetX, offsetY) ^ layer, Shift(ChildClipRect, offsetX, offsetY) ^ layer, Shift(RenderRect, offsetX, offsetY), Moving, RestScale);
             }
 
             private static Rect Shift(Rect rect, float x, float y) => new Rect(rect.Left + x, rect.Top + y, rect.Width, rect.Height);
@@ -1415,7 +1425,7 @@ namespace MonoGame.PortableUI
             public RenderContext ForLayer(float offsetX, float offsetY, int width, int height)
             {
                 var layer = new Rect(0, 0, width, height);
-                return new RenderContext(_transform * Matrix.CreateTranslation(offsetX, offsetY, 0), Scale, 1, layer, layer, layer);
+                return new RenderContext(_transform * Matrix.CreateTranslation(offsetX, offsetY, 0), Scale, 1, layer, layer, layer, Moving, RestScale);
             }
 
             private static Rect TransformRect(Rect rect, Matrix transform)

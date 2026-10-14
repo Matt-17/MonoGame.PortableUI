@@ -35,6 +35,10 @@ public static class AmigaTheme
         };
 
         return ThemeBuilder.CreateDefinition("amiga", "Amiga Workbench", "jersey10", ThemeEra.Desktop, ThemeBrightness.Light, palette, gray,
-            styleTheme: theme => ThemeBuilder.Bevel(theme, panel, Color.White, panel, panel, Color.Black));
+            styleTheme: theme =>
+            {
+                theme.PixelMotion = true; // motion steps in whole pixels, like sprites
+                ThemeBuilder.Bevel(theme, panel, Color.White, panel, panel, Color.Black);
+            });
     }
 }
