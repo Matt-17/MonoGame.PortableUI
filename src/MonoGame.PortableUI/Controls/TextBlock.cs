@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using MonoGame.PortableUI.Animation;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Media;
 using MonoGame.PortableUI.Text;
@@ -168,6 +169,41 @@ namespace MonoGame.PortableUI.Controls
                 return;
             _textColor = value;
             InvalidateLayout(false);
+        }
+
+        private ColorFade? _textColorFade;
+        private Transition? _ownerTextTransition;
+
+        /// <summary>Duration of the fade when a control that owns this block (a button's label) pushes
+        /// a per-state <see cref="TextColor"/>; zero = none. A <c>Transitions</c> entry wins.</summary>
+        internal TimeSpan OwnerTextColorTransition { get; set; }
+
+        /// <summary>The text colour to draw now: <see cref="TextColor"/>, or a fade to it while an implicit
+        /// <see cref="TransitionProperty.TextColor"/> transition runs (asks for the next frame then).</summary>
+        protected Color DrawnTextColor
+        {
+            get
+            {
+                var spec = ResolveColorTransition(TransitionProperty.TextColor)
+                    ?? StateTransitionFor(ref _ownerTextTransition, OwnerTextColorTransition);
+                if (spec == null && _textColorFade == null)
+                    return _textColor;
+                _textColorFade ??= new ColorFade();
+                return _textColorFade.Resolve(_textColor, spec, ScreenSystem.TotalTime, ThemeVersion.Current);
+            }
+        }
+
+        /// <summary>Sets the colour without a fade (explicit animations drive it frame by frame).</summary>
+        internal void SetTextColorShown(Color value)
+        {
+            TextColor = value;
+            _textColorFade?.Snap();
+        }
+
+        internal override void OnCompleteTransitions()
+        {
+            base.OnCompleteTransitions();
+            _textColorFade?.Snap();
         }
 
         /// <summary>Sets <see cref="TextColor"/> to a theme value, keeping it theme-driven so the
@@ -696,7 +732,7 @@ namespace MonoGame.PortableUI.Controls
             if (_textFill is LinearGradientBrush gradient && gradient.Stops.Count > 1)
                 DrawGradientFill(spriteBatch, text, offset, gradient);
             else
-                DrawText(spriteBatch, text, offset, Brush.ApplyOpacity(_textFill is SolidColorBrush solid ? solid.Color : TextColor, RenderOpacity));
+                DrawText(spriteBatch, text, offset, Brush.ApplyOpacity(_textFill is SolidColorBrush solid ? solid.Color : DrawnTextColor, RenderOpacity));
         }
 
         private const int MaxFillBands = 64;

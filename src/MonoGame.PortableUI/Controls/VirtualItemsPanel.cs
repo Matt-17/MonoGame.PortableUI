@@ -278,6 +278,8 @@ namespace MonoGame.PortableUI.Controls
                         row = _pool.Count > 0 ? _pool.Pop() : _create();
                         row.Parent = this;
                         _bind(row, index);
+                        // A recycled row shows its new item at once, not as a fade from the old one.
+                        row.CompleteTransitions();
                     }
                     _realized.Add(row);
                 }

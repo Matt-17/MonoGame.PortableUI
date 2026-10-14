@@ -281,6 +281,11 @@ namespace MonoGame.PortableUI.Demo
                 InputSource = PortableUI.Input.NullInputSource.Instance
             };
             screen.TrySelectTab("motion");
+            if (string.Equals(_runOptions.MotionRecordTimeline, "transitions", StringComparison.OrdinalIgnoreCase))
+            {
+                RecordTransitions(directory, screen, surface);
+                return;
+            }
 
             (double At, string Motion)[] timeline =
             [
@@ -305,6 +310,74 @@ namespace MonoGame.PortableUI.Demo
                 var elapsed = (time - start).TotalSeconds;
                 while (next < timeline.Length && timeline[next].At <= elapsed)
                     screen.PlayMotion(timeline[next++].Motion);
+                time += step;
+                surface.Update(new GameTime(time, step));
+                var target = surface.Draw(new GameTime(time, step));
+                GraphicsDevice.SetRenderTarget(null);
+                using var stream = File.Create(Path.Combine(directory, $"frame_{frame:D4}.png"));
+                target.SaveAsPng(stream, target.Width, target.Height);
+            }
+        }
+
+        /// <summary>
+        ///     --record-timeline transitions: a scripted pointer hovers and clicks the transition demo, so the
+        ///     theme's hover fades and the retargeting springs show in the frames.
+        /// </summary>
+        private void RecordTransitions(string directory, MainScreen screen, UISurface surface)
+        {
+            var input = new PortableUI.Input.VirtualInputSource();
+            surface.InputSource = input;
+            surface.ShowSoftwareCursor = true;
+
+            // (time, target, offset from its centre, left button down)
+            (double At, string Target, Vector2 Offset, bool Down)[] path =
+            [
+                (0.0, "set", new Vector2(-40, -150), false),
+                (0.7, "set", Vector2.Zero, false),
+                (1.0, "set", Vector2.Zero, true), (1.1, "set", Vector2.Zero, false),
+                (2.0, "set", Vector2.Zero, true), (2.1, "set", Vector2.Zero, false),
+                (2.4, "set", Vector2.Zero, true), (2.5, "set", Vector2.Zero, false),
+                (3.4, "set", Vector2.Zero, true), (3.5, "set", Vector2.Zero, false),
+                (4.4, "hoverA", Vector2.Zero, false),
+                (4.9, "hoverA", Vector2.Zero, false),
+                (5.3, "hoverB", Vector2.Zero, false),
+                (5.8, "hoverB", Vector2.Zero, false),
+                (6.3, "set", Vector2.Zero, false),
+                (6.5, "set", Vector2.Zero, true), (6.6, "set", Vector2.Zero, false),
+                (7.4, "set", new Vector2(-40, -150), false),
+                (8.2, "set", new Vector2(-40, -150), false)
+            ];
+            const int fps = 30;
+            var step = TimeSpan.FromSeconds(1.0 / fps);
+            var time = TimeSpan.FromSeconds(1);
+            for (var i = 0; i < 3; i++)
+            {
+                time += step;
+                surface.Update(new GameTime(time, step));
+            }
+
+            Vector2 PointAt(int index)
+            {
+                var rect = screen.MotionTargetRect(path[index].Target) ?? default;
+                return new Vector2(rect.Left + rect.Width / 2, rect.Top + rect.Height / 2) + path[index].Offset;
+            }
+
+            var start = time;
+            var seconds = path[^1].At;
+            for (var frame = 0; frame < seconds * fps; frame++)
+            {
+                var elapsed = (time - start).TotalSeconds;
+                var next = 1;
+                while (next < path.Length - 1 && path[next].At <= elapsed)
+                    next++;
+                var previous = next - 1;
+                var span = path[next].At - path[previous].At;
+                var t = span <= 0 ? 1 : Math.Clamp((elapsed - path[previous].At) / span, 0, 1);
+                // Ease the pointer like a hand: slow start, slow stop.
+                t = t * t * (3 - 2 * t);
+                var point = Vector2.Lerp(PointAt(previous), PointAt(next), (float)t);
+                input.SetPointer(new PortableUI.Common.PointF(point.X, point.Y), leftDown: path[previous].Down);
+
                 time += step;
                 surface.Update(new GameTime(time, step));
                 var target = surface.Draw(new GameTime(time, step));
