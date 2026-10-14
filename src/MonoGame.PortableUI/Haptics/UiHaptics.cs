@@ -43,7 +43,8 @@ namespace MonoGame.PortableUI.Haptics
 
         /// <param name="haptic">The pulse.</param>
         /// <param name="intensity">0..1 (backends without strength control ignore it).</param>
-        void Play(UiHaptic haptic, float intensity);
+        /// <param name="length">Length factor of the pulse (1 = default; system patterns ignore it).</param>
+        void Play(UiHaptic haptic, float intensity, float length);
 
         /// <summary>Every engine update: backends that time their own pulses (rumble) stop them here.</summary>
         void Update(TimeSpan now);
@@ -56,11 +57,13 @@ namespace MonoGame.PortableUI.Haptics
     ///     Haptic feedback for the same events as <see cref="UiSoundService"/> (<c>engine.Haptics</c>),
     ///     independent of sound: on the device the user is using - the phone for touch, the gamepad for
     ///     gamepad input, nothing for mouse and keyboard. Add backends to <see cref="Players"/>.
-    ///     <c>control.Sounds.MuteHaptics</c> silences a subtree.
+    ///     <c>control.Sounds.MuteHaptics</c> silences a subtree. Which pulse an event gets comes from the theme
+    ///     of its control (<see cref="PortableTheme.Haptics"/>) unless the engine overrides it.
     /// </summary>
     public sealed class UiHapticService
     {
-        private readonly UiHaptic[] _map = new UiHaptic[UiSoundService.Count];
+        // Engine-level choices per event; null = the theme's set decides.
+        private readonly UiHaptic?[] _overrides = new UiHaptic?[UiSoundService.Count];
         private readonly TimeSpan[] _lastPlayed = new TimeSpan[(int)UiHaptic.Double + 1];
         private float _intensity = 1;
 
@@ -71,19 +74,6 @@ namespace MonoGame.PortableUI.Haptics
             _engine = engine;
             for (var i = 0; i < _lastPlayed.Length; i++)
                 _lastPlayed[i] = TimeSpan.MinValue;
-            SetHaptic(UiSound.Click, UiHaptic.Click);
-            SetHaptic(UiSound.ToggleOn, UiHaptic.Click);
-            SetHaptic(UiSound.ToggleOff, UiHaptic.Click);
-            SetHaptic(UiSound.Select, UiHaptic.Tick);
-            SetHaptic(UiSound.FocusMove, UiHaptic.Tick);
-            SetHaptic(UiSound.Tick, UiHaptic.Tick);
-            SetHaptic(UiSound.Open, UiHaptic.Tap);
-            SetHaptic(UiSound.Back, UiHaptic.Tap);
-            SetHaptic(UiSound.Error, UiHaptic.Double);
-            // Hover has no device to buzz; close follows a choice; the system keyboard has its own typing feedback.
-            SetHaptic(UiSound.Hover, UiHaptic.None);
-            SetHaptic(UiSound.Close, UiHaptic.None);
-            SetHaptic(UiSound.Type, UiHaptic.None);
         }
 
         /// <summary>The backends; each answers the input devices it <see cref="IUiHapticPlayer.Supports"/>.</summary>
@@ -98,16 +88,32 @@ namespace MonoGame.PortableUI.Haptics
             set => _intensity = Math.Clamp(value, 0, 1);
         }
 
-        /// <summary>The pulse for an event (defaults: clicks and toggles click, steps tick, errors buzz twice).</summary>
-        public UiHaptic GetHaptic(UiSound sound) => _map[(int)sound];
+        /// <summary>The pulse for an event in this engine: an engine choice (<see cref="SetHaptic"/>), else the
+        /// app theme's <see cref="PortableTheme.Haptics"/> set. Controls follow their own theme (islands).</summary>
+        public UiHaptic GetHaptic(UiSound sound) => _overrides[(int)sound] ?? ThemeSet(null).Get(sound);
 
-        public void SetHaptic(UiSound sound, UiHaptic haptic) => _map[(int)sound] = haptic;
+        /// <summary>Overrides the pulse of an event for every theme of this engine (<see cref="ClearHaptic"/> undoes it).</summary>
+        public void SetHaptic(UiSound sound, UiHaptic haptic) => _overrides[(int)sound] = haptic;
+
+        /// <summary>Lets the theme decide the pulse of <paramref name="sound"/> again.</summary>
+        public void ClearHaptic(UiSound sound) => _overrides[(int)sound] = null;
+
+        private UiHapticSet ThemeSet(Control? source)
+        {
+            var theme = source != null ? source.ResolveTheme() : _engine?.Options.Theme ?? PortableTheme.ResolveCurrent();
+            return theme.ResolveHaptics();
+        }
 
         /// <summary>Fires the pulse of <paramref name="sound"/> for <paramref name="source"/> on <paramref name="device"/>.</summary>
         public bool Play(UiSound sound, Control? source, UiInputDevice device)
         {
-            var haptic = _map[(int)sound];
-            if (!IsEnabled || haptic == UiHaptic.None || _intensity <= 0 || Players.Count == 0 || device == UiInputDevice.None)
+            if (!IsEnabled || _intensity <= 0 || Players.Count == 0 || device == UiInputDevice.None)
+                return false;
+
+            var set = ThemeSet(source);
+            var haptic = _overrides[(int)sound] ?? set.Get(sound);
+            var intensity = _intensity * set.Intensity;
+            if (haptic == UiHaptic.None || intensity <= 0)
                 return false;
 
             for (var element = (FrameworkElement?)source; element != null; element = element.Parent)
@@ -128,7 +134,7 @@ namespace MonoGame.PortableUI.Haptics
                 var player = Players[i];
                 if (!player.Supports(device))
                     continue;
-                player.Play(haptic, _intensity);
+                player.Play(haptic, intensity, set.Length);
                 played = true;
             }
 

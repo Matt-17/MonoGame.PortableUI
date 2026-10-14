@@ -25,8 +25,13 @@ namespace MonoGame.PortableUI.Tests
             public RecordingHaptics(UiInputDevice device) => _device = device;
 
             public readonly List<UiHaptic> Played = new List<UiHaptic>();
+            public readonly List<(float Intensity, float Length)> Shapes = new List<(float, float)>();
             public bool Supports(UiInputDevice device) => device == _device;
-            public void Play(UiHaptic haptic, float intensity) => Played.Add(haptic);
+            public void Play(UiHaptic haptic, float intensity, float length)
+            {
+                Played.Add(haptic);
+                Shapes.Add((intensity, length));
+            }
             public void Update(TimeSpan now)
             {
             }
@@ -45,11 +50,11 @@ namespace MonoGame.PortableUI.Tests
         [TestCleanup]
         public void Cleanup() => _game?.Dispose();
 
-        private (ScreenEngine Engine, TestScreen Screen, VirtualInputSource Source, RecordingHaptics Touch, RecordingHaptics Pad) Create(Control content)
+        private (ScreenEngine Engine, TestScreen Screen, VirtualInputSource Source, RecordingHaptics Touch, RecordingHaptics Pad) Create(Control content, PortableTheme? theme = null)
         {
             ScreenSystem.TotalTime = TimeSpan.FromSeconds(10);
             _game = new Game();
-            var engine = ScreenEngine.Initialize(_game, new ScreenEngineOptions { AddComponentToGame = false });
+            var engine = ScreenEngine.Initialize(_game, new ScreenEngineOptions { AddComponentToGame = false, Theme = theme ?? new PortableTheme() });
             engine.SetScreenSize(400, 300);
             var touch = new RecordingHaptics(UiInputDevice.Touch);
             var pad = new RecordingHaptics(UiInputDevice.GamePad);
@@ -156,7 +161,7 @@ namespace MonoGame.PortableUI.Tests
             ScreenSystem.TotalTime = now;
             rumble.SetVibration = (_, left, right) => calls.Add(((ScreenSystem.TotalTime - now).TotalMilliseconds, left, right));
 
-            rumble.Play(UiHaptic.Double, 1);
+            rumble.Play(UiHaptic.Double, 1, 1);
             Assert.IsTrue(rumble.IsActive);
             for (var t = 0.0; t <= 200; t += 5)
             {
@@ -169,6 +174,75 @@ namespace MonoGame.PortableUI.Tests
             Assert.IsTrue(calls[0].Right > 0 && calls[1].Right == 0 && calls[2].Right > 0 && calls[3].Right == 0, "on, off, on, off");
             Assert.AreEqual(45, calls[1].At, 5);
             Assert.AreEqual(95, calls[2].At, 5);
+        }
+
+        [TestMethod]
+        public void Each_control_feels_like_its_theme_and_engine_choices_win()
+        {
+            var plain = new Button();
+            var islandButton = new Button();
+            var island = new ThemeIsland { Theme = new PortableTheme { Haptics = UiHapticSet.Subtle }, Content = islandButton };
+            var panel = new StackPanel();
+            panel.AddChild(plain);
+            panel.AddChild(island);
+            var (engine, _, _, touch, _) = Create(panel, new PortableTheme { Haptics = UiHapticSet.Punchy });
+            engine.LastInputDevice = UiInputDevice.Touch;
+
+            plain.OnClick();
+            Later(100);
+            islandButton.OnClick();
+            CollectionAssert.AreEqual(new[] { UiHaptic.Click, UiHaptic.Tap }, touch.Played, "the island's subtle set taps");
+            Assert.AreEqual((1f, 1.3f), touch.Shapes[0], "punchy: full strength, longer rumble");
+            Assert.AreEqual((0.7f, 0.8f), touch.Shapes[1], "subtle: softer, shorter");
+
+            engine.Haptics.SetHaptic(UiSound.Click, UiHaptic.Heavy);
+            Later(100);
+            islandButton.OnClick();
+            Assert.AreEqual(UiHaptic.Heavy, touch.Played[^1], "the engine overrides every theme");
+            Assert.AreEqual(UiHaptic.Heavy, engine.Haptics.GetHaptic(UiSound.Click));
+
+            engine.Haptics.ClearHaptic(UiSound.Click);
+            Assert.AreEqual(UiHaptic.Click, engine.Haptics.GetHaptic(UiSound.Click), "back to the app theme (punchy)");
+        }
+
+        [TestMethod]
+        public void A_theme_without_a_set_derives_one_and_catalog_themes_feel_like_their_era()
+        {
+            Assert.AreSame(UiHapticSet.Default, new PortableTheme().ResolveHaptics());
+            Assert.AreSame(UiHapticSet.Punchy, new PortableTheme { PixelMotion = true }.ResolveHaptics());
+            foreach (var definition in MonoGame.PortableUI.Themes.PortableThemes.All)
+            {
+                var set = definition.CreateTheme().ResolveHaptics();
+                var expected = definition.Metadata.Era switch
+                {
+                    ThemeEra.Glass => UiHapticSet.Subtle,
+                    ThemeEra.Terminal => UiHapticSet.Clacky,
+                    ThemeEra.Retro => UiHapticSet.Punchy,
+                    _ => null
+                };
+                if (expected != null)
+                    Assert.AreSame(expected, set, definition.Id);
+            }
+        }
+
+        [TestMethod]
+        public void A_longer_set_stretches_the_rumble_pattern()
+        {
+            var calls = new List<double>();
+            var rumble = new GamePadRumbleHaptics();
+            var now = TimeSpan.FromSeconds(10);
+            ScreenSystem.TotalTime = now;
+            rumble.SetVibration = (_, _, _) => calls.Add((ScreenSystem.TotalTime - now).TotalMilliseconds);
+            rumble.Play(UiHaptic.Double, 1, 2);
+            for (var t = 0.0; t <= 400; t += 5)
+            {
+                ScreenSystem.TotalTime = now + TimeSpan.FromMilliseconds(t);
+                rumble.Update(ScreenSystem.TotalTime);
+            }
+
+            Assert.AreEqual(4, calls.Count);
+            Assert.AreEqual(90, calls[1], 5, "first pulse twice as long");
+            Assert.AreEqual(190, calls[2], 5, "second one twice as late");
         }
     }
 }
