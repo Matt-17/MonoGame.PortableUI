@@ -993,7 +993,29 @@ namespace MonoGame.PortableUI.Controls
             Click?.Invoke(this, EventArgs.Empty);
             if (IsDoubleClick(ref _lastClickAt))
                 DoubleClick?.Invoke(this, EventArgs.Empty);
+            // After the handlers: a toggle sounds its new state.
+            if (GetClickSound() is { } sound)
+                PlaySound(sound);
         }
+
+        private Audio.UiSoundOverrides? _sounds;
+
+        /// <summary>
+        ///     Sound settings for this control and everything inside it: mute, remap an event to another
+        ///     sound, volume and pitch. The engine's <see cref="ScreenEngine.Sounds"/> plays them.
+        /// </summary>
+        public Audio.UiSoundOverrides Sounds => _sounds ??= new Audio.UiSoundOverrides();
+
+        internal Audio.UiSoundOverrides? SoundOverrides => _sounds;
+
+        /// <summary>Plays a UI sound for this control through its engine (its <see cref="Sounds"/> apply).</summary>
+        protected internal bool PlaySound(Audio.UiSound sound) => ScreenEngine.For(this)?.Sounds.Play(sound, this) ?? false;
+
+        /// <summary>
+        ///     The sound of activating this control, also what makes it hover-sound: by default a click for
+        ///     controls with a Click handler, none otherwise. Toggles answer with their new state.
+        /// </summary>
+        protected virtual Audio.UiSound? GetClickSound() => Click != null ? Audio.UiSound.Click : null;
 
         /// <summary>Raises Click when Enter or Space is pressed. Clickable controls (Button,
         /// CheckBox, ToggleSwitch) subscribe this to their own KeyPressed so the focused control
@@ -1391,6 +1413,8 @@ namespace MonoGame.PortableUI.Controls
         internal void OnMouseEnter(MouseEventArgs args)
         {
             HoverState = HoverStates.Hovering;
+            if (IsEnabled && Screen is { PointerMovedThisUpdate: true } && GetClickSound() != null)
+                PlaySound(Audio.UiSound.Hover);
             if (Screen is { FocusFollowsPointer: true })
                 FocusFromPointer();
             foreach (var button in AllMouseButtons)

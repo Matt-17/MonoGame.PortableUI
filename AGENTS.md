@@ -150,6 +150,12 @@ a direction the focused control does not claim via `HandlesDirection` moves focu
 Navigation: `NavigateToScreen` / `PushOverlay` (screens below stay drawn, frozen) with `ScreenTransition`;
 `OnNavigatedTo`/`OnNavigatedFrom` hooks; focus is restored on `NavigateBack`.
 
+**UI sound:** `ScreenEngine.Sounds` (`UiSoundService`) plays semantic events through an `IUiSoundPlayer`
+(`SoundEffectUiSoundPlayer`, synthesized defaults in `UiSoundSynth`). Controls raise them: `Control.OnClick` plays
+`GetClickSound()` (Click when a Click handler exists; toggles override with their new state), hover only on a real
+pointer move (`Screen.PointerMovedThisUpdate`), Screen plays FocusMove/Open/Close/Back. Sound only for user
+actions, never for programmatic property sets. `control.Sounds` overrides apply to the subtree.
+
 **App-wide services** (all on `ScreenEngine` unless noted; screens pick changes up on their next update via
 version counters, never by rebuilding): `TextScaling` (static, text size factor), `Localizer.Default`
 (static, string catalogues; bind with `control.Localize(...)`), `FontManager.DefaultDynamicFont` (UIFont

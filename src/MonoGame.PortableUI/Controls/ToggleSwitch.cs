@@ -35,6 +35,8 @@ namespace MonoGame.PortableUI.Controls
             KeyPressed += ActivateOnKeyPressed;
         }
 
+        protected override Audio.UiSound? GetClickSound() => IsOn ? Audio.UiSound.ToggleOn : Audio.UiSound.ToggleOff;
+
         protected override void OnThemeChanged(PortableTheme oldTheme, PortableTheme newTheme)
         {
             base.OnThemeChanged(oldTheme, newTheme);

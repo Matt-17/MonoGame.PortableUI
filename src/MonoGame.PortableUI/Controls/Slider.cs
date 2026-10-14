@@ -284,7 +284,15 @@ namespace MonoGame.PortableUI.Controls
             if (args.InputType != InputType.Command)
                 return;
 
-            switch (args.Command)
+            var before = Value;
+            HandleSliderCommand(args.Command);
+            if (Value != before)
+                PlaySound(Audio.UiSound.Tick);
+        }
+
+        private void HandleSliderCommand(KeyboardCommand command)
+        {
+            switch (command)
             {
                 case KeyboardCommand.CursorLeft:
                 case KeyboardCommand.CursorDown:
@@ -310,7 +318,17 @@ namespace MonoGame.PortableUI.Controls
                 return;
 
             var percent = MathHelper.Clamp((position.X - track.Left) / track.Width, 0, 1);
+            var before = StepOf(Value);
             Value = Minimum + (Maximum - Minimum) * percent;
+            // Dragging ticks once per SmallChange step crossed, like a detent.
+            if (StepOf(Value) != before)
+                PlaySound(Audio.UiSound.Tick);
+        }
+
+        private long StepOf(float value)
+        {
+            var step = SmallChange > 0 ? SmallChange : (Maximum - Minimum) / 20;
+            return step > 0 ? (long)Math.Floor((value - Minimum) / step + 0.5) : 0;
         }
 
         private float GetThumbCenterX(Rect rect, float scale = 1f)
