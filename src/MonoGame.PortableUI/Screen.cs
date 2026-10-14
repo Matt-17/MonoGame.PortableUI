@@ -267,7 +267,7 @@ namespace MonoGame.PortableUI
                     _focusBeforeFlyOut = FocusEngine?.FocusedControl;
                 _flyOut = value;
                 if (_flyOut != null && !hadFlyOut)
-                    ScreenEngine?.Sounds.Play(Audio.UiSound.Open, _flyOut);
+                    ScreenEngine?.PlayFeedback(Audio.UiSound.Open, _flyOut);
                 if (_flyOut != null)
                 {
                     // While a popup is open only it receives pointer input, so the main tree would
@@ -1763,6 +1763,18 @@ namespace MonoGame.PortableUI
             var horizontalScrollWheel = inputSource.HorizontalScrollWheelValue;
             var gamePad = inputSource.GamePad;
             PointerMovedThisUpdate = mousePosition != _activityMousePosition;
+            if (ScreenEngine is { } engine)
+            {
+                if (hasTouch)
+                    engine.LastInputDevice = Haptics.UiInputDevice.Touch;
+                else if (pressedMouseButtonCount > 0 || PointerMovedThisUpdate || scrollWheel != _activityScrollWheel || horizontalScrollWheel != _activityHorizontalScrollWheel)
+                    engine.LastInputDevice = Haptics.UiInputDevice.Mouse;
+                else if (inputSource.KeyboardState.GetPressedKeyCount() > 0)
+                    engine.LastInputDevice = Haptics.UiInputDevice.Keyboard;
+                else if (gamePad.Buttons != _activityGamePad.Buttons || gamePad.DPad != _activityGamePad.DPad
+                         || gamePad.ThumbSticks.Left.LengthSquared() > 0.25f || gamePad.ThumbSticks.Right.LengthSquared() > 0.25f)
+                    engine.LastInputDevice = Haptics.UiInputDevice.GamePad;
+            }
             var active = hasTouch || pressedMouseButtonCount > 0
                 || mousePosition != _activityMousePosition
                 || scrollWheel != _activityScrollWheel
@@ -2092,7 +2104,7 @@ namespace MonoGame.PortableUI
 
             best.Focus();
             BringIntoView(best);
-            ScreenEngine?.Sounds.Play(Audio.UiSound.FocusMove, best);
+            ScreenEngine?.PlayFeedback(Audio.UiSound.FocusMove, best);
             return true;
         }
 
@@ -2281,7 +2293,7 @@ namespace MonoGame.PortableUI
             }
 
             if (BackRequested != null)
-                ScreenEngine?.Sounds.Play(Audio.UiSound.Back, FocusEngine?.FocusedControl);
+                ScreenEngine?.PlayFeedback(Audio.UiSound.Back, FocusEngine?.FocusedControl);
             BackRequested?.Invoke(this, new System.ComponentModel.HandledEventArgs());
         }
 
@@ -2343,7 +2355,7 @@ namespace MonoGame.PortableUI
                 ? index <= 0 ? ordered.Count - 1 : index - 1
                 : index < 0 || index == ordered.Count - 1 ? 0 : index + 1;
             ordered[next].Focus();
-            ScreenEngine?.Sounds.Play(Audio.UiSound.FocusMove, ordered[next]);
+            ScreenEngine?.PlayFeedback(Audio.UiSound.FocusMove, ordered[next]);
             BringIntoView(ordered[next]);
         }
 
@@ -2653,7 +2665,7 @@ namespace MonoGame.PortableUI
             var flyOut = _flyOut;
             var contextMenu = _activeContextMenu;
             var animationStyle = _activeFlyOutAnimationStyle;
-            ScreenEngine?.Sounds.Play(Audio.UiSound.Close, flyOut);
+            ScreenEngine?.PlayFeedback(Audio.UiSound.Close, flyOut);
             _flyOut = null;
             ResyncMainTreeHover();
             RestoreFocusAfterFlyOut(flyOut);

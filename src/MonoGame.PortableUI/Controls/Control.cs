@@ -1009,7 +1009,7 @@ namespace MonoGame.PortableUI.Controls
         internal Audio.UiSoundOverrides? SoundOverrides => _sounds;
 
         /// <summary>Plays a UI sound for this control through its engine (its <see cref="Sounds"/> apply).</summary>
-        protected internal bool PlaySound(Audio.UiSound sound) => ScreenEngine.For(this)?.Sounds.Play(sound, this) ?? false;
+        protected internal bool PlaySound(Audio.UiSound sound) => ScreenEngine.For(this)?.PlayFeedback(sound, this) ?? false;
 
         /// <summary>
         ///     The sound of activating this control, also what makes it hover-sound: by default a click for

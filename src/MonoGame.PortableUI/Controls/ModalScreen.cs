@@ -158,7 +158,7 @@ namespace MonoGame.PortableUI.Controls
                 return;
 
             _closed = true;
-            engine.Sounds.Play(Audio.UiSound.Close, Content);
+            engine.PlayFeedback(Audio.UiSound.Close, Content);
             engine.NavigateBack(PresentationTransition);
             Closed?.Invoke(this, new ModalClosedEventArgs(cancelled));
         }
