@@ -20,12 +20,12 @@ namespace MonoGame.PortableUI
         public AndroidHaptics(View view)
         {
             _view = view ?? throw new ArgumentNullException(nameof(view));
-            var api30 = Build.VERSION.SdkInt >= BuildVersionCodes.R;
             _feedback[(int)UiHaptic.Tick] = new Feedback(view, FeedbackConstants.ClockTick);
             _feedback[(int)UiHaptic.Tap] = new Feedback(view, FeedbackConstants.KeyboardTap);
             _feedback[(int)UiHaptic.Click] = new Feedback(view, FeedbackConstants.VirtualKey);
             _feedback[(int)UiHaptic.Heavy] = new Feedback(view, FeedbackConstants.LongPress);
-            _feedback[(int)UiHaptic.Double] = new Feedback(view, api30 ? FeedbackConstants.Reject : FeedbackConstants.LongPress);
+            // Reject (a short double buzz) exists from Android 11 on.
+            _feedback[(int)UiHaptic.Double] = new Feedback(view, OperatingSystem.IsAndroidVersionAtLeast(30) ? FeedbackConstants.Reject : FeedbackConstants.LongPress);
         }
 
         public bool Supports(UiInputDevice device) => device == UiInputDevice.Touch;
