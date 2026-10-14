@@ -20,7 +20,17 @@ namespace MonoGame.PortableUI.Media
             public readonly Dictionary<int, Texture2D> CornerMasks = new Dictionary<int, Texture2D>();
             public readonly Dictionary<(int Radius, int Thickness), Texture2D> CornerRingMasks = new Dictionary<(int, int), Texture2D>();
             public readonly Dictionary<(int TopLeft, int TopRight, int BottomRight, int BottomLeft), Texture2D> NineSliceMasks = new Dictionary<(int, int, int, int), Texture2D>();
+            public readonly Dictionary<SubpixelMaskKey, Texture2D> SubpixelMasks = new Dictionary<SubpixelMaskKey, Texture2D>();
         }
+
+        /// <summary>
+        ///     Set by the screen around a control's draw: true while the control moves (an animation,
+        ///     transition, squash or breathing) and its theme does not ask for <see cref="PortableTheme.PixelMotion"/>.
+        ///     Fills and borders are then drawn at their exact fractional position and size with
+        ///     anti-aliased edges, so motion glides instead of stepping a whole pixel at a time.
+        /// </summary>
+        [ThreadStatic]
+        internal static bool Subpixel;
 
         private static DeviceCache GetCache(GraphicsDevice device)
         {
@@ -48,7 +58,10 @@ namespace MonoGame.PortableUI.Media
                     texture.Dispose();
                 foreach (var texture in cache.NineSliceMasks.Values)
                     texture.Dispose();
+                foreach (var texture in cache.SubpixelMasks.Values)
+                    texture.Dispose();
                 cache.NineSliceMasks.Clear();
+                cache.SubpixelMasks.Clear();
                 cache.CornerMasks.Clear();
                 cache.CornerRingMasks.Clear();
             }
@@ -58,6 +71,9 @@ namespace MonoGame.PortableUI.Media
         public static void DrawBorder(SpriteBatch spriteBatch, Rect rect, CornerRadius radius, Thickness thickness, Color color)
         {
             if (rect.Width <= 0 || rect.Height <= 0 || color.A == 0)
+                return;
+
+            if (Subpixel && !IsWholePixels(rect, radius) && TryDrawSubpixelBorder(spriteBatch, rect, radius, thickness, color))
                 return;
 
             SnapToPixels(ref rect, ref radius);
@@ -206,6 +222,12 @@ namespace MonoGame.PortableUI.Media
         {
             if (rect.Width <= 0 || rect.Height <= 0 || color.A == 0)
                 return;
+
+            if (Subpixel && !IsWholePixels(rect, radius))
+            {
+                DrawSubpixel(spriteBatch, rect, Clamp(radius, rect), 0, color);
+                return;
+            }
 
             SnapToPixels(ref rect, ref radius);
             radius = Clamp(radius, rect);
@@ -390,6 +412,157 @@ namespace MonoGame.PortableUI.Media
                 MathF.Round(radius.TopRight),
                 MathF.Round(radius.BottomRight),
                 MathF.Round(radius.BottomLeft));
+        }
+
+        private static bool IsWhole(float value) => MathF.Abs(value - MathF.Round(value)) < 0.002f;
+
+        // At whole pixels the snapped path draws the same pixels; it stays the reference.
+        private static bool IsWholePixels(Rect rect, CornerRadius radius)
+            => IsWhole(rect.Left) && IsWhole(rect.Top) && IsWhole(rect.Width) && IsWhole(rect.Height)
+               && IsWhole(radius.TopLeft) && IsWhole(radius.TopRight) && IsWhole(radius.BottomRight) && IsWhole(radius.BottomLeft);
+
+        private static bool TryDrawSubpixelBorder(SpriteBatch spriteBatch, Rect rect, CornerRadius radius, Thickness thickness, Color color)
+        {
+            // One ring mask per (radii, width): uneven borders keep the snapped path.
+            if (!(thickness.Left == thickness.Top && thickness.Top == thickness.Right && thickness.Right == thickness.Bottom) || thickness.Left <= 0)
+                return false;
+            DrawSubpixel(spriteBatch, rect, Clamp(radius, rect), thickness.Left, color);
+            return true;
+        }
+
+        internal readonly record struct SubpixelMaskKey(int Left, int Right, int Top, int Bottom, int TopLeft, int TopRight, int BottomRight, int BottomLeft, int Border);
+
+        /// <summary>
+        ///     A rounded rect (or a ring <paramref name="border"/> wide) at a fractional position and size:
+        ///     a 9-slice of a mask with a transparent texel around the shape, drawn as float quads with
+        ///     linear filtering, so each edge covers a pixel by how far it reaches into it.
+        /// </summary>
+        private static void DrawSubpixel(SpriteBatch spriteBatch, Rect rect, CornerRadius radius, float border, Color color)
+        {
+            // Band sizes in pixels: the corners, at least the border width.
+            var left = Math.Max(Math.Max(radius.TopLeft, radius.BottomLeft), border);
+            var right = Math.Max(Math.Max(radius.TopRight, radius.BottomRight), border);
+            var top = Math.Max(Math.Max(radius.TopLeft, radius.TopRight), border);
+            var bottom = Math.Max(Math.Max(radius.BottomLeft, radius.BottomRight), border);
+            if (left + right > rect.Width)
+            {
+                var k = rect.Width / Math.Max(0.001f, left + right);
+                left *= k;
+                right *= k;
+            }
+            if (top + bottom > rect.Height)
+            {
+                var k = rect.Height / Math.Max(0.001f, top + bottom);
+                top *= k;
+                bottom *= k;
+            }
+
+            var bandLeft = Math.Max(0, (int)MathF.Ceiling(left - 0.002f));
+            var bandRight = Math.Max(0, (int)MathF.Ceiling(right - 0.002f));
+            var bandTop = Math.Max(0, (int)MathF.Ceiling(top - 0.002f));
+            var bandBottom = Math.Max(0, (int)MathF.Ceiling(bottom - 0.002f));
+            // The mask is drawn shrunk from whole texels to the fractional band: its radii are scaled
+            // up by the same factor, so a corner that fills its band (a circle) lands exactly on its
+            // radius instead of jumping by a pixel whenever the radius crosses a half.
+            var scaleLeft = left > 0 ? bandLeft / left : 1;
+            var scaleRight = right > 0 ? bandRight / right : 1;
+            var key = new SubpixelMaskKey(
+                bandLeft, bandRight, bandTop, bandBottom,
+                Math.Min(bandLeft, (int)MathF.Round(radius.TopLeft * scaleLeft)),
+                Math.Min(bandRight, (int)MathF.Round(radius.TopRight * scaleRight)),
+                Math.Min(bandRight, (int)MathF.Round(radius.BottomRight * scaleRight)),
+                Math.Min(bandLeft, (int)MathF.Round(radius.BottomLeft * scaleLeft)),
+                border > 0 ? Math.Max(1, (int)MathF.Round(border * Math.Min(scaleLeft, scaleRight))) : 0);
+            var mask = GetSubpixelMask(spriteBatch.GraphicsDevice, key);
+
+            // Mask columns: [pad][left band][fill][stretch][fill][right band][pad], rows alike. The
+            // outer pad is transparent: filtering against it anti-aliases the edges.
+            Span<int> srcX = stackalloc int[] { 0, key.Left + 2, key.Left + 4 };
+            Span<int> srcW = stackalloc int[] { key.Left + 1, 1, key.Right + 1 };
+            Span<int> srcY = stackalloc int[] { 0, key.Top + 2, key.Top + 4 };
+            Span<int> srcH = stackalloc int[] { key.Top + 1, 1, key.Bottom + 1 };
+            Span<float> dstX = stackalloc float[] { rect.Left - 1, rect.Left + left, rect.Right - right };
+            Span<float> dstW = stackalloc float[] { left + 1, rect.Width - left - right, right + 1 };
+            Span<float> dstY = stackalloc float[] { rect.Top - 1, rect.Top + top, rect.Bottom - bottom };
+            Span<float> dstH = stackalloc float[] { top + 1, rect.Height - top - bottom, bottom + 1 };
+
+            for (var row = 0; row < 3; row++)
+            {
+                if (dstH[row] <= 0.001f)
+                    continue;
+                for (var column = 0; column < 3; column++)
+                {
+                    if (dstW[column] <= 0.001f)
+                        continue;
+                    // A ring has nothing in the middle.
+                    if (row == 1 && column == 1 && key.Border > 0)
+                        continue;
+                    spriteBatch.Draw(
+                        mask,
+                        new Vector2(dstX[column], dstY[row]),
+                        new Rectangle(srcX[column], srcY[row], srcW[column], srcH[row]),
+                        color,
+                        0,
+                        Vector2.Zero,
+                        new Vector2(dstW[column] / srcW[column], dstH[row] / srcH[row]),
+                        SpriteEffects.None,
+                        0);
+                }
+            }
+        }
+
+        private static Texture2D GetSubpixelMask(GraphicsDevice device, SubpixelMaskKey key)
+        {
+            var cache = GetCache(device);
+            if (cache.SubpixelMasks.TryGetValue(key, out var existing))
+                return existing;
+
+            // The shape spans (1,1)..(width-1,height-1); its middle is 3 texels long per axis.
+            var width = key.Left + key.Right + 5;
+            var height = key.Top + key.Bottom + 5;
+            var data = new Color[width * height];
+            var outer = new CornerRadius(key.TopLeft, key.TopRight, key.BottomRight, key.BottomLeft);
+            var b = key.Border;
+            var inner = new CornerRadius(
+                Math.Max(0, key.TopLeft - b), Math.Max(0, key.TopRight - b),
+                Math.Max(0, key.BottomRight - b), Math.Max(0, key.BottomLeft - b));
+            for (var y = 0; y < height; y++)
+            {
+                for (var x = 0; x < width; x++)
+                {
+                    var px = x + 0.5f;
+                    var py = y + 0.5f;
+                    var coverage = Coverage(px - 1, py - 1, width - 2, height - 2, outer);
+                    if (b > 0)
+                        coverage -= Coverage(px - 1 - b, py - 1 - b, width - 2 - 2 * b, height - 2 - 2 * b, inner);
+                    var value = (byte)(MathHelper.Clamp(coverage, 0, 1) * 255 + 0.5f);
+                    data[y * width + x] = new Color(value, value, value, value);
+                }
+            }
+
+            var texture = new Texture2D(device, width, height);
+            texture.SetData(data);
+            cache.SubpixelMasks[key] = texture;
+            return texture;
+        }
+
+        // Coverage of the texel centred on (x, y) by a rounded rect spanning [0,w]x[0,h], from the
+        // signed distance.
+        private static float Coverage(float x, float y, float w, float h, CornerRadius radius)
+        {
+            if (w <= 0 || h <= 0)
+                return 0;
+            var r = x < w / 2
+                ? (y < h / 2 ? radius.TopLeft : radius.BottomLeft)
+                : (y < h / 2 ? radius.TopRight : radius.BottomRight);
+            r = Math.Min(r, Math.Min(w, h) / 2);
+            var qx = MathF.Abs(x - w / 2) - (w / 2 - r);
+            var qy = MathF.Abs(y - h / 2) - (h / 2 - r);
+            var outside = new Vector2(MathF.Max(qx, 0), MathF.Max(qy, 0)).Length();
+            var distance = outside + MathF.Min(MathF.Max(qx, qy), 0) - r;
+            // A half-pixel ramp: linear filtering at a fractional offset adds up to one more pixel of
+            // blur, so together the edge stays about as sharp as a 1 px anti-aliased edge.
+            return MathHelper.Clamp(0.5f - distance * 2, 0, 1);
         }
 
         private static CornerRadius Clamp(CornerRadius radius, Rect rect)

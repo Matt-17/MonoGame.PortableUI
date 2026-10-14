@@ -715,7 +715,7 @@ namespace MonoGame.PortableUI.Controls
             if (!HasDrawableFont || text.Length == 0)
                 return;
 
-            if (SnapToPixel)
+            if (SnapsDrawing)
                 offset = offset.ToInts();
 
             var glow = Glow;
@@ -806,7 +806,7 @@ namespace MonoGame.PortableUI.Controls
             {
                 // One sharp copy: nine stamps on one spot would turn a translucent shadow opaque.
                 var at = offset + ShadowOffset * RenderScale;
-                DrawText(spriteBatch, text, SnapToPixel ? at.ToInts() : at, shadow);
+                DrawText(spriteBatch, text, SnapsDrawing ? at.ToInts() : at, shadow);
                 return;
             }
 
@@ -823,7 +823,7 @@ namespace MonoGame.PortableUI.Controls
             foreach (var d in spread)
             {
                 var pos = offset + ShadowOffset * RenderScale + d;
-                if (SnapToPixel)
+                if (SnapsDrawing)
                     pos = pos.ToInts();
                 DrawText(spriteBatch, text, pos, shadow);
             }

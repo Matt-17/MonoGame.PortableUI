@@ -178,6 +178,14 @@ namespace MonoGame.PortableUI
         public Color TextColor { get; set; } = Color.Black;
         public float TextSize { get; set; } = 14;
         public bool PixelSnapping { get; set; } = true;
+
+        /// <summary>
+        ///     Pixel-art look: animations move and scale in whole pixels, the way sprites step on a low-res
+        ///     screen. False (default): while a control moves (animation, transition, squash and stretch,
+        ///     breathing) its shapes and text are drawn at their exact fractional position with smooth
+        ///     edges, so motion glides; at rest everything stays pixel-snapped either way.
+        /// </summary>
+        public bool PixelMotion { get; set; }
         public ThemePalette Palette { get; set; } = ThemePalette.Empty;
         public Typography Typography { get; set; } = new Typography();
         public ThemeMetrics Metrics { get; set; } = new ThemeMetrics();

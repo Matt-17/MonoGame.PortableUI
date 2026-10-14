@@ -19,6 +19,7 @@ public static class Win95Theme
             danger: "#800000",
             styleTheme: theme =>
             {
+                theme.PixelMotion = true; // motion steps in whole pixels, like sprites
                 var face = ThemeBuilder.Hex("#C0C0C0");
                 var light = ThemeBuilder.Hex("#DFDFDF");
                 var shadow = ThemeBuilder.Hex("#808080");

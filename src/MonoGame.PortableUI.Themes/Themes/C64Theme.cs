@@ -74,6 +74,7 @@ public static class C64Theme
         {
             TextColor = White,
             TextSize = 14,
+            PixelMotion = true, // motion steps in whole pixels, like sprites
             Typography = new Typography { FontName = FontName, TextSize = 14 },
             FocusBorderBrush = new SolidColorBrush(White),
             FocusBorderWidth = 2,

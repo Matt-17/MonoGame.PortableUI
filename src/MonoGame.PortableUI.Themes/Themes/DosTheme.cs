@@ -39,7 +39,11 @@ public static class DosTheme
         };
 
         return ThemeBuilder.CreateDefinition("dos", "DOS / Turbo Vision", "px437ibmvga8x16", ThemeEra.Terminal, ThemeBrightness.Dark, palette, navy,
-            styleTheme: theme => ApplyTurboVisionChrome(theme, palette, buttonFace: dialog));
+            styleTheme: theme =>
+            {
+                theme.PixelMotion = true; // motion steps in whole pixels, like sprites
+                ApplyTurboVisionChrome(theme, palette, buttonFace: dialog);
+            });
     }
 
     /// <summary>Turbo Vision / Norton Commander chrome: light dialog buttons with black text and hard shadows; blue input fields.</summary>
