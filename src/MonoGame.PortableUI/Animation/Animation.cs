@@ -56,8 +56,8 @@ namespace MonoGame.PortableUI.Animation
         {
             _current.Replace(new Vector2AnimationTween(
                 AnimationProperty.Scale,
-                control => control.Scale,
-                (control, value) => control.Scale = value,
+                control => control.ShownScale,
+                (control, value) => control.SetScaleShown(value),
                 scaleTo,
                 ScaleRestDelta));
             return this;
@@ -67,8 +67,8 @@ namespace MonoGame.PortableUI.Animation
         {
             _current.Replace(new Vector2AnimationTween(
                 AnimationProperty.Translation,
-                control => control.Translation,
-                (control, value) => control.Translation = value,
+                control => control.ShownTranslation,
+                (control, value) => control.SetTranslationShown(value),
                 translationTo,
                 TranslationRestDelta));
             return this;
@@ -78,8 +78,8 @@ namespace MonoGame.PortableUI.Animation
         {
             _current.Replace(new DoubleAnimationTween(
                 AnimationProperty.Opacity,
-                control => control.Opacity,
-                (control, value) => control.Opacity = value,
+                control => control.ShownOpacity,
+                (control, value) => control.SetOpacityShown(value),
                 opacityTo,
                 ScaleRestDelta));
             return this;
@@ -102,7 +102,7 @@ namespace MonoGame.PortableUI.Animation
                 (control, value) =>
                 {
                     if (control is TextBlock textBlock)
-                        textBlock.TextColor = value;
+                        textBlock.SetTextColorShown(value);
                 },
                 colorTo);
         }

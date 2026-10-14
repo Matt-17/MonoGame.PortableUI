@@ -110,8 +110,9 @@ namespace MonoGame.PortableUI
         public StateStyle Focused { get => _focused; set { _focused = value; _slotVersion++; } }
         public StateStyle Disabled { get => _disabled; set { _disabled = value; _slotVersion++; } }
         public StateStyle Checked { get => _checked; set { _checked = value; _slotVersion++; } }
-        /// <summary>Duration of state animations (the button press/release animation); zero turns them off
-        /// (reduced motion).</summary>
+        /// <summary>Duration of state animations: the button press/release animation and the fade of
+        /// background, border and text colour between states (hover, pressed, focused); zero turns them off
+        /// (reduced motion). A control's own <c>Transitions</c> entries win.</summary>
         public TimeSpan TransitionDuration { get; set; } = TimeSpan.FromMilliseconds(120);
 
         // Versions only ever increment, so the sum strictly increases on any mutation.

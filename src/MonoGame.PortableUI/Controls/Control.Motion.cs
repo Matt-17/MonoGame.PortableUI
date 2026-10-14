@@ -56,7 +56,7 @@ namespace MonoGame.PortableUI.Controls
         }
 
         /// <summary>
-        ///     Squash & stretch strength: while <see cref="Translation"/> moves, the control stretches along
+        ///     Squash &amp; stretch strength: while <see cref="Translation"/> moves, the control stretches along
         ///     the direction of travel and narrows across it (its area stays the same); when it stops, the
         ///     <see cref="SquashStretchSpring"/> swings it into a squash and back. 0 (default) = off,
         ///     1 = stretch by 25 % at 1000 units per second. Pivot: <see cref="TransformOrigin"/>.
@@ -101,7 +101,7 @@ namespace MonoGame.PortableUI.Controls
             RequestRedraw();
         }
 
-        /// <summary>True while squash & stretch deforms the control (a cached layer is drawn live then).</summary>
+        /// <summary>True while squash &amp; stretch deforms the control (a cached layer is drawn live then).</summary>
         internal bool IsMotionDeformed => !_stretchAtRest || _breath != Vector2.One;
 
         /// <summary>Axis-aligned part of the deformation, folded into the render scale (line widths, and
@@ -119,7 +119,7 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
-        /// <summary>The squash & stretch and breathing matrix about the origin (identity at rest).</summary>
+        /// <summary>The squash &amp; stretch and breathing matrix about the origin (identity at rest).</summary>
         private Matrix GetStretchMatrix()
         {
             if (_stretchAtRest)

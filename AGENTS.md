@@ -111,6 +111,13 @@ after 120 frames of their engine; budget three screens of pixels. Surface engine
 view evicts the least recently drawn caches of others (global tick; never caches drawn in the current tick; a
 nested surface draw does not advance the tick).
 
+**Implicit transitions:** with a `control.Transitions` entry, the `Scale`/`Translation`/`Opacity` setters
+start a transition and the getters return the *target*; what is drawn lives in the fields (`ShownScale`,
+`ShownTranslation`, `ShownOpacity`). Render code and `Animation` tweens read/write the shown values
+(`SetScaleShown` etc. also stop a running transition) - never route per-frame animation writes through the
+public setters. Background/border/text colours fade at draw time (`BrushFade`/`ColorFade`, keyed on the
+brush reference; theme switch and first draw snap; `CompleteTransitions()` snaps a subtree).
+
 **Render quality:** `ScreenEngineOptions.RenderQuality` (Auto = Low in Android battery saver, else High)
 resolves to `ScreenEngine.EffectiveRenderQuality` each update. Drawing code reads it through the static
 `ScreenEngine.DrawingQuality` / `AnimatesDecorations` (the engine currently drawing). New expensive or

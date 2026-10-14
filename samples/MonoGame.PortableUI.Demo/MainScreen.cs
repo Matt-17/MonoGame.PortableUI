@@ -639,6 +639,11 @@ namespace MonoGame.PortableUI.Demo
         // Named motion demos, also played by the --record-motion capture.
         private readonly Dictionary<string, Action> _motionActions = new Dictionary<string, Action>(StringComparer.OrdinalIgnoreCase);
 
+        // Controls the --record-motion capture points the pointer at.
+        private readonly Dictionary<string, Control> _motionTargets = new Dictionary<string, Control>(StringComparer.OrdinalIgnoreCase);
+
+        internal Rect? MotionTargetRect(string name) => _motionTargets.TryGetValue(name, out var control) ? control.ClippingRect : null;
+
         internal bool PlayMotion(string name)
         {
             if (!_motionActions.TryGetValue(name, out var action))
@@ -737,7 +742,17 @@ namespace MonoGame.PortableUI.Demo
             cards.AddChild(breathe);
             layers.AddChild(cards, row: 1);
             organic.Content = layers;
-            grid.AddChild(organic, row: 2);
+            var lower = new Grid
+            {
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition { Width = new GridLength(600) },
+                    new ColumnDefinition()
+                }
+            };
+            lower.AddChild(organic);
+            lower.AddChild(CreateTransitionsPanel(), column: 1);
+            grid.AddChild(lower, row: 2);
 
             _motionActions["spring"] = () => box.Animate()
                 .TranslateTo(new Vector2(box.Translation.X < 80 ? 160 : 0, 0))
@@ -803,6 +818,84 @@ namespace MonoGame.PortableUI.Demo
             organicButtons.AddChild(MotionDemoButton("Stagger", _motionActions["stagger"]));
             grid.AddChild(organicButtons, row: 3);
             return grid;
+        }
+
+        // Implicit transitions: plain property sets animate (springs retarget mid-flight), and the
+        // buttons fade between their theme's hover and pressed colours.
+        private Control CreateTransitionsPanel()
+        {
+            var panel = new Border
+            {
+                BackgroundBrush = SurfaceBrush,
+                BorderBrush = Palette.Primary,
+                BorderThickness = 1,
+                Padding = 16,
+                Margin = new Thickness(12, 0, 0, 0)
+            };
+            var layers = new Grid
+            {
+                RowDefinitions =
+                {
+                    new RowDefinition { Height = GridLength.Auto },
+                    new RowDefinition(),
+                    new RowDefinition { Height = GridLength.Auto }
+                }
+            };
+            layers.AddChild(Label("Transitions: chip.Translation = ...", Palette.MutedText, 14, new Thickness(0)));
+
+            var chipLabel = Label("SET", Color.White, 14, new Thickness(0));
+            chipLabel.TextTrimming = TextTrimming.None;
+            chipLabel.HorizontalAlignment = HorizontalAlignment.Center;
+            chipLabel.VerticalAlignment = VerticalAlignment.Center;
+            var chipBrushes = new Brush[]
+            {
+                new SolidColorBrush(Palette.Info),
+                new SolidColorBrush(Palette.Danger),
+                new SolidColorBrush(Palette.Secondary),
+                new SolidColorBrush(Palette.Primary)
+            };
+            var chip = new Border
+            {
+                Width = 64,
+                Height = 64,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Center,
+                CornerRadius = 18,
+                BackgroundBrush = chipBrushes[0],
+                SquashStretch = 0.8f,
+                Content = chipLabel
+            };
+            // Declared once; every set below animates. X and Y springs differ slightly: organic.
+            chip.Transitions
+                .Add(TransitionProperty.Translation | TransitionProperty.Scale, new Transition(SpringSpec.Snappy, SpringSpec.Bouncy))
+                .Add(TransitionProperty.Background, TimeSpan.FromMilliseconds(300));
+            layers.AddChild(chip, row: 1);
+
+            Vector2[] spots = { new Vector2(300, -16), new Vector2(150, 18), new Vector2(40, -10), Vector2.Zero };
+            var spot = 0;
+            _motionActions["set"] = () =>
+            {
+                chip.Translation = spots[spot % spots.Length];
+                chip.Scale = spot % 2 == 0 ? new Vector2(1.25f) : Vector2.One;
+                chip.BackgroundBrush = chipBrushes[(spot + 1) % chipBrushes.Length];
+                spot++;
+            };
+
+            var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+            var set = MotionDemoButton("Set", _motionActions["set"]);
+            var hoverA = ThemedButton("Hover");
+            var hoverB = ThemedButton("fades");
+            buttons.AddChild(set);
+            buttons.AddChild(hoverA);
+            buttons.AddChild(hoverB);
+            layers.AddChild(buttons, row: 2);
+            _motionTargets["set"] = set;
+            _motionTargets["hoverA"] = hoverA;
+            _motionTargets["hoverB"] = hoverB;
+            _motionTargets["chip"] = chip;
+
+            panel.Content = layers;
+            return panel;
         }
 
         private Border MotionCard(string text, Color color)

@@ -11,6 +11,7 @@ using MonoGame.PortableUI.Effects;
 using MonoGame.PortableUI.Exceptions;
 using MonoGame.PortableUI.Media;
 using ControlAnimation = MonoGame.PortableUI.Animation.Animation;
+using TransitionProperty = MonoGame.PortableUI.Animation.TransitionProperty;
 
 namespace MonoGame.PortableUI.Controls
 {
@@ -415,24 +416,32 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        /// <summary>Render scale about <see cref="TransformOrigin"/>. With a <see cref="Transitions"/> entry,
+        /// setting it animates; the getter returns the new value at once.</summary>
         public Vector2 Scale
         {
-            get => _scale;
+            get => _scaleTransition is { IsRunning: true } transition ? transition.Target : _scale;
             set
             {
-                if (_scale == value)
+                if (Scale == value)
+                    return;
+                if (TryTransition(TransitionProperty.Scale, ref _scaleTransition, _scale, value, ScaleRestDelta))
                     return;
                 _scale = value;
                 InvalidateLayout(false);
             }
         }
 
+        /// <summary>Render offset (layout and hit testing ignore it). With a <see cref="Transitions"/> entry,
+        /// setting it animates; the getter returns the new value at once.</summary>
         public Vector2 Translation
         {
-            get => _translation;
+            get => _translationTransition is { IsRunning: true } transition ? transition.Target : _translation;
             set
             {
-                if (_translation == value)
+                if (Translation == value)
+                    return;
+                if (TryTransition(TransitionProperty.Translation, ref _translationTransition, _translation, value, TranslationRestDelta))
                     return;
                 _translation = value;
                 InvalidateLayout(false);
@@ -455,12 +464,17 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        /// <summary>Opacity of the control and its subtree. With a <see cref="Transitions"/> entry, setting it
+        /// fades; the getter returns the new value at once.</summary>
         public double Opacity
         {
-            get => _opacity;
+            get => _opacityTransition is { IsRunning: true } ? _opacityTarget : _opacity;
             set
             {
-                if (_opacity == value)
+                if (Opacity == value)
+                    return;
+                _opacityTarget = value;
+                if (TryTransition(TransitionProperty.Opacity, ref _opacityTransition, new Vector2((float)_opacity, 0), new Vector2((float)value, 0), ScaleRestDelta))
                     return;
                 _opacity = value;
                 InvalidateLayout(false);
@@ -474,7 +488,7 @@ namespace MonoGame.PortableUI.Controls
 
         /// <summary>
         ///     This control's own render transform in layout space: <see cref="Scale"/> about
-        ///     <see cref="TransformOrigin"/> within <see cref="ClippingRect"/> (with squash & stretch), then
+        ///     <see cref="TransformOrigin"/> within <see cref="ClippingRect"/> (with squash &amp; stretch), then
         ///     <see cref="Translation"/>.
         /// </summary>
         internal Matrix GetRenderTransform()
@@ -1080,19 +1094,28 @@ namespace MonoGame.PortableUI.Controls
             var scale = Math.Min(RenderScale.X, RenderScale.Y);
 
             var shadow = Shadow;
+            var background = BackgroundBrush;
+            var backgroundFading = UpdateFade(ref _backgroundFade, background, TransitionProperty.Background);
+            var borderBrush = BorderBrush;
+            var borderFading = UpdateFade(ref _borderFade, borderBrush, TransitionProperty.BorderBrush);
             // Shadows follow the face's shape: a cut-corner face gets rounded corners there
             // instead of a square glow filling the cut.
-            var shadowRadius = shadow != null && BackgroundBrush is ChamferBrush chamfer ? chamfer.ShadowRadius(scale) : radius;
+            var shadowRadius = shadow != null && background is ChamferBrush chamfer ? chamfer.ShadowRadius(scale) : radius;
             for (var s = shadow; s != null; s = s.Also)
             {
                 if (!s.Inset)
                     ShadowRenderer.Draw(spriteBatch, rect, shadowRadius, s, RenderOpacity, scale);
             }
 
-            if (BackgroundBrush != null)
+            if (backgroundFading)
             {
                 var context = new BrushContext(rect, radius, RenderOpacity, spriteBatch.GraphicsDevice, (float)ScreenSystem.TotalTime.TotalSeconds, null, ToRender(1f));
-                BackgroundBrush.Draw(spriteBatch, in context);
+                _backgroundFade!.Draw(spriteBatch, in context);
+            }
+            else if (background != null)
+            {
+                var context = new BrushContext(rect, radius, RenderOpacity, spriteBatch.GraphicsDevice, (float)ScreenSystem.TotalTime.TotalSeconds, null, ToRender(1f));
+                background.Draw(spriteBatch, in context);
             }
 
             for (var s = shadow; s != null; s = s.Also)
@@ -1105,12 +1128,16 @@ namespace MonoGame.PortableUI.Controls
             {
                 RoundedRectRenderer.DrawBevelBorder(spriteBatch, rect, radius, border, bevelLight, bevelDark, RenderOpacity);
             }
-            else if (BorderBrush != null && HasBorder(BorderThickness))
+            else if (borderFading && HasBorder(BorderThickness))
             {
-                if (!CornerRadius.IsEmpty && BorderBrush is SolidColorBrush solidBorder)
+                DrawBorderFade(spriteBatch, rect, radius, border);
+            }
+            else if (borderBrush != null && HasBorder(BorderThickness))
+            {
+                if (!CornerRadius.IsEmpty && borderBrush is SolidColorBrush solidBorder)
                     RoundedRectRenderer.DrawBorder(spriteBatch, rect, radius, border, Brush.ApplyOpacity(solidBorder.Color, RenderOpacity));
                 else
-                    DrawBorder(spriteBatch, rect, border, BorderBrush, RenderOpacity);
+                    DrawBorder(spriteBatch, rect, border, borderBrush, RenderOpacity);
             }
         }
 
@@ -1140,8 +1167,8 @@ namespace MonoGame.PortableUI.Controls
             {
                 if (GetDrawOverrides().Draw)
                     return true;
-                return Shadow != null || BackgroundBrush != null
-                    || ((BorderBrush != null || BorderBevelLight != null) && HasBorder(BorderThickness));
+                return Shadow != null || BackgroundBrush != null || _backgroundFade is { IsRunning: true }
+                    || ((BorderBrush != null || BorderBevelLight != null || _borderFade is { IsRunning: true }) && HasBorder(BorderThickness));
             }
         }
 
@@ -1595,6 +1622,7 @@ namespace MonoGame.PortableUI.Controls
             _longPressTimer.Update();
             _toolTipHoverTimer.Update();
             _toolTipLongPressTimer.Update();
+            UpdateTransitions();
             if (_animations.Count > 0)
             {
                 UpdateAnimations();
