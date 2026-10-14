@@ -20,15 +20,45 @@ namespace MonoGame.PortableUI.Media
             return stops.OrderBy(stop => stop.Offset).ToArray();
         }
 
+        /// <summary>
+        /// Hash of the stops in offset order, the same value <see cref="GetOrdered"/> would give. Called by every gradient
+        /// brush on every draw (its cache key), so it sorts on the stack instead of through LINQ: the ordered copy used to be
+        /// several hundred bytes of garbage per gradient per frame.
+        /// </summary>
         public static int GetHash(List<GradientStop> stops)
         {
             var hash = new HashCode();
-            foreach (var stop in GetOrdered(stops))
+            if (stops.Count <= 1)
+            {
+                // GetOrdered's two-stop stand-ins for an empty or single-stop list.
+                var color = stops.Count == 0 ? Color.Transparent : stops[0].Color;
+                Add(ref hash, new GradientStop(0, color));
+                Add(ref hash, new GradientStop(1, color));
+                return hash.ToHashCode();
+            }
+            Span<GradientStop> ordered = stops.Count <= 64 ? stackalloc GradientStop[stops.Count] : new GradientStop[stops.Count];
+            // Insertion sort: stable like OrderBy (stops at one offset make a hard edge and keep their order), and the
+            // lists are short.
+            for (var i = 0; i < ordered.Length; i++)
+            {
+                var stop = stops[i];
+                var j = i;
+                while (j > 0 && ordered[j - 1].Offset > stop.Offset)
+                {
+                    ordered[j] = ordered[j - 1];
+                    j--;
+                }
+                ordered[j] = stop;
+            }
+            foreach (var stop in ordered)
+                Add(ref hash, stop);
+            return hash.ToHashCode();
+
+            static void Add(ref HashCode hash, GradientStop stop)
             {
                 hash.Add(BitConverter.SingleToInt32Bits(stop.Offset));
                 hash.Add(stop.Color.PackedValue);
             }
-            return hash.ToHashCode();
         }
 
         public static Color Evaluate(IReadOnlyList<GradientStop> stops, float offset)

@@ -633,6 +633,18 @@ namespace MonoGame.PortableUI.Media
             {
                 if (Effects.TryGetValue(device, out var effect) && !effect.IsDisposed)
                     return effect;
+            }
+            return CreateEffect(device);
+        }
+
+        // Apart from EffectFor: the dispose handler captures the device, and a captured parameter makes the compiler
+        // allocate the closure on entry - on every call, the cached path included.
+        private static BasicEffect CreateEffect(GraphicsDevice device)
+        {
+            lock (Effects)
+            {
+                if (Effects.TryGetValue(device, out var effect) && !effect.IsDisposed)
+                    return effect;
                 effect = new BasicEffect(device)
                 {
                     VertexColorEnabled = true,

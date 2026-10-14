@@ -40,6 +40,17 @@ namespace MonoGame.PortableUI.Demo
             RebuildContent();
         }
 
+        private int _shownPercent = -1;
+        private static readonly string[] PercentLabels = BuildPercentLabels();
+
+        private static string[] BuildPercentLabels()
+        {
+            var labels = new string[101];
+            for (var i = 0; i <= 100; i++)
+                labels[i] = i + "%";
+            return labels;
+        }
+
         protected override void OnBeforeDraw(SpriteBatch spriteBatch)
         {
             base.OnBeforeDraw(spriteBatch);
@@ -49,8 +60,13 @@ namespace MonoGame.PortableUI.Demo
             // Simulated task: 0 → 100 % over six seconds, restarting — a real, moving value.
             var percent = (float)(ScreenSystem.TotalTime.TotalSeconds % 6 / 6 * 100);
             _liveProgress.Value = percent;
-            if (_liveProgressLabel != null)
-                _liveProgressLabel.Text = $"{percent:0}%";
+            // Only when the shown number changes: a new string every frame was the demo's own garbage.
+            var shown = (int)MathF.Round(percent);
+            if (_liveProgressLabel != null && shown != _shownPercent)
+            {
+                _shownPercent = shown;
+                _liveProgressLabel.Text = PercentLabels[Math.Clamp(shown, 0, 100)];
+            }
         }
 
         public void ApplyThemePreset(DemoThemePreset themePreset)

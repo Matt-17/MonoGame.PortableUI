@@ -45,19 +45,20 @@ namespace MonoGame.PortableUI.Media
 
         internal static int FillShadowLayers(Rect rect, ShadowStyle shadow, Span<ShadowLayer> layers, float scale = 1f, int maxLayers = MaxLayers)
         {
-            if (System.Math.Abs(scale - 1f) > 0.0001f)
-                shadow = new ShadowStyle { Color = shadow.Color, Opacity = shadow.Opacity, Offset = shadow.Offset * scale, Blur = shadow.Blur * scale, Spread = shadow.Spread * scale, Inset = shadow.Inset };
             if (shadow == null || shadow.Color.A == 0 || shadow.Opacity <= 0)
                 return 0;
 
+            // The render scale (HiDPI, a pressed button, a zooming popup) scales offset, blur and spread here, as locals: a
+            // scaled copy of the style was a new object per shadow per frame.
+            var offset = shadow.Offset * scale;
             var strength = MathHelper.Clamp(shadow.Opacity, 0, 1);
             var alpha = shadow.Color.A * strength;
-            var blur = Math.Max(0, shadow.Blur);
-            var spread = Math.Max(0, shadow.Spread);
+            var blur = Math.Max(0, shadow.Blur * scale);
+            var spread = Math.Max(0, shadow.Spread * scale);
             if (blur <= 0)
             {
                 var flat = new Color(shadow.Color.R, shadow.Color.G, shadow.Color.B, (byte)MathHelper.Clamp(alpha, 0, 255));
-                layers[0] = new ShadowLayer(ApplyShadowRect(rect, shadow.Offset, spread, shadow.Inset), flat);
+                layers[0] = new ShadowLayer(ApplyShadowRect(rect, offset, spread, shadow.Inset), flat);
                 return 1;
             }
 
@@ -75,7 +76,7 @@ namespace MonoGame.PortableUI.Media
                 var weight = (1 - t) * (1 - t);
                 var color = new Color(shadow.Color.R, shadow.Color.G, shadow.Color.B, (byte)MathHelper.Clamp(alpha * weight / weightSum, 0, 255));
                 var expansion = spread + blur * t;
-                layers[i] = new ShadowLayer(ApplyShadowRect(rect, shadow.Offset, expansion, shadow.Inset), color);
+                layers[i] = new ShadowLayer(ApplyShadowRect(rect, offset, expansion, shadow.Inset), color);
             }
 
             return count;

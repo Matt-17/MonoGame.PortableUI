@@ -29,6 +29,9 @@ namespace MonoGame.PortableUI.Demo
         /// <summary>--benchmark-surfaces out.csv [--surface-count 100]: cost of hosting many UISurfaces.</summary>
         public string? SurfaceBenchmarkFile { get; init; }
 
+        /// <summary>--benchmark-garbage out.csv: managed bytes allocated per frame, per theme and tab, idle and with a moving pointer.</summary>
+        public string? GarbageBenchmarkFile { get; init; }
+
         public int SurfaceCount { get; init; } = 100;
 
         public static DemoRunOptions Parse(string[]? args)
@@ -50,6 +53,7 @@ namespace MonoGame.PortableUI.Demo
                 ScreenshotOverlay = TryParseValue(args, "--screenshot-overlay"),
                 BenchmarkFile = TryParseValue(args, "--benchmark-themes"),
                 SurfaceBenchmarkFile = TryParseValue(args, "--benchmark-surfaces"),
+                GarbageBenchmarkFile = TryParseValue(args, "--benchmark-garbage"),
                 SurfaceCount = int.TryParse(TryParseValue(args, "--surface-count"), out var surfaceCount) && surfaceCount > 0 ? surfaceCount : 100,
                 ScreenshotTabs = int.TryParse(TryParseValue(args, "--screenshot-tabs"), out var tabs) ? tabs : 0,
                 ScreenshotCursor = ParsePoint(TryParseValue(args, "--screenshot-cursor")),

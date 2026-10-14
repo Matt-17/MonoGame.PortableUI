@@ -212,15 +212,41 @@ namespace MonoGame.PortableUI.Controls
 
         private static void DrawCheckMark(SpriteBatch spriteBatch, Rect rect, float borderWidth, Brush brush, CheckBoxGlyphKind glyphKind, float opacity)
         {
-            foreach (var markRect in GetCheckMarkRects(rect, borderWidth, glyphKind))
-                brush.Draw(spriteBatch, markRect, opacity);
+            // Straight to the brush: the rects came from nested iterators before, garbage per checked box per frame.
+            var sink = new DrawSink(spriteBatch, brush, opacity);
+            EmitCheckMark(rect, glyphKind, ref sink);
         }
 
         internal static IEnumerable<Rect> GetCheckMarkRects(Rect rect, float borderWidth, CheckBoxGlyphKind glyphKind = CheckBoxGlyphKind.Cross)
         {
+            var sink = new ListSink(new List<Rect>());
+            EmitCheckMark(rect, glyphKind, ref sink);
+            return sink.Rects;
+        }
+
+        private interface IRectSink
+        {
+            void Add(Rect rect);
+        }
+
+        private readonly struct DrawSink(SpriteBatch spriteBatch, Brush brush, float opacity) : IRectSink
+        {
+            public void Add(Rect rect) => brush.Draw(spriteBatch, rect, opacity);
+        }
+
+        private readonly struct ListSink(List<Rect> rects) : IRectSink
+        {
+            public List<Rect> Rects => rects;
+
+            public void Add(Rect rect) => rects.Add(rect);
+        }
+
+        // A struct sink through a generic constraint: no boxing, no delegate.
+        private static void EmitCheckMark<TSink>(Rect rect, CheckBoxGlyphKind glyphKind, ref TSink sink) where TSink : struct, IRectSink
+        {
             var mark = rect;
             if (mark.Width <= 0 || mark.Height <= 0)
-                yield break;
+                return;
 
             var stroke = Math.Max(2, Math.Min(mark.Width, mark.Height) * 0.18f);
             stroke = Math.Min(stroke, Math.Min(mark.Width, mark.Height));
@@ -229,11 +255,9 @@ namespace MonoGame.PortableUI.Controls
 
             if (glyphKind == CheckBoxGlyphKind.Check)
             {
-                foreach (var rectOnLine in GetStrokeRectsOnLine(mark, stroke, new PointF(0.2f, 0.55f), new PointF(0.42f, 0.78f)))
-                    yield return rectOnLine;
-                foreach (var rectOnLine in GetStrokeRectsOnLine(mark, stroke, new PointF(0.42f, 0.78f), new PointF(0.82f, 0.25f)))
-                    yield return rectOnLine;
-                yield break;
+                EmitStrokeOnLine(mark, stroke, new PointF(0.2f, 0.55f), new PointF(0.42f, 0.78f), ref sink);
+                EmitStrokeOnLine(mark, stroke, new PointF(0.42f, 0.78f), new PointF(0.82f, 0.25f), ref sink);
+                return;
             }
 
             for (var i = 0; i < steps; i++)
@@ -245,15 +269,15 @@ namespace MonoGame.PortableUI.Controls
 
                 var first = ClipToBounds(new Rect(centerX - halfStroke, centerY - halfStroke, stroke, stroke), mark);
                 if (first.Width > 0 && first.Height > 0)
-                    yield return first;
+                    sink.Add(first);
 
                 var second = ClipToBounds(new Rect(centerX - halfStroke, inverseCenterY - halfStroke, stroke, stroke), mark);
                 if (second.Width > 0 && second.Height > 0)
-                    yield return second;
+                    sink.Add(second);
             }
         }
 
-        private static IEnumerable<Rect> GetStrokeRectsOnLine(Rect bounds, float stroke, PointF start, PointF end)
+        private static void EmitStrokeOnLine<TSink>(Rect bounds, float stroke, PointF start, PointF end, ref TSink sink) where TSink : struct, IRectSink
         {
             var halfStroke = stroke / 2;
             var steps = Math.Max(2, (int)Math.Ceiling(Math.Max(bounds.Width, bounds.Height)) + 1);
@@ -264,7 +288,7 @@ namespace MonoGame.PortableUI.Controls
                 var centerY = bounds.Top + bounds.Height * (start.Y + (end.Y - start.Y) * t);
                 var rect = ClipToBounds(new Rect(centerX - halfStroke, centerY - halfStroke, stroke, stroke), bounds);
                 if (rect.Width > 0 && rect.Height > 0)
-                    yield return rect;
+                    sink.Add(rect);
             }
         }
 

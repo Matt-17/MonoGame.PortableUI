@@ -16,9 +16,18 @@ namespace MonoGame.PortableUI.Controls
             _parent = panel;
         }
 
-        public IEnumerator<Control> GetEnumerator()
+        /// <summary>
+        /// The list's own struct enumerator: a foreach over a panel's children (layout, drawing, hit testing, every frame)
+        /// allocates nothing. Through the interfaces it is boxed as before.
+        /// </summary>
+        public List<Control>.Enumerator GetEnumerator()
         {
             return _controls.GetEnumerator();
+        }
+
+        IEnumerator<Control> IEnumerable<Control>.GetEnumerator()
+        {
+            return GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()

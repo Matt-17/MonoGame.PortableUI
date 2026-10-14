@@ -253,7 +253,7 @@ namespace MonoGame.PortableUI.Controls
 
                 _itemHeight = Math.Max(0, value);
                 _itemsPanel.MinRowHeight = _itemHeight;
-                foreach (var button in _itemsPanel.Realized)
+                foreach (var button in _itemsPanel.RealizedRows)
                     button.MinHeight = _itemHeight;
                 InvalidateLayout(true);
             }
@@ -265,7 +265,7 @@ namespace MonoGame.PortableUI.Controls
             set
             {
                 _itemPadding = value;
-                foreach (var row in _itemsPanel.Realized)
+                foreach (var row in _itemsPanel.RealizedRows)
                     ((Button)row).Padding = _itemPadding;
                 InvalidateLayout(true);
             }
@@ -439,7 +439,7 @@ namespace MonoGame.PortableUI.Controls
             {
                 // ToString()/templates rerun for the rows already realized; rows realized below
                 // are bound fresh anyway.
-                foreach (var row in _itemsPanel.Realized)
+                foreach (var row in _itemsPanel.RealizedRows)
                     ((ItemButton)row).IsBound = false;
                 _refreshItemTexts = false;
             }
@@ -448,13 +448,16 @@ namespace MonoGame.PortableUI.Controls
                 BindItemButton(_itemsPanel.Realized[i], _itemsPanel.FirstRealizedIndex + i);
 
             _itemButtons.Clear();
-            foreach (var row in _itemsPanel.Realized)
+            foreach (var row in _itemsPanel.RealizedRows)
                 _itemButtons.Add((Button)row);
 
             if (_pendingSelectedIndex >= 0 && Items.Count > 0)
                 SelectedIndex = _pendingSelectedIndex;
 
-            _selectedIndices.RemoveAll(index => index >= Items.Count);
+            // A loop, not RemoveAll with a lambda: it read Items through this list, a new delegate on every call.
+            for (var i = _selectedIndices.Count - 1; i >= 0; i--)
+                if (_selectedIndices[i] >= Items.Count)
+                    _selectedIndices.RemoveAt(i);
             var clamped = ClampIndex(_selectedIndex);
             if (_selectedIndex != clamped)
             {
@@ -472,7 +475,9 @@ namespace MonoGame.PortableUI.Controls
         {
             var button = (ItemButton)row;
             button.CacheMode = _itemCacheMode;
-            button.Tag = index;
+            // Boxed only when the row's index changed: every sync re-binds every realized row.
+            if (button.Tag is not int tagged || tagged != index)
+                button.Tag = index;
             button.ForcePressedVisual = index == _touchHighlightIndex;
             button.MinHeight = ItemHeight;
             var item = Items[index];
@@ -536,7 +541,7 @@ namespace MonoGame.PortableUI.Controls
             if (_touchHighlightIndex == index)
                 return;
             _touchHighlightIndex = index;
-            foreach (var row in _itemsPanel.Realized)
+            foreach (var row in _itemsPanel.RealizedRows)
             {
                 if (row is Button button)
                     button.ForcePressedVisual = button.Tag is int rowIndex && rowIndex == index;
@@ -583,7 +588,7 @@ namespace MonoGame.PortableUI.Controls
                 if (_itemCacheMode == value)
                     return;
                 _itemCacheMode = value;
-                foreach (var row in _itemsPanel.Realized)
+                foreach (var row in _itemsPanel.RealizedRows)
                     row.CacheMode = value;
             }
         }
@@ -759,7 +764,7 @@ namespace MonoGame.PortableUI.Controls
         private bool TryGetItemIndexAt(PointF position, out int index)
         {
             EnsureItemButtons();
-            foreach (var row in _itemsPanel.Realized)
+            foreach (var row in _itemsPanel.RealizedRows)
             {
                 if (!row.ClippingRect.Contains(position) || row.Tag is not int rowIndex)
                     continue;
@@ -849,7 +854,7 @@ namespace MonoGame.PortableUI.Controls
         private void UpdateItemButtonVisuals()
         {
             var theme = ResolveTheme();
-            foreach (var row in _itemsPanel.Realized)
+            foreach (var row in _itemsPanel.RealizedRows)
             {
                 if (row is Button button && button.Tag is int index)
                     ApplyItemVisual(button, index, theme);
