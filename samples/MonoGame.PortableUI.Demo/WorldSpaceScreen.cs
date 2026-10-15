@@ -104,7 +104,10 @@ namespace MonoGame.PortableUI.Demo
             _view = view;
             _projection = projection;
             _world = world;
-            if (_captureMode)
+            // The mouse is read directly here, so honour the window focus like the UI does.
+            if (!_game.IsActive)
+                ReleaseMouseWhileInactive();
+            else if (_captureMode)
                 RouteCapturedMouse(viewport, view, projection, world);
             else
                 RouteMouseIntoSurface(viewport, view, projection, world);
@@ -162,6 +165,16 @@ namespace MonoGame.PortableUI.Demo
             Mouse.SetPosition((int)at.X, (int)at.Y);
             _game.IsMouseVisible = true;
             _status.Text = CaptureHint;
+        }
+
+        /// <summary>Window in the background: the monitor holds no button and no pointer (no capture warping).</summary>
+        private void ReleaseMouseWhileInactive()
+        {
+            if (_capture.IsCaptured)
+                _capture.Update(Vector2.Zero, false, false, false, default);
+            else
+                _virtualInput.SetPointer(new PointF(-100, -100), false, false, false);
+            _wasLeftDown = false;
         }
 
         private bool IsActiveScreen => ReferenceEquals(ScreenEngine?.ActiveScreen, this);

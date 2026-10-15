@@ -12,6 +12,10 @@ namespace MonoGame.PortableUI
     public partial class ScreenEngine : IDisposable
     {
         public Game Game { get; set; }
+
+        /// <summary>Whether screens read <see cref="Input.DeviceInputSource"/> now: the window is active,
+        /// or <see cref="ScreenEngineOptions.InputWhenInactive"/> is set.</summary>
+        internal bool ReadsDeviceInput => Options.InputWhenInactive || Game.IsActive;
         private Control? _focusedControl;
         private readonly Dictionary<string, IKeyboard> _keyboards;
 
