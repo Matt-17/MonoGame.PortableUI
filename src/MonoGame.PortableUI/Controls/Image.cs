@@ -177,7 +177,7 @@ namespace MonoGame.PortableUI.Controls
 
         public override Size MeasureLayout()
         {
-            if (IsGone)
+            if (IsGoneShown)
                 return Size.Empty;
 
             // Margin must stay out of the size the source image is fitted into, and constraints

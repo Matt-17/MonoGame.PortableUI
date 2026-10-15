@@ -495,15 +495,17 @@ namespace MonoGame.PortableUI.Controls
         {
             if (RenderTransformSuppressed)
                 return Matrix.Identity;
-            if (_scale == Vector2.One && _translation == Vector2.Zero && !IsMotionDeformed)
+            var scale = DrawnScale;
+            var translation = _translation + PresenceOffset;
+            if (scale == Vector2.One && translation == Vector2.Zero && !IsMotionDeformed)
                 return Matrix.Identity;
 
             var rect = ClippingRect;
             var origin = new Vector2(rect.Left + rect.Width * _transformOrigin.X, rect.Top + rect.Height * _transformOrigin.Y);
             return Matrix.CreateTranslation(-origin.X, -origin.Y, 0)
-                * Matrix.CreateScale(_scale.X, _scale.Y, 1)
+                * Matrix.CreateScale(scale.X, scale.Y, 1)
                 * GetStretchMatrix()
-                * Matrix.CreateTranslation(origin.X + _translation.X, origin.Y + _translation.Y, 0);
+                * Matrix.CreateTranslation(origin.X + translation.X, origin.Y + translation.Y, 0);
         }
 
         /// <summary>
@@ -1270,7 +1272,7 @@ namespace MonoGame.PortableUI.Controls
             if (_suppressUpdate)
                 return;
 
-            if (IsGone)
+            if (IsGoneShown)
                 BoundingRect = Rect.Empty;
 
             // Arranging a root (no parent control) starts a new layout pass: measures cached in
@@ -1290,7 +1292,7 @@ namespace MonoGame.PortableUI.Controls
         /// arranging the same subtree in a slot of the same size at a shifted origin.</summary>
         internal virtual void OffsetArrangement(PointF delta)
         {
-            if (IsGone)
+            if (IsGoneShown)
                 return;
 
             BoundingRect += delta;
@@ -1360,7 +1362,7 @@ namespace MonoGame.PortableUI.Controls
 
         public virtual Size MeasureLayout()
         {
-            if (IsGone)
+            if (IsGoneShown)
                 return Size.Empty;
 
             var width = Width.IsFixed() ? Width : 0;
@@ -1666,6 +1668,7 @@ namespace MonoGame.PortableUI.Controls
             _toolTipHoverTimer.Update();
             _toolTipLongPressTimer.Update();
             UpdateTransitions();
+            UpdatePresence();
             if (_animations.Count > 0)
             {
                 UpdateAnimations();
@@ -1758,7 +1761,7 @@ namespace MonoGame.PortableUI.Controls
         protected bool SnapsDrawing => SnapToPixel && !DrawsSubpixel;
 
         /// <summary>A render-only motion is running on this control right now.</summary>
-        internal bool IsInMotion => _animations.Count > 0 || IsTransitioning || IsMotionDeformed;
+        internal bool IsInMotion => _animations.Count > 0 || IsTransitioning || IsPresenceAnimating || IsMotionDeformed;
 
         protected internal virtual void OnGotFocus(GotFocusEventArgs args)
         {

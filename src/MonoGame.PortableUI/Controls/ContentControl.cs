@@ -60,7 +60,7 @@ namespace MonoGame.PortableUI.Controls
 
         public override Size MeasureLayout()
         {
-            if (IsGone || (Height.IsFixed() && Width.IsFixed()))
+            if (IsGoneShown || (Height.IsFixed() && Width.IsFixed()))
                 return base.MeasureLayout();
 
             // Min/Max bound the content box (content + padding); margin is added afterwards.

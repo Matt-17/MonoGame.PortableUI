@@ -60,7 +60,7 @@ namespace MonoGame.PortableUI.Controls
 
         public override Size MeasureLayout()
         {
-            if (IsGone || (Width.IsFixed() && Height.IsFixed()))
+            if (IsGoneShown || (Width.IsFixed() && Height.IsFixed()))
                 return base.MeasureLayout();
 
             var horizontal = Orientation == Orientation.Horizontal;
@@ -119,7 +119,7 @@ namespace MonoGame.PortableUI.Controls
             for (var i = 0; i < Children.Count; i++)
             {
                 var child = Children[i];
-                if (child.IsGone)
+                if (child.IsGoneShown)
                     continue;
 
                 var (itemMain, itemCross) = SlotSize(child, horizontal);
@@ -160,7 +160,7 @@ namespace MonoGame.PortableUI.Controls
             for (var i = start; i < end; i++)
             {
                 var child = Children[i];
-                if (child.IsGone)
+                if (child.IsGoneShown)
                     continue;
 
                 if (!first)

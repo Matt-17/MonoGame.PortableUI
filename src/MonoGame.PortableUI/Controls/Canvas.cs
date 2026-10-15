@@ -109,7 +109,7 @@ namespace MonoGame.PortableUI.Controls
 
         private void OnChildMoved(Control child)
         {
-            if (!_arrangeValid || child.IsGone)
+            if (!_arrangeValid || child.IsGoneShown)
             {
                 InvalidateLayout(true);
                 return;
@@ -138,7 +138,7 @@ namespace MonoGame.PortableUI.Controls
 
         public override Size MeasureLayout()
         {
-            if (IsGone)
+            if (IsGoneShown)
                 return Size.Empty;
             // Children get their desired sizes; the canvas itself keeps its own size (WPF semantics).
             for (var i = 0; i < Children.Count; i++)
@@ -159,7 +159,7 @@ namespace MonoGame.PortableUI.Controls
                 position.ArrangedOrigin = origin;
                 child.UpdateLayout(new Rect(origin.X, origin.Y, size.Width, size.Height));
             }
-            _arrangeValid = !IsGone;
+            _arrangeValid = !IsGoneShown;
         }
 
         private PointF SlotOrigin(Control child, CanvasPosition position, Size size)

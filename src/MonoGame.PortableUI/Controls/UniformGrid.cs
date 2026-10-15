@@ -42,7 +42,7 @@ namespace MonoGame.PortableUI.Controls
                 var count = 0;
                 for (var i = 0; i < Children.Count; i++)
                 {
-                    if (!Children[i].IsGone)
+                    if (!Children[i].IsGoneShown)
                         count++;
                 }
                 return count;
@@ -72,7 +72,7 @@ namespace MonoGame.PortableUI.Controls
 
         public override Size MeasureLayout()
         {
-            if (IsGone || (Width.IsFixed() && Height.IsFixed()))
+            if (IsGoneShown || (Width.IsFixed() && Height.IsFixed()))
                 return base.MeasureLayout();
 
             float cellWidth = 0;
@@ -80,7 +80,7 @@ namespace MonoGame.PortableUI.Controls
             for (var i = 0; i < Children.Count; i++)
             {
                 var child = Children[i];
-                if (child.IsGone)
+                if (child.IsGoneShown)
                     continue;
                 var desired = child.Measure();
                 cellWidth = Math.Max(cellWidth, desired.Width);
@@ -106,7 +106,7 @@ namespace MonoGame.PortableUI.Controls
             for (var i = 0; i < Children.Count; i++)
             {
                 var child = Children[i];
-                if (child.IsGone)
+                if (child.IsGoneShown)
                 {
                     child.UpdateLayout(Rect.Empty);
                     continue;

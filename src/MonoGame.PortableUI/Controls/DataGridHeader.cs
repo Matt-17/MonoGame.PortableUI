@@ -74,14 +74,14 @@ namespace MonoGame.PortableUI.Controls
 
         public override Size MeasureLayout()
         {
-            if (IsGone || !_owner.ShowColumnHeaders)
+            if (IsGoneShown || !_owner.ShowColumnHeaders)
                 return Size.Empty;
             return ApplyConstraints(new Size(_owner.InnerWidth, _owner.EffectiveHeaderHeight)) + Margin;
         }
 
         public override void UpdateLayout(Rect rect)
         {
-            if (IsGone)
+            if (IsGoneShown)
             {
                 BoundingRect = Rect.Empty;
                 return;

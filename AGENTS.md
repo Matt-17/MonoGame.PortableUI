@@ -118,6 +118,11 @@ start a transition and the getters return the *target*; what is drawn lives in t
 public setters. Background/border/text colours fade at draw time (`BrushFade`/`ColorFade`, keyed on the
 brush reference; theme switch and first draw snap; `CompleteTransitions()` snaps a subtree).
 
+**Enter/exit:** `Control.VisibilityTransition` animates `IsVisible`/`IsGone`. The properties return the target; while an exit plays
+`UIElement.ExitHolds` keeps it in layout and drawing. Layout and draw code therefore read `IsGoneShown`/`IsVisibleShown`, while input, focus,
+tab stops and accessibility read the public properties (an exiting control takes no input). The pose (`PresenceScale`/`PresenceOffset`/
+`PresenceOpacity`, `Control.Presence.cs`) is folded into `GetRenderTransform` and `RenderContext.ForControl` on top of the shown values.
+
 **Motion rendering:** `RenderContext.Moving` marks a control or ancestor in motion (`Control.IsInMotion`:
 animation, transition, squash/breath). Then `Control.DrawsSubpixel` (unless the theme sets `PixelMotion`) turns
 off text snapping (`SnapsDrawing`) and `RoundedRectRenderer.Subpixel` draws fractional rects through padded

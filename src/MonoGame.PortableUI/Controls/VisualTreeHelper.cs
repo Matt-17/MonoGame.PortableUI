@@ -15,7 +15,7 @@ namespace MonoGame.PortableUI.Controls
 
         internal static void AppendVisualTree(Control content, IList<Control> result, bool addTreeWhichIsGone = true)
         {
-            if (content.IsGone && !addTreeWhichIsGone)
+            if (content.IsGoneShown && !addTreeWhichIsGone)
                 return;
 
             var count = content.VisualChildCount;
@@ -29,7 +29,7 @@ namespace MonoGame.PortableUI.Controls
         /// (gone subtrees skipped). Allocation-free with a static lambda; stops at the first match.</summary>
         internal static bool Any<TState>(Control control, TState state, Func<Control, TState, bool> predicate)
         {
-            if (control.IsGone)
+            if (control.IsGoneShown)
                 return false;
             if (predicate(control, state))
                 return true;

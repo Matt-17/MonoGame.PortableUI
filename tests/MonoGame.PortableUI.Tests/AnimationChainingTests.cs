@@ -252,5 +252,26 @@ namespace MonoGame.PortableUI.Tests
             Assert.AreEqual(0, GC.GetAllocatedBytesForCurrentThread() - before);
             Assert.IsFalse(animation.IsRunning);
         }
+
+        [TestMethod]
+        public void An_animation_with_nothing_to_do_still_calls_OnCompleted()
+        {
+            var control = new TestControl();
+            var calls = 0;
+            control.Animate().Delay(TimeSpan.Zero).OnCompleted(() => calls++).Start();
+            Assert.AreEqual(1, calls, "a zero delay completes at once");
+        }
+
+        [TestMethod]
+        public void A_start_delay_alone_waits_before_OnCompleted()
+        {
+            var control = new TestControl();
+            var calls = 0;
+            control.Animate().DelayStart(Ms(100)).OnCompleted(() => calls++).Start();
+            At(control, 50);
+            Assert.AreEqual(0, calls);
+            At(control, 120);
+            Assert.AreEqual(1, calls);
+        }
     }
 }

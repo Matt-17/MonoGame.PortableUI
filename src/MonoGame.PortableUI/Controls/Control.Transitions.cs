@@ -40,12 +40,13 @@ namespace MonoGame.PortableUI.Controls
             _scaleTransition is { IsRunning: true } || _translationTransition is { IsRunning: true } || _opacityTransition is { IsRunning: true };
 
         /// <summary>
-        ///     Ends every running transition at its target, here and in the subtree, and shows the next colour
-        ///     change without a fade - e.g. after rebinding a recycled list row to another item.
+        ///     Ends every running transition at its target (an exit removes the control now), here and in the
+        ///     subtree, and shows the next colour change without a fade - e.g. after rebinding a recycled list row to another item.
         /// </summary>
         public void CompleteTransitions()
         {
             FinishVectorTransitions();
+            FinishPresence();
             _backgroundFade?.Snap();
             _borderFade?.Snap();
             OnCompleteTransitions();
