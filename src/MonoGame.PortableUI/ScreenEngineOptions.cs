@@ -21,6 +21,15 @@ namespace MonoGame.PortableUI
         public bool AddComponentToGame { get; set; } = true;
 
         /// <summary>
+        ///     Read the real devices (<see cref="Input.DeviceInputSource"/>) while the game window is not the
+        ///     active window. Off by default: a window in the background neither hovers, clicks, scrolls, types
+        ///     nor reacts to the gamepad (desktop MonoGame reports the mouse buttons globally, so clicks into
+        ///     another window would otherwise reach the UI behind it). Turn it on for overlays that must react
+        ///     without focus. Custom input sources are the host's business and are never suppressed.
+        /// </summary>
+        public bool InputWhenInactive { get; set; }
+
+        /// <summary>
         ///     Show hover visuals for touch input too. Off by default: on phones the pointer that a
         ///     finger leaves behind would keep the last tapped control looking hovered. A real mouse
         ///     (also on Android/ChromeOS) always hovers.
