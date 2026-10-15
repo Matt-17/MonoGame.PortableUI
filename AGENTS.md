@@ -141,7 +141,9 @@ perpetually animated visuals must honour it: skip at Low (blur, post FX, heavy o
 High (anything that would request a frame forever). Never encode quality in theme files.
 
 **Input:** `Screen.Update` polls `IInputSource` (mouse, touch, keyboard) and diffs against the previous
-state. Routing is **bubbling** (depth-first descendants, then self; `args.Handled` stops it); siblings are
+state. While the window is inactive (`Game.IsActive` false) a `DeviceInputSource` reads as an inactive source (pointer
+gone, nothing pressed, wheel frozen) - desktop MonoGame reports mouse buttons globally, so clicks into other windows would
+reach the UI; `ScreenEngineOptions.InputWhenInactive` opts out, custom sources are never gated. Routing is **bubbling** (depth-first descendants, then self; `args.Handled` stops it); siblings are
 visited **topmost first** (reverse `GetDescendants` order = reverse draw order). The only tunneling hook is
 `OnPreviewTouchDown`, which lets containers like `ScrollViewer` start a pan under a clickable child; a pan
 past the threshold cancels the child's pending click. Hit-testing uses `ClippingRect` — margins are inert. Focus lives in

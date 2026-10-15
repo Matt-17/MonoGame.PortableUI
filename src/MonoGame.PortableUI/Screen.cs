@@ -688,6 +688,8 @@ namespace MonoGame.PortableUI
         }
 
         private bool _resyncPointerState;
+        private InactiveWindowInputSource? _inactiveInput;
+        private bool _deviceInputSuspended;
 
         internal void RaiseNavigatedTo()
         {
@@ -1465,6 +1467,25 @@ namespace MonoGame.PortableUI
             }
 
             var inputSource = InputSource ?? DeviceInputSource.Instance;
+            if (ReferenceEquals(inputSource, DeviceInputSource.Instance) && ScreenEngine is { ReadsDeviceInput: false })
+            {
+                // Window in the background: the real devices are someone else's (see InputWhenInactive).
+                _inactiveInput ??= new InactiveWindowInputSource();
+                if (!_deviceInputSuspended)
+                {
+                    _deviceInputSuspended = true;
+                    _inactiveInput.ScrollWheelValue = LastScrollWheelValue;
+                    _inactiveInput.HorizontalScrollWheelValue = LastHorizontalScrollWheelValue;
+                }
+                inputSource = _inactiveInput;
+            }
+            else if (_deviceInputSuspended)
+            {
+                // Back in front: wheel turns made over the inactive window are not a scroll now.
+                _deviceInputSuspended = false;
+                LastScrollWheelValue = inputSource.ScrollWheelValue;
+                LastHorizontalScrollWheelValue = inputSource.HorizontalScrollWheelValue;
+            }
             // All downstream consumers work in UI space: undo the CRT barrel displacement here.
             var mousePosition = TransformPointerPosition(inputSource.MousePosition);
             var pressedMouseButtons = SnapshotPressedMouseButtons(inputSource.PressedMouseButtons);
