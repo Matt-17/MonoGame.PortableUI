@@ -143,7 +143,7 @@ namespace MonoGame.PortableUI.Controls
 
         public override Size MeasureLayout()
         {
-            if (IsGone || (Width.IsFixed() && Height.IsFixed()))
+            if (IsGoneShown || (Width.IsFixed() && Height.IsFixed()))
                 return base.MeasureLayout();
 
             var content = Size.Empty;

@@ -160,7 +160,7 @@ namespace MonoGame.PortableUI.Controls
 
         public override Size MeasureLayout()
         {
-            if (IsGone)
+            if (IsGoneShown)
                 return Size.Empty;
 
             Sync();

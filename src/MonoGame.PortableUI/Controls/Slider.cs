@@ -136,7 +136,7 @@ namespace MonoGame.PortableUI.Controls
 
         public override Size MeasureLayout()
         {
-            if (IsGone)
+            if (IsGoneShown)
                 return Size.Empty;
 
             var width = Width.IsFixed() ? Width : PortableTheme.ResolveCurrent().SliderWidth;

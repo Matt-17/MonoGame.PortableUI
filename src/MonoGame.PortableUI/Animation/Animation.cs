@@ -229,8 +229,11 @@ namespace MonoGame.PortableUI.Animation
         {
             if (_isRunning)
                 return this;
-            if (!HasWork())
+            if (!HasWork() && _startDelay <= TimeSpan.Zero)
             {
+                // Nothing to wait for: complete now (callbacks included), e.g. a stagger's first Delay(0).
+                _isFinished = true;
+                _completed?.Invoke();
                 SignalCompletion(true);
                 return this;
             }

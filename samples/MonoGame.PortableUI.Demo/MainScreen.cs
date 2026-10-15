@@ -777,6 +777,21 @@ namespace MonoGame.PortableUI.Demo
                 pop.Animate().Delay(TimeSpan.FromSeconds(2)).OnCompleted(() => pop.Deformation.Wave = 0).Start();
             };
             _motionActions["shake"] = () => shake.Shake();
+            // Enter/exit: IsVisible plays each card's VisibilityTransition, one card after another.
+            pop.VisibilityTransition = VisibilityTransition.Pop;
+            jelly.VisibilityTransition = VisibilityTransition.SlideUp(40);
+            shake.VisibilityTransition = VisibilityTransition.Fade;
+            hop.VisibilityTransition = VisibilityTransition.SlideDown(40);
+            breathe.VisibilityTransition = VisibilityTransition.Zoom;
+            _motionActions["enterexit"] = () =>
+            {
+                var show = !pop.IsVisible;
+                var index = 0;
+                foreach (var card in cards.Children)
+                {
+                    card.Animate().Delay(TimeSpan.FromMilliseconds(70 * index++)).OnCompleted(() => card.IsVisible = show).Start();
+                }
+            };
             _motionActions["hop"] = () => hop.Animate()
                 .TranslateTo(new Vector2(0, -70)).Duration(TimeSpan.FromMilliseconds(260)).Ease(Easings.QuadOut)
                 .Then()
@@ -833,6 +848,7 @@ namespace MonoGame.PortableUI.Demo
             organicButtons.AddChild(MotionDemoButton("Hop (Then + Squash)", _motionActions["hop"]));
             organicButtons.AddChild(MotionDemoButton("Stagger", _motionActions["stagger"]));
             organicButtons.AddChild(MotionDemoButton("Wobble + Wave", _motionActions["wobble"]));
+            organicButtons.AddChild(MotionDemoButton("Enter / Exit", _motionActions["enterexit"]));
             grid.AddChild(organicButtons, row: 3);
             return grid;
         }

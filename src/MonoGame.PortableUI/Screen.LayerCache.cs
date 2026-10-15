@@ -221,7 +221,7 @@ namespace MonoGame.PortableUI
 
         private static void AccumulateLayer(Control control, bool addToLayout, ref Rect layout, ref bool hasLayout, ref bool uncacheable)
         {
-            if (!control.IsVisible || control.IsGone || uncacheable)
+            if (!control.IsVisibleShown || control.IsGoneShown || uncacheable)
                 return;
             if (control.BackgroundBrush is { RequiresBackdrop: true }
                 || control is ThemeIsland { Theme.PostEffects.Count: > 0 }

@@ -55,7 +55,7 @@ namespace MonoGame.PortableUI.Controls
 
         public override Size MeasureLayout()
         {
-            if (IsGone)
+            if (IsGoneShown)
                 return Size.Empty;
             // Without explicit size the shape takes its view box size.
             var view = Geometry?.ViewBox;
