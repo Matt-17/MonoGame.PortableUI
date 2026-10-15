@@ -425,7 +425,7 @@ namespace MonoGame.PortableUI.Controls
 
         public override Size MeasureLayout()
         {
-            if (IsGone)
+            if (IsGoneShown)
                 return Size.Empty;
 
             if (TextWrapping == TextWrapping.Wrap && TryGetWrapMeasureWidth(out var wrapWidth))

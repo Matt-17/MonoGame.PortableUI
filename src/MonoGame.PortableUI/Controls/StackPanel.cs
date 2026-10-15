@@ -24,7 +24,7 @@ namespace MonoGame.PortableUI.Controls
 
         public override Size MeasureLayout()
         {
-            if (IsGone || (Width.IsFixed() && Height.IsFixed()))
+            if (IsGoneShown || (Width.IsFixed() && Height.IsFixed()))
                 return base.MeasureLayout();
 
             // Single pass: measuring per child is the expensive part, so accumulate the
@@ -34,7 +34,7 @@ namespace MonoGame.PortableUI.Controls
             var visibleChildren = 0;
             foreach (var child in Children)
             {
-                if (!child.IsGone)
+                if (!child.IsGoneShown)
                     visibleChildren++;
                 var childSize = child.Measure();
                 if (Orientation == Orientation.Vertical)
@@ -75,7 +75,7 @@ namespace MonoGame.PortableUI.Controls
             var placed = false;
             foreach (var child in Children)
             {
-                if (placed && !child.IsGone && Spacing > 0)
+                if (placed && !child.IsGoneShown && Spacing > 0)
                 {
                     if (Orientation == Orientation.Vertical)
                         contentRect.Top += Spacing;
@@ -84,7 +84,7 @@ namespace MonoGame.PortableUI.Controls
                 }
 
                 child.UpdateLayout(contentRect);
-                if (!child.IsGone)
+                if (!child.IsGoneShown)
                     placed = true;
 
                 if (Orientation == Orientation.Vertical)

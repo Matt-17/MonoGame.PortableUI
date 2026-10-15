@@ -122,7 +122,7 @@ namespace MonoGame.PortableUI.Controls
 
         public override Size MeasureLayout()
         {
-            if (IsGone)
+            if (IsGoneShown)
                 return Size.Empty;
 
             var contentSize = Content?.Measure() ?? Size.Empty;
@@ -140,7 +140,7 @@ namespace MonoGame.PortableUI.Controls
 
         public override void UpdateLayout(Rect rect)
         {
-            if (IsGone)
+            if (IsGoneShown)
             {
                 BoundingRect = Rect.Empty;
                 return;
