@@ -85,6 +85,30 @@ namespace MonoGame.PortableUI.Animation
             return this;
         }
 
+        /// <summary>Rotates to <paramref name="radiansTo"/> (clockwise, about <c>TransformOrigin</c>); see <see cref="Control.Rotation"/>.</summary>
+        public Animation RotateTo(float radiansTo)
+        {
+            _current.Replace(new DoubleAnimationTween(
+                AnimationProperty.Rotation,
+                control => control.ShownRotation,
+                (control, value) => control.SetRotationShown((float)value),
+                radiansTo,
+                ScaleRestDelta));
+            return this;
+        }
+
+        /// <summary>Skews to <paramref name="skewTo"/> (radians per axis); see <see cref="Control.Skew"/>.</summary>
+        public Animation SkewTo(Vector2 skewTo)
+        {
+            _current.Replace(new Vector2AnimationTween(
+                AnimationProperty.Skew,
+                control => control.ShownSkew,
+                (control, value) => control.SetSkewShown(value),
+                Control.ClampSkew(skewTo),
+                ScaleRestDelta));
+            return this;
+        }
+
         public Animation ColorTo(Func<Control, Color> getValue, Action<Control, Color> setValue, Color colorTo)
         {
             _current.Replace(new ColorAnimationTween(

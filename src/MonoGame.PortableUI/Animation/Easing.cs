@@ -9,6 +9,8 @@ namespace MonoGame.PortableUI.Animation
         Scale,
         Translation,
         Opacity,
+        Rotation,
+        Skew,
         Color
     }
 
