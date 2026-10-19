@@ -37,7 +37,7 @@ namespace MonoGame.PortableUI.Demo
         /// <summary>--record-motion dir: renders the Motion tab playing its demos as numbered PNG frames (30 fps).</summary>
         public string? MotionRecordDirectory { get; init; }
 
-        /// <summary>--record-timeline transitions / enterexit / rotation: records the implicit-transition demo (with a scripted pointer), the enter/exit cards or the rotation and skew demos instead.</summary>
+        /// <summary>--record-timeline transitions / enterexit / rotation / flip: records the implicit-transition demo (with a scripted pointer), the enter/exit cards, the rotation and skew demos or the layout transitions instead.</summary>
         public string? MotionRecordTimeline { get; init; }
 
         /// <summary>--sound-test: builds the synthesized UI sound sets, plays each sound once and exits.</summary>

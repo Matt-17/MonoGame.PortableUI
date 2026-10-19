@@ -764,6 +764,8 @@ namespace MonoGame.PortableUI.Demo
             cards.AddChild(shake);
             cards.AddChild(hop);
             cards.AddChild(breathe);
+            // Layout transition (FLIP): reordering or removing cards lets the others glide to their new places.
+            cards.LayoutTransition = new Transition(SpringSpec.Snappy);
             layers.AddChild(cards, row: 1);
             organic.Content = layers;
             var lower = new Grid
@@ -823,6 +825,19 @@ namespace MonoGame.PortableUI.Demo
                     card.Animate().Delay(TimeSpan.FromMilliseconds(70 * index++)).OnCompleted(() => card.IsVisible = show).Start();
                 }
             };
+            var shuffles = 0;
+            _motionActions["shuffle"] = () =>
+            {
+                // Rotate the row: the last card moves to the front (every other time, the first to the back).
+                var count = cards.Children.Count;
+                var moved = cards.Children[shuffles++ % 2 == 0 ? count - 1 : 0];
+                cards.Children.Remove(moved);
+                if (shuffles % 2 == 1)
+                    cards.Children.Insert(0, moved);
+                else
+                    cards.Children.Add(moved);
+            };
+            _motionActions["gone"] = () => shake.IsGone = !shake.IsGone;
             _motionActions["hop"] = () => hop.Animate()
                 .TranslateTo(new Vector2(0, -70)).Duration(TimeSpan.FromMilliseconds(260)).Ease(Easings.QuadOut)
                 .Then()
@@ -882,6 +897,8 @@ namespace MonoGame.PortableUI.Demo
             organicButtons.AddChild(MotionDemoButton("Stagger", _motionActions["stagger"]));
             organicButtons.AddChild(MotionDemoButton("Wobble + Wave", _motionActions["wobble"]));
             organicButtons.AddChild(MotionDemoButton("Enter / Exit", _motionActions["enterexit"]));
+            organicButtons.AddChild(MotionDemoButton("Shuffle", _motionActions["shuffle"]));
+            organicButtons.AddChild(MotionDemoButton("Remove / Add", _motionActions["gone"]));
             grid.AddChild(organicButtons, row: 3);
             return grid;
         }

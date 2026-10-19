@@ -37,10 +37,10 @@ namespace MonoGame.PortableUI.Controls
         /// </summary>
         public TransitionCollection Transitions => _transitions ??= new TransitionCollection(OnTransitionsChanged);
 
-        /// <summary>True while an implicit transition of Scale, Translation, Opacity, Rotation or Skew is moving.</summary>
+        /// <summary>True while an implicit transition of Scale, Translation, Opacity, Rotation or Skew, or a layout transition, is moving.</summary>
         public bool IsTransitioning =>
             _scaleTransition is { IsRunning: true } || _translationTransition is { IsRunning: true } || _opacityTransition is { IsRunning: true }
-            || _rotationTransition is { IsRunning: true } || _skewTransition is { IsRunning: true };
+            || _rotationTransition is { IsRunning: true } || _skewTransition is { IsRunning: true } || IsLayoutTransitioning;
 
         /// <summary>
         ///     Ends every running transition at its target (an exit removes the control now), here and in the
@@ -65,6 +65,8 @@ namespace MonoGame.PortableUI.Controls
 
         private void OnTransitionsChanged()
         {
+            if (_transitions![TransitionProperty.Layout] != null)
+                LayoutTransitionsInUse = true;
             // A removed transition ends where it was heading.
             if (_scaleTransition is { IsRunning: true } && _transitions![TransitionProperty.Scale] == null)
                 SetScaleShown(_scaleTransition.Target);
@@ -76,6 +78,8 @@ namespace MonoGame.PortableUI.Controls
                 SetRotationShown(_rotationTransition.Target.X);
             if (_skewTransition is { IsRunning: true } && _transitions![TransitionProperty.Skew] == null)
                 SetSkewShown(_skewTransition.Target);
+            if (IsLayoutTransitioning && ResolveLayoutTransition() == null)
+                FinishLayoutGlide();
         }
 
         private void FinishVectorTransitions()
@@ -92,6 +96,7 @@ namespace MonoGame.PortableUI.Controls
                 SetRotationShown(_rotationTransition.Target.X);
             if (_skewTransition is { IsRunning: true })
                 SetSkewShown(_skewTransition.Target);
+            FinishLayoutGlide();
             _transitionsRunning = false;
         }
 
@@ -149,6 +154,8 @@ namespace MonoGame.PortableUI.Controls
                 _skew = ClampSkew(skew.Evaluate(now));
                 running |= skew.IsRunning;
             }
+
+            running |= UpdateLayoutGlide(now);
 
             _transitionsRunning = running;
             RequestRedraw();
