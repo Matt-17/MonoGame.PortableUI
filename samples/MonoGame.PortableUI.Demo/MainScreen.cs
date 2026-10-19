@@ -684,7 +684,28 @@ namespace MonoGame.PortableUI.Demo
                 BorderThickness = 2,
                 Content = Label("MOVE", Palette.SelectionText, 14)
             };
-            stage.Content = box;
+            // A static tilt (Rotation) is drawn from the badge's texture; the cache keeps that texture.
+            var badgeLabel = Label("NEW", Color.White, 13, new Thickness(0));
+            badgeLabel.TextTrimming = TextTrimming.None;
+            badgeLabel.HorizontalAlignment = HorizontalAlignment.Center;
+            badgeLabel.VerticalAlignment = VerticalAlignment.Center;
+            var badge = new Border
+            {
+                Width = 64,
+                Height = 26,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(0, 6, 18, 0),
+                CornerRadius = 6,
+                BackgroundBrush = new SolidColorBrush(Palette.Danger),
+                Rotation = MathHelper.ToRadians(12),
+                CacheMode = CacheMode.Bitmap,
+                Content = badgeLabel
+            };
+            var stageLayers = new Grid();
+            stageLayers.AddChild(box);
+            stageLayers.AddChild(badge);
+            stage.Content = stageLayers;
             grid.AddChild(stage);
 
             // Organic motion: presets, squash & stretch, a chained hop, breathing.
@@ -760,6 +781,16 @@ namespace MonoGame.PortableUI.Demo
             _motionActions["spring"] = () => box.Animate()
                 .TranslateTo(new Vector2(box.Translation.X < 80 ? 160 : 0, 0))
                 .Spring(SpringSpec.Bouncy)
+                .Start();
+            // Rotation and Skew: render-only like Scale, about TransformOrigin.
+            _motionActions["spin"] = () => box.Animate()
+                .RotateTo(MathHelper.TwoPi).Duration(TimeSpan.FromMilliseconds(900)).Ease(Easings.BackOut)
+                .OnCompleted(() => box.Rotation = 0)
+                .Start();
+            _motionActions["lean"] = () => box.Animate()
+                .SkewTo(new Vector2(-0.4f, 0)).Duration(TimeSpan.FromMilliseconds(140)).Ease(Easings.QuadOut)
+                .Then()
+                .SkewTo(Vector2.Zero).Spring(SpringSpec.Wobbly)
                 .Start();
             _motionActions["pop"] = () => pop.Pop();
             _motionActions["jelly"] = () =>
@@ -838,6 +869,8 @@ namespace MonoGame.PortableUI.Demo
             buttons.AddChild(MotionButton("Bounce", box, Easings.BounceOut));
             buttons.AddChild(MotionDemoButton("Spring", _motionActions["spring"]));
             buttons.AddChild(MotionDemoButton("Loop + Yoyo", _motionActions["loop"]));
+            buttons.AddChild(MotionDemoButton("Spin", _motionActions["spin"]));
+            buttons.AddChild(MotionDemoButton("Lean", _motionActions["lean"]));
             grid.AddChild(buttons, row: 1);
 
             var organicButtons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Thickness(0, 10, 0, 0) };
@@ -901,7 +934,7 @@ namespace MonoGame.PortableUI.Demo
             };
             // Declared once; every set below animates. X and Y springs differ slightly: organic.
             chip.Transitions
-                .Add(TransitionProperty.Translation | TransitionProperty.Scale, new Transition(SpringSpec.Snappy, SpringSpec.Bouncy))
+                .Add(TransitionProperty.Translation | TransitionProperty.Scale | TransitionProperty.Rotation, new Transition(SpringSpec.Snappy, SpringSpec.Bouncy))
                 .Add(TransitionProperty.Background, TimeSpan.FromMilliseconds(300));
             layers.AddChild(chip, row: 1);
 
@@ -911,6 +944,7 @@ namespace MonoGame.PortableUI.Demo
             {
                 chip.Translation = spots[spot % spots.Length];
                 chip.Scale = spot % 2 == 0 ? new Vector2(1.25f) : Vector2.One;
+                chip.Rotation = spots[spot % spots.Length].X / 600;
                 chip.BackgroundBrush = chipBrushes[(spot + 1) % chipBrushes.Length];
                 spot++;
             };

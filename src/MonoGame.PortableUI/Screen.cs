@@ -980,9 +980,28 @@ namespace MonoGame.PortableUI
             if (control.OverscrollScale != Vector2.One && TryDrawStretched(spriteBatch, control, parentContext))
                 return;
 
-            if (control.Deformation is { IsActive: true } && !ReferenceEquals(control, _deformInProgress)
-                && ScreenEngine.DrawingQuality != RenderQuality.Low && TryDrawDeformed(spriteBatch, control, parentContext))
-                return;
+            // Rotation and skew turn the box off the axes, which the controls' own drawing cannot: their rest
+            // pose goes through the deformation mesh (one quad without a deformation), at every quality.
+            var deforms = control.Deformation is { IsActive: true } && ScreenEngine.DrawingQuality != RenderQuality.Low;
+            if ((deforms || control.HasOffAxisTransform) && !ReferenceEquals(control, _deformInProgress))
+            {
+                if (TryDrawDeformed(spriteBatch, control, parentContext, deforms))
+                    return;
+                if (control.HasOffAxisTransform)
+                {
+                    // No texture (glass inside, too large): unrotated rather than stretched to the rotated bounds.
+                    control.OffAxisSuppressed = true;
+                    try
+                    {
+                        DrawControlBatched(spriteBatch, control, parentContext);
+                    }
+                    finally
+                    {
+                        control.OffAxisSuppressed = false;
+                    }
+                    return;
+                }
+            }
 
             // Before the clip shape: a cached layer bakes its clip in once instead of composing the
             // clip passes every frame.
@@ -1443,7 +1462,7 @@ namespace MonoGame.PortableUI
                 return new RenderContext(_transform * Matrix.CreateTranslation(offsetX, offsetY, 0), Scale, 1, layer, layer, layer, Moving, RestScale);
             }
 
-            private static Rect TransformRect(Rect rect, Matrix transform)
+            internal static Rect TransformRect(Rect rect, Matrix transform)
             {
                 var topLeft = Vector2.Transform(new Vector2(rect.Left, rect.Top), transform);
                 var topRight = Vector2.Transform(new Vector2(rect.Right, rect.Top), transform);

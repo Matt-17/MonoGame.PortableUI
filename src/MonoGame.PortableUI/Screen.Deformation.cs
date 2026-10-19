@@ -22,13 +22,14 @@ namespace MonoGame.PortableUI
 
         /// <summary>
         ///     Renders <paramref name="control"/> without its own transform into a rented texture, then draws that
-        ///     texture on the deformation grid, moved by the control's transform. False: draw it normally.
+        ///     texture on the deformation grid, moved by the control's transform (rotation and skew included).
+        ///     Without <paramref name="deforms"/> the grid is one undeformed quad. False: draw it normally.
         /// </summary>
-        private bool TryDrawDeformed(SpriteBatch spriteBatch, Control control, RenderContext parentContext)
+        private bool TryDrawDeformed(SpriteBatch spriteBatch, Control control, RenderContext parentContext, bool deforms)
         {
             var engine = ScreenEngine;
-            var deformation = control.Deformation;
-            if (engine == null || deformation == null)
+            var deformation = deforms ? control.Deformation : null;
+            if (engine == null)
                 return false;
 
             var device = spriteBatch.GraphicsDevice;
@@ -67,8 +68,8 @@ namespace MonoGame.PortableUI
 
             var toLayout = Matrix.Invert(parentContext.Transform);
             var toScreen = control.GetRenderTransform() * parentContext.Transform;
-            var columns = deformation.Columns;
-            var rows = deformation.Rows;
+            var columns = deformation?.Columns ?? 1;
+            var rows = deformation?.Rows ?? 1;
             EnsureMesh(columns, rows);
             var size = new Vector2(Math.Max(1, layoutBox.Width), Math.Max(1, layoutBox.Height));
             var time = ScreenSystem.TotalTime.TotalSeconds;
@@ -83,7 +84,7 @@ namespace MonoGame.PortableUI
                     var layout = Vector2.Transform(new Vector2(left + uv.X * width, top + uv.Y * height), toLayout);
                     var u = (layout.X - layoutBox.Left) / size.X;
                     var v = (layout.Y - layoutBox.Top) / size.Y;
-                    var deformed = layout + deformation.OffsetAt(u, v, size, time);
+                    var deformed = deformation == null ? layout : layout + deformation.OffsetAt(u, v, size, time);
                     var screen = Vector2.Transform(deformed, toScreen);
                     _meshVertices[row * stride + column] = new VertexPositionColorTexture(new Vector3(screen, 0), color, uv);
                 }

@@ -17,6 +17,8 @@ namespace MonoGame.PortableUI.Controls
         private VectorTransition? _scaleTransition;
         private VectorTransition? _translationTransition;
         private VectorTransition? _opacityTransition;
+        private VectorTransition? _rotationTransition;
+        private VectorTransition? _skewTransition;
         private bool _transitionsRunning;
         // Opacity is a double; the runner moves a float, so the exact target is kept here.
         private double _opacityTarget;
@@ -35,9 +37,10 @@ namespace MonoGame.PortableUI.Controls
         /// </summary>
         public TransitionCollection Transitions => _transitions ??= new TransitionCollection(OnTransitionsChanged);
 
-        /// <summary>True while an implicit transition of Scale, Translation or Opacity is moving.</summary>
+        /// <summary>True while an implicit transition of Scale, Translation, Opacity, Rotation or Skew is moving.</summary>
         public bool IsTransitioning =>
-            _scaleTransition is { IsRunning: true } || _translationTransition is { IsRunning: true } || _opacityTransition is { IsRunning: true };
+            _scaleTransition is { IsRunning: true } || _translationTransition is { IsRunning: true } || _opacityTransition is { IsRunning: true }
+            || _rotationTransition is { IsRunning: true } || _skewTransition is { IsRunning: true };
 
         /// <summary>
         ///     Ends every running transition at its target (an exit removes the control now), here and in the
@@ -69,6 +72,10 @@ namespace MonoGame.PortableUI.Controls
                 SetTranslationShown(_translationTransition.Target);
             if (_opacityTransition is { IsRunning: true } && _transitions![TransitionProperty.Opacity] == null)
                 SetOpacityShown(_opacityTarget);
+            if (_rotationTransition is { IsRunning: true } && _transitions![TransitionProperty.Rotation] == null)
+                SetRotationShown(_rotationTransition.Target.X);
+            if (_skewTransition is { IsRunning: true } && _transitions![TransitionProperty.Skew] == null)
+                SetSkewShown(_skewTransition.Target);
         }
 
         private void FinishVectorTransitions()
@@ -81,6 +88,10 @@ namespace MonoGame.PortableUI.Controls
                 SetTranslationShown(_translationTransition.Target);
             if (_opacityTransition is { IsRunning: true })
                 SetOpacityShown(_opacityTarget);
+            if (_rotationTransition is { IsRunning: true })
+                SetRotationShown(_rotationTransition.Target.X);
+            if (_skewTransition is { IsRunning: true })
+                SetSkewShown(_skewTransition.Target);
             _transitionsRunning = false;
         }
 
@@ -127,6 +138,18 @@ namespace MonoGame.PortableUI.Controls
                 running |= opacity.IsRunning;
             }
 
+            if (_rotationTransition is { IsRunning: true } rotation)
+            {
+                _rotation = rotation.Evaluate(now).X;
+                running |= rotation.IsRunning;
+            }
+
+            if (_skewTransition is { IsRunning: true } skew)
+            {
+                _skew = ClampSkew(skew.Evaluate(now));
+                running |= skew.IsRunning;
+            }
+
             _transitionsRunning = running;
             RequestRedraw();
         }
@@ -136,6 +159,8 @@ namespace MonoGame.PortableUI.Controls
         internal Vector2 ShownScale => _scale;
         internal Vector2 ShownTranslation => _translation;
         internal double ShownOpacity => _opacity;
+        internal float ShownRotation => _rotation;
+        internal Vector2 ShownSkew => _skew;
 
         internal void SetScaleShown(Vector2 value)
         {
@@ -161,6 +186,25 @@ namespace MonoGame.PortableUI.Controls
             if (_opacity == value)
                 return;
             _opacity = value;
+            InvalidateLayout(false);
+        }
+
+        internal void SetRotationShown(float value)
+        {
+            _rotationTransition?.Stop();
+            if (_rotation == value)
+                return;
+            _rotation = value;
+            InvalidateLayout(false);
+        }
+
+        internal void SetSkewShown(Vector2 value)
+        {
+            _skewTransition?.Stop();
+            value = ClampSkew(value);
+            if (_skew == value)
+                return;
+            _skew = value;
             InvalidateLayout(false);
         }
 

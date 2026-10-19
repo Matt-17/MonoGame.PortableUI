@@ -133,6 +133,10 @@ With `PixelMotion` the motion part of `RenderScale` is rounded to whole multiple
 translation velocity; while `IsActive`, `Screen.TryDrawDeformed` renders the control with `RenderTransformSuppressed`
 (rest pose, no own transform) into a `RenderTargetPool` texture and draws it as a BasicEffect mesh moved by
 `GetRenderTransform() * parent`. Counts as motion (`IsMotionDeformed`), so ancestors' layer caches draw live.
+`Rotation`/`Skew` (render-only, about `TransformOrigin`, not hit-tested) use the same path at every quality: controls draw
+into axis-aligned rects, so a control with `HasOffAxisTransform` is drawn as its rest-pose texture on one quad (or the
+deformation grid); when no texture is possible (glass inside, too large) it draws with `OffAxisSuppressed`, unrotated.
+`TryMeasureLayer` includes descendants' render transforms, so rotated children are not cut off in layers.
 
 **Render quality:** `ScreenEngineOptions.RenderQuality` (Auto = Low in Android battery saver, else High)
 resolves to `ScreenEngine.EffectiveRenderQuality` each update. Drawing code reads it through the static
