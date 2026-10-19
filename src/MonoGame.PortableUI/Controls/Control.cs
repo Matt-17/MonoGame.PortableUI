@@ -449,8 +449,57 @@ namespace MonoGame.PortableUI.Controls
         }
 
         /// <summary>
-        ///     Pivot of <see cref="Scale"/>, relative to the control's box: (0, 0) is the top-left corner,
-        ///     (0.5, 0.5) the centre (default), (0.5, 1) the bottom edge. Render-only, like Scale.
+        ///     Render rotation in radians about <see cref="TransformOrigin"/>, clockwise on screen. Render-only
+        ///     like <see cref="Scale"/>: layout and hit testing ignore it. A rotated control is drawn as a
+        ///     texture of its unrotated look (its subtree included); set <see cref="CacheMode"/> to
+        ///     <see cref="Controls.CacheMode.Bitmap"/> when it stays rotated while its content is static.
+        ///     Subtrees with glass (backdrop) brushes are drawn unrotated. With a <see cref="Transitions"/>
+        ///     entry, setting it animates; the getter returns the new value at once.
+        /// </summary>
+        public float Rotation
+        {
+            get => _rotationTransition is { IsRunning: true } transition ? transition.Target.X : _rotation;
+            set
+            {
+                if (Rotation == value)
+                    return;
+                if (TryTransition(TransitionProperty.Rotation, ref _rotationTransition, new Vector2(_rotation, 0), new Vector2(value, 0), ScaleRestDelta))
+                    return;
+                _rotation = value;
+                InvalidateLayout(false);
+            }
+        }
+
+        /// <summary>
+        ///     Render skew in radians about <see cref="TransformOrigin"/>: X leans the vertical edges (points
+        ///     further down shift right), Y the horizontal edges (points further right shift down). Clamped to
+        ///     ±80°. Render-only and drawn like <see cref="Rotation"/>; with a <see cref="Transitions"/> entry,
+        ///     setting it animates.
+        /// </summary>
+        public Vector2 Skew
+        {
+            get => _skewTransition is { IsRunning: true } transition ? transition.Target : _skew;
+            set
+            {
+                value = ClampSkew(value);
+                if (Skew == value)
+                    return;
+                if (TryTransition(TransitionProperty.Skew, ref _skewTransition, _skew, value, ScaleRestDelta))
+                    return;
+                _skew = value;
+                InvalidateLayout(false);
+            }
+        }
+
+        private const float MaxSkew = 80 * MathF.PI / 180;
+
+        internal static Vector2 ClampSkew(Vector2 skew)
+            => new Vector2(MathHelper.Clamp(skew.X, -MaxSkew, MaxSkew), MathHelper.Clamp(skew.Y, -MaxSkew, MaxSkew));
+
+        /// <summary>
+        ///     Pivot of <see cref="Scale"/>, <see cref="Rotation"/> and <see cref="Skew"/>, relative to the control's
+        ///     box: (0, 0) is the top-left corner, (0.5, 0.5) the centre (default), (0.5, 1) the bottom edge.
+        ///     Render-only, like Scale.
         /// </summary>
         public Vector2 TransformOrigin
         {
@@ -485,11 +534,23 @@ namespace MonoGame.PortableUI.Controls
         private Vector2 _translation;
         private Vector2 _transformOrigin = new Vector2(0.5f, 0.5f);
         private double _opacity;
+        private float _rotation;
+        private Vector2 _skew;
+
+        /// <summary>
+        ///     The shown rotation or skew turns the box off the axes, so it is drawn as a transformed texture
+        ///     (<c>Screen.TryDrawDeformed</c>). False while that path is not available and the control is drawn
+        ///     with only its axis-aligned part.
+        /// </summary>
+        internal bool HasOffAxisTransform => !OffAxisSuppressed && (_rotation != 0 || _skew != Vector2.Zero);
+
+        /// <summary>Rotation and skew are left out of the render transform (fallback drawing, see <see cref="HasOffAxisTransform"/>).</summary>
+        internal bool OffAxisSuppressed;
 
         /// <summary>
         ///     This control's own render transform in layout space: <see cref="Scale"/> about
         ///     <see cref="TransformOrigin"/> within <see cref="ClippingRect"/> (with squash &amp; stretch), then
-        ///     <see cref="Translation"/>.
+        ///     <see cref="Skew"/>, <see cref="Rotation"/> and <see cref="Translation"/>.
         /// </summary>
         internal Matrix GetRenderTransform()
         {
@@ -497,15 +558,28 @@ namespace MonoGame.PortableUI.Controls
                 return Matrix.Identity;
             var scale = DrawnScale;
             var translation = _translation + PresenceOffset;
-            if (scale == Vector2.One && translation == Vector2.Zero && !IsMotionDeformed)
+            var offAxis = HasOffAxisTransform;
+            if (scale == Vector2.One && translation == Vector2.Zero && !IsMotionDeformed && !offAxis)
                 return Matrix.Identity;
 
             var rect = ClippingRect;
             var origin = new Vector2(rect.Left + rect.Width * _transformOrigin.X, rect.Top + rect.Height * _transformOrigin.Y);
-            return Matrix.CreateTranslation(-origin.X, -origin.Y, 0)
+            var transform = Matrix.CreateTranslation(-origin.X, -origin.Y, 0)
                 * Matrix.CreateScale(scale.X, scale.Y, 1)
-                * GetStretchMatrix()
-                * Matrix.CreateTranslation(origin.X + translation.X, origin.Y + translation.Y, 0);
+                * GetStretchMatrix();
+            if (offAxis)
+            {
+                if (_skew != Vector2.Zero)
+                {
+                    var skew = Matrix.Identity;
+                    skew.M21 = MathF.Tan(_skew.X);
+                    skew.M12 = MathF.Tan(_skew.Y);
+                    transform *= skew;
+                }
+                if (_rotation != 0)
+                    transform *= Matrix.CreateRotationZ(_rotation);
+            }
+            return transform * Matrix.CreateTranslation(origin.X + translation.X, origin.Y + translation.Y, 0);
         }
 
         /// <summary>

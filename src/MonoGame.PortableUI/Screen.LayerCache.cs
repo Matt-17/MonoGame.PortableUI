@@ -208,18 +208,20 @@ namespace MonoGame.PortableUI
         ///     Union of the subtree's render rects with their overflow, in pixels; and whether something
         ///     inside must be drawn live (glass sampling the backdrop, post-effect islands, overscroll
         ///     stretch). Clip shapes are fine: they compose in the coordinates of the current target.
+        ///     Descendants' own render transforms (a rotated or moved child) widen the bounds.
         /// </summary>
         private static bool TryMeasureLayer(Control control, RenderContext context, out Rect bounds, out bool uncacheable)
         {
             uncacheable = false;
             var layout = Rect.Empty;
             var hasLayout = false;
-            AccumulateLayer(control, true, ref layout, ref hasLayout, ref uncacheable);
+            AccumulateLayer(control, true, true, Matrix.Identity, false, ref layout, ref hasLayout, ref uncacheable);
             bounds = hasLayout ? context.ToRender(layout) : Rect.Empty;
             return hasLayout;
         }
 
-        private static void AccumulateLayer(Control control, bool addToLayout, ref Rect layout, ref bool hasLayout, ref bool uncacheable)
+        // transform: the descendants' render transforms down to the control's parent, relative to the measured root.
+        private static void AccumulateLayer(Control control, bool addToLayout, bool isRoot, Matrix transform, bool transformed, ref Rect layout, ref bool hasLayout, ref bool uncacheable)
         {
             if (!control.IsVisibleShown || control.IsGoneShown || uncacheable)
                 return;
@@ -231,12 +233,25 @@ namespace MonoGame.PortableUI
                 return;
             }
 
+            // The root's own transform is part of the context the bounds are mapped with.
+            if (!isRoot)
+            {
+                var own = control.GetRenderTransform();
+                if (own != Matrix.Identity)
+                {
+                    transform = transformed ? own * transform : own;
+                    transformed = true;
+                }
+            }
+
             if (addToLayout)
             {
                 var overflow = RenderContext.VisualOverflow(control);
                 var rect = RenderContext.HasOverflow(overflow) ? control.ClippingRect + overflow : control.ClippingRect;
                 if (rect.Width > 0 && rect.Height > 0)
                 {
+                    if (transformed)
+                        rect = RenderContext.TransformRect(rect, transform);
                     layout = hasLayout ? Union(layout, rect) : rect;
                     hasLayout = true;
                 }
@@ -247,7 +262,7 @@ namespace MonoGame.PortableUI
             var childrenAdd = addToLayout && !control.ClipsDescendants;
             var count = control.VisualChildCount;
             for (var i = 0; i < count; i++)
-                AccumulateLayer(control.GetVisualChild(i), childrenAdd, ref layout, ref hasLayout, ref uncacheable);
+                AccumulateLayer(control.GetVisualChild(i), childrenAdd, false, transform, transformed, ref layout, ref hasLayout, ref uncacheable);
         }
 
         /// <summary>A texture a pixel or two larger is reused rather than re-created.</summary>

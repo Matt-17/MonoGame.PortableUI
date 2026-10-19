@@ -16,8 +16,12 @@ namespace MonoGame.PortableUI.Animation
         BorderBrush = 16,
         /// <summary><c>TextBlock.TextColor</c>.</summary>
         TextColor = 32,
-        /// <summary>The render transform: Scale, Translation and Opacity.</summary>
-        Transform = Scale | Translation | Opacity,
+        /// <summary><c>Control.Rotation</c>.</summary>
+        Rotation = 64,
+        /// <summary><c>Control.Skew</c>.</summary>
+        Skew = 128,
+        /// <summary>The render transform: Scale, Translation, Opacity, Rotation and Skew.</summary>
+        Transform = Scale | Translation | Opacity | Rotation | Skew,
         /// <summary>Background, border and text colour.</summary>
         Colors = Background | BorderBrush | TextColor,
         All = Transform | Colors
@@ -43,8 +47,8 @@ namespace MonoGame.PortableUI.Animation
         {
         }
 
-        /// <summary>A spring transition with separate springs for the X and Y axes of Scale and
-        /// Translation (out of phase reads as organic); opacity and colours follow <paramref name="springX"/>.</summary>
+        /// <summary>A spring transition with separate springs for the X and Y axes of Scale,
+        /// Translation and Skew (out of phase reads as organic); opacity and colours follow <paramref name="springX"/>.</summary>
         public Transition(SpringSpec springX, SpringSpec springY, TimeSpan delay = default)
         {
             if (!(springX.Stiffness > 0) || !(springY.Stiffness > 0))
@@ -75,7 +79,7 @@ namespace MonoGame.PortableUI.Animation
     /// </summary>
     public sealed class TransitionCollection
     {
-        private readonly Transition?[] _transitions = new Transition?[6];
+        private readonly Transition?[] _transitions = new Transition?[8];
 
         internal TransitionCollection(Action changed)
         {
@@ -137,6 +141,8 @@ namespace MonoGame.PortableUI.Animation
             TransitionProperty.Background => 3,
             TransitionProperty.BorderBrush => 4,
             TransitionProperty.TextColor => 5,
+            TransitionProperty.Rotation => 6,
+            TransitionProperty.Skew => 7,
             _ => -1
         };
     }
