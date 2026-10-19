@@ -19,6 +19,26 @@ namespace MonoGame.PortableUI.Controls
         /// <summary>Inner spacing between the panel bounds and its children.</summary>
         public Thickness Padding { get; set; }
 
+        /// <summary>
+        ///     Layout transition (FLIP) for every child without its own <see cref="Animation.TransitionProperty.Layout"/>
+        ///     entry: a child that a layout pass (or, in a <see cref="Canvas"/>, a position change) moves is drawn where it
+        ///     was and glides to its new place - siblings make room for an inserted child, close the gap of a removed
+        ///     one and slide on reorder. Combine with <see cref="Control.VisibilityTransition"/> for the child that enters
+        ///     or leaves. Null (default) = children jump.
+        /// </summary>
+        public Animation.Transition? LayoutTransition
+        {
+            get => _layoutTransition;
+            set
+            {
+                _layoutTransition = value;
+                if (value != null)
+                    LayoutTransitionsInUse = true;
+            }
+        }
+
+        private Animation.Transition? _layoutTransition;
+
 
         public void AddChild(Control control)
         {

@@ -123,6 +123,7 @@ namespace MonoGame.PortableUI.Controls
             if (delta.X == 0 && delta.Y == 0)
                 return;
             child.OffsetArrangement(delta);
+            child.GlideFromArrangementMove(delta);
             position.ArrangedOrigin = origin;
             Screen?.MarkHoverStale();
             RequestRedraw();

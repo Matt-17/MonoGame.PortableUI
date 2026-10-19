@@ -118,6 +118,14 @@ start a transition and the getters return the *target*; what is drawn lives in t
 public setters. Background/border/text colours fade at draw time (`BrushFade`/`ColorFade`, keyed on the
 brush reference; theme switch and first draw snap; `CompleteTransitions()` snaps a subtree).
 
+**Layout transitions (FLIP):** `TransitionProperty.Layout` / `Panel.LayoutTransition` / `ListBox.LayoutTransition`.
+`Control.UpdateLayout` ends in `TrackLayoutMove` (only once `LayoutTransitionsInUse` - a static flag keeps the hot path free
+until something configures one): the arranged top-left is compared with the last one and the difference minus the
+nearest tracked ancestor's move in the same pass glides as `_layoutOffset` (folded into `GetRenderTransform`, render-only).
+`OffsetArrangement` shifts the remembered position (scrolling never glides); children of `ScrollViewer`/`SwipePresenter`/
+`VirtualItemsPanel` are tracked boundaries that never glide. `Canvas` moves glide via `GlideFromArrangementMove`. ListBox
+rows are recycled, so the list keys shown tops by item (`TakeShownRowTops` before rebinding, `GlideMovedRows` after arranging).
+
 **Enter/exit:** `Control.VisibilityTransition` animates `IsVisible`/`IsGone`. The properties return the target; while an exit plays
 `UIElement.ExitHolds` keeps it in layout and drawing. Layout and draw code therefore read `IsGoneShown`/`IsVisibleShown`, while input, focus,
 tab stops and accessibility read the public properties (an exiting control takes no input). The pose (`PresenceScale`/`PresenceOffset`/

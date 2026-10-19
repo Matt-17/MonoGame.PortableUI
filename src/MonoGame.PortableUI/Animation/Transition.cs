@@ -20,11 +20,18 @@ namespace MonoGame.PortableUI.Animation
         Rotation = 64,
         /// <summary><c>Control.Skew</c>.</summary>
         Skew = 128,
+        /// <summary>
+        ///     Layout transition (FLIP): when a layout pass (or a Canvas position) moves the control, it is drawn where
+        ///     it was and glides to its new place - list rows on insert/remove/reorder, wrapping cards on resize.
+        ///     Render-only like Translation: hit testing uses the new place at once. <c>Panel.LayoutTransition</c>
+        ///     sets it for all children of a panel, <c>ListBox.LayoutTransition</c> for list rows.
+        /// </summary>
+        Layout = 256,
         /// <summary>The render transform: Scale, Translation, Opacity, Rotation and Skew.</summary>
         Transform = Scale | Translation | Opacity | Rotation | Skew,
         /// <summary>Background, border and text colour.</summary>
         Colors = Background | BorderBrush | TextColor,
-        All = Transform | Colors
+        All = Transform | Colors | Layout
     }
 
     /// <summary>
@@ -79,7 +86,7 @@ namespace MonoGame.PortableUI.Animation
     /// </summary>
     public sealed class TransitionCollection
     {
-        private readonly Transition?[] _transitions = new Transition?[8];
+        private readonly Transition?[] _transitions = new Transition?[9];
 
         internal TransitionCollection(Action changed)
         {
@@ -143,6 +150,7 @@ namespace MonoGame.PortableUI.Animation
             TransitionProperty.TextColor => 5,
             TransitionProperty.Rotation => 6,
             TransitionProperty.Skew => 7,
+            TransitionProperty.Layout => 8,
             _ => -1
         };
     }

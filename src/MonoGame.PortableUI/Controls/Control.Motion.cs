@@ -253,7 +253,7 @@ namespace MonoGame.PortableUI.Controls
             if (!_motionTracked)
             {
                 _motionTracked = true;
-                _lastMotionTranslation = _translation;
+                _lastMotionTranslation = _translation + _layoutOffset;
                 _lastMotionTime = now;
                 return;
             }
@@ -263,8 +263,10 @@ namespace MonoGame.PortableUI.Controls
                 return;
             // After a pause (hidden screen, breakpoint) the step would be one huge jump.
             seconds = Math.Min(seconds, 0.1);
-            var delta = _translation - _lastMotionTranslation;
-            _lastMotionTranslation = _translation;
+            // A layout transition's glide is motion too (a Canvas child moved with a transition squashes).
+            var drawn = _translation + _layoutOffset;
+            var delta = drawn - _lastMotionTranslation;
+            _lastMotionTranslation = drawn;
             _lastMotionTime = now;
 
             if (_deformation != null)

@@ -340,6 +340,17 @@ namespace MonoGame.PortableUI.Controls
         /// </summary>
         public bool TouchHoldSelects { get; set; } = true;
 
+        /// <summary>
+        ///     Layout transition (FLIP) for the rows: when items are inserted, removed or reordered, every item in view
+        ///     glides from where it was shown to its new row (rows are recycled, so this follows the items, not the row
+        ///     controls). A removed item disappears at once; new items appear in place. Null (default) = rows jump.
+        /// </summary>
+        public Animation.Transition? LayoutTransition { get; set; }
+
+        // Item -> top (relative to the items panel, as drawn) before the next arrangement, for LayoutTransition.
+        private readonly Dictionary<object, float> _shownRowTops = new Dictionary<object, float>(ReferenceEqualityComparer.Instance);
+        private bool _rowTopsTaken;
+
         public event EventHandler<SelectionChangedEventArgs>? SelectionChanged;
         public event EventHandler<ListBoxItemInvokedEventArgs>? ItemInvoked;
 
@@ -390,6 +401,47 @@ namespace MonoGame.PortableUI.Controls
                 inner = new Rect(left, top, Math.Max(0, Snap(inner.Right) - left), Math.Max(0, Snap(inner.Bottom) - top));
             }
             _scrollViewer.UpdateLayout(inner);
+            GlideMovedRows();
+        }
+
+        /// <summary>Where each item in view is drawn now; taken before rows are rebound to other items.</summary>
+        private void TakeShownRowTops()
+        {
+            _shownRowTops.Clear();
+            _rowTopsTaken = true;
+            var panelTop = _itemsPanel.BoundingRect.Top;
+            foreach (var row in _itemsPanel.RealizedRows)
+            {
+                var button = (ItemButton)row;
+                if (button.IsBound && button.BoundItem != null && button.BoundingRect.Height > 0)
+                    _shownRowTops.TryAdd(button.BoundItem, button.BoundingRect.Top - panelTop + button.LayoutOffset.Y);
+            }
+        }
+
+        /// <summary>After arranging: each item glides from where it was shown to its row; other rows show in place.</summary>
+        private void GlideMovedRows()
+        {
+            if (!_rowTopsTaken)
+                return;
+            _rowTopsTaken = false;
+            var spec = LayoutTransition;
+            var panelTop = _itemsPanel.BoundingRect.Top;
+            foreach (var row in _itemsPanel.RealizedRows)
+            {
+                var button = (ItemButton)row;
+                var top = button.BoundingRect.Top - panelTop;
+                if (spec != null && button.BoundItem != null && _shownRowTops.TryGetValue(button.BoundItem, out var shown) && shown != top)
+                {
+                    // The row may have shown another item before: its glide starts over from this item's place.
+                    if (shown - top != button.LayoutOffset.Y)
+                        button.StartLayoutGlide(spec, new Vector2(0, shown - top));
+                }
+                else
+                {
+                    button.FinishLayoutGlide();
+                }
+            }
+            _shownRowTops.Clear();
         }
 
         public override IEnumerable<Control> GetDescendants()
@@ -434,6 +486,8 @@ namespace MonoGame.PortableUI.Controls
 
         private void EnsureItemButtons()
         {
+            if (LayoutTransition != null && !_rowTopsTaken)
+                TakeShownRowTops();
             _itemsPanel.MinRowHeight = ItemHeight;
             if (_refreshItemTexts)
             {
