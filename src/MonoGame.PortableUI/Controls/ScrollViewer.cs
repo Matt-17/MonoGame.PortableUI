@@ -5,6 +5,7 @@ using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls.Events;
 using MonoGame.PortableUI.Controls.Input;
+using MonoGame.PortableUI.Input;
 using MonoGame.PortableUI.Media;
 
 namespace MonoGame.PortableUI.Controls
@@ -17,6 +18,12 @@ namespace MonoGame.PortableUI.Controls
         // Momentum after release, in offset units per second, and the frame clock for it.
         private PointF _velocity;
         private TimeSpan _lastMoveTime;
+        private readonly TouchVelocityTracker _velocityTracker = new TouchVelocityTracker();
+        // Running fling: a trajectory along a unit direction from the release offset (OnFrameUpdate).
+        private FlingTrajectory? _fling;
+        private PointF _flingStartOffset;
+        private PointF _flingDirection;
+        private TimeSpan _flingStartTime;
         private TimeSpan _lastAnimationTime;
         private bool _animating;
         private Control? _arrangedContent;
@@ -95,8 +102,46 @@ namespace MonoGame.PortableUI.Controls
         /// <summary>Scales the release velocity of a fling (6 = the finger's speed).</summary>
         public float FlingMultiplier { get; set; }
 
-        /// <summary>How fast a fling slows down (per second, exponential). Higher stops sooner.</summary>
+        /// <summary>How fast a fling slows down (per second, exponential). Higher stops sooner. Used by the
+        /// default <see cref="FlingPhysics"/> outside Android (Android uses its system scroller curve).</summary>
         public float FlingDeceleration { get; set; } = 3.5f;
+
+        /// <summary>
+        ///     How a fling coasts (<see cref="Controls.FlingPhysics.Android(float, float, float, float)"/>,
+        ///     <see cref="Controls.FlingPhysics.IOS"/>, <see cref="Controls.FlingPhysics.Exponential"/>).
+        ///     Null (default) uses <see cref="ScreenEngineOptions.FlingPhysics"/>, else the platform default:
+        ///     Android's own scroller curve with the system's values on Android, exponential braking with
+        ///     <see cref="FlingDeceleration"/> elsewhere.
+        /// </summary>
+        public FlingPhysics? FlingPhysics { get; set; }
+
+        private FlingPhysics EffectiveFlingPhysics
+            => FlingPhysics ?? Screen?.ScreenEngine?.Options.FlingPhysics ?? PlatformFlingPhysics();
+
+        private FlingPhysics PlatformFlingPhysics()
+        {
+#if ANDROID
+            var pixelsPerUnit = Screen?.ScreenEngine?.RenderScale ?? 1f;
+            if (_systemFling == null || _systemFlingScale != pixelsPerUnit)
+            {
+                _systemFling = Controls.FlingPhysics.FromAndroidSystem(pixelsPerUnit);
+                _systemFlingScale = pixelsPerUnit;
+            }
+            return _systemFling;
+#else
+            if (_exponentialFling == null || _exponentialFling.Deceleration != FlingDeceleration)
+                _exponentialFling = new ExponentialFlingPhysics(FlingDeceleration);
+            return _exponentialFling;
+#endif
+        }
+
+#if ANDROID
+        // ViewConfiguration values are per device: read once per render scale.
+        private static FlingPhysics? _systemFling;
+        private static float _systemFlingScale;
+#else
+        private ExponentialFlingPhysics? _exponentialFling;
+#endif
 
         /// <summary>
         ///     How a drag past the end looks: <see cref="Controls.OverscrollEffect.Shift"/> (the content
@@ -257,13 +302,11 @@ namespace MonoGame.PortableUI.Controls
 
             _touchPosition = null;
             ReleaseTouchOwnership();
-            // A finger that rested before lifting has no speed left.
-            if (!EnableFling || (ScreenSystem.TotalTime - _lastMoveTime).TotalMilliseconds > 100)
-                _velocity = new PointF();
-            else
-                _velocity = new PointF(_velocity.X * FlingMultiplier / 6f, _velocity.Y * FlingMultiplier / 6f);
+            _velocity = new PointF();
+            if (EnableFling && !IsOverscrolled)
+                StartFling();
 
-            if (_velocity.X != 0 || _velocity.Y != 0 || IsOverscrolled)
+            if (_fling != null || IsOverscrolled)
             {
                 // Coast and/or swing back over the next frames (OnFrameUpdate).
                 _animating = true;
@@ -304,7 +347,7 @@ namespace MonoGame.PortableUI.Controls
                     if (Distance(args.Position, _touchStartPosition) <= TouchPanThreshold)
                     {
                         _touchPosition = args.Position;
-                        TrackVelocity(new PointF());
+                        TrackVelocity(args.Position);
                         return;
                     }
 
@@ -330,7 +373,7 @@ namespace MonoGame.PortableUI.Controls
                 }
 
                 _lastTouchDelta = args.Position - _touchPosition.Value;
-                TrackVelocity(_lastTouchDelta);
+                TrackVelocity(args.Position);
                 var before = Offset;
                 ScrollBy(new PointF(-_lastTouchDelta.X, -_lastTouchDelta.Y), EnableRubberBanding);
                 _touchPosition = args.Position;
@@ -389,7 +432,8 @@ namespace MonoGame.PortableUI.Controls
             // A finger on the content catches a running fling or spring.
             StopAnimation();
             _velocity = new PointF();
-            _lastMoveTime = ScreenSystem.TotalTime;
+            _velocityTracker.Clear();
+            TrackVelocity(position);
             // A new finger starts a new gesture: nobody owns it yet.
             if (Screen is { } screen)
                 screen.TouchScrollOwner = null;
@@ -484,19 +528,60 @@ namespace MonoGame.PortableUI.Controls
         private void StopAnimation()
         {
             _animating = false;
+            _fling = null;
         }
 
-        // Smoothed finger speed in offset units per second (content moves against the finger).
-        private void TrackVelocity(PointF fingerDelta)
+        private void TrackVelocity(PointF fingerPosition)
         {
-            var now = ScreenSystem.TotalTime;
-            var dt = (float)(now - _lastMoveTime).TotalSeconds;
-            _lastMoveTime = now;
-            if (dt <= 0.0001f)
+            _lastMoveTime = ScreenSystem.TotalTime;
+            _velocityTracker.Add(_lastMoveTime, fingerPosition);
+        }
+
+        /// <summary>Turns the finger's release speed into a fling along the scrollable axes.</summary>
+        private void StartFling()
+        {
+            var physics = EffectiveFlingPhysics;
+            // A finger that rested before lifting has no speed left.
+            if (ScreenSystem.TotalTime - _lastMoveTime > physics.RestTime)
                 return;
-            dt = Math.Min(dt, 0.1f);
-            var instant = new PointF(-fingerDelta.X / dt, -fingerDelta.Y / dt);
-            _velocity = new PointF(_velocity.X * 0.4f + instant.X * 0.6f, _velocity.Y * 0.4f + instant.Y * 0.6f);
+            // The content moves against the finger; FlingMultiplier 6 keeps the finger's speed.
+            var finger = _velocityTracker.GetVelocity();
+            var scale = -FlingMultiplier / 6f;
+            var vx = CanScrollX && MaxHorizontalOffset > 0 ? finger.X * scale : 0;
+            var vy = CanScrollY && MaxVerticalOffset > 0 ? finger.Y * scale : 0;
+            var speed = MathF.Sqrt(vx * vx + vy * vy);
+            var limited = physics.LimitSpeed(speed);
+            if (limited <= 0)
+                return;
+            var trajectory = physics.Start(limited);
+            if (trajectory.Distance <= 0)
+                return;
+            _fling = trajectory;
+            _flingDirection = new PointF(vx / speed, vy / speed);
+            _flingStartOffset = Offset;
+            _flingStartTime = ScreenSystem.TotalTime;
+        }
+
+        /// <summary>Advances a running fling; past an edge it hands its speed to the rubber band.</summary>
+        private void AdvanceFling(TimeSpan now)
+        {
+            var fling = _fling!;
+            var elapsed = (now - _flingStartTime).TotalSeconds;
+            var distance = fling.PositionAt(elapsed);
+            Offset = new PointF(
+                _flingStartOffset.X + _flingDirection.X * distance,
+                _flingStartOffset.Y + _flingDirection.Y * distance);
+            if (IsOverscrolled)
+            {
+                // The edge brakes it like before: keep the momentum, let the rubber band take over.
+                var speed = fling.VelocityAt(elapsed);
+                _velocity = new PointF(_flingDirection.X * speed, _flingDirection.Y * speed);
+                _fling = null;
+            }
+            else if (elapsed >= fling.Duration.TotalSeconds)
+            {
+                _fling = null;
+            }
         }
 
         internal override void OnFrameUpdate()
@@ -514,6 +599,17 @@ namespace MonoGame.PortableUI.Controls
             _lastAnimationTime = now;
             if (dt <= 0)
                 return;
+
+            if (_fling != null)
+            {
+                AdvanceFling(now);
+                if (_fling != null)
+                {
+                    UpdateContentLayout();
+                    RequestRedraw();
+                    return;
+                }
+            }
 
             var vx = _velocity.X;
             var vy = _velocity.Y;
