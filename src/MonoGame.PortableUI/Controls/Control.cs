@@ -550,14 +550,15 @@ namespace MonoGame.PortableUI.Controls
         /// <summary>
         ///     This control's own render transform in layout space: <see cref="Scale"/> about
         ///     <see cref="TransformOrigin"/> within <see cref="ClippingRect"/> (with squash &amp; stretch), then
-        ///     <see cref="Skew"/>, <see cref="Rotation"/> and <see cref="Translation"/>.
+        ///     <see cref="Skew"/>, <see cref="Rotation"/> and <see cref="Translation"/> (plus the enter/exit pose and a
+        ///     running layout transition).
         /// </summary>
         internal Matrix GetRenderTransform()
         {
             if (RenderTransformSuppressed)
                 return Matrix.Identity;
             var scale = DrawnScale;
-            var translation = _translation + PresenceOffset;
+            var translation = _translation + PresenceOffset + _layoutOffset;
             var offAxis = HasOffAxisTransform;
             if (scale == Vector2.One && translation == Vector2.Zero && !IsMotionDeformed && !offAxis)
                 return Matrix.Identity;
@@ -1359,6 +1360,8 @@ namespace MonoGame.PortableUI.Controls
 
             BoundingRect = GetRectForAlignment(rect, measuredSize, offset);
             ClippingRect = BoundingRect - Margin;
+            if (LayoutTransitionsInUse)
+                TrackLayoutMove();
         }
 
         /// <summary>Moves an already arranged subtree by <paramref name="delta"/> without re-running
@@ -1371,6 +1374,8 @@ namespace MonoGame.PortableUI.Controls
 
             BoundingRect += delta;
             ClippingRect += delta;
+            if (_layoutTracked)
+                ShiftLayoutPosition(delta);
             var count = VisualChildCount;
             for (var i = 0; i < count; i++)
                 GetVisualChild(i).OffsetArrangement(delta);
