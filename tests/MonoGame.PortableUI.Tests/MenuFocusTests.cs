@@ -107,6 +107,33 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void Content_appearing_under_a_resting_pointer_keeps_the_focus_set_by_code()
+        {
+            using var menu = new Menu();
+            menu.PointAt(2);
+            Assert.AreSame(menu.Entries[2], menu.Engine.FocusedControl);
+
+            // A page swap under the resting pointer: the page focuses its first entry in code.
+            var panel = (StackPanel)menu.Screen.Content!;
+            panel.Children.Clear();
+            var fresh = new[] { new Entry(), new Entry(), new Entry() };
+            foreach (var entry in fresh)
+                panel.AddChild(entry);
+            fresh[0].Focus();
+            menu.Step();
+            menu.Step();
+
+            Assert.AreSame(fresh[0], menu.Engine.FocusedControl, "hover caused by layout must not move focus");
+            Assert.AreEqual(ControlVisualState.Focused, fresh[0].State);
+
+            // The next real pointer move selects again.
+            var rect = fresh[2].ClippingRect;
+            menu.Input.SetPointer(new PointF(rect.Left + 30, rect.Top + rect.Height / 2));
+            menu.Step();
+            Assert.AreSame(fresh[2], menu.Engine.FocusedControl);
+        }
+
+        [TestMethod]
         public void Without_the_option_hover_neither_focuses_nor_merges()
         {
             using var menu = new Menu(followPointer: false);
