@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- **Platform fling physics:** `ScrollViewer.FlingPhysics` (default from `ScreenEngineOptions.FlingPhysics`) decides how a fling coasts. `FlingPhysics.Android()` is a port of Android's `OverScroller` spline (distance grows with the logarithm of the speed, long glide, soft stop), `FlingPhysics.IOS` UIKit's `UIScrollView` normal deceleration (exponential, 0.998 per ms), `FlingPhysics.Exponential(rate)` the previous curve. **Behaviour change on Android:** the default is now the system scroller with the device's `ViewConfiguration` values (scroll friction, minimum/maximum fling velocity, a 40 ms rest before lifting cancels the fling), so a fling travels as far as in native lists (3000 dp/s: 1309 dp in 1.25 s instead of ~860 dp). Elsewhere the default stays exponential with `FlingDeceleration`.
+- **Release velocity like Android's `VelocityTracker`:** the finger speed is a least-squares quadratic fit over the last 100 ms instead of a per-frame running average, so uneven frame spacing no longer under- or overshoots the fling.
+
 ## 0.4.0-alpha.8
 
 Motion, sound and fonts: springs, squash & stretch, chained and implicit animations that glide with subpixel precision (or step in whole pixels for pixel-art themes); UI sound and haptics as first-class events with per-theme sets; and themes on runtime TTF fonts with crisp pixel fonts. Behaviour changes: theme state colours (hover, pressed) now fade over the style's `TransitionDuration`; `Squash()` is a spring impulse instead of a jump; runtime (`FontStashUIFont`) text sizes now match SpriteFont em sizes (about 20 % larger than before); `IUiHapticPlayer.Play` and the new APIs are still preview-quality.
