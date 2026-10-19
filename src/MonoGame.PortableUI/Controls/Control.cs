@@ -1427,7 +1427,9 @@ namespace MonoGame.PortableUI.Controls
             HoverState = HoverStates.Hovering;
             if (IsEnabled && Screen is { PointerMovedThisUpdate: true } && GetClickSound() != null)
                 PlaySound(Audio.UiSound.Hover);
-            if (Screen is { FocusFollowsPointer: true })
+            // Only a real pointer move selects: content appearing under a resting pointer (page swap,
+            // layout change) enters too, but must not take focus from the control focused in code.
+            if (Screen is { FocusFollowsPointer: true, PointerMovedThisUpdate: true })
                 FocusFromPointer();
             foreach (var button in AllMouseButtons)
             {
