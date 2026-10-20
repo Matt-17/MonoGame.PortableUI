@@ -28,6 +28,9 @@ namespace MonoGame.PortableUI.Controls
         private float _maxWidth;
         private float _minHeight;
         private float _minWidth;
+        // Set by the app (not the default): then the theme's MinimumControlSize no longer applies.
+        private bool _minHeightSet;
+        private bool _minWidthSet;
         private FrameworkElement? _parent;
         private float _width;
         private bool _isEnabled;
@@ -55,8 +58,8 @@ namespace MonoGame.PortableUI.Controls
             Margin = new Thickness(0);
             Width = Size.Auto;
             Height = Size.Auto;
-            MinWidth = 0;
-            MinHeight = 0;
+            _minWidth = 0;
+            _minHeight = 0;
             MaxWidth = Size.Infinity;
             MaxHeight = Size.Infinity;
             HorizontalAlignment = HorizontalAlignment.Stretch;
@@ -291,6 +294,7 @@ namespace MonoGame.PortableUI.Controls
             {
                 // Unchanged values must not invalidate: item controls re-apply them during layout,
                 // and an invalidation there would schedule a new layout pass every frame.
+                _minWidthSet = true;
                 if (_minWidth.Equals(value))
                     return;
                 _minWidth = value;
@@ -323,6 +327,7 @@ namespace MonoGame.PortableUI.Controls
             {
                 // Unchanged values must not invalidate: item controls re-apply them during layout,
                 // and an invalidation there would schedule a new layout pass every frame.
+                _minHeightSet = true;
                 if (_minHeight.Equals(value))
                     return;
                 _minHeight = value;
@@ -781,6 +786,21 @@ namespace MonoGame.PortableUI.Controls
         /// <summary>Flat-theme fallback used when neither an override nor a style background exists.</summary>
         protected virtual Brush? GetThemeBackgroundBrush(PortableTheme theme) => null;
 
+        /// <summary>
+        ///     Insets background, border and shadow from the control's bounds; null uses the theme style's
+        ///     <see cref="ControlStyle.ChromeInset"/>. Layout and hit testing keep the full bounds.
+        /// </summary>
+        public Thickness? ChromeInset { get; set; }
+
+        /// <summary>The draw rectangle minus the effective <see cref="ChromeInset"/> (render space).</summary>
+        protected virtual Rect ChromeRect(Rect rect)
+            => (ChromeInset ?? GetThemeStyle(ResolveTheme())?.ChromeInset) is { } inset && !inset.Equals(default(Thickness))
+                ? rect - ToRender(inset)
+                : rect;
+
+        /// <summary>Whether <see cref="PortableTheme.MinimumControlSize"/> applies (interactive controls).</summary>
+        protected virtual bool UsesThemeMinimumSize => false;
+
         /// <summary>Flat-theme fallback shadow (e.g. theme.ButtonShadow).</summary>
         protected virtual ShadowStyle? GetThemeShadow(PortableTheme theme) => null;
 
@@ -1198,6 +1218,9 @@ namespace MonoGame.PortableUI.Controls
         /// </summary>
         protected void DrawChrome(SpriteBatch spriteBatch, Rect rect)
         {
+            // Chrome may sit inside the control (Android's EditText draws its underline above a bottom
+            // inset); hit testing and layout keep the full rectangle.
+            rect = ChromeRect(rect);
             var radius = ToRender(CornerRadius);
             var border = ToRender(BorderThickness);
             var scale = Math.Min(RenderScale.X, RenderScale.Y);
@@ -1456,6 +1479,13 @@ namespace MonoGame.PortableUI.Controls
                 size.Width = Math.Max(size.Width, MinWidth);
             if (MinHeight.IsFixed())
                 size.Height = Math.Max(size.Height, MinHeight);
+            if ((!_minWidthSet || !_minHeightSet) && UsesThemeMinimumSize && ResolveTheme().MinimumControlSize is > 0 and var themeMinimum)
+            {
+                if (!_minWidthSet)
+                    size.Width = Math.Max(size.Width, themeMinimum);
+                if (!_minHeightSet)
+                    size.Height = Math.Max(size.Height, themeMinimum);
+            }
             if (MaxWidth.IsFixed())
                 size.Width = Math.Min(size.Width, MaxWidth);
             if (MaxHeight.IsFixed())

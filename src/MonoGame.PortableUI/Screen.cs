@@ -38,6 +38,8 @@ namespace MonoGame.PortableUI
         internal PointF LastMousePosition;
         // When a finger last touched: the mouse a touch platform emulates from it must not hover.
         private TimeSpan? _lastTouchTime;
+        // Where the (emulated) mouse was at the last touch: until it moves away, it is still the finger.
+        private PointF? _mouseAtLastTouch;
         internal PointF LastTouchPosition;
         internal int LastScrollWheelValue;
         internal int LastHorizontalScrollWheelValue;
@@ -387,6 +389,16 @@ namespace MonoGame.PortableUI
 
 
         private bool _layoutDirty;
+        private bool _relayoutThisFrame;
+
+        /// <summary>
+        ///     Asks for another layout pass within the current frame: a control learned something in the
+        ///     arrange phase that changes its measure (a wrapping label finding its arranged width).
+        ///     Bounded, so a control that keeps asking cannot loop.
+        /// </summary>
+        internal void RequestRelayoutThisFrame() => _relayoutThisFrame = true;
+
+        private const int MaxRelayoutsPerFrame = 2;
         private bool _themeRefreshRequested;
 
         /// <summary>A subtree was attached (possibly into another ThemeIsland): re-run the theme
@@ -417,15 +429,23 @@ namespace MonoGame.PortableUI
             if (!_layoutDirty)
                 return;
 
-            // Cleared before the pass: a legitimate mid-layout invalidation re-marks the tree
-            // and gets picked up on the next frame instead of being lost.
-            _layoutDirty = false;
-            ScreenEngine?.RecordLayoutPass();
-            _hoverStale = true;
-            _mainGrid?.UpdateLayout(ScreenRect);
-            // Popups invalidate through this screen too (resize, rotation, theme switch).
-            _flyOut?.UpdateLayout(ScreenRect);
-            UpdateToolTipLayout();
+            for (var pass = 0; pass <= MaxRelayoutsPerFrame; pass++)
+            {
+                // Cleared before the pass: a legitimate mid-layout invalidation re-marks the tree
+                // and gets picked up on the next frame instead of being lost - unless a control asked
+                // for a same-frame relayout (RequestRelayoutThisFrame).
+                _layoutDirty = false;
+                _relayoutThisFrame = false;
+                ScreenEngine?.RecordLayoutPass();
+                _hoverStale = true;
+                _mainGrid?.UpdateLayout(ScreenRect);
+                // Popups invalidate through this screen too (resize, rotation, theme switch).
+                _flyOut?.UpdateLayout(ScreenRect);
+                UpdateToolTipLayout();
+                if (!_relayoutThisFrame || !_layoutDirty)
+                    break;
+            }
+            _relayoutThisFrame = false;
             ScreenEngine?.ResolveSharedElements(this);
         }
 
@@ -1826,11 +1846,17 @@ namespace MonoGame.PortableUI
             }
 
             if (touchCollection.Count > 0)
+            {
                 _lastTouchTime = ScreenSystem.TotalTime;
+                _mouseAtLastTouch = mousePosition;
+            }
             // Touch platforms move the mouse to the finger; that pointer must not hover controls
-            // (a tapped button would stay highlighted). A real mouse, used apart from touch, hovers.
+            // (a tapped button would stay highlighted, a list row under a lifted finger light up after
+            // a scroll). A real mouse, used apart from touch, hovers as soon as it moves.
             var pointerIsTouch = !(ScreenEngine?.Options.HoverOnTouch ?? false)
-                && (touchCollection.Count > 0 || (_lastTouchTime is { } touchedAt && (ScreenSystem.TotalTime - touchedAt).TotalMilliseconds < 600));
+                && (touchCollection.Count > 0
+                    || (_lastTouchTime is { } touchedAt && (ScreenSystem.TotalTime - touchedAt).TotalMilliseconds < 600)
+                    || _mouseAtLastTouch == mousePosition);
             if (pointerIsTouch)
                 ClearHover(content);
 

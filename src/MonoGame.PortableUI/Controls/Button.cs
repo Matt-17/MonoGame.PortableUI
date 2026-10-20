@@ -83,6 +83,8 @@ namespace MonoGame.PortableUI.Controls
             };
         }
 
+        protected override bool UsesThemeMinimumSize => UseThemeStyle;
+
         protected override Media.Brush? GetThemeBackgroundBrush(PortableTheme theme)
         {
             return theme.ButtonBackgroundBrush;

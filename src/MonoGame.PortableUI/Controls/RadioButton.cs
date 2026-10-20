@@ -25,9 +25,12 @@ namespace MonoGame.PortableUI.Controls
 
             DotBrush = theme.RadioButtonDotBrush;
             DotSize = theme.RadioButtonDotSize;
-            BoxSize = theme.CheckBoxBoxSize;
-            BoxSpacing = theme.CheckBoxBoxSpacing;
-            RingBrush = theme.CheckBoxBoxBorderBrush;
+            BoxSize = ThemeRingSize(theme);
+            BoxSpacing = ThemeSpacing(theme);
+            RingBrush = ThemeRingBrush(theme);
+            CheckedRingBrush = theme.RadioButtonCheckedRingBrush;
+            RingThickness = theme.RadioButtonRingThickness;
+            RingInset = theme.RadioButtonRingInset;
             FillBrush = theme.CheckBoxBoxBackgroundBrush;
             TextColor = theme.CheckBoxTextColor;
             ToggleTextColor = null;
@@ -48,11 +51,26 @@ namespace MonoGame.PortableUI.Controls
         /// <summary>The ring's inside.</summary>
         public Brush? FillBrush { get; set; }
 
+        /// <summary>The ring's outline while checked; null keeps <see cref="RingBrush"/>.</summary>
+        public Brush? CheckedRingBrush { get; set; }
+
+        /// <summary>Stroke width of the ring.</summary>
+        public float RingThickness { get; set; }
+
+        /// <summary>Space left of the ring (Material: 6, the ring centered in a 32 dp icon area).</summary>
+        public float RingInset { get; set; }
+
+        private static float ThemeRingSize(PortableTheme theme) => theme.RadioButtonRingSize ?? theme.CheckBoxBoxSize;
+
+        private static float ThemeSpacing(PortableTheme theme) => theme.RadioButtonSpacing ?? theme.CheckBoxBoxSpacing;
+
+        private static Brush? ThemeRingBrush(PortableTheme theme) => theme.RadioButtonRingBrush ?? theme.CheckBoxBoxBorderBrush;
+
         private void ApplyLabelPadding()
         {
             // The text line reserves room for descenders below the glyphs, so a centred line reads
             // low next to the ring; a little bottom padding lifts the label to the ring's centre.
-            Padding = new Thickness(BoxSize + BoxSpacing, 0, 0, 3);
+            Padding = new Thickness(RingInset + BoxSize + BoxSpacing, 0, 0, 3);
         }
 
         protected override ControlStyle? GetThemeStyle(PortableTheme theme) => null;
@@ -78,12 +96,18 @@ namespace MonoGame.PortableUI.Controls
                 DotBrush = newTheme.RadioButtonDotBrush;
             if (DotSize.Equals(oldTheme.RadioButtonDotSize))
                 DotSize = newTheme.RadioButtonDotSize;
-            if (BoxSize.Equals(oldTheme.CheckBoxBoxSize))
-                BoxSize = newTheme.CheckBoxBoxSize;
-            if (BoxSpacing.Equals(oldTheme.CheckBoxBoxSpacing))
-                BoxSpacing = newTheme.CheckBoxBoxSpacing;
-            if (ReferenceEquals(RingBrush, oldTheme.CheckBoxBoxBorderBrush))
-                RingBrush = newTheme.CheckBoxBoxBorderBrush;
+            if (BoxSize.Equals(ThemeRingSize(oldTheme)))
+                BoxSize = ThemeRingSize(newTheme);
+            if (BoxSpacing.Equals(ThemeSpacing(oldTheme)))
+                BoxSpacing = ThemeSpacing(newTheme);
+            if (ReferenceEquals(RingBrush, ThemeRingBrush(oldTheme)))
+                RingBrush = ThemeRingBrush(newTheme);
+            if (ReferenceEquals(CheckedRingBrush, oldTheme.RadioButtonCheckedRingBrush))
+                CheckedRingBrush = newTheme.RadioButtonCheckedRingBrush;
+            if (RingThickness.Equals(oldTheme.RadioButtonRingThickness))
+                RingThickness = newTheme.RadioButtonRingThickness;
+            if (RingInset.Equals(oldTheme.RadioButtonRingInset))
+                RingInset = newTheme.RadioButtonRingInset;
             if (ReferenceEquals(FillBrush, oldTheme.CheckBoxBoxBackgroundBrush))
                 FillBrush = newTheme.CheckBoxBoxBackgroundBrush;
             if (TextColor.Equals(newTheme.ButtonTextColor) || TextColor.Equals(oldTheme.CheckBoxTextColor))
@@ -236,7 +260,7 @@ namespace MonoGame.PortableUI.Controls
         {
             // No button face: ring (+ dot) at the left, the label is the content.
             var size = ToRender(BoxSize);
-            var ring = new Rect(rect.Left, rect.Top + (rect.Height - size) / 2, size, size);
+            var ring = new Rect(rect.Left + ToRender(RingInset), rect.Top + (rect.Height - size) / 2, size, size);
             var radius = new CornerRadius(size / 2);
             var device = spriteBatch.GraphicsDevice;
             // Brushes that honour a corner radius fill the circle; square-only chrome brushes (bevels,
@@ -247,9 +271,9 @@ namespace MonoGame.PortableUI.Controls
                 RoundedRectRenderer.DrawSolid(spriteBatch, ring, radius, Brush.ApplyOpacity(Color.White, RenderOpacity));
             if (IsMouseHovering && IsEnabled && RingBrush is SolidColorBrush hover)
                 RoundedRectRenderer.DrawSolid(spriteBatch, ring, radius, Brush.ApplyOpacity(hover.Color, RenderOpacity * 0.15f));
-            if (RingBrush is SolidColorBrush solidRing)
+            if ((IsChecked ? CheckedRingBrush ?? RingBrush : RingBrush) is SolidColorBrush solidRing)
             {
-                var width = Math.Max(1, ToRender(1.5f));
+                var width = Math.Max(1, ToRender(RingThickness));
                 RoundedRectRenderer.DrawBorder(spriteBatch, ring, radius, new Thickness(width), Brush.ApplyOpacity(solidRing.Color, RenderOpacity));
             }
 
