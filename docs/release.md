@@ -14,8 +14,13 @@
    ```
 
 4. GitHub Actions runs `.github/workflows/release-nuget.yml`.
-5. The workflow derives the package version from the tag, restores tools, builds, tests, packs, validates metadata and publishes the `.nupkg` to NuGet.
-6. Create a GitHub Release from the tag and include the changelog section plus package artifacts when useful.
+5. The workflow derives the package version from the tag, checks that `CHANGELOG.md` has a `## <version>` section
+   (`eng/release-notes.ps1`; without it nothing is published), restores tools, builds, tests, packs, validates metadata,
+   publishes the `.nupkg`s to NuGet, waits until they are public and creates the GitHub release for the tag: the
+   changelog section as notes, the packages attached, marked as pre-release for `-alpha`/`-beta` versions.
+
+Before tagging, add the `## <version>` section (with a short summary) above the entries of the release and keep an
+empty `## Unreleased` on top.
 
 Release tags must use `vMAJOR.MINOR.PATCH` or `vMAJOR.MINOR.PATCH-PRERELEASE`. The project file keeps `0.0.0-local` only as a local fallback; NuGet releases are tag-driven.
 
