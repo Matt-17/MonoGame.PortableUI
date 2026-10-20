@@ -103,7 +103,7 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
-        internal override void OnPreviewTouchDown(TouchEventArgs args)
+        internal override bool OnPreviewTouchDown(TouchEventArgs args)
         {
             _tracking = true;
             _claimed = false;
@@ -112,7 +112,11 @@ namespace MonoGame.PortableUI.Controls
             _velocity = 0;
             _lastX = args.Position.X;
             _lastTime = ScreenSystem.TotalTime;
+            return true;
         }
+
+        // The touch went to a control on top of this one (outside it): it is no swipe of ours.
+        internal override void OnPreviewWithdrawn() => _tracking = false;
 
         private void Move(TouchEventArgs args)
         {

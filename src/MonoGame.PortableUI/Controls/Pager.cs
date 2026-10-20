@@ -44,6 +44,7 @@ namespace MonoGame.PortableUI.Controls
         public void GoTo(int index, bool animate = true)
         {
             index = Math.Clamp(index, 0, Math.Max(0, Pages.Count - 1));
+            EndTouchForProgrammaticMove();
             var target = new PointF(index * Viewport.Width, 0);
             if (animate && Viewport.Width > 0)
                 SnapTo(target);

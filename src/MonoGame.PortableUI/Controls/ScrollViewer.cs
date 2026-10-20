@@ -431,11 +431,26 @@ namespace MonoGame.PortableUI.Controls
 
         // Clickable children handle TouchDown before it bubbles here, so the pan starts in the
         // tunneling pre-pass instead; the bubbling handler above only covers direct calls.
-        internal override void OnPreviewTouchDown(TouchEventArgs args)
+        internal override bool OnPreviewTouchDown(TouchEventArgs args)
         {
             if (TryHitScrollBarThumb(args.Position, out _, out _))
-                return;
+                return false;
             BeginTouchPan(args.Position);
+            return true;
+        }
+
+        internal override void OnPreviewWithdrawn() => EndTouchForProgrammaticMove();
+
+        /// <summary>
+        ///     The app moves the content itself (a tab tapped above the pager): a finger this viewer still tracks is
+        ///     done with. A button on top took the tap's release, so the viewer never heard it lift and would stop
+        ///     the move for a finger that is long gone.
+        /// </summary>
+        internal void EndTouchForProgrammaticMove()
+        {
+            _touchPosition = null;
+            _isTouchPanning = false;
+            ReleaseTouchOwnership();
         }
 
         private void ReleaseTouchOwnership()

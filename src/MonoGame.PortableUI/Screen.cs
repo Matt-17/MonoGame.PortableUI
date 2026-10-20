@@ -730,6 +730,9 @@ namespace MonoGame.PortableUI
 
         private bool _resyncPointerState;
 
+        // Controls the last touch-down's preview reached (reused).
+        private readonly System.Collections.Generic.List<Control> _previewed = new System.Collections.Generic.List<Control>();
+
         // TapOutsideUnfocusesText: the text field focused when the finger went down outside it, and where.
         private TextBox? _tapOutsideText;
         private PointF _tapOutsidePoint;
@@ -1945,12 +1948,29 @@ namespace MonoGame.PortableUI
                     && !focusedText.ClippingRect.Contains(touchPosition) ? focusedText : null;
                 _tapOutsidePoint = touchPosition;
                 var args = new TouchEventArgs(touchPosition);
-                VisualTreeHelper.PreviewTouchDown(content, args);
+                _previewed.Clear();
+                VisualTreeHelper.PreviewTouchDown(content, args, _previewed);
+                Control? takenBy = null;
                 VisualTreeHelper.IterateVisualTree(content, args,
                     (c, a) => c.ClippingRect.Contains(a.Position),
-                    (c, a) => { c.OnTouchDown(a); },
+                    (c, a) =>
+                    {
+                        c.OnTouchDown(a);
+                        if (a.Handled)
+                            takenBy ??= c;
+                    },
                     null
                     );
+                // The preview reached every scroll viewer under the finger, also one lying under the control that took
+                // the touch (a tab bar over a list): only those it lies in keep following the finger.
+                if (takenBy != null)
+                {
+                    foreach (var previewed in _previewed)
+                    {
+                        if (!previewed.ContainsInTree(takenBy))
+                            previewed.OnPreviewWithdrawn();
+                    }
+                }
                 LastTouchPosition = touchPosition;
             }
             if (hasTouch && touchState.State == TouchLocationState.Released && _tapOutsideText is { } tapped)

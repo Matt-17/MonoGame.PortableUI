@@ -121,6 +121,64 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void A_tab_tapped_above_the_pager_takes_it_to_its_page()
+        {
+            // A tab bar floating over the pager: the same tap reaches the pager under it, whose release must not
+            // settle it back on the page it was on.
+            var tab = new Button { Text = "Second", Width = 100, Height = 50, VerticalAlignment = VerticalAlignment.Bottom, HorizontalAlignment = HorizontalAlignment.Left };
+            tab.Click += (_, _) => _pager.GoTo(1);
+            var root = new Grid();
+            _screen.Content = root;
+            root.AddChild(_pager);
+            root.AddChild(tab);
+            Frame();
+
+            Touch(TouchLocationState.Pressed, 50, 575);
+            Touch(TouchLocationState.Released, 50, 575);
+            Frame(90);
+
+            Assert.AreEqual(1, _pager.PageIndex);
+        }
+
+        [TestMethod]
+        public void A_finger_that_lands_on_a_button_above_the_pager_does_not_drag_the_pager()
+        {
+            // The pager lies under a floating button: a drag that starts on the button is the button's (cancelled
+            // tap), not a swipe of the pager below it.
+            var tab = new Button { Text = "Tab", Width = 100, Height = 50, VerticalAlignment = VerticalAlignment.Bottom, HorizontalAlignment = HorizontalAlignment.Left };
+            tab.Click += (_, _) => { };
+            var root = new Grid();
+            _screen.Content = root;
+            root.AddChild(_pager);
+            root.AddChild(tab);
+            Frame();
+
+            Touch(TouchLocationState.Pressed, 90, 575);
+            for (var x = 80; x >= 10; x -= 10)
+                Touch(TouchLocationState.Moved, x, 575);
+            Assert.AreEqual(0, _pager.Offset.X, 0.001f, "the pager did not follow");
+            Touch(TouchLocationState.Released, 10, 575);
+            Frame(30);
+            Assert.AreEqual(0, _pager.PagePosition, 0.001f);
+        }
+
+        [TestMethod]
+        public void A_swipe_through_a_transparent_overlay_still_moves_the_pager()
+        {
+            // An overlay panel that takes no touch (it only lays out a floating bar) does not block the pager.
+            var root = new Grid();
+            _screen.Content = root;
+            root.AddChild(_pager);
+            root.AddChild(new Grid());
+            Frame();
+
+            Drag(350, 100, y: 300);
+            Frame(90);
+
+            Assert.AreEqual(1, _pager.PageIndex);
+        }
+
+        [TestMethod]
         public void A_slow_short_drag_goes_back()
         {
             Drag(300, 200);
