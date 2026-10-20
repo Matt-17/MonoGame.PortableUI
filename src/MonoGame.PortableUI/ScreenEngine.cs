@@ -555,11 +555,17 @@ namespace MonoGame.PortableUI
 
         public void NavigateToScreen<T>(T screen) where T : Screen
         {
-            Push(screen, isOverlay: false, ScreenTransition.None);
+            Push(screen, isOverlay: false, null);
         }
 
         /// <summary>Replaces the visible screen with <paramref name="screen"/>, animated.</summary>
         public void NavigateToScreen(Screen screen, ScreenTransition transition)
+        {
+            Push(screen, isOverlay: false, ScreenTransitionAnimation.For(transition));
+        }
+
+        /// <summary>Replaces the visible screen with <paramref name="screen"/>, animated by <paramref name="transition"/> (null = at once).</summary>
+        public void NavigateToScreen(Screen screen, ScreenTransitionAnimation? transition)
         {
             Push(screen, isOverlay: false, transition);
         }
@@ -570,6 +576,12 @@ namespace MonoGame.PortableUI
         ///     the top screen updates and receives input. Close it with <see cref="NavigateBack()"/>.
         /// </summary>
         public void PushOverlay(Screen screen, ScreenTransition transition = ScreenTransition.Fade)
+        {
+            Push(screen, isOverlay: true, ScreenTransitionAnimation.For(transition));
+        }
+
+        /// <summary><see cref="PushOverlay(Screen, ScreenTransition)"/> with an own transition (null = at once).</summary>
+        public void PushOverlay(Screen screen, ScreenTransitionAnimation? transition)
         {
             Push(screen, isOverlay: true, transition);
         }
@@ -615,14 +627,27 @@ namespace MonoGame.PortableUI
             try
             {
                 var screens = VisibleScreens;
-                ChooseSharedFlightHost(screens);
-
+                // During a transition the screen under the moving one is drawn too: a covered screen (non-overlay
+                // push) under the new one, the revealed one under the leaving one - or above it for a reveal.
+                var covered = CoveredScreen;
+                var leaving = LeavingScreen;
+                var belowOnTop = TransitionBelowOnTop;
+                var revealedLast = belowOnTop && leaving != null && screens.Count > 0;
+                var top = screens.Count > 0 ? screens[screens.Count - 1] : null;
+                ChooseSharedFlightHost(covered != null && belowOnTop ? covered : revealedLast ? top : leaving ?? top);
+                if (covered != null && !belowOnTop)
+                    covered.Draw(spriteBatch);
                 var start = DrawCoveredScreensForGlass(spriteBatch, screens);
-                for (var i = start; i < screens.Count; i++)
+                var end = revealedLast ? screens.Count - 1 : screens.Count;
+                for (var i = start; i < end; i++)
                     screens[i].Draw(spriteBatch);
                 for (var i = 0; i < screens.Count; i++)
                     screens[i].StackBackdrop = null;
-                LeavingScreen?.Draw(spriteBatch);
+                leaving?.Draw(spriteBatch);
+                if (revealedLast)
+                    top!.Draw(spriteBatch);
+                if (covered != null && belowOnTop)
+                    covered.Draw(spriteBatch);
                 if (_toasts is { HasContent: true } toasts)
                     toasts.Layer.Draw(spriteBatch);
             }
@@ -726,7 +751,7 @@ namespace MonoGame.PortableUI
         /// <summary>Duration of screen transitions.</summary>
         public TimeSpan TransitionDuration { get; set; } = TimeSpan.FromMilliseconds(250);
 
-        private void Push(Screen screen, bool isOverlay, ScreenTransition transition)
+        private void Push(Screen screen, bool isOverlay, ScreenTransitionAnimation? transition)
         {
             FinishTransition();
             var previous = ActiveScreen;
@@ -747,7 +772,7 @@ namespace MonoGame.PortableUI
             ScreenHistory.Push(screen);
             screen.InvalidateLayout(true);
             RebuildVisibleScreens();
-            StartTransition(screen, transition, entering: true);
+            StartTransition(screen, previous, transition, entering: true);
             screen.RaiseNavigatedTo();
         }
 
@@ -760,6 +785,12 @@ namespace MonoGame.PortableUI
         }
 
         public void NavigateBack(ScreenTransition transition)
+        {
+            NavigateBack(ScreenTransitionAnimation.For(transition));
+        }
+
+        /// <summary>Pops the top screen, which leaves with <paramref name="transition"/> played backwards (null = at once).</summary>
+        public void NavigateBack(ScreenTransitionAnimation? transition)
         {
             if (ScreenHistory.Count == 0)
                 return;
@@ -781,10 +812,8 @@ namespace MonoGame.PortableUI
                     FocusedControl = saved;
             }
 
-            if (transition == ScreenTransition.None)
+            if (!StartTransition(screen, revealed, transition, entering: false))
                 screen.ScreenEngine = null;
-            else
-                StartTransition(screen, transition, entering: false);
             revealed?.RaiseNavigatedTo();
         }
 
@@ -818,25 +847,33 @@ namespace MonoGame.PortableUI
             }
         }
 
+        // The screen higher in the stack (pushed, or popped and leaving) and the one under it.
         private Screen? _transitionScreen;
-        private ScreenTransition _transitionKind;
+        private Screen? _transitionBelow;
+        private ScreenTransitionAnimation? _transitionAnimation;
+        private TimeSpan _transitionDuration;
         private bool _transitionEntering;
         private TimeSpan _transitionStart;
+        private readonly ScreenTransitionFrame _transitionFrame = new ScreenTransitionFrame();
 
-        private void StartTransition(Screen screen, ScreenTransition transition, bool entering)
+        /// <summary>False when there is nothing to animate (no transition, zero duration).</summary>
+        private bool StartTransition(Screen screen, Screen? below, ScreenTransitionAnimation? animation, bool entering)
         {
-            if (transition == ScreenTransition.None || TransitionDuration <= TimeSpan.Zero)
+            var duration = animation?.Duration ?? TransitionDuration;
+            if (animation == null || duration <= TimeSpan.Zero)
             {
-                screen.SetTransitionVisual(1, Vector2.Zero);
-                return;
+                screen.SetTransitionVisual(null);
+                return false;
             }
 
             _transitionScreen = screen;
-            _transitionKind = transition;
+            _transitionBelow = below;
+            _transitionAnimation = animation;
+            _transitionDuration = duration;
             _transitionEntering = entering;
             _transitionStart = ScreenSystem.TotalTime;
-
             ApplyTransition(0);
+            return true;
         }
 
         private void UpdateTransition()
@@ -845,32 +882,26 @@ namespace MonoGame.PortableUI
                 return;
 
             var elapsed = (ScreenSystem.TotalTime - _transitionStart).TotalMilliseconds;
-            var progress = (float)Math.Clamp(elapsed / Math.Max(1, TransitionDuration.TotalMilliseconds), 0, 1);
+            var progress = (float)Math.Clamp(elapsed / Math.Max(1, _transitionDuration.TotalMilliseconds), 0, 1);
             if (progress >= 1)
                 FinishTransition();
             else
                 ApplyTransition(progress);
         }
 
-        private void ApplyTransition(float progress)
+        private void ApplyTransition(float time)
         {
-            var screen = _transitionScreen!;
-            // Ease-out cubic; leaving plays the same curve backwards.
-            var eased = 1 - (float)Math.Pow(1 - progress, 3);
-            var visible = _transitionEntering ? eased : 1 - eased;
-            var hidden = 1 - visible;
-            switch (_transitionKind)
-            {
-                case ScreenTransition.Fade:
-                    screen.SetTransitionVisual(visible, Vector2.Zero);
-                    break;
-                case ScreenTransition.SlideFromRight:
-                    screen.SetTransitionVisual(1, new Vector2(ScreenRect.Width * hidden, 0));
-                    break;
-                case ScreenTransition.SlideFromBottom:
-                    screen.SetTransitionVisual(1, new Vector2(0, ScreenRect.Height * hidden));
-                    break;
-            }
+            var animation = _transitionAnimation!;
+            // Popping plays the push curve backwards.
+            var eased = (float)animation.Easing(time);
+            var frame = _transitionFrame;
+            frame.ScreenSize = new Vector2(ScreenRect.Width, ScreenRect.Height);
+            frame.IsPush = _transitionEntering;
+            frame.Top.Reset();
+            frame.Below.Reset();
+            animation.Apply(_transitionEntering ? eased : 1 - eased, frame);
+            _transitionScreen!.SetTransitionVisual(frame.Top);
+            _transitionBelow?.SetTransitionVisual(frame.Below);
         }
 
         /// <summary>Jumps a running transition to its end (also before starting another one).</summary>
@@ -881,10 +912,24 @@ namespace MonoGame.PortableUI
                 return;
 
             _transitionScreen = null;
-            screen.SetTransitionVisual(1, Vector2.Zero);
+            screen.SetTransitionVisual(null);
+            _transitionBelow?.SetTransitionVisual(null);
+            _transitionBelow = null;
+            _transitionAnimation = null;
             if (!_transitionEntering)
                 screen.ScreenEngine = null;
         }
+
+        /// <summary>
+        ///     The screen being covered by a push that is not part of the visible stack (a non-overlay push draws only
+        ///     the new screen): drawn under it, or over it for <see cref="ScreenTransitionAnimation.BelowOnTop"/>, until
+        ///     the transition ends.
+        /// </summary>
+        internal Screen? CoveredScreen
+            => _transitionEntering && _transitionBelow != null && !_visibleScreens.Contains(_transitionBelow) ? _transitionBelow : null;
+
+        /// <summary>The screen under the moving one is drawn above it during this transition.</summary>
+        internal bool TransitionBelowOnTop => _transitionScreen != null && _transitionAnimation?.BelowOnTop == true;
 
         /// <summary>A gap between updates longer than this is a hitch, not animation time (see <see cref="CompensateHitch"/>).</summary>
         private static readonly TimeSpan MaxAnimationStep = TimeSpan.FromMilliseconds(100);

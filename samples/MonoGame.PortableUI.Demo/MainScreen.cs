@@ -840,7 +840,18 @@ namespace MonoGame.PortableUI.Demo
                     cards.Children.Add(moved);
             };
             _motionActions["gone"] = () => shake.IsGone = !shake.IsGone;
-            _motionActions["hero"] = () => ScreenEngine?.NavigateToScreen(new HeroScreen(_themePreset, Palette.Info, "Hop"), ScreenTransition.Fade);
+            // Each Hero click uses the next screen transition (the card flies with any of them).
+            ScreenTransition[] heroTransitions =
+            [
+                ScreenTransition.Fade, ScreenTransition.Push, ScreenTransition.Zoom, ScreenTransition.Reveal,
+                ScreenTransition.Flip, ScreenTransition.SlideFromBottom
+            ];
+            var heroCount = 0;
+            _motionActions["hero"] = () =>
+            {
+                var transition = heroTransitions[heroCount++ % heroTransitions.Length];
+                ScreenEngine?.NavigateToScreen(new HeroScreen(_themePreset, Palette.Info, "Hop", transition), transition);
+            };
             _motionActions["heroback"] = () => ScreenEngine?.NavigateBack();
             _motionActions["hop"] = () => hop.Animate()
                 .TranslateTo(new Vector2(0, -70)).Duration(TimeSpan.FromMilliseconds(260)).Ease(Easings.QuadOut)

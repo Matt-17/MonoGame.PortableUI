@@ -472,12 +472,7 @@ namespace MonoGame.PortableUI
 
             OnBeforeDraw(spriteBatch);
 
-            if (BackgroundBrush != null)
-            {
-                spriteBatch.Begin();
-                BackgroundBrush.Draw(spriteBatch, PixelScreenRect);
-                spriteBatch.End();
-            }
+            DrawBackground(spriteBatch);
 
             DrawControlTree(spriteBatch, _mainGrid, _mainGrid.BoundingRect);
 
@@ -671,10 +666,10 @@ namespace MonoGame.PortableUI
         /// <summary>Layout and animations only, no input (toast layer).</summary>
         internal bool IgnoresInput { get; set; }
 
-        /// <summary>True when pushed with <see cref="ScreenEngine.PushOverlay"/>: the screens below stay visible.</summary>
+        /// <summary>True when pushed with <see cref="ScreenEngine.PushOverlay(Screen, ScreenTransition)"/>: the screens below stay visible.</summary>
         public bool IsOverlay { get; internal set; }
 
-        internal ScreenTransition PushTransition { get; set; }
+        internal ScreenTransitionAnimation? PushTransition { get; set; }
 
         /// <summary>Focus to restore when this screen becomes active again after an overlay/navigation.</summary>
         internal Control? SavedFocus { get; set; }
@@ -712,11 +707,44 @@ namespace MonoGame.PortableUI
             NavigatedFrom?.Invoke(this, EventArgs.Empty);
         }
 
-        /// <summary>Whole-screen opacity/offset for push/pop transitions (applied to the root).</summary>
-        internal void SetTransitionVisual(float opacity, Vector2 translation)
+        /// <summary>Whole-screen pose for push/pop transitions, applied to the root and the background (null = none).</summary>
+        internal void SetTransitionVisual(ScreenVisual? visual)
         {
-            _mainGrid.Opacity = opacity;
-            _mainGrid.Translation = translation;
+            _hasTransitionVisual = visual is { IsIdentity: false };
+            _mainGrid.Opacity = visual?.Opacity ?? 1;
+            _mainGrid.Translation = visual?.Translation ?? Vector2.Zero;
+            _mainGrid.Scale = visual?.Scale ?? Vector2.One;
+            _mainGrid.Rotation = visual?.Rotation ?? 0;
+            _mainGrid.TransformOrigin = visual?.Origin ?? new Vector2(0.5f, 0.5f);
+        }
+
+        private bool _hasTransitionVisual;
+
+        /// <summary>
+        ///     The screen background, moved and faded with a running screen transition like the root (a covering
+        ///     screen's opaque background would otherwise hide the screen under it until the transition ends).
+        /// </summary>
+        private void DrawBackground(SpriteBatch spriteBatch)
+        {
+            if (BackgroundBrush == null)
+                return;
+            if (!_hasTransitionVisual)
+            {
+                spriteBatch.Begin();
+                BackgroundBrush.Draw(spriteBatch, PixelScreenRect);
+                spriteBatch.End();
+                return;
+            }
+
+            var opacity = MathHelper.Clamp((float)_mainGrid.ShownOpacity, 0, 1);
+            if (opacity <= 0)
+                return;
+            // The root's transform is in layout units; the background is drawn in pixels.
+            var scale = ScreenEngine?.DrawScale ?? 1f;
+            var transform = Matrix.CreateScale(1 / scale, 1 / scale, 1) * _mainGrid.GetRenderTransform() * Matrix.CreateScale(scale, scale, 1);
+            spriteBatch.Begin(SpriteSortMode.Deferred, transformMatrix: transform);
+            BackgroundBrush.Draw(spriteBatch, PixelScreenRect, opacity);
+            spriteBatch.End();
         }
 
         internal void OnNavigationFrom(object? sender)
