@@ -44,6 +44,12 @@ namespace MonoGame.PortableUI
         public bool TouchTextSelection { get; set; } = true;
 
         /// <summary>
+        ///     The platform's own Cut / Copy / Paste menu for touch selection (e.g. <c>AndroidTextSelectionMenu</c>);
+        ///     null (default) draws PortableUI's bar.
+        /// </summary>
+        public Input.ITextSelectionMenu? TextSelectionMenu { get; set; }
+
+        /// <summary>
         ///     How long a finger must rest before it counts as a press (pressed look, list hold-to-select).
         ///     A drag that starts earlier is a scroll and lights nothing up. Default 200 ms.
         /// </summary>
