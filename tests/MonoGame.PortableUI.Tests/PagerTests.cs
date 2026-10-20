@@ -109,6 +109,18 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void A_quick_tap_clicks_a_button_on_a_page()
+        {
+            Touch(TouchLocationState.Pressed, 100, 50);
+            for (var i = 0; i < 4; i++)
+                Touch(TouchLocationState.Moved, 100, 50);
+            Touch(TouchLocationState.Released, 100, 50);
+            Frame();
+
+            Assert.AreEqual(1, _clicks);
+        }
+
+        [TestMethod]
         public void A_slow_short_drag_goes_back()
         {
             Drag(300, 200);
