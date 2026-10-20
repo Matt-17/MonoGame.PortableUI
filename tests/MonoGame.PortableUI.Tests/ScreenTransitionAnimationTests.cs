@@ -166,6 +166,44 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void Standard_easing_is_the_fast_out_slow_in_bezier()
+        {
+            var standard = Easings.Standard;
+            Assert.AreEqual(0, standard(0), 1e-9);
+            Assert.AreEqual(1, standard(1), 1e-9);
+            // Reference values of cubic-bezier(0.4, 0, 0.2, 1).
+            Assert.AreEqual(0.0259, standard(0.1), 0.001);
+            Assert.AreEqual(0.7756, standard(0.5), 0.001);
+            Assert.AreEqual(0.9944, standard(0.9), 0.001);
+            // Gathers speed instead of jumping off: the first 10 % of the time moves 3 %, CubicOut 27 %.
+            Assert.IsTrue(standard(0.1) < Easings.CubicOut(0.1) / 2);
+            var previous = 0.0;
+            for (var i = 1; i <= 100; i++)
+            {
+                var value = standard(i / 100.0);
+                Assert.IsTrue(value >= previous - 1e-9, "monotonic");
+                previous = value;
+            }
+        }
+
+        [TestMethod]
+        public void A_transition_draws_the_screens_as_motion()
+        {
+            using var host = new Host();
+            var first = new TestScreen();
+            var second = new TestScreen();
+            host.Engine.NavigateToScreen(first);
+            host.Step();
+            host.Engine.NavigateToScreen(second, ScreenTransition.Push);
+            host.Step();
+            Assert.IsTrue(second.RootGrid.IsInMotion, "subpixel, text scaled from its rest size");
+            Assert.IsTrue(first.RootGrid.IsInMotion);
+            host.Step(25);
+            Assert.IsFalse(second.RootGrid.IsInMotion);
+            Assert.IsFalse(first.RootGrid.IsInMotion);
+        }
+
+        [TestMethod]
         public void Flip_shows_one_screen_at_a_time()
         {
             using var host = new Host();

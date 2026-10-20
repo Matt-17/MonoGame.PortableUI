@@ -748,8 +748,8 @@ namespace MonoGame.PortableUI
             return modal;
         }
 
-        /// <summary>Duration of screen transitions.</summary>
-        public TimeSpan TransitionDuration { get; set; } = TimeSpan.FromMilliseconds(250);
+        /// <summary>Duration of screen transitions (unless a <see cref="ScreenTransitionAnimation.Duration"/> sets its own).</summary>
+        public TimeSpan TransitionDuration { get; set; } = TimeSpan.FromMilliseconds(300);
 
         private void Push(Screen screen, bool isOverlay, ScreenTransitionAnimation? transition)
         {

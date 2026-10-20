@@ -104,8 +104,8 @@ namespace MonoGame.PortableUI
         /// <summary>Length of the transition; null uses <see cref="ScreenEngine.TransitionDuration"/>.</summary>
         public TimeSpan? Duration { get; init; }
 
-        /// <summary>Easing of the progress (default <see cref="Easings.CubicOut"/>); popping plays the same curve backwards.</summary>
-        public Easing Easing { get; init; } = Easings.CubicOut;
+        /// <summary>Easing of the progress (default <see cref="Easings.Standard"/>); popping plays the same curve backwards.</summary>
+        public Easing Easing { get; init; } = Easings.Standard;
 
         /// <summary>
         ///     Draw the screen below above the top one while the transition runs (a reveal: the old screen moves away

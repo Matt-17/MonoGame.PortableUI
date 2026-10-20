@@ -711,6 +711,9 @@ namespace MonoGame.PortableUI
         internal void SetTransitionVisual(ScreenVisual? visual)
         {
             _hasTransitionVisual = visual is { IsIdentity: false };
+            // While a transition poses the screen it is in motion: whole-pixel snapping and text rasterized at every
+            // in-between size made transitions jitter and Zoom miss frames.
+            _mainGrid.MovedFromOutside = visual != null;
             _mainGrid.Opacity = visual?.Opacity ?? 1;
             _mainGrid.Translation = visual?.Translation ?? Vector2.Zero;
             _mainGrid.Scale = visual?.Scale ?? Vector2.One;
