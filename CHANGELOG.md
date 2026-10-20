@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Layout rounding:** `ScreenEngineOptions.UseLayoutRounding` rounds measured sizes, arranged edges and border strokes to whole device pixels (like WPF and Android): a 1 dp line at density 2.75 is 3 px, sizes no longer drift down a page.
+- **Text measured at render resolution:** runtime fonts measured at the small layout-unit size rounded every glyph advance there, up to several percent too wide (labels wrapped early, buttons grew). Wrapping labels also wrap to the slot width, not their aligned rect.
+- **Android text metrics, refined:** wrapped lines are spaced by the rounded hhea metrics (`UIFont.GetLineSpacing`), and glyphs are set at a whole-pixel em like FreeType with hinting (14 sp at density 2.75 is 38 px).
+
 ## 0.4.0-alpha.9
 
 Motion between places: rotation and skew, layout transitions (FLIP) that let moved controls glide, shared-element (hero) flights between screens, more screen transitions with a public API for your own, and native-look theme options for matching .NET MAUI on Android. Behaviour changes: screen transitions default to `Easings.Standard` over 300 ms and blend a fading screen as one picture; input now reaches children drawn outside a parent that does not clip them; on Android the default fling is the system scroller.
