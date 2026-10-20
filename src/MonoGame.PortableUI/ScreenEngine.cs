@@ -615,6 +615,8 @@ namespace MonoGame.PortableUI
             try
             {
                 var screens = VisibleScreens;
+                ChooseSharedFlightHost(screens);
+
                 var start = DrawCoveredScreensForGlass(spriteBatch, screens);
                 for (var i = start; i < screens.Count; i++)
                     screens[i].Draw(spriteBatch);
@@ -728,6 +730,7 @@ namespace MonoGame.PortableUI
         {
             FinishTransition();
             var previous = ActiveScreen;
+            CaptureSharedElements(previous, screen);
             if (previous != null)
             {
                 // Remembered so NavigateBack can hand focus back to where the user was.
@@ -763,6 +766,7 @@ namespace MonoGame.PortableUI
             FinishTransition();
             FocusedControl = null;
             var screen = ScreenHistory.Pop();
+            CaptureSharedElements(screen, ScreenHistory.Count > 0 ? ScreenHistory.Peek() : null);
             screen.OnNavigationFrom(this);
             screen.RaiseNavigatedFrom();
             RebuildVisibleScreens();
@@ -831,6 +835,7 @@ namespace MonoGame.PortableUI
             _transitionKind = transition;
             _transitionEntering = entering;
             _transitionStart = ScreenSystem.TotalTime;
+
             ApplyTransition(0);
         }
 
@@ -881,6 +886,29 @@ namespace MonoGame.PortableUI
                 screen.ScreenEngine = null;
         }
 
+        /// <summary>A gap between updates longer than this is a hitch, not animation time (see <see cref="CompensateHitch"/>).</summary>
+        private static readonly TimeSpan MaxAnimationStep = TimeSpan.FromMilliseconds(100);
+
+        private TimeSpan? _lastUpdateTime;
+
+        /// <summary>
+        ///     The first frame of a new screen can take long (fonts rasterized, code jitted, textures loaded). Screen
+        ///     transitions and shared-element flights timed from the navigation would be over before they show, so the
+        ///     part of a gap between updates beyond <see cref="MaxAnimationStep"/> postpones them.
+        /// </summary>
+        private void CompensateHitch()
+        {
+            var now = ScreenSystem.TotalTime;
+            var gap = _lastUpdateTime is { } last ? now - last : TimeSpan.Zero;
+            _lastUpdateTime = now;
+            if (gap <= MaxAnimationStep)
+                return;
+            var hitch = gap - MaxAnimationStep;
+            if (_transitionScreen != null)
+                _transitionStart += hitch;
+            PostponeSharedFlights(hitch);
+        }
+
         /// <summary>Whether a screen transition is currently animating.</summary>
         public bool IsTransitioning => _transitionScreen != null;
 
@@ -894,9 +922,11 @@ namespace MonoGame.PortableUI
             DrainGameThreadQueue();
             UpdateRenderQuality();
             ApplyGlobalBrushChanges();
+            CompensateHitch();
             UpdateTransition();
             ApplyPendingInsets(force: false);
             ActiveScreen?.Update();
+            UpdateSharedFlights();
             _haptics?.Update(ScreenSystem.TotalTime);
             _toasts?.Update();
             UpdateAccessibility();

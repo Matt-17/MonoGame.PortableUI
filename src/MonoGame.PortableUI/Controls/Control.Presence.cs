@@ -103,7 +103,7 @@ namespace MonoGame.PortableUI.Controls
             ? MathHelper.Lerp(_visibilityTransition!.Opacity, 1, MathHelper.Clamp(_presenceProgress.X, 0, 1))
             : 1;
 
-        /// <summary>The scale drawn: the shown <see cref="Scale"/> times the enter/exit pose.</summary>
-        internal Vector2 DrawnScale => _scale * PresenceScale;
+        /// <summary>The scale drawn: the shown <see cref="Scale"/> times the enter/exit pose and a shared-element flight.</summary>
+        internal Vector2 DrawnScale => _scale * PresenceScale * _sharedScale;
     }
 }

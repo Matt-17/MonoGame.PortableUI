@@ -93,6 +93,9 @@ namespace MonoGame.PortableUI.Animation
             _velocity = Vector2.Zero;
         }
 
+        /// <summary>Moves the start later by <paramref name="delay"/> (a hitch that should not count as animation time).</summary>
+        public void Postpone(TimeSpan delay) => _startedAt += delay;
+
         /// <summary>The value at <paramref name="now"/>; stops (returning the target) once it arrived.</summary>
         public Vector2 Evaluate(TimeSpan now)
         {

@@ -47,6 +47,13 @@ namespace MonoGame.PortableUI.Tests
             engine.Update(new GameTime(total, TimeSpan.FromMilliseconds(milliseconds)));
         }
 
+        // Frames of 16 ms: one long update is a hitch, which screen transitions do not count as animation time.
+        private static void Run(ScreenEngine engine, double milliseconds)
+        {
+            for (var elapsed = 0.0; elapsed < milliseconds; elapsed += 16)
+                Tick(engine, Math.Min(16, milliseconds - elapsed));
+        }
+
         [TestMethod]
         public void Overlay_keeps_the_screen_below_visible_but_only_the_top_one_is_active()
         {
@@ -130,15 +137,15 @@ namespace MonoGame.PortableUI.Tests
 
             engine.PushOverlay(pause, ScreenTransition.Fade);
             Assert.IsTrue(engine.IsTransitioning);
-            Tick(engine, 100);
+            Run(engine, 100);
             Assert.IsTrue(engine.IsTransitioning);
-            Tick(engine, 150);
+            Run(engine, 150);
             Assert.IsFalse(engine.IsTransitioning);
 
             engine.NavigateBack();
             Assert.AreSame(pause, engine.LeavingScreen, "the popped overlay fades out on top");
             Assert.AreSame(hud, engine.ActiveScreen);
-            Tick(engine, 250);
+            Run(engine, 250);
             Assert.IsNull(engine.LeavingScreen);
         }
     }
