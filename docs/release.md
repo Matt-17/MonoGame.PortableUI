@@ -1,6 +1,6 @@
 # Release Process
 
-`master` is the active development and release source for the modernized project. The old `release` branch is historical and should not be used for new releases.
+`master` is the development and release source; releases are tags on `master`.
 
 ## Normal Release
 
@@ -37,4 +37,4 @@ The workflow expects the NuGet Trusted Publishing login action to provide `NUGET
 
 ## Branch Policy
 
-After this modernization lands, enable branch protection on `master` and require the CI workflow before merge. The historical `release` branch can be archived or deleted after the first successful modern tag release.
+After this modernization lands, enable branch protection on `master` and require the CI workflow before merge.

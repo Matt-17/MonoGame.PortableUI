@@ -4,7 +4,8 @@
 [![CI](https://github.com/Matt-17/MonoGame.PortableUI/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/Matt-17/MonoGame.PortableUI/actions/workflows/ci.yml)
 [![Publish NuGet](https://github.com/Matt-17/MonoGame.PortableUI/actions/workflows/release-nuget.yml/badge.svg)](https://github.com/Matt-17/MonoGame.PortableUI/actions/workflows/release-nuget.yml)
 [![Release source](https://img.shields.io/badge/release%20source-master-blue)](https://github.com/Matt-17/MonoGame.PortableUI/tree/master)
-[![License](https://img.shields.io/github/license/Matt-17/MonoGame.PortableUI)](https://github.com/Matt-17/MonoGame.PortableUI/blob/master/LICENSE.md)
+[![License](https://img.shields.io/github/license/Matt-17/MonoGame.PortableUI?v=2)](https://github.com/Matt-17/MonoGame.PortableUI/blob/master/LICENSE.md)
+[![Conderis](https://conderis.com/Matt-17/MonoGame-PortableUI/badge.svg?token=ULP5A9lsv-N6Qv6ut2__mA)](https://conderis.com/Matt-17/MonoGame-PortableUI)
 
 MonoGame.PortableUI is a lightweight code-first UI layer for MonoGame. The modernized package line targets .NET 10 and multi-targets `net10.0` (MonoGame DesktopGL) and `net10.0-android` (MonoGame.Framework.Android) so the same library serves desktop and Android clients.
 
@@ -234,6 +235,8 @@ grid.SelectionChanged += (_, _) => Console.WriteLine(grid.SelectedItem);
 The demo bundles only free, open-licensed fonts (SIL OFL 1.1, CC BY-SA 4.0 — all usable in
 commercial projects; no proprietary system fonts are redistributed). The full per-font list with
 authors, licenses and sources lives in [docs/FONTS.md](docs/FONTS.md).
+The MIT license covers the MonoGame.PortableUI source code only; the bundled fonts keep their own
+licenses.
 
 ## Packaging
 
@@ -248,7 +251,7 @@ The project file uses `0.0.0-local` as a local fallback. Published package versi
 
 ## Release Flow
 
-`master` is the release source. The old `release` branch is no longer used for active development.
+`master` is the release source; releases are tags on `master`.
 
 1. Merge changes into `master`.
 2. Create a tag such as `v0.2.0-alpha.2`.
