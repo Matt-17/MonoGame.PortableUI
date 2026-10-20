@@ -14,6 +14,7 @@ namespace MonoGame.PortableUI
     ///     game view, Android 6+): the system's look, animation and overflow menu, Share, and the installed
     ///     text actions (Translate, …) like in any EditText. Set it as <see cref="ScreenEngineOptions.TextSelectionMenu"/>.
     /// </summary>
+    [System.Runtime.Versioning.SupportedOSPlatform("android23.0")]
     public sealed class AndroidTextSelectionMenu : ITextSelectionMenu
     {
         // Android's EditText orders its entries like this (Editor.MENU_ITEM_ORDER_*).
