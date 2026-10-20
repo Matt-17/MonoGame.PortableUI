@@ -636,18 +636,18 @@ namespace MonoGame.PortableUI
                 var top = screens.Count > 0 ? screens[screens.Count - 1] : null;
                 ChooseSharedFlightHost(covered != null && belowOnTop ? covered : revealedLast ? top : leaving ?? top);
                 if (covered != null && !belowOnTop)
-                    covered.Draw(spriteBatch);
+                    covered.DrawInStack(spriteBatch);
                 var start = DrawCoveredScreensForGlass(spriteBatch, screens);
                 var end = revealedLast ? screens.Count - 1 : screens.Count;
                 for (var i = start; i < end; i++)
-                    screens[i].Draw(spriteBatch);
+                    screens[i].DrawInStack(spriteBatch);
                 for (var i = 0; i < screens.Count; i++)
                     screens[i].StackBackdrop = null;
-                leaving?.Draw(spriteBatch);
+                leaving?.DrawInStack(spriteBatch);
                 if (revealedLast)
-                    top!.Draw(spriteBatch);
+                    top!.DrawInStack(spriteBatch);
                 if (covered != null && belowOnTop)
-                    covered.Draw(spriteBatch);
+                    covered.DrawInStack(spriteBatch);
                 if (_toasts is { HasContent: true } toasts)
                     toasts.Layer.Draw(spriteBatch);
             }
@@ -704,7 +704,7 @@ namespace MonoGame.PortableUI
             device.SetRenderTarget(_stackBackdropTarget);
             device.Clear(Color.Transparent);
             for (var i = 0; i < first; i++)
-                screens[i].Draw(spriteBatch);
+                screens[i].DrawInStack(spriteBatch);
             if (previousTargets.Length == 0)
                 device.SetRenderTarget(null);
             else

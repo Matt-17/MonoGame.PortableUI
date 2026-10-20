@@ -86,7 +86,7 @@ namespace MonoGame.PortableUI.Tests
             Assert.IsFalse(host.Engine.IsTransitioning);
             Assert.IsNull(host.Engine.CoveredScreen);
             Assert.AreEqual(Vector2.Zero, first.RootGrid.ShownTranslation, "the covered screen is reset");
-            Assert.AreEqual(1, first.RootGrid.ShownOpacity);
+            Assert.AreEqual(1, first.TransitionOpacity);
             Assert.AreEqual(Vector2.Zero, second.RootGrid.ShownTranslation);
         }
 
@@ -106,7 +106,8 @@ namespace MonoGame.PortableUI.Tests
             Assert.IsTrue(recording.Calls[0].Push);
             Assert.AreEqual(0.5f, recording.Calls[^1].Progress, 0.01f, "own duration and easing");
             Assert.AreEqual(50, second.RootGrid.ShownTranslation.X, 0.5f);
-            Assert.AreEqual(0.5, first.RootGrid.ShownOpacity, 0.01);
+            Assert.AreEqual(0.5, first.TransitionOpacity, 0.01);
+            Assert.AreEqual(1, first.RootGrid.ShownOpacity, "the screen fades as one picture, not per control");
             host.Step(4);
             Assert.IsFalse(host.Engine.IsTransitioning);
 
@@ -116,10 +117,10 @@ namespace MonoGame.PortableUI.Tests
             Assert.AreEqual(1, recording.Calls[0].Progress, "popping runs backwards");
             Assert.IsFalse(recording.Calls[0].Push);
             Assert.AreSame(second, host.Engine.LeavingScreen);
-            Assert.IsTrue(first.RootGrid.ShownOpacity < 0.9, "the revealed screen is moved too");
+            Assert.IsTrue(first.TransitionOpacity < 0.9, "the revealed screen is moved too");
             host.Step(4);
             Assert.IsNull(host.Engine.LeavingScreen);
-            Assert.AreEqual(1, first.RootGrid.ShownOpacity);
+            Assert.AreEqual(1, first.TransitionOpacity);
         }
 
         [TestMethod]
@@ -157,7 +158,7 @@ namespace MonoGame.PortableUI.Tests
                 foreach (var screen in new[] { first, second })
                 {
                     var root = screen.RootGrid;
-                    Assert.AreEqual(1, root.ShownOpacity, kind + " opacity");
+                    Assert.AreEqual(1, screen.TransitionOpacity, kind + " opacity");
                     Assert.AreEqual(Vector2.Zero, root.ShownTranslation, kind + " translation");
                     Assert.AreEqual(Vector2.One, root.ShownScale, kind + " scale");
                 }
@@ -213,11 +214,11 @@ namespace MonoGame.PortableUI.Tests
             host.Step();
             host.Engine.NavigateToScreen(second, ScreenTransition.Flip);
             host.Step(2);
-            Assert.AreEqual(0, second.RootGrid.ShownOpacity, "first half: the new screen is not shown yet");
+            Assert.AreEqual(0, second.TransitionOpacity, "first half: the new screen is not shown yet");
             Assert.IsTrue(first.RootGrid.ShownScale.X < 1, "the old one narrows");
             host.Step(6);
-            Assert.AreEqual(0, first.RootGrid.ShownOpacity, "second half: the old one is gone");
-            Assert.IsTrue(second.RootGrid.ShownScale.X < 1 && second.RootGrid.ShownOpacity == 1);
+            Assert.AreEqual(0, first.TransitionOpacity, "second half: the old one is gone");
+            Assert.IsTrue(second.RootGrid.ShownScale.X < 1 && second.TransitionOpacity == 1);
         }
     }
 }
