@@ -80,6 +80,24 @@ namespace MonoGame.PortableUI.Media
             PixelSize = 1;
         }
 
+        private CursorStyle()
+        {
+            Rows = Array.Empty<string>();
+            IsNone = true;
+            PixelSize = 1;
+        }
+
+        /// <summary>
+        ///     No software pointer: for a screen or surface whose content draws its own pointer (a game
+        ///     framebuffer with its arrow) while the pointer is still routed to it, e.g. during
+        ///     <see cref="SurfacePointerCapture"/>. Set it on <see cref="Screen.Cursor"/>,
+        ///     <see cref="ScreenEngineOptions.Cursor"/> or a theme.
+        /// </summary>
+        public static readonly CursorStyle None = new();
+
+        /// <summary>True for <see cref="None"/>: nothing is drawn.</summary>
+        public bool IsNone { get; }
+
         private CursorStyle(bool invert, Color fill)
         {
             Rows = Array.Empty<string>();
@@ -153,6 +171,8 @@ namespace MonoGame.PortableUI.Media
         /// </summary>
         public void Draw(SpriteBatch spriteBatch, Vector2 position, float scale, float opacity = 1)
         {
+            if (IsNone)
+                return;
             if (Shape != null)
             {
                 DrawShape(spriteBatch, position, scale, opacity);
