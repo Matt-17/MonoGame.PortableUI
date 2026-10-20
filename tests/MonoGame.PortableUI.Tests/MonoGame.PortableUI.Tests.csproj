@@ -14,5 +14,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\samples\MonoGame.PortableUI.Demo\Content\Fonts\AtkinsonHyperlegible-Regular.ttf" Link="Fonts\AtkinsonHyperlegible-Regular.ttf" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\samples\MonoGame.PortableUI.Demo\Content\Fonts\Roboto-Variable.ttf" Link="Fonts\Roboto-Variable.ttf" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
