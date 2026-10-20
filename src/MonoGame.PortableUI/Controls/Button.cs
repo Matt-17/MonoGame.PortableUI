@@ -84,6 +84,9 @@ namespace MonoGame.PortableUI.Controls
 
         protected override bool UsesThemeMinimumSize => UseThemeStyle;
 
+        /// <summary>An icon (fixed size) sits in the middle of the button, as in WPF and MAUI.</summary>
+        protected override bool CentersFixedSizeContent => true;
+
         protected override Media.Brush? GetThemeBackgroundBrush(PortableTheme theme)
         {
             return theme.ButtonBackgroundBrush;
