@@ -34,6 +34,9 @@ namespace MonoGame.PortableUI.Controls
             FillBrush = theme.CheckBoxBoxBackgroundBrush;
             TextColor = theme.CheckBoxTextColor;
             ToggleTextColor = null;
+            // The label keeps its color while hovered and pressed; there is no button face behind it.
+            HoverTextColor = null;
+            PressedTextColor = null;
             TextAlignment = TextAlignment.Left;
             ShowFocusVisual = true;
             ApplyLabelPadding();
@@ -113,6 +116,8 @@ namespace MonoGame.PortableUI.Controls
             if (TextColor.Equals(newTheme.ButtonTextColor) || TextColor.Equals(oldTheme.CheckBoxTextColor))
                 TextColor = newTheme.CheckBoxTextColor;
             ToggleTextColor = null;
+            HoverTextColor = null;
+            PressedTextColor = null;
             ApplyLabelPadding();
         }
 
