@@ -10,7 +10,7 @@ namespace MonoGame.PortableUI.Media
     ///     rasterized at whatever pixel size it is drawn, so it stays crisp when scaled — see
     ///     <see cref="PathRasterizer"/> and the <c>Controls.PathShape</c> control.
     /// </summary>
-    public sealed class PathGeometry
+    public sealed partial class PathGeometry
     {
         private readonly List<List<Vector2>> _figures = new List<List<Vector2>>();
         private readonly List<bool> _closed = new List<bool>();
