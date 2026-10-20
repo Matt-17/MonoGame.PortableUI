@@ -38,6 +38,36 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void A_left_aligned_wrapping_label_keeps_wrapping_at_its_slot_width()
+        {
+            // With layout rounding the aligned rect of a left-aligned label can end a fraction of a pixel short
+            // of its longest line; wrapping to that rect would push the line's last word down.
+            using var game = new Game();
+            var engine = ScreenEngine.Initialize(game, new ScreenEngineOptions { AddComponentToGame = false, UseLayoutRounding = true });
+            engine.SetNativeRenderScale(2.75f);
+            engine.SetScreenSize(200, 600);
+            var label = new TextBlock
+            {
+                Text = "Steady pace along the river, twenty-eight minutes. Two short breaks at the bridges.",
+                TextWrapping = TextWrapping.Wrap,
+                HorizontalAlignment = HorizontalAlignment.Left
+            };
+            var screen = new TestScreen { Content = new StackPanel { Children = { label } } };
+            engine.NavigateToScreen(screen);
+            screen.PerformLayoutIfDirty();
+            var height = label.ClippingRect.Height;
+
+            // Further passes must not narrow the wrap width to the longest line and push words down.
+            for (var i = 0; i < 3; i++)
+            {
+                label.InvalidateLayout(true);
+                screen.PerformLayoutIfDirty();
+            }
+
+            Assert.AreEqual(height, label.ClippingRect.Height, 0.01f);
+        }
+
+        [TestMethod]
         public void A_label_that_fits_on_one_line_needs_no_second_pass()
         {
             using var game = new Game();

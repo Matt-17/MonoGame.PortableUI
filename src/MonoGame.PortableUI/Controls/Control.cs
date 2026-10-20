@@ -1223,6 +1223,9 @@ namespace MonoGame.PortableUI.Controls
             rect = ChromeRect(rect);
             var radius = ToRender(CornerRadius);
             var border = ToRender(BorderThickness);
+            // Rounded layout draws strokes in whole pixels too (a 1 dp border at density 2.75 is 3 px).
+            if (LayoutRoundingScale > 0)
+                border = new Thickness(WholePixels(border.Left), WholePixels(border.Top), WholePixels(border.Right), WholePixels(border.Bottom));
             var scale = Math.Min(RenderScale.X, RenderScale.Y);
 
             var shadow = Shadow;
@@ -1383,8 +1386,36 @@ namespace MonoGame.PortableUI.Controls
 
             BoundingRect = GetRectForAlignment(rect, measuredSize, offset);
             ClippingRect = BoundingRect - Margin;
+            if (LayoutRoundingScale is > 0 and var scale)
+            {
+                BoundingRect = RoundToPixels(BoundingRect, scale);
+                ClippingRect = RoundToPixels(ClippingRect, scale);
+            }
             if (LayoutTransitionsInUse)
                 TrackLayoutMove();
+        }
+
+        /// <summary>Device pixels per layout unit when <see cref="ScreenEngineOptions.UseLayoutRounding"/> is on, else 0.</summary>
+        private float LayoutRoundingScale
+            => (Screen?.ScreenEngine ?? ScreenEngine.Instance) is { Options.UseLayoutRounding: true } engine ? engine.RenderScale : 0;
+
+        // A render-space stroke rounded half up to whole pixels; a visible stroke stays at least 1 px.
+        private static float WholePixels(float stroke) => stroke <= 0 ? 0 : Math.Max(1, MathF.Floor(stroke + 0.5f));
+
+        // Whole device pixels (layout units in, layout units out); NaN and infinity pass through.
+        private static float RoundToPixels(float value, float scale)
+            => value.IsFixed() ? MathF.Round(value * scale) / scale : value;
+
+        // Rounds the edges, so neighbours sharing an edge keep sharing it.
+        private static Rect RoundToPixels(Rect rect, float scale)
+        {
+            if (rect.Width <= 0 && rect.Height <= 0)
+                return rect;
+            var left = RoundToPixels(rect.Left, scale);
+            var top = RoundToPixels(rect.Top, scale);
+            return new Rect(left, top,
+                Math.Max(0, RoundToPixels(rect.Right, scale) - left),
+                Math.Max(0, RoundToPixels(rect.Bottom, scale) - top));
         }
 
         /// <summary>Moves an already arranged subtree by <paramref name="delta"/> without re-running
@@ -1457,6 +1488,8 @@ namespace MonoGame.PortableUI.Controls
                 return _desiredSize;
 
             var size = MeasureLayout();
+            if (LayoutRoundingScale is > 0 and var scale)
+                size = new Size(RoundToPixels(size.Width, scale), RoundToPixels(size.Height, scale));
             _desiredSize = size;
             _desiredSizePass = _layoutPassId;
             return size;

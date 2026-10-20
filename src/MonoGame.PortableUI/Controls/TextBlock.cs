@@ -437,7 +437,7 @@ namespace MonoGame.PortableUI.Controls
                     maxLineWidth = Math.Max(maxLineWidth, lineWidth);
 
                 var wrappedWidth = Width.IsFixed() ? Width : Math.Min(wrapWidth, maxLineWidth);
-                var wrappedHeight = Height.IsFixed() ? Height : lines.Count * LineHeight;
+                var wrappedHeight = Height.IsFixed() ? Height : WrappedHeight(lines.Count);
                 return ApplyConstraints(new Size(wrappedWidth, wrappedHeight)) + Margin;
             }
 
@@ -475,10 +475,13 @@ namespace MonoGame.PortableUI.Controls
             base.UpdateLayout(rect);
             if (TextWrapping != TextWrapping.Wrap || Width.IsFixed() || IsGone || !WrapsToArrangedWidth)
                 return;
-            var available = Math.Max(0, (BoundingRect - Margin).Width);
+            // The slot the parent offers, not the aligned rect: a left-aligned label is arranged only as
+            // wide as its longest line, which would shrink the wrap width pass after pass.
+            var available = rect.Width - Margin.Horizontal;
             if (MaxWidth.IsFixed())
                 available = Math.Min(available, MaxWidth);
-            if (available <= 0 || Math.Abs(available - _arrangedWrapWidth) < 0.5f)
+            // An unbounded slot (a horizontal stack, a scroller's content) gives nothing to wrap to.
+            if (!float.IsFinite(available) || available <= 0 || Math.Abs(available - _arrangedWrapWidth) < 0.5f)
                 return;
             _arrangedWrapWidth = available;
             // Measured for another width: re-measure if that changes the line count (the height).
@@ -491,6 +494,13 @@ namespace MonoGame.PortableUI.Controls
 
         /// <summary>Height of one line in the current font, size and text scale.</summary>
         internal float CurrentLineHeight => LineHeight;
+
+        // First line's box plus the baseline distance of each further line.
+        private float WrappedHeight(int lines) => lines <= 0 ? 0 : LineHeight + (lines - 1) * LineSpacing;
+
+        private float LineSpacing => ActiveDynamicFont is { } dynamicFont
+            ? dynamicFont.GetLineSpacing(DynamicPixelSize(dynamicFont))
+            : LineHeight;
 
         private float LineHeight => ActiveDynamicFont is { } dynamicFont
             ? dynamicFont.GetLineHeight(DynamicPixelSize(dynamicFont))
@@ -722,8 +732,8 @@ namespace MonoGame.PortableUI.Controls
                 return;
 
             var lines = GetWrappedLines(rect.Width / RenderScale.X);
-            var lineHeight = LineHeight * RenderScale.Y;
-            var totalHeight = lines.Count * lineHeight;
+            var lineSpacing = LineSpacing * RenderScale.Y;
+            var totalHeight = WrappedHeight(lines.Count) * RenderScale.Y;
             var top = rect.Top + (rect.Height - totalHeight) / 2;
 
             for (var i = 0; i < lines.Count; i++)
@@ -732,7 +742,7 @@ namespace MonoGame.PortableUI.Controls
                 var lineWidth = _wrappedLineWidths[i] * RenderScale.X;
                 var offset = new PointF(rect.Left + AlignmentOffsetX(rect.Width, lineWidth), top);
                 DrawTextRun(spriteBatch, line, offset);
-                top += lineHeight;
+                top += lineSpacing;
             }
         }
 

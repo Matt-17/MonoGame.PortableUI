@@ -17,8 +17,14 @@ namespace MonoGame.PortableUI.Text
         /// <summary>Size used when a control does not ask for one (TextSize 0).</summary>
         public abstract float DefaultSize { get; }
 
-        /// <summary>Distance between baselines at <paramref name="pixelSize"/>.</summary>
+        /// <summary>Height of a line of text at <paramref name="pixelSize"/> (a single line's box).</summary>
         public abstract float GetLineHeight(float pixelSize);
+
+        /// <summary>
+        ///     Distance between the baselines of wrapped lines. Equal to <see cref="GetLineHeight"/> unless the
+        ///     font pads only the first and last line (Android's includeFontPadding).
+        /// </summary>
+        public virtual float GetLineSpacing(float pixelSize) => GetLineHeight(pixelSize);
 
         public abstract Vector2 MeasureString(string text, float pixelSize);
 
