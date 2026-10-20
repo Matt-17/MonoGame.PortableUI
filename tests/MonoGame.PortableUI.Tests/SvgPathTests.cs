@@ -27,6 +27,29 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void A_figure_wound_the_other_way_cuts_a_hole_with_the_non_zero_rule()
+        {
+            // Outer square clockwise, inner square counter-clockwise: the inside of the inner one stays empty.
+            var frame = PathGeometry.FromSvg("M0 0H24V24H0Z M6 6V18H18V6Z", 24, 24);
+
+            var pixels = PathRasterizer.Rasterize(frame, 24, 24, Color.White);
+
+            Assert.AreEqual(1, Alpha(pixels, 24, 2, 12), 0.01f, "the frame");
+            Assert.AreEqual(0, Alpha(pixels, 24, 12, 12), 0.01f, "the hole");
+        }
+
+        [TestMethod]
+        public void Small_curves_are_flattened_with_few_points()
+        {
+            var plus = PathGeometry.FromSvg(Add, new RectangleF(0, -960, 960, 960));
+
+            var points = 0;
+            foreach (var figure in plus.Figures)
+                points += figure.Count;
+            Assert.IsTrue(points < 120, $"{points} points");
+        }
+
+        [TestMethod]
         public void Relative_lines_and_closing_build_a_square()
         {
             var square = PathGeometry.FromSvg("m2 2h20v20H2z", 24, 24);

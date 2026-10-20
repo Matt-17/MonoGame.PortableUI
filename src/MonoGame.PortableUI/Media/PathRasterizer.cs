@@ -45,21 +45,22 @@ namespace MonoGame.PortableUI.Media
             var data = new Color[width * height];
             const float step = 1f / Samples;
 
+            var coverage = fillColor.HasValue ? FillCoverage(figures, width, height, geometry.EvenOddFill) : null;
             for (var y = 0; y < height; y++)
             {
                 for (var x = 0; x < width; x++)
                 {
-                    var fillHits = 0;
+                    var fillHits = coverage?[y * width + x] ?? 0;
                     var strokeHits = 0;
-                    for (var sy = 0; sy < Samples; sy++)
+                    if (strokeColor.HasValue)
                     {
-                        for (var sx = 0; sx < Samples; sx++)
+                        for (var sy = 0; sy < Samples; sy++)
                         {
-                            var point = new Vector2(x + (sx + 0.5f) * step, y + (sy + 0.5f) * step);
-                            if (fillColor.HasValue && IsInside(figures, point, geometry.EvenOddFill))
-                                fillHits++;
-                            if (strokeColor.HasValue && IsOnStroke(figures, point, halfStroke))
-                                strokeHits++;
+                            for (var sx = 0; sx < Samples; sx++)
+                            {
+                                if (IsOnStroke(figures, new Vector2(x + (sx + 0.5f) * step, y + (sy + 0.5f) * step), halfStroke))
+                                    strokeHits++;
+                            }
                         }
                     }
 
@@ -99,34 +100,58 @@ namespace MonoGame.PortableUI.Media
             return texture;
         }
 
-        private static bool IsInside(List<(Vector2[] Points, bool Closed)> figures, Vector2 p, bool evenOdd)
+        /// <summary>
+        ///     Samples inside the fill per pixel (0..Samples²), by scanlines: each sample row crosses the edges once and
+        ///     the spans between crossings are filled by their winding. Testing every sample against every edge
+        ///     instead took seconds for curve-rich icons (thousands of edges) at phone sizes.
+        /// </summary>
+        private static int[] FillCoverage(List<(Vector2[] Points, bool Closed)> figures, int width, int height, bool evenOdd)
         {
-            var winding = 0;
-            var crossings = 0;
-            foreach (var (points, _) in figures)
+            var coverage = new int[width * height];
+            var crossings = new List<(float X, int Direction)>();
+            var columns = width * Samples;
+            for (var row = 0; row < height * Samples; row++)
             {
-                // Every figure counts as closed for filling, like SVG.
-                for (var i = 0; i < points.Length; i++)
+                var y = (row + 0.5f) / Samples;
+                crossings.Clear();
+                foreach (var (points, _) in figures)
                 {
-                    var a = points[i];
-                    var b = points[(i + 1) % points.Length];
-                    if (a.Y <= p.Y)
+                    // Every figure counts as closed for filling, like SVG.
+                    for (var i = 0; i < points.Length; i++)
                     {
-                        if (b.Y > p.Y && Cross(a, b, p) > 0)
-                        {
-                            winding++;
-                            crossings++;
-                        }
-                    }
-                    else if (b.Y <= p.Y && Cross(a, b, p) < 0)
-                    {
-                        winding--;
-                        crossings++;
+                        var a = points[i];
+                        var b = points[(i + 1) % points.Length];
+                        int direction;
+                        if (a.Y <= y && b.Y > y)
+                            direction = 1;
+                        else if (b.Y <= y && a.Y > y)
+                            direction = -1;
+                        else
+                            continue;
+                        crossings.Add((a.X + (y - a.Y) * (b.X - a.X) / (b.Y - a.Y), direction));
                     }
                 }
-            }
+                if (crossings.Count < 2)
+                    continue;
+                crossings.Sort((l, r) => l.X.CompareTo(r.X));
 
-            return evenOdd ? (crossings & 1) == 1 : winding != 0;
+                var winding = 0;
+                var count = 0;
+                var pixelRow = row / Samples * width;
+                for (var i = 0; i < crossings.Count - 1; i++)
+                {
+                    winding += crossings[i].Direction;
+                    count++;
+                    if (evenOdd ? (count & 1) == 0 : winding == 0)
+                        continue;
+                    // Sample columns whose centre lies in [this crossing, next crossing).
+                    var first = Math.Max(0, (int)Math.Ceiling(crossings[i].X * Samples - 0.5f));
+                    var last = Math.Min(columns - 1, (int)Math.Ceiling(crossings[i + 1].X * Samples - 0.5f) - 1);
+                    for (var column = first; column <= last; column++)
+                        coverage[pixelRow + column / Samples]++;
+                }
+            }
+            return coverage;
         }
 
         private static bool IsOnStroke(List<(Vector2[] Points, bool Closed)> figures, Vector2 p, float halfWidth)
@@ -143,8 +168,6 @@ namespace MonoGame.PortableUI.Media
             }
             return false;
         }
-
-        private static float Cross(Vector2 a, Vector2 b, Vector2 p) => (b.X - a.X) * (p.Y - a.Y) - (p.X - a.X) * (b.Y - a.Y);
 
         private static float DistanceSquaredToSegment(Vector2 p, Vector2 a, Vector2 b)
         {
