@@ -67,6 +67,32 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void A_bottom_sheet_slides_up_alone_while_its_scrim_fades_in_and_out()
+        {
+            using var host = new Host();
+            var page = new TestScreen();
+            host.Engine.NavigateToScreen(page);
+            host.Step();
+
+            var sheet = host.Engine.ShowModal(new Border { Height = 120 }, new ModalOptions { Placement = ModalPlacement.BottomSheet });
+            host.Step(3);
+            var scrim = (Control)((Grid)sheet.Content!).Children[0];
+            Assert.IsTrue(scrim.Opacity > 0 && scrim.Opacity < 1, $"the scrim fades in ({scrim.Opacity})");
+            Assert.IsTrue(sheet.Panel.Translation.Y > 0, "the sheet is still on its way up");
+            host.Step(20);
+            Assert.AreEqual(1, scrim.Opacity, 0.001f);
+            Assert.AreEqual(0, sheet.Panel.Translation.Y, 0.001f);
+
+            var closed = false;
+            sheet.Closed += (_, _) => closed = true;
+            sheet.Close();
+            Assert.IsTrue(closed);
+            Assert.AreSame(page, host.Engine.ActiveScreen, "the page is on top at once: navigating back next pops the page, not the sheet");
+            host.Step(3);
+            Assert.IsTrue(sheet.Panel.Translation.Y > 0 && scrim.Opacity < 1, "and the sheet slides away meanwhile");
+        }
+
+        [TestMethod]
         public void Push_moves_both_screens_and_draws_the_covered_one_until_it_ends()
         {
             using var host = new Host();

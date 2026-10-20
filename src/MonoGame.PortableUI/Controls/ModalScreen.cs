@@ -41,7 +41,10 @@ namespace MonoGame.PortableUI.Controls
 
         public Thickness Padding { get; set; } = new Thickness(16);
 
-        /// <summary>Null picks Fade for panels and SlideFromBottom for sheets.</summary>
+        /// <summary>
+        ///     Null picks Fade for panels; a sheet then slides up on its own while the scrim fades in (Material), instead of
+        ///     the whole overlay, scrim included, sliding with it.
+        /// </summary>
         public ScreenTransition? Transition { get; set; }
     }
 
@@ -68,6 +71,7 @@ namespace MonoGame.PortableUI.Controls
     public class ModalScreen : Screen
     {
         private readonly Border _scrim;
+        private readonly ScreenTransitionAnimation? _presentation;
         private bool _closed;
 
         public ModalScreen(Control content, ModalOptions? options = null)
@@ -96,16 +100,22 @@ namespace MonoGame.PortableUI.Controls
                 Height = sheet ? Options.SheetHeight : float.NaN
             };
 
+            // Scrim and panel side by side, so the scrim can fade while the sheet slides.
             _scrim = new Border
             {
-                Content = Panel,
                 BackgroundBrush = Options.ScrimBrush,
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 VerticalAlignment = VerticalAlignment.Stretch
             };
-            _scrim.MouseDown += (_, args) => ScrimPressed(args.Position);
-            _scrim.TouchDown += (_, args) => ScrimPressed(args.Position);
-            Content = _scrim;
+            var root = new Grid();
+            root.AddChild(_scrim);
+            root.AddChild(Panel);
+            root.MouseDown += (_, args) => ScrimPressed(args.Position);
+            root.TouchDown += (_, args) => ScrimPressed(args.Position);
+            Content = root;
+            _presentation = sheet && Options.Transition == null
+                ? new SheetTransition(this)
+                : ScreenTransitionAnimation.For(Options.Transition ?? ScreenTransition.Fade);
 
             BackRequested += (_, args) =>
             {
@@ -124,8 +134,7 @@ namespace MonoGame.PortableUI.Controls
 
         public event EventHandler<ModalClosedEventArgs>? Closed;
 
-        internal ScreenTransition PresentationTransition =>
-            Options.Transition ?? (Options.Placement == ModalPlacement.BottomSheet ? ScreenTransition.SlideFromBottom : ScreenTransition.Fade);
+        internal ScreenTransitionAnimation? PresentationTransition => _presentation;
 
         /// <summary>Closes this modal (and any modal stacked above it).</summary>
         public void Close() => CloseCore(cancelled: false);
@@ -161,6 +170,22 @@ namespace MonoGame.PortableUI.Controls
             engine.PlayFeedback(Audio.UiSound.Close, Content);
             engine.NavigateBack(PresentationTransition);
             Closed?.Invoke(this, new ModalClosedEventArgs(cancelled));
+        }
+
+        /// <summary>The sheet's own entrance and exit: the scrim fades, the sheet slides up from the bottom edge.</summary>
+        private sealed class SheetTransition : ScreenTransitionAnimation
+        {
+            private readonly ModalScreen _modal;
+
+            public SheetTransition(ModalScreen modal) => _modal = modal;
+
+            public override void Apply(float progress, ScreenTransitionFrame frame)
+            {
+                // The overlay itself stays put; its parts move.
+                _modal._scrim.Opacity = progress;
+                var height = _modal.Panel.ClippingRect.Height > 0 ? _modal.Panel.ClippingRect.Height : frame.ScreenSize.Y;
+                _modal.Panel.Translation = new Vector2(0, (height + 24) * (1 - progress));
+            }
         }
 
         protected override void OnNavigatedTo()
