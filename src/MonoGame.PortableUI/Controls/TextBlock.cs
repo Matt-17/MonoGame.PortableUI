@@ -257,15 +257,49 @@ namespace MonoGame.PortableUI.Controls
         protected virtual Color GetThemeTextColor(PortableTheme theme) => theme.TextColor;
         public Vector2 MeasuredText { get; private set; }
 
+        private Color _shadowColor = Color.Transparent;
+        private Vector2 _shadowOffset = new Vector2(0, 3);
+        private float _shadowBlur = 2f;
+
         /// <summary>Soft drop-shadow colour (straight alpha); fully transparent (the default) disables the shadow.</summary>
-        public Color ShadowColor { get; set; } = Color.Transparent;
+        public Color ShadowColor
+        {
+            get => _shadowColor;
+            set
+            {
+                if (_shadowColor == value)
+                    return;
+                _shadowColor = value;
+                InvalidateLayout(false);
+            }
+        }
 
         /// <summary>Offset of the drop shadow from the text, in design pixels.</summary>
-        public Vector2 ShadowOffset { get; set; } = new Vector2(0, 3);
+        public Vector2 ShadowOffset
+        {
+            get => _shadowOffset;
+            set
+            {
+                if (_shadowOffset == value)
+                    return;
+                _shadowOffset = value;
+                InvalidateLayout(false);
+            }
+        }
 
         /// <summary>Extra soft-spread radius; the shadow is stamped around the offset to blur it.
         /// 0 draws one sharp copy (a translucent colour keeps its alpha).</summary>
-        public float ShadowBlur { get; set; } = 2f;
+        public float ShadowBlur
+        {
+            get => _shadowBlur;
+            set
+            {
+                if (_shadowBlur == value)
+                    return;
+                _shadowBlur = value;
+                InvalidateLayout(false);
+            }
+        }
 
         private Brush? _textFill;
         private Vector2 _textFillSpan = new Vector2(0, 1);
@@ -321,6 +355,9 @@ namespace MonoGame.PortableUI.Controls
             get => _strokeSet ? _stroke : ResolveTheme().Typography?.TextStroke;
             set
             {
+                // The same instance again (a host syncing state each frame) costs nothing; its own changes redraw.
+                if (_strokeSet && ReferenceEquals(_stroke, value))
+                    return;
                 _stroke = value;
                 _strokeSet = true;
                 InvalidateLayout(false);
@@ -336,6 +373,8 @@ namespace MonoGame.PortableUI.Controls
             get => _glowSet ? _glow : ResolveTheme().Typography?.TextGlow;
             set
             {
+                if (_glowSet && ReferenceEquals(_glow, value))
+                    return;
                 _glow = value;
                 _glowSet = true;
                 InvalidateLayout(false);
@@ -844,7 +883,9 @@ namespace MonoGame.PortableUI.Controls
             if (SnapsDrawing)
                 offset = offset.ToInts();
 
+            // Marked even when invisible (transparent, zero width): making it visible later must redraw.
             var glow = Glow;
+            glow?.MarkDrawn();
             if (glow != null && glow.Color.A > 0 && glow.Radius > 0)
                 DrawGlow(spriteBatch, text, offset, glow);
 
@@ -852,6 +893,7 @@ namespace MonoGame.PortableUI.Controls
                 DrawShadow(spriteBatch, text, offset);
 
             var stroke = Stroke;
+            stroke?.MarkDrawn();
             if (stroke != null && stroke.Color.A > 0 && stroke.Width > 0)
                 DrawStroke(spriteBatch, text, offset, stroke);
 

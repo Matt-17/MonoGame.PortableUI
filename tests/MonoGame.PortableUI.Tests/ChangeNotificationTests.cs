@@ -1,9 +1,12 @@
 using System;
+using System.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
 using MonoGame.PortableUI.Media;
+using MonoGame.PortableUI.Text;
 
 namespace MonoGame.PortableUI.Tests
 {
@@ -33,6 +36,21 @@ namespace MonoGame.PortableUI.Tests
             private Color _color;
             public Color Color { get => _color; set => SetProperty(ref _color, value); }
             public override void Draw(Microsoft.Xna.Framework.Graphics.SpriteBatch spriteBatch, Rect rect) => MarkDrawn();
+        }
+
+        /// <summary>Draws nothing: lets a TextBlock run its draw path without a device.</summary>
+        private sealed class NullFont : UIFont
+        {
+            public override float DefaultSize => 16;
+            public override float GetLineHeight(float pixelSize) => pixelSize;
+            public override Vector2 MeasureString(string text, float pixelSize) => new Vector2(text.Length * 8, pixelSize);
+            public override Vector2 MeasureString(StringBuilder text, float pixelSize) => new Vector2(text.Length * 8, pixelSize);
+            public override void DrawString(SpriteBatch spriteBatch, string text, Vector2 position, Color color, float pixelSize, Vector2 scale)
+            {
+            }
+            public override void DrawString(SpriteBatch spriteBatch, StringBuilder text, Vector2 position, Color color, float pixelSize, Vector2 scale)
+            {
+            }
         }
 
         private static (CountingHost Host, T Child) Host<T>(T child) where T : Control
@@ -101,6 +119,75 @@ namespace MonoGame.PortableUI.Tests
 
             brush.Color = Color.Green;
             Assert.IsFalse(engine.ConsumeRedrawRequest(), "same colour: nothing to draw");
+        }
+
+        [TestMethod]
+        public void Same_stroke_or_glow_instance_does_not_invalidate()
+        {
+            var (host, text) = Host(new TextBlock { Text = "Hi" });
+            var stroke = new TextStroke(Color.Black, 2);
+            var glow = new TextGlow(Color.White, 4);
+
+            text.Stroke = stroke;
+            text.Glow = glow;
+            Assert.AreEqual(2, host.Visual);
+            text.Stroke = stroke;
+            text.Glow = glow;
+            Assert.AreEqual(2, host.Visual, "a host syncing the same effects every frame costs nothing");
+            text.Stroke = null;
+            Assert.AreEqual(3, host.Visual);
+        }
+
+        [TestMethod]
+        public void Shadow_properties_redraw_on_change_only()
+        {
+            var (host, text) = Host(new TextBlock { Text = "Hi" });
+            text.ShadowColor = Color.Black;
+            text.ShadowOffset = new Vector2(2, 2);
+            text.ShadowBlur = 0;
+            Assert.AreEqual(3, host.Visual);
+            text.ShadowColor = Color.Black;
+            text.ShadowOffset = new Vector2(2, 2);
+            text.ShadowBlur = 0;
+            Assert.AreEqual(3, host.Visual);
+            Assert.AreEqual(0, host.Layout, "the shadow is ink: no layout pass");
+        }
+
+        [TestMethod]
+        public void Same_ink_overflow_does_not_invalidate()
+        {
+            var (host, child) = Host(new Border());
+            child.InkOverflow = new Thickness(3);
+            child.InkOverflow = new Thickness(3);
+            Assert.AreEqual(1, host.Visual);
+        }
+
+        [TestMethod]
+        public void Changing_a_shown_stroke_or_glow_redraws_the_engine_that_drew_it()
+        {
+            using var game = new Game();
+            var engine = ScreenEngine.Initialize(game, new ScreenEngineOptions { AddComponentToGame = false, RenderMode = RenderMode.OnDemand });
+            // Invisible at first: making it visible later must still show.
+            var stroke = new TextStroke(Color.Black, 0);
+            var glow = new TextGlow(Color.Transparent, 4);
+            var text = new TextBlock { Text = "Hi", DynamicFont = new NullFont(), Stroke = stroke, Glow = glow };
+            engine.ConsumeRedrawRequest();
+            stroke.Width = 1; // never drawn: nobody shows it
+            Assert.IsFalse(engine.ConsumeRedrawRequest(), "not drawn yet");
+
+            engine.DrawAs(() => text.OnDraw(null!, new Rect(0, 0, 40, 16)));
+            engine.ConsumeRedrawRequest();
+            var generation = engine.LayerCacheGeneration;
+
+            stroke.Width = 2;
+            Assert.IsTrue(engine.ConsumeRedrawRequest(), "stroke width");
+            Assert.AreNotEqual(generation, engine.LayerCacheGeneration, "cached layers holding the text re-render");
+            glow.Color = Color.White;
+            Assert.IsTrue(engine.ConsumeRedrawRequest(), "glow colour");
+
+            stroke.Width = 2;
+            glow.Color = Color.White;
+            Assert.IsFalse(engine.ConsumeRedrawRequest(), "unchanged: nothing to draw");
         }
 
         [TestMethod]

@@ -743,6 +743,8 @@ namespace MonoGame.PortableUI.Controls
             get => _inkOverflow;
             set
             {
+                if (_inkOverflow.Equals(value))
+                    return;
                 _inkOverflow = value;
                 InvalidateLayout(false);
             }
