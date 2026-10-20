@@ -113,7 +113,7 @@ namespace MonoGame.PortableUI
 
         internal void StoreFlightSnapshot(Control control, FlightSnapshot snapshot) => _flightSnapshots[control] = snapshot;
 
-        private void ReleaseFlightSnapshot(Control control)
+        internal void ReleaseFlightSnapshot(Control control)
         {
             if (!_flightSnapshots.Remove(control, out var snapshot) || snapshot.Target.IsDisposed)
                 return;

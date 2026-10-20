@@ -30,14 +30,18 @@ namespace MonoGame.PortableUI
         private RenderTargetBinding[]? _snapshotPreviousTargets;
 
         /// <summary>
-        ///     Draws <paramref name="control"/> from its flight snapshot (taken on first use), placed by
-        ///     <paramref name="placement"/> (layout units). False when it cannot be snapshotted (then draw it live).
+        ///     Draws <paramref name="control"/> from its flight snapshot, placed by <paramref name="placement"/> (layout
+        ///     units). <paramref name="live"/>: drawn again into the snapshot every frame, at rest size, so content that
+        ///     animates on its own (the arriving page) keeps moving; otherwise taken once (the twin left behind).
+        ///     False when it cannot be snapshotted (then draw it live).
         /// </summary>
-        private bool DrawFlightSnapshot(SpriteBatch spriteBatch, ScreenEngine engine, RenderContext root, Control control, Matrix placement, float opacity)
+        private bool DrawFlightSnapshot(SpriteBatch spriteBatch, ScreenEngine engine, RenderContext root, Control control, Matrix placement, float opacity, bool live)
         {
             if (opacity <= 0)
                 return true;
-            var snapshot = engine.GetFlightSnapshot(control) ?? CaptureFlightSnapshot(spriteBatch, engine, root, control);
+            var snapshot = engine.GetFlightSnapshot(control);
+            if (snapshot == null || live)
+                snapshot = CaptureFlightSnapshot(spriteBatch, engine, root, control, snapshot);
             if (snapshot == null)
                 return false;
 
@@ -55,7 +59,7 @@ namespace MonoGame.PortableUI
             return true;
         }
 
-        private FlightSnapshot? CaptureFlightSnapshot(SpriteBatch spriteBatch, ScreenEngine engine, RenderContext root, Control control)
+        private FlightSnapshot? CaptureFlightSnapshot(SpriteBatch spriteBatch, ScreenEngine engine, RenderContext root, Control control, FlightSnapshot? reuse)
         {
             var overflow = RenderContext.VisualOverflow(control);
             var rest = control.ClippingRect + overflow;
@@ -69,7 +73,10 @@ namespace MonoGame.PortableUI
             FlushLayerComposites(spriteBatch);
             var previousTargets = RenderTargetHelper.SnapshotRenderTargets(device, ref _snapshotPreviousTargets);
             var previousScissor = device.ScissorRectangle;
-            var target = RenderTargetPool.Rent(device, width, height);
+            // Drawn again at the same size: the same texture.
+            var target = reuse != null && reuse.Target.Width == width && reuse.Target.Height == height ? reuse.Target : RenderTargetPool.Rent(device, width, height);
+            if (reuse != null && !ReferenceEquals(reuse.Target, target))
+                engine.ReleaseFlightSnapshot(control);
             device.SetRenderTarget(target);
             device.Clear(Color.Transparent);
 
@@ -96,6 +103,8 @@ namespace MonoGame.PortableUI
                 device.SetRenderTargets(previousTargets);
             device.ScissorRectangle = previousScissor;
 
+            if (reuse != null && ReferenceEquals(reuse.Target, target) && reuse.LayoutRect == rest)
+                return reuse;
             var snapshot = new FlightSnapshot(target, rest);
             engine.StoreFlightSnapshot(control, snapshot);
             return snapshot;
