@@ -31,6 +31,62 @@ namespace MonoGame.PortableUI.Input
         ///     content. Must be invoked on the game thread.
         /// </summary>
         public Action<string>? Commit { get; init; }
+
+        /// <summary>
+        ///     For keyboards that edit the field like a text editor (Android's input methods: gesture typing,
+        ///     suggestions, autocorrect): reads and replaces the field's text, selection and composing word.
+        ///     Game thread only.
+        /// </summary>
+        public ITextEditTarget? Editor { get; init; }
+    }
+
+    /// <summary>A text field's content as an input method sees it: text, selection and the word being composed.</summary>
+    public readonly struct TextEditState : IEquatable<TextEditState>
+    {
+        public TextEditState(string text, int selectionStart, int selectionEnd, int composingStart = -1, int composingEnd = -1)
+        {
+            Text = text ?? "";
+            SelectionStart = selectionStart;
+            SelectionEnd = selectionEnd;
+            ComposingStart = composingStart;
+            ComposingEnd = composingEnd;
+        }
+
+        public string Text { get; }
+        public int SelectionStart { get; }
+        public int SelectionEnd { get; }
+
+        /// <summary>The word the keyboard is still working on (underlined), or -1.</summary>
+        public int ComposingStart { get; }
+        public int ComposingEnd { get; }
+
+        public bool Equals(TextEditState other) => Text == other.Text && SelectionStart == other.SelectionStart && SelectionEnd == other.SelectionEnd
+            && ComposingStart == other.ComposingStart && ComposingEnd == other.ComposingEnd;
+
+        public override bool Equals(object? obj) => obj is TextEditState other && Equals(other);
+
+        public override int GetHashCode() => HashCode.Combine(Text, SelectionStart, SelectionEnd, ComposingStart, ComposingEnd);
+    }
+
+    /// <summary>The field side of <see cref="OnScreenKeyboardRequest.Editor"/>. Game thread only.</summary>
+    public interface ITextEditTarget
+    {
+        TextEditState State { get; }
+
+        /// <summary>The keyboard edited the text: take <paramref name="state"/> over (as a user edit, undoable).</summary>
+        void Apply(TextEditState state);
+
+        /// <summary>Enter, Done, Go or Search on the keyboard.</summary>
+        void Submit();
+    }
+
+    /// <summary>
+    ///     A keyboard that mirrors the field it edits (<see cref="OnScreenKeyboardRequest.Editor"/>): told when the field
+    ///     changed by other means (a tap moved the caret, paste, code), so it does not edit stale text. Game thread.
+    /// </summary>
+    public interface ITextEditKeyboard
+    {
+        void TargetChanged(TextEditState state);
     }
 
     public sealed class OnScreenKeyboardEventArgs : EventArgs

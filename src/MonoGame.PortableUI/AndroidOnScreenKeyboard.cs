@@ -1,6 +1,8 @@
 #if ANDROID
 using System;
 using Android.Content;
+using Android.Runtime;
+using Android.Text;
 using Android.Views;
 using Android.Views.InputMethods;
 using MonoGame.PortableUI.Controls;
@@ -14,13 +16,21 @@ namespace MonoGame.PortableUI
     ///     keyboard. The covered height comes from <see cref="AndroidWindowInsets"/>, so attach that too.
     /// </summary>
     /// <remarks>
-    ///     The input purpose is not forwarded: MonoGame's game view owns the input connection, so the
-    ///     IME shows its default text layout. Number or e-mail layouts would need a custom view.
+    ///     A field that offers <see cref="OnScreenKeyboardRequest.Editor"/> (TextBox does) is edited through a real
+    ///     text input connection on a small invisible view next to the game view, as an EditText would be: gesture
+    ///     typing, suggestions, autocorrect and the purpose's layout (number, e-mail, ...) work. MonoGame's own view
+    ///     offers no such connection, so the IME falls back to plain key presses there.
     /// </remarks>
-    public sealed class AndroidOnScreenKeyboard : IOnScreenKeyboard
+    public sealed class AndroidOnScreenKeyboard : IOnScreenKeyboard, ITextEditKeyboard
     {
         private readonly View _view;
         private readonly ScreenEngine? _engine;
+        private ImeView? _imeView;
+        // UI thread only: the text as the IME edits it, and what the field last heard of it.
+        private readonly SpannableStringBuilder _editable = new SpannableStringBuilder();
+        private TextEditState _pushed;
+        private bool _checkPosted;
+        private OnScreenKeyboardRequest? _request;
 
         /// <param name="gameView">MonoGame's game view.</param>
         /// <param name="engine">Receives the typed characters (MonoGame has no TextInput event on
@@ -92,6 +102,19 @@ namespace MonoGame.PortableUI
         {
             _view.Post(() =>
             {
+                _request = request;
+                if (request.Editor != null && _engine != null && EnsureImeView() is { } ime)
+                {
+                    var state = request.Editor.State;
+                    _editable.Replace(0, _editable.Length(), state.Text);
+                    BaseInputConnection.RemoveComposingSpans(_editable);
+                    Selection.SetSelection(_editable, Clamp(state.SelectionStart), Clamp(state.SelectionEnd));
+                    _pushed = new TextEditState(state.Text, state.SelectionStart, state.SelectionEnd);
+                    ime.RequestFocus();
+                    InputMethodManager()?.RestartInput(ime);
+                    InputMethodManager()?.ShowSoftInput(ime, ShowFlags.Implicit);
+                    return;
+                }
                 _view.FocusableInTouchMode = true;
                 _view.RequestFocus();
                 InputMethodManager()?.ShowSoftInput(_view, ShowFlags.Implicit);
@@ -104,11 +127,153 @@ namespace MonoGame.PortableUI
 
         public void Hide()
         {
-            _view.Post(() => InputMethodManager()?.HideSoftInputFromWindow(_view.WindowToken, HideSoftInputFlags.None));
+            _view.Post(() =>
+            {
+                _request = null;
+                InputMethodManager()?.HideSoftInputFromWindow((_imeView ?? _view).WindowToken, HideSoftInputFlags.None);
+                // Hardware keys go to the game view again.
+                if (_imeView is { IsFocused: true })
+                    _view.RequestFocus();
+            });
             if (!IsVisible)
                 return;
             IsVisible = false;
             VisibilityChanged?.Invoke(this, new OnScreenKeyboardEventArgs(false, 0));
+        }
+
+        /// <inheritdoc />
+        public void TargetChanged(TextEditState state)
+        {
+            _view.Post(() =>
+            {
+                if (_imeView == null || _request?.Editor == null)
+                    return;
+                if (_editable.ToString() != state.Text)
+                {
+                    _editable.Replace(0, _editable.Length(), state.Text);
+                    BaseInputConnection.RemoveComposingSpans(_editable);
+                }
+                Selection.SetSelection(_editable, Clamp(state.SelectionStart), Clamp(state.SelectionEnd));
+                _pushed = state;
+                InputMethodManager()?.UpdateSelection(_imeView, state.SelectionStart, state.SelectionEnd, state.ComposingStart, state.ComposingEnd);
+            });
+        }
+
+        private int Clamp(int position) => Math.Clamp(position, 0, _editable.Length());
+
+        private ImeView? EnsureImeView()
+        {
+            if (_imeView != null)
+                return _imeView;
+            if (_view.Parent is not ViewGroup parent || _view.Context is not { } context)
+                return null;
+            _imeView = new ImeView(context, this) { Alpha = 0, Focusable = true, FocusableInTouchMode = true };
+            parent.AddView(_imeView, new ViewGroup.LayoutParams(1, 1));
+            // With a text editor focused, Android would pan or resize the window for the keyboard; PortableUI lifts
+            // the field itself from the keyboard inset (AndroidWindowInsets), so the window stays as it is.
+            (context as Android.App.Activity)?.Window?.SetSoftInputMode(SoftInput.AdjustNothing);
+            return _imeView;
+        }
+
+        // The connection reaches the editable for every IME call; one check after them hands the result over.
+        private SpannableStringBuilder EditableTouched()
+        {
+            if (!_checkPosted)
+            {
+                _checkPosted = true;
+                _view.Post(PushIfChanged);
+            }
+            return _editable;
+        }
+
+        private void PushIfChanged()
+        {
+            _checkPosted = false;
+            if (_request?.Editor is not { } editor || _engine == null)
+                return;
+            var state = new TextEditState(_editable.ToString(), Selection.GetSelectionStart(_editable), Selection.GetSelectionEnd(_editable),
+                BaseInputConnection.GetComposingSpanStart(_editable), BaseInputConnection.GetComposingSpanEnd(_editable));
+            if (state.Equals(_pushed))
+                return;
+            _pushed = state;
+            _engine.InvokeOnGameThread(() => editor.Apply(state));
+        }
+
+        private void EditorAction()
+        {
+            if (_request?.Editor is { } editor && _engine != null)
+                _engine.InvokeOnGameThread(editor.Submit);
+        }
+
+        private void Describe(EditorInfo info)
+        {
+            var request = _request;
+            var type = request?.Purpose switch
+            {
+                TextInputPurpose.Number => InputTypes.ClassNumber | InputTypes.NumberFlagDecimal | InputTypes.NumberFlagSigned,
+                TextInputPurpose.Email => InputTypes.ClassText | InputTypes.TextVariationEmailAddress,
+                TextInputPurpose.Password => InputTypes.ClassText | InputTypes.TextVariationPassword,
+                TextInputPurpose.Url => InputTypes.ClassText | InputTypes.TextVariationUri,
+                _ => InputTypes.ClassText | InputTypes.TextFlagAutoCorrect | InputTypes.TextFlagCapSentences
+            };
+            if (request?.IsMultiline == true)
+                type |= InputTypes.TextFlagMultiLine;
+            info.InputType = type;
+            var action = request?.IsMultiline == true ? ImeAction.None : request?.Purpose == TextInputPurpose.Search ? ImeAction.Search : ImeAction.Done;
+            info.ImeOptions = (ImeFlags)((int)action | (int)ImeFlags.NoExtractUi | (int)ImeFlags.NoFullscreen);
+            info.InitialSelStart = Selection.GetSelectionStart(_editable);
+            info.InitialSelEnd = Selection.GetSelectionEnd(_editable);
+            if (request?.Hint is { } hint)
+                info.HintText = new Java.Lang.String(hint);
+        }
+
+        /// <summary>The view the IME types into: invisible, 1 px, next to the game view.</summary>
+        private sealed class ImeView : View
+        {
+            private readonly AndroidOnScreenKeyboard _keyboard;
+
+            public ImeView(Context context, AndroidOnScreenKeyboard keyboard) : base(context) => _keyboard = keyboard;
+
+            public override bool OnCheckIsTextEditor() => true;
+
+            public override IInputConnection? OnCreateInputConnection(EditorInfo? outAttrs)
+            {
+                if (outAttrs != null)
+                    _keyboard.Describe(outAttrs);
+                return new ImeConnection(this, _keyboard);
+            }
+
+            // Key presses (a hardware keyboard, the IME's Backspace) reach the game view's handlers as before. The
+            // IME's Enter is its Done: as a key command it would switch on keyboard navigation (a focus ring).
+            public override bool DispatchKeyEvent(KeyEvent? e)
+            {
+                if (e == null)
+                    return false;
+                if (e.KeyCode is Keycode.Enter or Keycode.NumpadEnter && (e.Flags & KeyEventFlags.SoftKeyboard) != 0
+                    && _keyboard._request is { IsMultiline: false })
+                {
+                    if (e.Action == KeyEventActions.Down)
+                        _keyboard.EditorAction();
+                    return true;
+                }
+                return _keyboard._view.DispatchKeyEvent(e);
+            }
+        }
+
+        private sealed class ImeConnection : BaseInputConnection
+        {
+            private readonly AndroidOnScreenKeyboard _keyboard;
+
+            public ImeConnection(View view, AndroidOnScreenKeyboard keyboard) : base(view, true) => _keyboard = keyboard;
+
+            // Every edit the IME makes goes through the editable.
+            public override IEditable? Editable => _keyboard.EditableTouched();
+
+            public override bool PerformEditorAction(ImeAction actionCode)
+            {
+                _keyboard.EditorAction();
+                return true;
+            }
         }
 
         private InputMethodManager? InputMethodManager()
