@@ -516,10 +516,115 @@ namespace MonoGame.PortableUI.Controls
         {
             base.OnFrameUpdate();
             UpdateFloatingHint();
+            SyncInputMethod();
             if (_touchGesture == TouchGesture.Pressed && TouchState == TouchStates.Touched
                 && ScreenSystem.TotalTime - _touchDownAt >= LongPressDuration && TouchSelection)
                 OnLongPress();
         }
+
+        #region Input method (OnScreenKeyboardRequest.Editor)
+
+        private ImeTarget? _imeTarget;
+        // The word an input method is still composing (underlined), -1 when none.
+        private int _composingStart = -1;
+        private int _composingEnd = -1;
+        // What the input method last knew of this field.
+        private TextEditState _imeSynced;
+
+        internal TextEditState EditState => new TextEditState(Text, SelectionStart, SelectionStart + SelectionLength, _composingStart, _composingEnd);
+
+        /// <summary>The input method edited the text: taken over like typing (undoable, TextChanged).</summary>
+        internal void ApplyImeEdit(TextEditState state)
+        {
+            var current = Text;
+            var target = state.Text;
+            if (current != target)
+            {
+                // Only the changed middle is replaced, so undo steps and the caret behave as for typing.
+                var prefix = 0;
+                var max = Math.Min(current.Length, target.Length);
+                while (prefix < max && current[prefix] == target[prefix])
+                    prefix++;
+                var suffix = 0;
+                while (suffix < max - prefix && current[current.Length - 1 - suffix] == target[target.Length - 1 - suffix])
+                    suffix++;
+                Screen?.ExistingTextSelection?.Hide(this);
+                ReplaceRange(prefix, current.Length - prefix - suffix, target.Substring(prefix, target.Length - prefix - suffix));
+            }
+            _selectionAnchor = ClampTextPosition(state.SelectionStart);
+            _cursorPosition = ClampTextPosition(state.SelectionEnd);
+            _composingStart = state.ComposingStart < 0 ? -1 : ClampTextPosition(state.ComposingStart);
+            _composingEnd = state.ComposingEnd < 0 ? -1 : ClampTextPosition(state.ComposingEnd);
+            ResetDesiredCursorX();
+            EnsureCursorVisible();
+            // A field that refused part of it (MaxLength, a line break in one line) is told back on the next frame.
+            _imeSynced = state;
+            RequestRedraw();
+        }
+
+        // Changes that did not come from the input method (a tap moved the caret, paste, code) are handed to it.
+        private void SyncInputMethod()
+        {
+            if (!IsFocused || _imeTarget == null || (Screen?.ScreenEngine ?? ScreenEngine.Instance)?.OnScreenKeyboard is not ITextEditKeyboard keyboard)
+                return;
+            var state = EditState;
+            if (state.Equals(_imeSynced))
+                return;
+            if (state.Text != _imeSynced.Text || state.SelectionStart != _imeSynced.SelectionStart || state.SelectionEnd != _imeSynced.SelectionEnd)
+            {
+                // Edited here: the keyboard's word in progress is over.
+                _composingStart = _composingEnd = -1;
+                state = EditState;
+            }
+            _imeSynced = state;
+            keyboard.TargetChanged(state);
+        }
+
+        private readonly SolidColorBrush _composingBrush = new SolidColorBrush(Color.White);
+
+        private void DrawComposingUnderline(SpriteBatch spriteBatch, Rect textRect)
+        {
+            if (_composingStart < 0 || _composingEnd <= _composingStart || !IsFocused)
+                return;
+            var lines = GetLineMetricsCache().Lines;
+            var lineIndex = GetLineIndexFromPosition(_composingStart, lines);
+            if (GetLineIndexFromPosition(_composingEnd, lines) != lineIndex)
+                return;
+            var line = lines[lineIndex];
+            var lineHeight = GetLineHeight() * RenderScale.Y;
+            var top = GetLineTop(textRect, lineHeight, lineIndex);
+            if (!IsLineVisible(textRect, top, lineHeight))
+                return;
+            // Same transform as text and caret.
+            var left = Math.Max(textRect.Left, textRect.Left + (GetCursorX(_composingStart, line) - _horizontalScrollOffset) * RenderScale.X);
+            var right = Math.Min(textRect.Right, textRect.Left + (GetCursorX(_composingEnd, line) - _horizontalScrollOffset) * RenderScale.X);
+            var thickness = Math.Max(1, MathF.Round(1.5f * RenderScale.Y));
+            _composingBrush.Color = TextColor * 0.8f;
+            _composingBrush.Draw(spriteBatch, new Rect(left, top + lineHeight - thickness, Math.Max(0, right - left), thickness), RenderOpacity);
+        }
+
+        private sealed class ImeTarget : ITextEditTarget
+        {
+            private readonly TextBox _box;
+
+            public ImeTarget(TextBox box) => _box = box;
+
+            public TextEditState State => _box.EditState;
+
+            public void Apply(TextEditState state) => _box.ApplyImeEdit(state);
+
+            // Enter as from a keyboard; in one line it also closes the keyboard (Android's Done), the field keeps focus.
+            public void Submit()
+            {
+                var engine = _box.Screen?.ScreenEngine ?? ScreenEngine.Instance;
+                // Straight to the field: through the screen, a key command would switch on keyboard navigation (focus ring).
+                _box.HandleKeyPressed(null, new KeyEventArgs(KeyboardCommand.Enter));
+                if (!_box.IsMultiline && _box.IsFocused)
+                    engine?.OnScreenKeyboard.Hide();
+            }
+        }
+
+        #endregion
 
         private void UpdateFloatingHint()
         {
@@ -694,8 +799,11 @@ namespace MonoGame.PortableUI.Controls
                     IsMultiline = IsMultiline,
                     MaxLength = MaxLength,
                     FieldBounds = ClippingRect,
-                    Commit = text => Text = text
+                    Commit = text => Text = text,
+                    Editor = _imeTarget ??= new ImeTarget(this)
                 });
+                _composingStart = _composingEnd = -1;
+                _imeSynced = EditState;
             }
         }
 
@@ -866,6 +974,7 @@ namespace MonoGame.PortableUI.Controls
 
             DrawSelection(spriteBatch, textRect);
             DrawText(spriteBatch, textRect);
+            DrawComposingUnderline(spriteBatch, textRect);
             DrawCursor(spriteBatch, textRect);
         }
 
