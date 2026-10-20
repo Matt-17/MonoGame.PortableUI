@@ -140,9 +140,9 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
-        /// <summary>Wrap long text onto multiple lines. For wrapped *measurement* the block
-        /// needs a finite width (fixed <see cref="Control.Width"/> or <see cref="Control.MaxWidth"/>);
-        /// otherwise the text wraps visually to the arranged width at draw time.</summary>
+        /// <summary>Wrap long text onto multiple lines: at a fixed <see cref="Control.Width"/> or
+        /// <see cref="Control.MaxWidth"/>, else at the width the block is arranged to (a block that finds
+        /// its arranged width wraps to a different number of lines re-measures within the same frame).</summary>
         public TextWrapping TextWrapping
         {
             get { return _textWrapping; }
@@ -431,6 +431,7 @@ namespace MonoGame.PortableUI.Controls
             if (TextWrapping == TextWrapping.Wrap && TryGetWrapMeasureWidth(out var wrapWidth))
             {
                 var lines = GetWrappedLines(wrapWidth);
+                _measuredWrapLines = lines.Count;
                 float maxLineWidth = 0;
                 foreach (var lineWidth in _wrappedLineWidths)
                     maxLineWidth = Math.Max(maxLineWidth, lineWidth);
@@ -441,6 +442,7 @@ namespace MonoGame.PortableUI.Controls
             }
 
             // MeasuredText is kept current by every setter that affects it (text, size, font).
+            _measuredWrapLines = 1;
             var measuredText = MeasuredText;
             var width = Width.IsFixed() ? Width : measuredText.X;
             var height = Height.IsFixed() ? Height : 0;
@@ -453,7 +455,38 @@ namespace MonoGame.PortableUI.Controls
         private bool TryGetWrapMeasureWidth(out float wrapWidth)
         {
             wrapWidth = Width.IsFixed() ? Width : MaxWidth.IsFixed() ? MaxWidth : float.NaN;
+            // Without a fixed width: the width this block was last arranged to (a stretched label).
+            if (!Width.IsFixed() && _arrangedWrapWidth > 0)
+                wrapWidth = wrapWidth.IsFixed() ? Math.Min(wrapWidth, _arrangedWrapWidth) : _arrangedWrapWidth;
             return wrapWidth.IsFixed() && wrapWidth > 0;
+        }
+
+        // Width available to the text at the last arrange (wrapping blocks without a fixed width), and the
+        // number of lines the last measure assumed.
+        private float _arrangedWrapWidth;
+        private int _measuredWrapLines = 1;
+
+        /// <summary>Whether an auto-width wrapping block feeds its arranged width back into measuring
+        /// (TextBox lays out its own lines).</summary>
+        private protected virtual bool WrapsToArrangedWidth => true;
+
+        public override void UpdateLayout(Rect rect)
+        {
+            base.UpdateLayout(rect);
+            if (TextWrapping != TextWrapping.Wrap || Width.IsFixed() || IsGone || !WrapsToArrangedWidth)
+                return;
+            var available = Math.Max(0, (BoundingRect - Margin).Width);
+            if (MaxWidth.IsFixed())
+                available = Math.Min(available, MaxWidth);
+            if (available <= 0 || Math.Abs(available - _arrangedWrapWidth) < 0.5f)
+                return;
+            _arrangedWrapWidth = available;
+            // Measured for another width: re-measure if that changes the line count (the height).
+            if (GetWrappedLines(available).Count != _measuredWrapLines)
+            {
+                InvalidateLayout(true);
+                Screen?.RequestRelayoutThisFrame();
+            }
         }
 
         /// <summary>Height of one line in the current font, size and text scale.</summary>

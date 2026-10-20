@@ -15,6 +15,8 @@ namespace MonoGame.PortableUI.Controls
     {
         protected override bool UsesThemeMinimumSize => true;
 
+        private protected override bool WrapsToArrangedWidth => false;
+
         private IKeyboard? _attachedKeyboard;
         private int _cursorPosition;
         private int _maxLength;
