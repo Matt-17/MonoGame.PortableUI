@@ -95,9 +95,16 @@ namespace MonoGame.PortableUI
             var scale = new Vector2(from.Width / rest.Width, from.Height / rest.Height);
             var offset = new Vector2(from.Left, from.Top) - origin - scale * (new Vector2(rest.Left, rest.Top) - origin);
             target.StartSharedFlight(SharedElementTransition, scale, offset);
+
             target.SetSharedFlightRole(SharedFlightRole.Flying);
             source.SetSharedFlightRole(SharedFlightRole.Hidden);
             _sharedFlights.Add((target, source));
+        }
+
+        private void PostponeSharedFlights(TimeSpan hitch)
+        {
+            foreach (var (target, _) in _sharedFlights)
+                target.PostponeSharedFlight(hitch);
         }
 
         /// <summary>Ends flights whose control has arrived: both twins are drawn normally again.</summary>
