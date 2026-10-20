@@ -52,7 +52,15 @@ namespace MonoGame.PortableUI.Demo
                 ClipboardService = OperatingSystem.IsWindows() ? new WindowsClipboardService() : NullClipboardService.Instance,
                 Theme = _activeThemePreset.CreateTheme()
             });
+            ApplyDemoMotionPace(_screenEngine);
             base.Initialize();
+        }
+
+        /// <summary>A demo shows motion off: screen transitions and hero flights a little slower than an app would use.</summary>
+        private static void ApplyDemoMotionPace(ScreenEngine engine)
+        {
+            engine.TransitionDuration = TimeSpan.FromMilliseconds(450);
+            engine.SharedElementTransition = new MonoGame.PortableUI.Animation.Transition(MonoGame.PortableUI.Animation.SpringSpec.Gentle);
         }
 
         protected override void LoadContent()
@@ -349,6 +357,7 @@ namespace MonoGame.PortableUI.Demo
                 ShowSoftwareCursor = false,
                 InputSource = PortableUI.Input.NullInputSource.Instance
             };
+            ApplyDemoMotionPace(surface.Engine);
             screen.TrySelectTab("motion");
             if (string.Equals(_runOptions.MotionRecordTimeline, "transitions", StringComparison.OrdinalIgnoreCase))
             {
