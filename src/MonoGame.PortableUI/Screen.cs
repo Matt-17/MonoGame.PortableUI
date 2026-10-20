@@ -729,6 +729,11 @@ namespace MonoGame.PortableUI
         }
 
         private bool _resyncPointerState;
+
+        // TapOutsideUnfocusesText: the text field focused when the finger went down outside it, and where.
+        private TextBox? _tapOutsideText;
+        private PointF _tapOutsidePoint;
+        private const float TapOutsideSlop = 8;
         private InactiveWindowInputSource? _inactiveInput;
         private bool _deviceInputSuspended;
 
@@ -1934,6 +1939,11 @@ namespace MonoGame.PortableUI
 
             if (hasTouch && touchState.State == TouchLocationState.Pressed)
             {
+                // A tap outside the focused text field may unfocus it once the finger lifts (see TapOutsideUnfocusesText).
+                _tapOutsideText = ReferenceEquals(content, _mainGrid) && ScreenEngine?.Options.TapOutsideUnfocusesText != false
+                    && FocusEngine?.FocusedControl is TextBox { Screen: var owner } focusedText && ReferenceEquals(owner, this)
+                    && !focusedText.ClippingRect.Contains(touchPosition) ? focusedText : null;
+                _tapOutsidePoint = touchPosition;
                 var args = new TouchEventArgs(touchPosition);
                 VisualTreeHelper.PreviewTouchDown(content, args);
                 VisualTreeHelper.IterateVisualTree(content, args,
@@ -1942,6 +1952,14 @@ namespace MonoGame.PortableUI
                     null
                     );
                 LastTouchPosition = touchPosition;
+            }
+            if (hasTouch && touchState.State == TouchLocationState.Released && _tapOutsideText is { } tapped)
+            {
+                _tapOutsideText = null;
+                // Only a tap: no scroll took the finger, it stayed put, and nothing it touched took focus.
+                if (TouchScrollOwner == null && ReferenceEquals(FocusEngine?.FocusedControl, tapped)
+                    && Math.Abs(touchPosition.X - _tapOutsidePoint.X) <= TapOutsideSlop && Math.Abs(touchPosition.Y - _tapOutsidePoint.Y) <= TapOutsideSlop)
+                    FocusEngine!.FocusedControl = null;
             }
             // Touch capture: the scroll viewer that took the drag gets every move and the release,
             // wherever the finger is, as if the whole screen belonged to it until the finger lifts.
