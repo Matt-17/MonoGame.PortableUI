@@ -142,6 +142,22 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void A_diagonal_flick_against_the_edge_never_moves_the_pager_vertically()
+        {
+            // A real finger is never quite horizontal: the vertical part of its speed must not reach a horizontal pager.
+            Touch(TouchLocationState.Pressed, 50, 100);
+            for (var i = 1; i <= 4; i++)
+                Touch(TouchLocationState.Moved, 50 + i * 60, 100 + i * 20);
+            Touch(TouchLocationState.Released, 290, 180);
+            for (var i = 0; i < 60; i++)
+            {
+                Frame();
+                Assert.AreEqual(0, _pager.Offset.Y, 0.001f, $"frame {i}");
+            }
+            Assert.AreEqual(0, _pager.PagePosition, 0.001f);
+        }
+
+        [TestMethod]
         public void GoTo_glides_to_a_page()
         {
             _pager.GoTo(1);

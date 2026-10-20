@@ -591,7 +591,10 @@ namespace MonoGame.PortableUI.Controls
             _animating = false;
             _snapTarget = new PointF(Clamp(target.X, 0, MaxHorizontalOffset), Clamp(target.Y, 0, MaxVerticalOffset));
             var finger = ScreenSystem.TotalTime - _lastMoveTime > EffectiveFlingPhysics.RestTime ? new PointF() : _velocityTracker.GetVelocity();
-            _snapVelocity = _touchPosition == null && _isTouchPanning ? new PointF(-finger.X, -finger.Y) : new PointF();
+            // Only along the axes that scroll: a diagonal flick must not bounce a horizontal pager vertically.
+            _snapVelocity = _touchPosition == null && _isTouchPanning
+                ? new PointF(CanScrollX ? -finger.X : 0, CanScrollY ? -finger.Y : 0)
+                : new PointF();
             _isTouchPanning = false;
             _snapping = true;
             _lastSnapTime = ScreenSystem.TotalTime;
