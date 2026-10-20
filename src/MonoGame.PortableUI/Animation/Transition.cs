@@ -27,11 +27,23 @@ namespace MonoGame.PortableUI.Animation
         ///     sets it for all children of a panel, <c>ListBox.LayoutTransition</c> for list rows.
         /// </summary>
         Layout = 256,
+        /// <summary>
+        ///     <c>Control.Width</c> and <c>Height</c>: the control re-lays out every frame while it grows or shrinks. A change
+        ///     to or from Auto (NaN) snaps. Unlike the render properties, the getters return the size shown - the one
+        ///     layout uses.
+        /// </summary>
+        Size = 512,
+        /// <summary><c>Control.Margin</c>, re-laid out every frame; the getter returns the margin shown.</summary>
+        Margin = 1024,
+        /// <summary><c>TextBlock.TextSize</c> (also <c>TextBox</c>), re-measured every frame; the getter returns the size shown.</summary>
+        TextSize = 2048,
         /// <summary>The render transform: Scale, Translation, Opacity, Rotation and Skew.</summary>
         Transform = Scale | Translation | Opacity | Rotation | Skew,
         /// <summary>Background, border and text colour.</summary>
         Colors = Background | BorderBrush | TextColor,
-        All = Transform | Colors | Layout
+        /// <summary>Size, margin and text size: the properties that move by laying out again.</summary>
+        Metrics = Size | Margin | TextSize,
+        All = Transform | Colors | Layout | Metrics
     }
 
     /// <summary>
@@ -86,7 +98,7 @@ namespace MonoGame.PortableUI.Animation
     /// </summary>
     public sealed class TransitionCollection
     {
-        private readonly Transition?[] _transitions = new Transition?[9];
+        private readonly Transition?[] _transitions = new Transition?[12];
 
         internal TransitionCollection(Action changed)
         {
@@ -151,6 +163,9 @@ namespace MonoGame.PortableUI.Animation
             TransitionProperty.Rotation => 6,
             TransitionProperty.Skew => 7,
             TransitionProperty.Layout => 8,
+            TransitionProperty.Size => 9,
+            TransitionProperty.Margin => 10,
+            TransitionProperty.TextSize => 11,
             _ => -1
         };
     }

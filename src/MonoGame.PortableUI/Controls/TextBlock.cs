@@ -18,6 +18,7 @@ namespace MonoGame.PortableUI.Controls
         private ITextMeasurer _textMeasurer;
         private string _text = "";
         private float _textSize;
+        private VectorTransition? _textSizeTransition;
         private Color _textColor;
         // True while TextSize/TextColor hold the theme's value (seeded, not set by the app): only
         // those follow theme switches, so an explicit value equal to the old default survives.
@@ -380,24 +381,57 @@ namespace MonoGame.PortableUI.Controls
         }
 
         /// <summary>Text size in design pixels. Follows the theme (<see cref="Typography.TextSize"/> or
-        /// <see cref="Typography.HeadingSize"/>) until set explicitly.</summary>
+        /// <see cref="Typography.HeadingSize"/>) until set explicitly. With a <see cref="Control.Transitions"/> entry for
+        /// <see cref="TransitionProperty.TextSize"/>, setting it animates (theme changes snap); the getter returns the size shown.</summary>
         public float TextSize
         {
             get { return _textSize; }
             set
             {
                 _textSizeFromTheme = false;
+                if (_textSizeTransition is { IsRunning: true } transition ? transition.Target.X == value : _textSize == value)
+                    return;
+                // From the font's default size (0) there is nothing to move from.
+                if (_textSize > 0 && TryTransitionLength(TransitionProperty.TextSize, ref _textSizeTransition, _textSize, value, vertical: false))
+                    return;
                 ApplyTextSize(value);
             }
         }
 
         private void ApplyTextSize(float value)
         {
+            _textSizeTransition?.Stop();
+            SetTextSizeShown(value);
+        }
+
+        private void SetTextSizeShown(float value)
+        {
             if (_textSize == value)
                 return;
             _textSize = value;
             MeasuredText = MeasureText(Text);
             InvalidateLayout(true);
+        }
+
+        private protected override bool IsOwnTransitioning => _textSizeTransition is { IsRunning: true };
+
+        private protected override bool UpdateOwnTransitions(TimeSpan now)
+        {
+            if (_textSizeTransition is not { IsRunning: true } transition)
+                return false;
+            var size = transition.Evaluate(now).X;
+            // Half-pixel steps while moving: a dynamic font rasterizes glyphs per size, and a few sizes that the next
+            // transition reuses beat a new atlas size every frame. The end is exact.
+            SetTextSizeShown(transition.IsRunning ? MathF.Round(size * 2) / 2 : size);
+            return transition.IsRunning;
+        }
+
+        private protected override void FinishOwnTransitions(bool onlyRemoved)
+        {
+            if (_textSizeTransition is not { IsRunning: true } transition || onlyRemoved && Transitions[TransitionProperty.TextSize] != null)
+                return;
+            transition.Stop();
+            SetTextSizeShown(transition.Target.X);
         }
 
         private float ThemeTextSize(PortableTheme theme)

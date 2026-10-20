@@ -263,24 +263,32 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        /// <summary>Fixed width, or NaN for Auto. With a <see cref="Transitions"/> entry for
+        /// <see cref="TransitionProperty.Size"/>, setting it animates; the getter returns the width shown.</summary>
         public float Width
         {
             get { return _width; }
             set
             {
-                if (Math.Abs(_width - value) < float.Epsilon)
+                if (_widthTransition is { IsRunning: true } transition ? transition.Target.X == value : Math.Abs(_width - value) < float.Epsilon)
+                    return;
+                if (TryTransitionLength(TransitionProperty.Size, ref _widthTransition, _width, value, vertical: false))
                     return;
                 _width = value;
                 InvalidateLayout(true);
             }
         }
 
+        /// <summary>Fixed height, or NaN for Auto. With a <see cref="Transitions"/> entry for
+        /// <see cref="TransitionProperty.Size"/>, setting it animates; the getter returns the height shown.</summary>
         public float Height
         {
             get { return _height; }
             set
             {
-                if (Math.Abs(_height - value) < float.Epsilon)
+                if (_heightTransition is { IsRunning: true } transition ? transition.Target.Y == value : Math.Abs(_height - value) < float.Epsilon)
+                    return;
+                if (TryTransitionLength(TransitionProperty.Size, ref _heightTransition, _height, value, vertical: true))
                     return;
                 _height = value;
                 InvalidateLayout(true);
@@ -408,13 +416,17 @@ namespace MonoGame.PortableUI.Controls
 
         private Thickness _margin;
 
-        /// <summary>Space around the control, outside its box; inert for hit testing. Changing it re-lays out.</summary>
+        /// <summary>Space around the control, outside its box; inert for hit testing. Changing it re-lays out. With a
+        /// <see cref="Transitions"/> entry for <see cref="TransitionProperty.Margin"/>, setting it animates; the getter
+        /// returns the margin shown.</summary>
         public Thickness Margin
         {
             get => _margin;
             set
             {
-                if (_margin.Equals(value))
+                if (IsMarginTransitioning ? _marginTarget.Equals(value) : _margin.Equals(value))
+                    return;
+                if (TryTransitionMargin(value))
                     return;
                 _margin = value;
                 InvalidateLayout(true);

@@ -12,6 +12,7 @@ namespace MonoGame.PortableUI.Controls
     {
         private const float ScaleRestDelta = 0.0005f;
         private const float TranslationRestDelta = 0.01f;
+        private const float LengthRestDelta = 0.01f;
 
         private TransitionCollection? _transitions;
         private VectorTransition? _scaleTransition;
@@ -19,6 +20,12 @@ namespace MonoGame.PortableUI.Controls
         private VectorTransition? _opacityTransition;
         private VectorTransition? _rotationTransition;
         private VectorTransition? _skewTransition;
+        // Layout values (Width, Height, Margin): the fields hold what is shown, so layout reads the moving value.
+        private VectorTransition? _widthTransition;
+        private VectorTransition? _heightTransition;
+        private VectorTransition? _marginNearTransition; // Left, Top
+        private VectorTransition? _marginFarTransition; // Right, Bottom
+        private Thickness _marginTarget;
         private bool _transitionsRunning;
         // Opacity is a double; the runner moves a float, so the exact target is kept here.
         private double _opacityTarget;
@@ -37,11 +44,27 @@ namespace MonoGame.PortableUI.Controls
         /// </summary>
         public TransitionCollection Transitions => _transitions ??= new TransitionCollection(OnTransitionsChanged);
 
-        /// <summary>True while an implicit transition of Scale, Translation, Opacity, Rotation or Skew, or a layout transition, is moving.</summary>
+        /// <summary>True while an implicit transition (render transform, size, margin, text size) or a layout transition is moving.</summary>
         public bool IsTransitioning =>
             _scaleTransition is { IsRunning: true } || _translationTransition is { IsRunning: true } || _opacityTransition is { IsRunning: true }
             || _rotationTransition is { IsRunning: true } || _skewTransition is { IsRunning: true } || IsLayoutTransitioning
-            || _sharedScaleGlide is { IsRunning: true };
+            || _sharedScaleGlide is { IsRunning: true } || IsMetricsTransitioning || IsOwnTransitioning;
+
+        private bool IsMetricsTransitioning => _widthTransition is { IsRunning: true } || _heightTransition is { IsRunning: true } || IsMarginTransitioning;
+
+        private bool IsMarginTransitioning => _marginNearTransition is { IsRunning: true } || _marginFarTransition is { IsRunning: true };
+
+        /// <summary>A transition a subclass runs itself (<see cref="TextBlock.TextSize"/>) is moving.</summary>
+        private protected virtual bool IsOwnTransitioning => false;
+
+        /// <summary>Advances a subclass's own transitions; true while one still moves.</summary>
+        private protected virtual bool UpdateOwnTransitions(TimeSpan now) => false;
+
+        /// <summary>Ends a subclass's own transitions at their target; <paramref name="onlyRemoved"/>: only those whose
+        /// <see cref="Transitions"/> entry is gone.</summary>
+        private protected virtual void FinishOwnTransitions(bool onlyRemoved)
+        {
+        }
 
         /// <summary>
         ///     Ends every running transition at its target (an exit removes the control now), here and in the
@@ -81,6 +104,40 @@ namespace MonoGame.PortableUI.Controls
                 SetSkewShown(_skewTransition.Target);
             if (IsLayoutTransitioning && ResolveLayoutTransition() == null)
                 FinishLayoutGlide();
+            if (_transitions![TransitionProperty.Size] == null)
+                FinishSizeTransitions();
+            if (_transitions![TransitionProperty.Margin] == null)
+                FinishMarginTransition();
+            FinishOwnTransitions(onlyRemoved: true);
+        }
+
+        private void FinishSizeTransitions()
+        {
+            var changed = false;
+            if (_widthTransition is { IsRunning: true } width)
+            {
+                width.Stop();
+                _width = width.Target.X;
+                changed = true;
+            }
+            if (_heightTransition is { IsRunning: true } height)
+            {
+                height.Stop();
+                _height = height.Target.Y;
+                changed = true;
+            }
+            if (changed)
+                InvalidateLayout(true);
+        }
+
+        private void FinishMarginTransition()
+        {
+            if (!IsMarginTransitioning)
+                return;
+            _marginNearTransition!.Stop();
+            _marginFarTransition!.Stop();
+            _margin = _marginTarget;
+            InvalidateLayout(true);
         }
 
         private void FinishVectorTransitions()
@@ -99,6 +156,9 @@ namespace MonoGame.PortableUI.Controls
                 SetSkewShown(_skewTransition.Target);
             FinishLayoutGlide();
             FinishSharedScale();
+            FinishSizeTransitions();
+            FinishMarginTransition();
+            FinishOwnTransitions(onlyRemoved: false);
             _transitionsRunning = false;
         }
 
@@ -116,6 +176,40 @@ namespace MonoGame.PortableUI.Controls
             runner.Start(spec, shown, target, ScreenSystem.TotalTime, restDelta);
             _transitionsRunning = true;
             RequestRedraw();
+            return true;
+        }
+
+        /// <summary>
+        ///     Starts (or retargets) the transition of a layout length (Width, Height, TextSize): false when it has none or
+        ///     an end is not a number (Auto snaps). Height runs in Y so a two-axis spring moves it with its Y spring.
+        /// </summary>
+        private protected bool TryTransitionLength(TransitionProperty property, ref VectorTransition? runner, float shown, float target, bool vertical)
+        {
+            if (!shown.IsFixed() || !target.IsFixed())
+            {
+                runner?.Stop();
+                return false;
+            }
+
+            return vertical
+                ? TryTransition(property, ref runner, new Vector2(0, shown), new Vector2(0, target), LengthRestDelta)
+                : TryTransition(property, ref runner, new Vector2(shown, 0), new Vector2(target, 0), LengthRestDelta);
+        }
+
+        private bool TryTransitionMargin(Thickness target)
+        {
+            var finite = _margin.Left.IsFixed() && _margin.Top.IsFixed() && _margin.Right.IsFixed() && _margin.Bottom.IsFixed()
+                && target.Left.IsFixed() && target.Top.IsFixed() && target.Right.IsFixed() && target.Bottom.IsFixed();
+            if (!finite || _transitions?[TransitionProperty.Margin] == null)
+            {
+                _marginNearTransition?.Stop();
+                _marginFarTransition?.Stop();
+                return false;
+            }
+
+            _marginTarget = target;
+            TryTransition(TransitionProperty.Margin, ref _marginNearTransition, new Vector2(_margin.Left, _margin.Top), new Vector2(target.Left, target.Top), LengthRestDelta);
+            TryTransition(TransitionProperty.Margin, ref _marginFarTransition, new Vector2(_margin.Right, _margin.Bottom), new Vector2(target.Right, target.Bottom), LengthRestDelta);
             return true;
         }
 
@@ -159,9 +253,44 @@ namespace MonoGame.PortableUI.Controls
 
             running |= UpdateLayoutGlide(now);
             running |= UpdateSharedScale(now);
+            running |= UpdateMetricsTransitions(now);
+            running |= UpdateOwnTransitions(now);
 
             _transitionsRunning = running;
             RequestRedraw();
+        }
+
+        // Width, Height and Margin write their fields (what layout reads) and lay out again.
+        private bool UpdateMetricsTransitions(TimeSpan now)
+        {
+            var running = false;
+            var changed = false;
+            if (_widthTransition is { IsRunning: true } width)
+            {
+                _width = width.Evaluate(now).X;
+                running |= width.IsRunning;
+                changed = true;
+            }
+
+            if (_heightTransition is { IsRunning: true } height)
+            {
+                _height = height.Evaluate(now).Y;
+                running |= height.IsRunning;
+                changed = true;
+            }
+
+            if (IsMarginTransitioning)
+            {
+                var near = _marginNearTransition!.IsRunning ? _marginNearTransition.Evaluate(now) : _marginNearTransition.Target;
+                var far = _marginFarTransition!.IsRunning ? _marginFarTransition.Evaluate(now) : _marginFarTransition.Target;
+                _margin = new Thickness(near.X, near.Y, far.X, far.Y);
+                running |= IsMarginTransitioning;
+                changed = true;
+            }
+
+            if (changed)
+                InvalidateLayout(true);
+            return running;
         }
 
         // What is drawn now; differs from the property while a transition moves it. Explicit animations

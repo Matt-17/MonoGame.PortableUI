@@ -969,7 +969,9 @@ namespace MonoGame.PortableUI.Demo
             // Declared once; every set below animates. X and Y springs differ slightly: organic.
             chip.Transitions
                 .Add(TransitionProperty.Translation | TransitionProperty.Scale | TransitionProperty.Rotation, new Transition(SpringSpec.Snappy, SpringSpec.Bouncy))
-                .Add(TransitionProperty.Background, TimeSpan.FromMilliseconds(300));
+                .Add(TransitionProperty.Background, TimeSpan.FromMilliseconds(300))
+                .Add(TransitionProperty.Size, SpringSpec.Snappy);
+            chipLabel.Transitions.Add(TransitionProperty.TextSize, SpringSpec.Snappy);
             layers.AddChild(chip, row: 1);
 
             Vector2[] spots = { new Vector2(300, -16), new Vector2(150, 18), new Vector2(40, -10), Vector2.Zero };
@@ -980,6 +982,9 @@ namespace MonoGame.PortableUI.Demo
                 chip.Scale = spot % 2 == 0 ? new Vector2(1.25f) : Vector2.One;
                 chip.Rotation = spots[spot % spots.Length].X / 600;
                 chip.BackgroundBrush = chipBrushes[(spot + 1) % chipBrushes.Length];
+                // Layout values animate too: the chip lays out again every frame while it grows.
+                chip.Width = spot % 2 == 0 ? 112 : 64;
+                chipLabel.TextSize = spot % 2 == 0 ? 22 : 14;
                 spot++;
             };
 

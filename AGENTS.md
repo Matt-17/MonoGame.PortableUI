@@ -115,7 +115,9 @@ nested surface draw does not advance the tick).
 start a transition and the getters return the *target*; what is drawn lives in the fields (`ShownScale`,
 `ShownTranslation`, `ShownOpacity`). Render code and `Animation` tweens read/write the shown values
 (`SetScaleShown` etc. also stop a running transition) - never route per-frame animation writes through the
-public setters. Background/border/text colours fade at draw time (`BrushFade`/`ColorFade`, keyed on the
+public setters. Layout values (`TransitionProperty.Size`/`Margin`/`TextSize`) are the exception: their fields hold the shown
+value, the getters return it (layout reads them everywhere) and each frame of the transition re-lays out; Auto (NaN) ends snap,
+text size moves in half-pixel steps (a dynamic font rasterizes per size). Background/border/text colours fade at draw time (`BrushFade`/`ColorFade`, keyed on the
 brush reference; theme switch and first draw snap; `CompleteTransitions()` snaps a subtree).
 
 **Layout transitions (FLIP):** `TransitionProperty.Layout` / `Panel.LayoutTransition` / `ListBox.LayoutTransition`.
