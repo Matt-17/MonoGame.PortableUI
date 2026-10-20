@@ -441,6 +441,7 @@ namespace MonoGame.PortableUI
                 _mainGrid?.UpdateLayout(ScreenRect);
                 // Popups invalidate through this screen too (resize, rotation, theme switch).
                 _flyOut?.UpdateLayout(ScreenRect);
+                LayoutAdorners();
                 UpdateToolTipLayout();
                 if (!_relayoutThisFrame || !_layoutDirty)
                     break;
@@ -495,6 +496,7 @@ namespace MonoGame.PortableUI
             DrawBackground(spriteBatch);
 
             DrawControlTree(spriteBatch, _mainGrid, _mainGrid.BoundingRect);
+            DrawAdorners(spriteBatch);
 
             if (FlyOut != null)
                 DrawControlTree(spriteBatch, FlyOut, GetOverlayScissor(FlyOut));
@@ -850,6 +852,8 @@ namespace MonoGame.PortableUI
             }
             _visualTreeScratch.Clear();
             _capturedMouseControl = null;
+            _textSelection?.Hide();
+            _pointerAdorner = null;
         }
         
         internal void CreateContextMenu(PointF position, ContextMenu content, bool optimizeForTouch, Control? owner = null)
@@ -1746,9 +1750,12 @@ namespace MonoGame.PortableUI
             Control content;
 
             if (FlyOut != null)
+            {
                 content = FlyOut;
+                _pointerAdorner = null;
+            }
             else
-                content = _mainGrid;
+                content = RouteAdornerPress(hasTouch, touchState.State, touchPosition, mousePosition, pressedMouseButtons) ?? (Control)_mainGrid;
 
             var themeVersion = ThemeVersion.Current;
             if (_appliedThemeVersion != themeVersion || _themeRefreshRequested)
@@ -1761,6 +1768,7 @@ namespace MonoGame.PortableUI
                     RefreshThemeForTree(_flyOut);
                 if (_toolTip != null)
                     RefreshThemeForTree(_toolTip);
+                RefreshAdorners(theme: true);
                 InvalidateLayout(true);
             }
 
@@ -1775,6 +1783,7 @@ namespace MonoGame.PortableUI
                     RefreshTextScaleForTree(_flyOut);
                 if (_toolTip != null)
                     RefreshTextScaleForTree(_toolTip);
+                RefreshAdorners(theme: false);
                 InvalidateLayout(true);
             }
 
@@ -1812,6 +1821,7 @@ namespace MonoGame.PortableUI
                 UpdateTimersForTree(_dismissingFlyOut);
             if (_dismissingToolTip != null)
                 UpdateTimersForTree(_dismissingToolTip);
+            UpdateAdorners();
 
             if (IgnoresInput)
                 return;

@@ -138,6 +138,7 @@ namespace MonoGame.PortableUI.Controls
 
                 var oldText = base.Text;
                 base.Text = normalized;
+                Screen?.ExistingTextSelection?.Hide(this);
                 ClearUndoHistory();
                 InvalidateLineMetrics();
                 ClampSelection();
@@ -173,12 +174,15 @@ namespace MonoGame.PortableUI.Controls
             TouchDown += OnTouchDown;
             TouchMove += OnTouchMove;
             TouchUp += OnTouchUp;
+            TouchCancel += OnTouchCancel;
             Height = theme.TextBoxHeight;
             Padding = theme.TextBoxPadding;
             ShowFocusVisual = true;
         }
 
-        internal override bool ShowsFocusVisualForPointer => true;
+        // After a click the ring shows where typing goes; a tapped field shows that by its caret and
+        // focused look alone, like Android's and iOS's.
+        internal override bool ShowsFocusVisualForPointer => ScreenEngine.For(this)?.LastInputDevice != Haptics.UiInputDevice.Touch;
 
         protected override ControlStyle? GetThemeStyle(PortableTheme theme)
         {
@@ -350,21 +354,242 @@ namespace MonoGame.PortableUI.Controls
 
         private void OnTouchDown(object? sender, TouchEventArgs args)
         {
+            if (TouchSelection)
+            {
+                BeginTouchGesture(args.Position);
+                return;
+            }
             _isPointerSelecting = true;
             SetCursorFromPosition(args.Position, false);
         }
 
         private void OnTouchMove(object? sender, TouchEventArgs args)
         {
+            if (TouchSelection)
+            {
+                MoveTouchGesture(args.Position);
+                return;
+            }
             if (_isPointerSelecting)
                 SetCursorFromPosition(args.Position, true);
         }
 
         private void OnTouchUp(object? sender, TouchEventArgs args)
         {
+            if (TouchSelection)
+            {
+                EndTouchGesture(args.Position);
+                return;
+            }
             SetCursorFromPosition(args.Position, _isPointerSelecting);
             _isPointerSelecting = false;
         }
+
+        private void OnTouchCancel(object? sender, TouchEventArgs args)
+        {
+            _touchGesture = TouchGesture.None;
+            _isPointerSelecting = false;
+        }
+
+        #region Touch selection
+
+        private enum TouchGesture
+        {
+            None,
+            Pressed,
+            Moved,
+            LongPressed,
+            DragSelecting
+        }
+
+        /// <summary>Android's long press timeout.</summary>
+        internal static readonly TimeSpan LongPressDuration = TimeSpan.FromMilliseconds(400);
+
+        /// <summary>Android's double tap timeout.</summary>
+        internal static readonly TimeSpan DoubleTapTimeout = TimeSpan.FromMilliseconds(300);
+
+        // Android's touch slop (8 dp): a finger that moved farther is no tap and no long press.
+        private const float TouchSlop = 8;
+
+        private TouchGesture _touchGesture;
+        private PointF _touchDownPoint;
+        private TimeSpan _touchDownAt;
+        private TimeSpan? _lastTapAt;
+        private PointF _lastTapPoint;
+        private int _longPressWordStart;
+        private int _longPressWordEnd;
+
+        private bool TouchSelection => (Screen?.ScreenEngine ?? ScreenEngine.Instance)?.Options.TouchTextSelection ?? true;
+
+        private TextSelectionLayer? SelectionLayer => Screen?.TextSelection;
+
+        private void BeginTouchGesture(PointF point)
+        {
+            _touchGesture = TouchGesture.Pressed;
+            _touchDownPoint = point;
+            _touchDownAt = ScreenSystem.TotalTime;
+        }
+
+        private void MoveTouchGesture(PointF point)
+        {
+            switch (_touchGesture)
+            {
+                case TouchGesture.Pressed when Distance(point, _touchDownPoint) > TouchSlop:
+                    _touchGesture = TouchGesture.Moved;
+                    break;
+                case TouchGesture.LongPressed when Distance(point, _touchDownPoint) > TouchSlop:
+                case TouchGesture.DragSelecting:
+                    if (_longPressWordEnd <= _longPressWordStart)
+                        break;
+                    // After a long press the finger drags the selection, which never shrinks below the word.
+                    _touchGesture = TouchGesture.DragSelecting;
+                    SelectionLayer?.HideToolbar();
+                    var position = GetPositionFromPoint(point);
+                    if (position >= _longPressWordStart)
+                        SetSelectionEnds(_longPressWordStart, Math.Max(position, _longPressWordEnd));
+                    else
+                        SetSelectionEnds(_longPressWordEnd, position);
+                    break;
+            }
+        }
+
+        private void EndTouchGesture(PointF point)
+        {
+            var gesture = _touchGesture;
+            _touchGesture = TouchGesture.None;
+            if (gesture is TouchGesture.LongPressed or TouchGesture.DragSelecting)
+            {
+                // The bar appears when the finger lifts.
+                if (HasSelection)
+                    SelectionLayer?.ShowSelection(this, toolbar: true);
+                return;
+            }
+            if (gesture != TouchGesture.Pressed)
+                return;
+
+            var now = ScreenSystem.TotalTime;
+            if (_lastTapAt is { } lastTap && now - lastTap <= DoubleTapTimeout && Distance(point, _lastTapPoint) <= TouchSlop * 4)
+            {
+                _lastTapAt = null;
+                if (SelectWordAt(point))
+                {
+                    SelectionLayer?.ShowSelection(this, toolbar: true);
+                    return;
+                }
+            }
+            _lastTapAt = now;
+            _lastTapPoint = point;
+
+            var layer = SelectionLayer;
+            var position = GetPositionFromPoint(point);
+            // Tapping the caret again (or an empty box) toggles Paste / Select all.
+            var onCaret = !HasSelection && position == CursorPosition && IsFocused
+                && (layer?.InsertionHandleShown == true || Text.Length == 0);
+            MoveCursorTo(position, false);
+            layer?.ShowInsertion(this, toolbar: onCaret && !layer.ToolbarShown);
+        }
+
+        internal override void OnFrameUpdate()
+        {
+            base.OnFrameUpdate();
+            if (_touchGesture == TouchGesture.Pressed && TouchState == TouchStates.Touched
+                && ScreenSystem.TotalTime - _touchDownAt >= LongPressDuration && TouchSelection)
+                OnLongPress();
+        }
+
+        private void OnLongPress()
+        {
+            _touchGesture = TouchGesture.LongPressed;
+            // The finger now belongs to the selection: scroll viewers around must not take the drag.
+            if (Screen is { } screen)
+                screen.TouchScrollOwner = this;
+            Focus();
+            PlaySound(Audio.UiSound.Select);
+            _longPressWordStart = _longPressWordEnd = 0;
+            if (!PasswordChar.HasValue && SelectWordAt(_touchDownPoint))
+            {
+                _longPressWordStart = SelectionStart;
+                _longPressWordEnd = SelectionStart + SelectionLength;
+                SelectionLayer?.ShowSelection(this, toolbar: false);
+                return;
+            }
+            // Nothing to select (empty box, a space): the caret goes there with Paste / Select all.
+            MoveCursorTo(GetPositionFromPoint(_touchDownPoint), false);
+            SelectionLayer?.ShowInsertion(this, toolbar: true);
+        }
+
+        private bool SelectWordAt(PointF point)
+        {
+            var (start, end) = WordAt(GetPositionFromPoint(point));
+            if (end <= start)
+                return false;
+            Focus();
+            SetSelectionEnds(start, end);
+            return true;
+        }
+
+        /// <summary>The word (letters and digits, or a run of punctuation) at <paramref name="position"/>; empty on white space.</summary>
+        internal (int Start, int End) WordAt(int position)
+        {
+            var text = Text;
+            var i = ClampTextPosition(position);
+            // A position just after a word belongs to it (the caret lands there when a word's right half is touched).
+            if ((i == text.Length || CharClass(text[i]) == 0) && i > 0 && CharClass(text[i - 1]) != 0)
+                i--;
+            if (i >= text.Length || CharClass(text[i]) == 0)
+                return (i, i);
+            var wordClass = CharClass(text[i]);
+            var start = i;
+            while (start > 0 && CharClass(text[start - 1]) == wordClass)
+                start--;
+            var end = i;
+            while (end < text.Length && CharClass(text[end]) == wordClass)
+                end++;
+            return (start, end);
+        }
+
+        /// <summary>Selects from <paramref name="anchor"/> to <paramref name="cursor"/>; the caret end is kept in view.</summary>
+        internal void SetSelectionEnds(int anchor, int cursor)
+        {
+            _selectionAnchor = ClampTextPosition(anchor);
+            _cursorPosition = ClampTextPosition(cursor);
+            ResetDesiredCursorX();
+            EnsureCursorVisible();
+            InvalidateLayout(false);
+        }
+
+        internal void CollapseSelectionToEnd() => SetSelectionEnds(SelectionStart + SelectionLength, SelectionStart + SelectionLength);
+
+        internal int GetTextPositionAt(PointF point) => GetPositionFromPoint(point);
+
+        internal bool ClipboardHasText() => !string.IsNullOrEmpty(TryGetClipboardText());
+
+        /// <summary>
+        ///     Where the caret would stand at <paramref name="position"/>: the bottom of its line (layout units, screen
+        ///     space) and the line height. False when that spot is scrolled out of the box.
+        /// </summary>
+        internal bool TryGetCaretPoint(int position, out PointF bottom, out float lineHeight)
+        {
+            var textRect = GetTextRect();
+            var lines = GetLineMetricsCache().Lines;
+            var lineIndex = GetLineIndexFromPosition(position, lines);
+            lineHeight = GetLineHeight();
+            var top = GetTextTop(textRect, lineHeight) + lineIndex * lineHeight - (IsMultiline ? _verticalScrollOffset : 0);
+            var x = textRect.Left + GetCursorX(ClampTextPosition(position), lines[lineIndex]) - _horizontalScrollOffset;
+            bottom = new PointF(x, top + lineHeight);
+            const float tolerance = 0.5f;
+            return x >= textRect.Left - tolerance && x <= textRect.Right + tolerance
+                && top >= textRect.Top - lineHeight * 0.5f && top + lineHeight <= textRect.Bottom + lineHeight * 0.5f;
+        }
+
+        private static float Distance(PointF a, PointF b)
+        {
+            var dx = a.X - b.X;
+            var dy = a.Y - b.Y;
+            return MathF.Sqrt(dx * dx + dy * dy);
+        }
+
+        #endregion
 
         protected internal override void OnGotFocus(GotFocusEventArgs args)
         {
@@ -394,11 +619,14 @@ namespace MonoGame.PortableUI.Controls
             // Focus moving to another text field shows the keyboard again right away.
             (Screen?.ScreenEngine ?? ScreenEngine.Instance)?.OnScreenKeyboard.Hide();
             _isPointerSelecting = false;
+            Screen?.ExistingTextSelection?.Hide(this);
         }
 
         protected internal virtual void HandleKeyPressed(object? sender, KeyEventArgs args)
         {
             var before = Text;
+            // Typing ends the touch selection UI (the selection itself is replaced or kept by the key).
+            Screen?.ExistingTextSelection?.Hide(this);
             DispatchKeyPressed(args);
             if (!ReferenceEquals(before, Text) && before != Text)
                 PlaySound(Audio.UiSound.Type);
@@ -1067,6 +1295,9 @@ namespace MonoGame.PortableUI.Controls
         {
             if (!IsFocused)
                 return;
+            // A touch selection shows its handles instead of a caret (Android).
+            if (HasSelection && ReferenceEquals(Screen?.ExistingTextSelection?.Owner, this))
+                return;
 
             // The caret blinks (on for one interval, off for one): ask for the frame that flips it.
             var half = Math.Max(1, CaretBlinkInterval.TotalMilliseconds);
@@ -1095,7 +1326,9 @@ namespace MonoGame.PortableUI.Controls
                 return;
             }
 
-            cursorRect.Width = Math.Max(1, cursorRect.Width * RenderScale.X);
+            cursorRect.Width = Math.Max(1, ResolveTheme().TextBoxCaretWidth * RenderScale.X);
+            if (SnapsDrawing)
+                cursorRect.Width = MathF.Round(cursorRect.Width);
             CursorColor.Draw(spriteBatch, cursorRect, RenderOpacity);
         }
 
