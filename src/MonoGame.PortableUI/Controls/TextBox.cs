@@ -151,6 +151,27 @@ namespace MonoGame.PortableUI.Controls
         public string HintText { get; set; } = "Hint text";
         public Color HintTextColor { get; set; } = Color.Silver;
 
+        /// <summary>
+        ///     The hint becomes a label (Material's floating label): it rests where the text goes while the box is
+        ///     empty and glides up, smaller, once the box has focus or text. Give the box room above its text
+        ///     (a larger <see cref="Padding"/>.Top) for the raised label.
+        /// </summary>
+        public bool FloatingHint { get; set; }
+
+        /// <summary>The raised label's colour while the box has focus; null keeps <see cref="HintTextColor"/>.</summary>
+        public Color? FocusedHintColor { get; set; }
+
+        /// <summary>Size of the raised label relative to the text (default 0.75).</summary>
+        public float FloatingHintScale { get; set; } = 0.75f;
+
+        // 0 = resting in place of the text, 1 = raised; follows its target with an ease-out each frame.
+        private float _hintLift;
+
+        /// <summary>Where the floating hint is: 0 resting, 1 raised.</summary>
+        internal float HintLift => _hintLift;
+        private float _hintFocus;
+        private TimeSpan _hintTime;
+
         public Thickness Padding { get; set; }
         public event TextChangedEventHandler? TextChanged;
 
@@ -494,9 +515,60 @@ namespace MonoGame.PortableUI.Controls
         internal override void OnFrameUpdate()
         {
             base.OnFrameUpdate();
+            UpdateFloatingHint();
             if (_touchGesture == TouchGesture.Pressed && TouchState == TouchStates.Touched
                 && ScreenSystem.TotalTime - _touchDownAt >= LongPressDuration && TouchSelection)
                 OnLongPress();
+        }
+
+        private void UpdateFloatingHint()
+        {
+            var now = ScreenSystem.TotalTime;
+            var first = _hintTime == TimeSpan.Zero;
+            var dt = (float)Math.Clamp((now - _hintTime).TotalSeconds, 0, 0.1);
+            _hintTime = now;
+            if (!FloatingHint)
+                return;
+            var lift = IsFocused || Text.Length > 0 ? 1f : 0f;
+            var focus = IsFocused ? 1f : 0f;
+            if (first)
+            {
+                // A box that opens with text shows its label raised from the start.
+                _hintLift = lift;
+                _hintFocus = focus;
+            }
+            if (_hintLift == lift && _hintFocus == focus)
+                return;
+            // About 200 ms to settle, like Material's label.
+            var step = 1 - MathF.Exp(-dt * 22);
+            _hintLift = Math.Abs(lift - _hintLift) < 0.002f ? lift : _hintLift + (lift - _hintLift) * step;
+            _hintFocus = Math.Abs(focus - _hintFocus) < 0.002f ? focus : _hintFocus + (focus - _hintFocus) * step;
+            RequestRedraw();
+        }
+
+        private void DrawFloatingHint(SpriteBatch spriteBatch, Rect rect, Rect textRect)
+        {
+            var font = ActiveDynamicFont;
+            if (font == null)
+                return;
+            // Drawn before its first update: already where it belongs.
+            if (_hintTime == TimeSpan.Zero)
+                _hintLift = IsFocused || Text.Length > 0 ? 1f : 0f;
+            // Eased so the label speeds off and lands softly.
+            var t = 1 - (1 - _hintLift) * (1 - _hintLift);
+            var scale = 1 + (FloatingHintScale - 1) * t;
+            var measured = MeasureText(HintText);
+            var height = measured.Y * RenderScale.Y;
+            // Resting: in the middle of the box (level with an icon beside it), like Material. Raised: centred in
+            // the room above the text.
+            var restY = IsMultiline ? textRect.Top : rect.Top + (rect.Height - height) / 2;
+            var room = textRect.Top - rect.Top;
+            var raisedY = rect.Top + Math.Max(0, (room - height * FloatingHintScale) / 2) + room * 0.08f;
+            var position = new Vector2(textRect.Left, restY + (raisedY - restY) * t);
+            if (SnapsDrawing)
+                position = position.ToInts();
+            var color = Color.Lerp(HintTextColor, FocusedHintColor ?? HintTextColor, _hintFocus);
+            font.DrawString(spriteBatch, HintText, position, Brush.ApplyOpacity(color, RenderOpacity), DynamicPixelSize(font), RenderScale * scale);
         }
 
         private void OnLongPress()
@@ -778,7 +850,9 @@ namespace MonoGame.PortableUI.Controls
             // rect is in render space; scale the layout padding with it (LayoutScale, popup zoom).
             var textRect = rect - new Thickness(Padding.Left * RenderScale.X, Padding.Top * RenderScale.Y, Padding.Right * RenderScale.X, Padding.Bottom * RenderScale.Y);
 
-            if (Text.Length == 0 && !string.IsNullOrEmpty(HintText) && HasDrawableFont)
+            if (FloatingHint && !string.IsNullOrEmpty(HintText))
+                DrawFloatingHint(spriteBatch, rect, textRect);
+            else if (Text.Length == 0 && !string.IsNullOrEmpty(HintText) && HasDrawableFont)
             {
                 var measuredHint = MeasureText(HintText);
                 var scaledHint = new Vector2(measuredHint.X * RenderScale.X, measuredHint.Y * RenderScale.Y);
