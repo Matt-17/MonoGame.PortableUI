@@ -1062,12 +1062,12 @@ namespace MonoGame.PortableUI
                 {
                     var place = Matrix.CreateTranslation(-box.Left, -box.Top, 0) * Matrix.CreateScale(stretch.X, stretch.Y, 1)
                         * Matrix.CreateTranslation(flying.Left, flying.Top, 0);
-                    if (!DrawFlightSnapshot(spriteBatch, engine, root, source, place, sourceOpacity))
+                    if (!DrawFlightSnapshot(spriteBatch, engine, root, source, place, sourceOpacity, live: false))
                         DrawSourceTwinLive(spriteBatch, root, source, place, stretch, sourceOpacity);
                 }
             }
 
-            if (!DrawFlightSnapshot(spriteBatch, engine, root, target, target.GetRenderTransform(), targetOpacity))
+            if (!DrawFlightSnapshot(spriteBatch, engine, root, target, target.GetRenderTransform(), targetOpacity, live: true))
                 DrawControlBatched(spriteBatch, target, root.Placed(Matrix.Identity, Vector2.One, targetOpacity));
         }
 
