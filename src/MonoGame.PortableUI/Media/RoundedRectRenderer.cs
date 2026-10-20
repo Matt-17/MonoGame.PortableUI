@@ -261,6 +261,41 @@ namespace MonoGame.PortableUI.Media
             DrawCorner(spriteBatch, rect.Right - radius.TopRight, rect.Top, radius.TopRight, color, SpriteEffects.FlipHorizontally);
             DrawCorner(spriteBatch, rect.Right - radius.BottomRight, rect.Bottom - radius.BottomRight, radius.BottomRight, color, SpriteEffects.FlipHorizontally | SpriteEffects.FlipVertically);
             DrawCorner(spriteBatch, rect.Left, rect.Bottom - radius.BottomLeft, radius.BottomLeft, color, SpriteEffects.FlipVertically);
+
+            // A corner smaller than its neighbours (a teardrop's square corner) leaves part of its band
+            // square to the straight fills, which stop at the larger radius: fill around its mask.
+            Span<Rect> rest = stackalloc Rect[8];
+            CornerRemainders(rect, radius, rest);
+            foreach (var fillRect in rest)
+            {
+                if (fillRect.Width > 0 && fillRect.Height > 0)
+                    spriteBatch.Draw(Primitives.Pixel(spriteBatch), fillRect, color);
+            }
+        }
+
+        /// <summary>
+        ///     Per corner, the part of its band square (side bands × top/bottom bands, sized by the larger
+        ///     radius on each side) that neither the straight fills nor the corner's own mask cover.
+        /// </summary>
+        internal static void CornerRemainders(Rect rect, CornerRadius radius, Span<Rect> rects)
+        {
+            var left = Math.Max(radius.TopLeft, radius.BottomLeft);
+            var right = Math.Max(radius.TopRight, radius.BottomRight);
+            var top = Math.Max(radius.TopLeft, radius.TopRight);
+            var bottom = Math.Max(radius.BottomLeft, radius.BottomRight);
+            // Each corner: a strip beside its mask and the rest of the square below/above it.
+            var tl = radius.TopLeft;
+            rects[0] = new Rect(rect.Left + tl, rect.Top, left - tl, tl);
+            rects[1] = new Rect(rect.Left, rect.Top + tl, left, top - tl);
+            var tr = radius.TopRight;
+            rects[2] = new Rect(rect.Right - right, rect.Top, right - tr, tr);
+            rects[3] = new Rect(rect.Right - right, rect.Top + tr, right, top - tr);
+            var br = radius.BottomRight;
+            rects[4] = new Rect(rect.Right - right, rect.Bottom - br, right - br, br);
+            rects[5] = new Rect(rect.Right - right, rect.Bottom - bottom, right, bottom - br);
+            var bl = radius.BottomLeft;
+            rects[6] = new Rect(rect.Left + bl, rect.Bottom - bl, left - bl, bl);
+            rects[7] = new Rect(rect.Left, rect.Bottom - bottom, left, bottom - bl);
         }
 
         private static void DrawNineSlice(SpriteBatch spriteBatch, Rect rect, CornerRadius radius, Color color)
