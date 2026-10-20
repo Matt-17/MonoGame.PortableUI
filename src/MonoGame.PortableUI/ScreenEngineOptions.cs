@@ -64,6 +64,13 @@ namespace MonoGame.PortableUI
         ///     layout units are pixels. Ignored when <see cref="ReferenceSize"/> is set.
         /// </summary>
         public float LayoutScale { get; set; }
+
+        /// <summary>
+        ///     Rounds every control's measured size and arranged edges to whole device pixels (like WPF's
+        ///     UseLayoutRounding and Android, which lays out in integer pixels): a 1 dp line at density
+        ///     2.75 is 3 px instead of 2, and fractional sizes do not drift across a page. Off by default.
+        /// </summary>
+        public bool UseLayoutRounding { get; set; }
         public Effect? Effect { get; set; }
 
         /// <summary>
