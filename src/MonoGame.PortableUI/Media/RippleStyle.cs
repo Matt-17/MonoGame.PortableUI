@@ -21,6 +21,15 @@ namespace MonoGame.PortableUI.Media
         /// </summary>
         public float EdgeSoftness { get; set; } = 0.3f;
 
+        /// <summary>
+        ///     Radius of an unbounded ripple: the circle around a check box, radio button or switch knob
+        ///     (Material: 20, a 40 dp circle). Bounded ripples (buttons, rows) fill their control instead.
+        /// </summary>
+        public float Radius { get; set; } = 20;
+
+        /// <summary>Color while the control is on (checked box, selected radio, switch on); null keeps <see cref="Color"/>.</summary>
+        public Color? CheckedColor { get; set; }
+
         /// <summary>Fade-out after the release (once the circle has grown).</summary>
         public TimeSpan FadeDuration { get; set; } = TimeSpan.FromMilliseconds(150);
     }
