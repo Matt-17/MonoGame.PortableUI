@@ -1842,7 +1842,13 @@ namespace MonoGame.PortableUI.Controls
         protected bool SnapsDrawing => SnapToPixel && !DrawsSubpixel;
 
         /// <summary>A render-only motion is running on this control right now.</summary>
-        internal bool IsInMotion => _animations.Count > 0 || IsTransitioning || IsPresenceAnimating || IsMotionDeformed;
+        internal bool IsInMotion => _animations.Count > 0 || IsTransitioning || IsPresenceAnimating || IsMotionDeformed || MovedFromOutside;
+
+        /// <summary>
+        ///     Moved every frame by something that sets its pose directly (a screen transition moves the screen root):
+        ///     drawn as motion - subpixel, text scaled from its rest size instead of rasterized per frame.
+        /// </summary>
+        internal bool MovedFromOutside;
 
         protected internal virtual void OnGotFocus(GotFocusEventArgs args)
         {

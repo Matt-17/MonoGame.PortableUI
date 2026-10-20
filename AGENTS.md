@@ -177,7 +177,10 @@ Arrow keys and the gamepad (`IInputSource.GamePad`: D-pad/stick, A, B, Y, should
 a direction the focused control does not claim via `HandlesDirection` moves focus spatially
 (`Screen.MoveFocus`) and scrolls it into view; Escape/B close the open popup or raise
 `Screen.BackRequested`. Popups opened from keyboard/gamepad take focus and return it on close.
-Navigation: `NavigateToScreen` / `PushOverlay` (screens below stay drawn, frozen) with `ScreenTransition`;
+Navigation: `NavigateToScreen` / `PushOverlay` (screens below stay drawn, frozen) with `ScreenTransition` (enum of built-ins) or a
+`ScreenTransitionAnimation` (progress 0..1 sets `ScreenVisual`s of the top screen and the one below; popping runs it
+backwards; a non-overlay push draws the covered screen during the transition, `BelowOnTop` swaps the order; the
+visual moves the screen root and its background);
 `OnNavigatedTo`/`OnNavigatedFrom` hooks; focus is restored on `NavigateBack`.
 
 **UI sound:** `ScreenEngine.Sounds` (`UiSoundService`) plays semantic events through an `IUiSoundPlayer`

@@ -472,12 +472,7 @@ namespace MonoGame.PortableUI
 
             OnBeforeDraw(spriteBatch);
 
-            if (BackgroundBrush != null)
-            {
-                spriteBatch.Begin();
-                BackgroundBrush.Draw(spriteBatch, PixelScreenRect);
-                spriteBatch.End();
-            }
+            DrawBackground(spriteBatch);
 
             DrawControlTree(spriteBatch, _mainGrid, _mainGrid.BoundingRect);
 
@@ -494,7 +489,7 @@ namespace MonoGame.PortableUI
             if (_activeDrag?.DragVisual is { } dragGhost)
                 DrawControlTree(spriteBatch, dragGhost, GetOverlayScissor(dragGhost));
 
-            if (engine != null && ReferenceEquals(engine.SharedFlightHost, this))
+            if (engine != null && !_drawingAsGroup && ReferenceEquals(engine.SharedFlightHost, this))
                 DrawSharedFlights(spriteBatch, engine);
 
             DrawDebugOverlay(spriteBatch);
@@ -671,10 +666,10 @@ namespace MonoGame.PortableUI
         /// <summary>Layout and animations only, no input (toast layer).</summary>
         internal bool IgnoresInput { get; set; }
 
-        /// <summary>True when pushed with <see cref="ScreenEngine.PushOverlay"/>: the screens below stay visible.</summary>
+        /// <summary>True when pushed with <see cref="ScreenEngine.PushOverlay(Screen, ScreenTransition)"/>: the screens below stay visible.</summary>
         public bool IsOverlay { get; internal set; }
 
-        internal ScreenTransition PushTransition { get; set; }
+        internal ScreenTransitionAnimation? PushTransition { get; set; }
 
         /// <summary>Focus to restore when this screen becomes active again after an overlay/navigation.</summary>
         internal Control? SavedFocus { get; set; }
@@ -712,11 +707,100 @@ namespace MonoGame.PortableUI
             NavigatedFrom?.Invoke(this, EventArgs.Empty);
         }
 
-        /// <summary>Whole-screen opacity/offset for push/pop transitions (applied to the root).</summary>
-        internal void SetTransitionVisual(float opacity, Vector2 translation)
+        /// <summary>Whole-screen pose for push/pop transitions, applied to the root and the background (null = none).</summary>
+        internal void SetTransitionVisual(ScreenVisual? visual)
         {
-            _mainGrid.Opacity = opacity;
-            _mainGrid.Translation = translation;
+            _hasTransitionVisual = visual is { IsIdentity: false };
+            // Opacity applies to the screen as one picture (DrawInStack), not to each control: per control,
+            // overlapping parts and the screen below would shine through each other mid-fade.
+            TransitionOpacity = MathHelper.Clamp(visual?.Opacity ?? 1, 0, 1);
+            // While a transition poses the screen it is in motion: whole-pixel snapping and text rasterized at every
+            // in-between size made transitions jitter and Zoom miss frames.
+            _mainGrid.MovedFromOutside = visual != null;
+            _mainGrid.Translation = visual?.Translation ?? Vector2.Zero;
+            _mainGrid.Scale = visual?.Scale ?? Vector2.One;
+            _mainGrid.Rotation = visual?.Rotation ?? 0;
+            _mainGrid.TransformOrigin = visual?.Origin ?? new Vector2(0.5f, 0.5f);
+        }
+
+        private bool _hasTransitionVisual;
+
+        /// <summary>The opacity a screen transition gives this screen (1 at rest).</summary>
+        internal float TransitionOpacity { get; private set; } = 1;
+
+        private bool _drawingAsGroup;
+        private RenderTargetBinding[]? _groupPreviousTargets;
+
+        /// <summary>
+        ///     Draws the screen as one layer of the stack: faded by a transition, it is rendered into a texture first
+        ///     and that picture is blended at the transition's opacity. Shared-element flights it hosts stay opaque on top.
+        /// </summary>
+        internal void DrawInStack(SpriteBatch spriteBatch)
+        {
+            var opacity = TransitionOpacity;
+            if (opacity >= 0.999f)
+            {
+                Draw(spriteBatch);
+                return;
+            }
+
+            var engine = ScreenEngine;
+            var device = spriteBatch.GraphicsDevice;
+            var width = device.Viewport.Width;
+            var height = device.Viewport.Height;
+            if (opacity > 0.001f && width > 0 && height > 0)
+            {
+                var previousTargets = RenderTargetHelper.SnapshotRenderTargets(device, ref _groupPreviousTargets);
+                var target = RenderTargetPool.Rent(device, width, height);
+                device.SetRenderTarget(target);
+                device.Clear(Color.Transparent);
+                _drawingAsGroup = true;
+                try
+                {
+                    Draw(spriteBatch);
+                }
+                finally
+                {
+                    _drawingAsGroup = false;
+                    if (previousTargets.Length == 0)
+                        device.SetRenderTarget(null);
+                    else
+                        device.SetRenderTargets(previousTargets);
+                }
+
+                spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend);
+                spriteBatch.Draw(target, Vector2.Zero, Color.White * opacity);
+                spriteBatch.End();
+                engine?.RecordBatchFlush();
+                RenderTargetPool.Return(device, target);
+            }
+
+            if (engine != null && ReferenceEquals(engine.SharedFlightHost, this))
+                DrawSharedFlights(spriteBatch, engine);
+        }
+
+        /// <summary>
+        ///     The screen background, moved and faded with a running screen transition like the root (a covering
+        ///     screen's opaque background would otherwise hide the screen under it until the transition ends).
+        /// </summary>
+        private void DrawBackground(SpriteBatch spriteBatch)
+        {
+            if (BackgroundBrush == null)
+                return;
+            if (!_hasTransitionVisual)
+            {
+                spriteBatch.Begin();
+                BackgroundBrush.Draw(spriteBatch, PixelScreenRect);
+                spriteBatch.End();
+                return;
+            }
+
+            // The root's transform is in layout units; the background is drawn in pixels.
+            var scale = ScreenEngine?.DrawScale ?? 1f;
+            var transform = Matrix.CreateScale(1 / scale, 1 / scale, 1) * _mainGrid.GetRenderTransform() * Matrix.CreateScale(scale, scale, 1);
+            spriteBatch.Begin(SpriteSortMode.Deferred, transformMatrix: transform);
+            BackgroundBrush.Draw(spriteBatch, PixelScreenRect);
+            spriteBatch.End();
         }
 
         internal void OnNavigationFrom(object? sender)
