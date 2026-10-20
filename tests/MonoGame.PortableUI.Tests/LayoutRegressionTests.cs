@@ -25,6 +25,30 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void A_fixed_size_icon_sits_in_the_middle_of_its_button()
+        {
+            var icon = new Border { Width = 24, Height = 24 };
+            var button = new Button { Width = 56, Height = 56, Padding = new Thickness(0), Content = icon, UseThemeStyle = false };
+
+            button.UpdateLayout(new Rect(0, 0, 56, 56));
+
+            Assert.AreEqual(16, icon.BoundingRect.Left, 0.001f);
+            Assert.AreEqual(16, icon.BoundingRect.Top, 0.001f);
+            Assert.AreEqual(24, icon.BoundingRect.Width, 0.001f);
+        }
+
+        [TestMethod]
+        public void Stretched_button_content_still_fills_it()
+        {
+            var content = new Border();
+            var button = new Button { Width = 56, Height = 56, Padding = new Thickness(0), Content = content, UseThemeStyle = false };
+
+            button.UpdateLayout(new Rect(0, 0, 56, 56));
+
+            Assert.AreEqual(56, content.BoundingRect.Width, 0.001f);
+        }
+
+        [TestMethod]
         public void Auto_sized_tab_control_keeps_its_margin()
         {
             var tabs = new TabControl { Margin = new Thickness(10) };

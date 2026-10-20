@@ -55,7 +55,27 @@ namespace MonoGame.PortableUI.Controls
         public override void UpdateLayout(Rect rect)
         {
             base.UpdateLayout(rect);
-            VisualChild?.UpdateLayout(BoundingRect - Margin - Padding);
+            var slot = BoundingRect - Margin - Padding;
+            if (CentersFixedSizeContent && VisualChild is { } child)
+                slot = CenterFixedSize(child, slot);
+            VisualChild?.UpdateLayout(slot);
+        }
+
+        /// <summary>
+        ///     Content with a fixed width or height that is left on Stretch sits in the middle (an icon in a button)
+        ///     instead of the top left corner.
+        /// </summary>
+        protected virtual bool CentersFixedSizeContent => false;
+
+        private static Rect CenterFixedSize(Control child, Rect slot)
+        {
+            var width = child.Width + child.Margin.Horizontal;
+            var height = child.Height + child.Margin.Vertical;
+            if (child.HorizontalAlignment == HorizontalAlignment.Stretch && child.Width.IsFixed() && width < slot.Width)
+                slot = new Rect(slot.Left + (slot.Width - width) / 2, slot.Top, width, slot.Height);
+            if (child.VerticalAlignment == VerticalAlignment.Stretch && child.Height.IsFixed() && height < slot.Height)
+                slot = new Rect(slot.Left, slot.Top + (slot.Height - height) / 2, slot.Width, height);
+            return slot;
         }
 
         public override Size MeasureLayout()
