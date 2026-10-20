@@ -1029,7 +1029,7 @@ namespace MonoGame.PortableUI
                 var root = RenderContext.Root(ScreenRect, engine.DrawScale);
                 var flights = engine.SharedFlights;
                 for (var i = 0; i < flights.Count; i++)
-                    DrawSharedFlight(spriteBatch, root, flights[i].Target, flights[i].Source);
+                    DrawSharedFlight(spriteBatch, engine, root, flights[i].Target, flights[i].Source);
                 FlushLayerComposites(spriteBatch);
             }
             finally
@@ -1044,7 +1044,7 @@ namespace MonoGame.PortableUI
         ///     corners at one end of the flight, a stretched twin distorted text at the other); the twin stays opaque
         ///     until the flying control covers it, so the card never turns see-through.
         /// </summary>
-        private void DrawSharedFlight(SpriteBatch spriteBatch, RenderContext root, Control target, Control source)
+        private void DrawSharedFlight(SpriteBatch spriteBatch, ScreenEngine engine, RenderContext root, Control target, Control source)
         {
             var flying = RenderContext.TransformRect(target.ClippingRect, target.GetRenderTransform());
             var box = source.ClippingRect;
@@ -1062,22 +1062,30 @@ namespace MonoGame.PortableUI
                 {
                     var place = Matrix.CreateTranslation(-box.Left, -box.Top, 0) * Matrix.CreateScale(stretch.X, stretch.Y, 1)
                         * Matrix.CreateTranslation(flying.Left, flying.Top, 0);
-                    var role = source.SharedFlight;
-                    source.SharedFlight = SharedFlightRole.None;
-                    source.RenderTransformSuppressed = true;
-                    try
-                    {
-                        DrawControlBatched(spriteBatch, source, root.Placed(place, stretch, sourceOpacity));
-                    }
-                    finally
-                    {
-                        source.RenderTransformSuppressed = false;
-                        source.SharedFlight = role;
-                    }
+                    if (!DrawFlightSnapshot(spriteBatch, engine, root, source, place, sourceOpacity))
+                        DrawSourceTwinLive(spriteBatch, root, source, place, stretch, sourceOpacity);
                 }
             }
 
-            DrawControlBatched(spriteBatch, target, root.Placed(Matrix.Identity, Vector2.One, targetOpacity));
+            if (!DrawFlightSnapshot(spriteBatch, engine, root, target, target.GetRenderTransform(), targetOpacity))
+                DrawControlBatched(spriteBatch, target, root.Placed(Matrix.Identity, Vector2.One, targetOpacity));
+        }
+
+        // The twin left behind, stretched onto the flying rect (fallback when it cannot be snapshotted).
+        private void DrawSourceTwinLive(SpriteBatch spriteBatch, RenderContext root, Control source, Matrix place, Vector2 stretch, float sourceOpacity)
+        {
+            var role = source.SharedFlight;
+            source.SharedFlight = SharedFlightRole.None;
+            source.RenderTransformSuppressed = true;
+            try
+            {
+                DrawControlBatched(spriteBatch, source, root.Placed(place, stretch, sourceOpacity));
+            }
+            finally
+            {
+                source.RenderTransformSuppressed = false;
+                source.SharedFlight = role;
+            }
         }
 
         // How far a scale is from 1 in either direction (log scale: x2 and x0.5 distort alike).
@@ -1170,6 +1178,8 @@ namespace MonoGame.PortableUI
                 return;
             // A shared-element flight draws its control above every screen, and hides the twin it flies from.
             if (control.SharedFlight != SharedFlightRole.None && (control.SharedFlight == SharedFlightRole.Hidden || !_drawingSharedFlights))
+                return;
+            if (SkipsInSnapshot(control))
                 return;
 
             var context = parentContext.ForControl(control);
