@@ -1690,6 +1690,10 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        /// <summary>Whether a held mouse button over the control or a resting finger draws it pressed.</summary>
+        protected bool IsPointerPressedVisual
+            => HoverState == HoverStates.Hovering && MouseButtonStates[MouseButton.Left] == ButtonState.Pressed || IsTouchPressedVisual;
+
         /// <summary>Where the pointer last went down on this control (layout units): a ripple's origin.</summary>
         internal PointF LastPressPosition { get; private set; }
 

@@ -261,6 +261,10 @@ namespace MonoGame.PortableUI.Controls
             base.OnChecked(e);
         }
 
+        private RippleStyle? ToggleRipple => Ripple ?? ResolveTheme().ToggleRipple;
+
+        protected internal override Thickness GetInkOverflow() => RippleEffect.Overflow(base.GetInkOverflow(), ToggleRipple);
+
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
             // No button face: ring (+ dot) at the left, the label is the content.
@@ -268,6 +272,11 @@ namespace MonoGame.PortableUI.Controls
             var ring = new Rect(rect.Left + ToRender(RingInset), rect.Top + (rect.Height - size) / 2, size, size);
             var radius = new CornerRadius(size / 2);
             var device = spriteBatch.GraphicsDevice;
+            if (ToggleRipple is { } ripple)
+            {
+                var center = new Vector2(ring.Left + size / 2, ring.Top + size / 2);
+                PressRipple.DrawUnbounded(spriteBatch, center, ToRender(ripple.Radius), ripple, IsChecked ? ripple.CheckedColor ?? ripple.Color : ripple.Color, RenderOpacity);
+            }
             // Brushes that honour a corner radius fill the circle; square-only chrome brushes (bevels,
             // frames, cut corners) would paint a square, so those fall back to a plain white disc.
             if (FillBrush is SolidColorBrush or LinearGradientBrush or GradientBrush or RadialGradientBrush)
