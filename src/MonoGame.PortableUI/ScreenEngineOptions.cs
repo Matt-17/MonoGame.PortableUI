@@ -37,6 +37,13 @@ namespace MonoGame.PortableUI
         public bool HoverOnTouch { get; set; }
 
         /// <summary>
+        ///     Android-style text selection by touch (default on): a tap places the caret with a handle under it,
+        ///     a long press or double tap selects a word with draggable handles and a Cut / Copy / Paste / Select all
+        ///     bar. Off: a finger selects like a mouse drag.
+        /// </summary>
+        public bool TouchTextSelection { get; set; } = true;
+
+        /// <summary>
         ///     How long a finger must rest before it counts as a press (pressed look, list hold-to-select).
         ///     A drag that starts earlier is a scroll and lights nothing up. Default 200 ms.
         /// </summary>

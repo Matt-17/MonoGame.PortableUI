@@ -308,6 +308,9 @@ namespace MonoGame.PortableUI
         /// <summary>Caret shape of text boxes; text-mode themes use <see cref="CaretStyle.TextMode"/>.</summary>
         public CaretStyle TextBoxCaretStyle { get; set; } = CaretStyle.Bar;
 
+        /// <summary>Width of the bar caret (Android: 2).</summary>
+        public float TextBoxCaretWidth { get; set; } = 1;
+
         /// <summary>Half period of the caret blink (on, then off for as long). DOS: 133 ms ≈ 3.75 Hz.</summary>
         public TimeSpan TextBoxCaretBlinkInterval { get; set; } = TimeSpan.FromMilliseconds(500);
         public Brush TextBoxSelectionBrush { get; set; } = new SolidColorBrush(new Color(51, 153, 255, 95));
@@ -319,6 +322,22 @@ namespace MonoGame.PortableUI
         /// </summary>
         public Color? TextBoxSelectionTextColor { get; set; }
         public Color TextBoxHintTextColor { get; set; } = Color.Silver;
+
+        /// <summary>Touch selection handles (teardrops under the caret and the selection ends); null = the caret color.</summary>
+        public Color? TextSelectionHandleColor { get; set; }
+
+        /// <summary>Size of a touch selection handle (Material: 22).</summary>
+        public float TextSelectionHandleSize { get; set; } = 22;
+
+        /// <summary>The Cut / Copy / Paste / Select all bar over a touch selection.</summary>
+        public Brush TextSelectionToolbarBrush { get; set; } = new SolidColorBrush(Color.White);
+
+        public Color TextSelectionToolbarTextColor { get; set; } = new Color(31, 31, 31);
+
+        /// <summary>Height of the selection toolbar; its corners are fully rounded (a pill).</summary>
+        public float TextSelectionToolbarHeight { get; set; } = 48;
+
+        public ShadowStyle? TextSelectionToolbarShadow { get; set; } = new ShadowStyle { Color = new Color(0, 0, 0, 70), Offset = new Vector2(0, 2), Blur = 6 };
         public Thickness TextBoxPadding { get; set; } = new Thickness(10, 4);
         public float TextBoxHeight { get; set; } = 28;
 
