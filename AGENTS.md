@@ -126,6 +126,12 @@ nearest tracked ancestor's move in the same pass glides as `_layoutOffset` (fold
 `VirtualItemsPanel` are tracked boundaries that never glide. `Canvas` moves glide via `GlideFromArrangementMove`. ListBox
 rows are recycled, so the list keys shown tops by item (`TakeShownRowTops` before rebinding, `GlideMovedRows` after arranging).
 
+**Shared elements:** `Control.SharedElementKey`. Navigation (`Push`/`NavigateBack`) captures the drawn rects of keyed
+controls on the screen being left (`ScreenEngine.SharedElements.cs`, only once `SharedElementsInUse`); the target screen's
+first layout (`PerformLayoutIfDirty` / `Draw` → `ResolveSharedElements`) starts flights: shared scale + layout-glide offset
+from the twin's rect, `SharedFlightRole.Flying` controls are skipped in their tree and drawn by the last-drawn screen
+(`SharedFlightHost`) from the root, cross-faded with the hidden twin stretched onto the flying rect (by distortion).
+
 **Enter/exit:** `Control.VisibilityTransition` animates `IsVisible`/`IsGone`. The properties return the target; while an exit plays
 `UIElement.ExitHolds` keeps it in layout and drawing. Layout and draw code therefore read `IsGoneShown`/`IsVisibleShown`, while input, focus,
 tab stops and accessibility read the public properties (an exiting control takes no input). The pose (`PresenceScale`/`PresenceOffset`/

@@ -756,6 +756,8 @@ namespace MonoGame.PortableUI.Demo
             var hop = MotionCard("Hop", Palette.Info);
             hop.TransformOrigin = new Vector2(0.5f, 1);
             hop.SquashStretch = 1.2f;
+            // Shared element: the detail screen's header card has the same key, so the card flies there and back.
+            hop.SharedElementKey = HeroScreen.CardKey;
             var breathe = MotionCard("Breathe", Palette.Primary);
             breathe.CornerRadius = 42;
             breathe.Breathe = 0.05f;
@@ -838,6 +840,8 @@ namespace MonoGame.PortableUI.Demo
                     cards.Children.Add(moved);
             };
             _motionActions["gone"] = () => shake.IsGone = !shake.IsGone;
+            _motionActions["hero"] = () => ScreenEngine?.NavigateToScreen(new HeroScreen(_themePreset, Palette.Info, "Hop"), ScreenTransition.Fade);
+            _motionActions["heroback"] = () => ScreenEngine?.NavigateBack();
             _motionActions["hop"] = () => hop.Animate()
                 .TranslateTo(new Vector2(0, -70)).Duration(TimeSpan.FromMilliseconds(260)).Ease(Easings.QuadOut)
                 .Then()
@@ -899,6 +903,7 @@ namespace MonoGame.PortableUI.Demo
             organicButtons.AddChild(MotionDemoButton("Enter / Exit", _motionActions["enterexit"]));
             organicButtons.AddChild(MotionDemoButton("Shuffle", _motionActions["shuffle"]));
             organicButtons.AddChild(MotionDemoButton("Remove / Add", _motionActions["gone"]));
+            organicButtons.AddChild(MotionDemoButton("Hero", _motionActions["hero"]));
             grid.AddChild(organicButtons, row: 3);
             return grid;
         }
