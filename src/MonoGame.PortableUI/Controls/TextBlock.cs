@@ -101,6 +101,25 @@ namespace MonoGame.PortableUI.Controls
         /// <summary>Pixel size text is measured and drawn at with a dynamic font.</summary>
         protected float DynamicPixelSize(UIFont font) => (_textSize > 0 ? _textSize : font.DefaultSize) * TextScaling.Factor;
 
+        /// <summary>
+        ///     While <see cref="TextSize"/> moves: glyphs come from a whole-pixel size and are scaled to the exact one, so
+        ///     the text grows smoothly while a dynamic font rasterizes only a few sizes (not one per frame).
+        /// </summary>
+        private bool TryMovingTextSize(UIFont font, out float rasterSize, out Vector2 scale)
+        {
+            var exact = DynamicPixelSize(font);
+            if (_textSizeTransition is not { IsRunning: true } || exact <= 0)
+            {
+                rasterSize = exact;
+                scale = RenderScale;
+                return false;
+            }
+
+            rasterSize = Math.Max(1, MathF.Round(exact));
+            scale = RenderScale * (exact / rasterSize);
+            return true;
+        }
+
         /// <summary>True when there is some font to draw with.</summary>
         protected bool HasDrawableFont => Font != null || ActiveDynamicFont != null;
 
@@ -108,7 +127,9 @@ namespace MonoGame.PortableUI.Controls
         protected void DrawText(SpriteBatch spriteBatch, string text, Vector2 position, Color color)
         {
             var dynamicFont = ActiveDynamicFont;
-            if (dynamicFont != null && DrawsSubpixel)
+            if (dynamicFont != null && TryMovingTextSize(dynamicFont, out var rasterSize, out var scale))
+                dynamicFont.DrawString(spriteBatch, text, position, color, rasterSize, scale, DrawsSubpixel ? RestRenderScale : RenderScale);
+            else if (dynamicFont != null && DrawsSubpixel)
                 dynamicFont.DrawString(spriteBatch, text, position, color, DynamicPixelSize(dynamicFont), RenderScale, RestRenderScale);
             else if (dynamicFont != null)
                 dynamicFont.DrawString(spriteBatch, text, position, color, DynamicPixelSize(dynamicFont), RenderScale);
@@ -121,7 +142,9 @@ namespace MonoGame.PortableUI.Controls
         protected void DrawText(SpriteBatch spriteBatch, System.Text.StringBuilder text, Vector2 position, Color color)
         {
             var dynamicFont = ActiveDynamicFont;
-            if (dynamicFont != null && DrawsSubpixel)
+            if (dynamicFont != null && TryMovingTextSize(dynamicFont, out var rasterSize, out var scale))
+                dynamicFont.DrawString(spriteBatch, text, position, color, rasterSize, scale, DrawsSubpixel ? RestRenderScale : RenderScale);
+            else if (dynamicFont != null && DrawsSubpixel)
                 dynamicFont.DrawString(spriteBatch, text, position, color, DynamicPixelSize(dynamicFont), RenderScale, RestRenderScale);
             else if (dynamicFont != null)
                 dynamicFont.DrawString(spriteBatch, text, position, color, DynamicPixelSize(dynamicFont), RenderScale);
@@ -419,10 +442,8 @@ namespace MonoGame.PortableUI.Controls
         {
             if (_textSizeTransition is not { IsRunning: true } transition)
                 return false;
-            var size = transition.Evaluate(now).X;
-            // Half-pixel steps while moving: a dynamic font rasterizes glyphs per size, and a few sizes that the next
-            // transition reuses beat a new atlas size every frame. The end is exact.
-            SetTextSizeShown(transition.IsRunning ? MathF.Round(size * 2) / 2 : size);
+            // Layout follows the exact size; drawing scales glyphs of a whole-pixel size meanwhile (TryMovingTextSize).
+            SetTextSizeShown(transition.Evaluate(now).X);
             return transition.IsRunning;
         }
 

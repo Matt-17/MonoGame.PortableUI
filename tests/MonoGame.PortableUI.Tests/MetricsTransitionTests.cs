@@ -1,8 +1,12 @@
 using System;
+using System.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI.Animation;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
+using MonoGame.PortableUI.Text;
 
 namespace MonoGame.PortableUI.Tests
 {
@@ -12,6 +16,21 @@ namespace MonoGame.PortableUI.Tests
     {
         private sealed class TestControl : Control
         {
+        }
+
+        /// <summary>Records the size glyphs are rasterized at and the scale they are drawn with.</summary>
+        private sealed class SizeRecordingFont : UIFont
+        {
+            public float PixelSize;
+            public Vector2 Scale;
+            public override float DefaultSize => 16;
+            public override float GetLineHeight(float pixelSize) => pixelSize;
+            public override Vector2 MeasureString(string text, float pixelSize) => new Vector2(text.Length * pixelSize / 2, pixelSize);
+            public override Vector2 MeasureString(StringBuilder text, float pixelSize) => new Vector2(text.Length * pixelSize / 2, pixelSize);
+            public override void DrawString(SpriteBatch spriteBatch, string text, Vector2 position, Color color, float pixelSize, Vector2 scale)
+                => (PixelSize, Scale) = (pixelSize, scale);
+            public override void DrawString(SpriteBatch spriteBatch, StringBuilder text, Vector2 position, Color color, float pixelSize, Vector2 scale)
+                => (PixelSize, Scale) = (pixelSize, scale);
         }
 
         [TestInitialize]
@@ -134,7 +153,7 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
-        public void Text_size_animates_in_half_pixel_steps_and_ends_exactly()
+        public void Text_size_animates_smoothly_and_ends_exactly()
         {
             var text = new TextBlock { Text = "Hello", TextSize = 14 };
             text.Transitions.Add(TransitionProperty.TextSize, Ms(100), Easings.Linear);
@@ -144,11 +163,30 @@ namespace MonoGame.PortableUI.Tests
             Assert.IsTrue(text.IsTransitioning);
 
             At(text, 33);
-            Assert.AreEqual(17.5f, text.TextSize, 0.001f, "17.399 rounded to a half pixel");
+            Assert.AreEqual(17.399f, text.TextSize, 0.001f, "no steps: layout follows the exact size");
 
             At(text, 100);
             Assert.AreEqual(24.3f, text.TextSize, 0.001f);
             Assert.IsFalse(text.IsTransitioning);
+        }
+
+        [TestMethod]
+        public void Moving_text_scales_glyphs_of_a_whole_pixel_size_to_the_exact_size()
+        {
+            var font = new SizeRecordingFont();
+            var text = new TextBlock { Text = "Hello", TextSize = 14, DynamicFont = font, TextColor = Color.White };
+            text.Transitions.Add(TransitionProperty.TextSize, Ms(100), Easings.Linear);
+            text.TextSize = 24.3f;
+
+            At(text, 33);
+            text.OnDraw(null!, new Rect(0, 0, 200, 40));
+            Assert.AreEqual(17, font.PixelSize, "rasterized at a whole pixel size");
+            Assert.AreEqual(17.399f, font.PixelSize * font.Scale.X, 0.001f, "drawn at the exact size: no steps");
+
+            At(text, 100);
+            text.OnDraw(null!, new Rect(0, 0, 200, 40));
+            Assert.AreEqual(24.3f, font.PixelSize, 0.001f, "at rest the exact size is rasterized");
+            Assert.AreEqual(1, font.Scale.X, 0.001f);
         }
 
         [TestMethod]
