@@ -154,6 +154,49 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void A_frame_deadline_a_visual_moved_on_from_lapses_instead_of_drawing_a_stray_frame()
+        {
+            using var game = new Game();
+            var (engine, _, _) = CreateIdleUi(game);
+            var start = ScreenSystem.TotalTime;
+
+            // A scroll bar draws while scrolling and asks to fade out 750 ms after the last movement.
+            engine.DrawAs(() => ScreenEngine.RequestAnimationFrameAt(start + TimeSpan.FromMilliseconds(750)));
+            for (var t = 16; t <= 600; t += 16)
+            {
+                Advance(engine, 16);
+                engine.RequestRedraw(); // still moving
+                Assert.IsTrue(engine.ConsumeRedrawRequest());
+                var moved = ScreenSystem.TotalTime;
+                engine.DrawAs(() => ScreenEngine.RequestAnimationFrameAt(moved + TimeSpan.FromMilliseconds(750)));
+            }
+            var stopped = ScreenSystem.TotalTime;
+
+            Assert.AreEqual(stopped + TimeSpan.FromMilliseconds(750), engine.NextScheduledRedraw,
+                "the fade-out follows the last movement, not the first");
+            Advance(engine, 200); // past the stale start + 750 ms
+            Assert.IsFalse(engine.ConsumeRedrawRequest(), "no frame before the fade-out is due");
+            Advance(engine, 560);
+            Assert.IsTrue(engine.ConsumeRedrawRequest(), "the fade-out frame");
+        }
+
+        [TestMethod]
+        public void An_explicit_redraw_time_survives_frames_drawn_before_it()
+        {
+            using var game = new Game();
+            var (engine, _, _) = CreateIdleUi(game);
+
+            engine.RequestRedrawAt(ScreenSystem.TotalTime + TimeSpan.FromMilliseconds(300));
+            Advance(engine, 16);
+            engine.RequestRedraw();
+            Assert.IsTrue(engine.ConsumeRedrawRequest(), "an unrelated frame");
+            Advance(engine, 150);
+            Assert.IsFalse(engine.ConsumeRedrawRequest());
+            Advance(engine, 150);
+            Assert.IsTrue(engine.ConsumeRedrawRequest(), "the toast's own deadline still fires");
+        }
+
+        [TestMethod]
         public void Animation_frame_requests_only_count_while_drawing()
         {
             using var game = new Game();
