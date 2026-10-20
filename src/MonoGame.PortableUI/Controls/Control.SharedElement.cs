@@ -52,6 +52,13 @@ namespace MonoGame.PortableUI.Controls
             StartLayoutGlide(spec, offset);
         }
 
+        /// <summary>A hitch of <paramref name="delay"/> does not count as flight time.</summary>
+        internal void PostponeSharedFlight(System.TimeSpan delay)
+        {
+            _sharedScaleGlide?.Postpone(delay);
+            _layoutGlide?.Postpone(delay);
+        }
+
         internal void SetSharedFlightRole(SharedFlightRole role)
         {
             if (SharedFlight == role)

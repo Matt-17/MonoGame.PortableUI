@@ -30,11 +30,11 @@ namespace MonoGame.PortableUI.Tests
                 Engine.SharedElementTransition = new Transition(TimeSpan.FromMilliseconds(100), Easings.Linear);
             }
 
-            public void Step(int frames = 1)
+            public void Step(int frames = 1, int milliseconds = 16)
             {
                 for (var i = 0; i < frames; i++)
                 {
-                    _time += TimeSpan.FromMilliseconds(16);
+                    _time += TimeSpan.FromMilliseconds(milliseconds);
                     ScreenSystem.TotalTime = _time;
                     Engine.Update(new GameTime(_time, TimeSpan.FromMilliseconds(16)));
                 }
@@ -132,6 +132,30 @@ namespace MonoGame.PortableUI.Tests
             host.Step(12);
             AssertRect(new Rect(10, 20, 40, 30), Drawn(thumb), "back home");
             Assert.AreEqual(SharedFlightRole.None, hero.SharedFlight);
+        }
+
+        [TestMethod]
+        public void A_slow_first_frame_does_not_eat_the_flight_or_the_screen_transition()
+        {
+            using var host = new Host();
+            host.Engine.TransitionDuration = TimeSpan.FromMilliseconds(250);
+            host.Engine.SharedElementTransition = new Transition(TimeSpan.FromMilliseconds(300), Easings.Linear);
+            var (list, _) = CreateScreen("hero", new Rect(10, 20, 40, 30));
+            var (detail, hero) = CreateScreen("hero", new Rect(100, 80, 200, 150));
+            host.Engine.NavigateToScreen(list);
+            host.Step();
+
+            host.Engine.NavigateToScreen(detail, ScreenTransition.Fade);
+            host.Step();
+            // The new screen's first frame stalls for 800 ms (fonts, jit).
+            host.Step(milliseconds: 800);
+
+            Assert.AreEqual(SharedFlightRole.Flying, hero.SharedFlight, "still flying");
+            Assert.IsTrue(Drawn(hero).Width < 150, $"not yet home: {Drawn(hero)}");
+            Assert.IsTrue(host.Engine.IsTransitioning, "the fade still plays");
+            host.Step(20);
+            Assert.AreEqual(SharedFlightRole.None, hero.SharedFlight);
+            Assert.IsFalse(host.Engine.IsTransitioning);
         }
 
         [TestMethod]
