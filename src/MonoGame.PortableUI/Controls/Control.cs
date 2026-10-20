@@ -1692,9 +1692,18 @@ namespace MonoGame.PortableUI.Controls
         ///     finger before the bubbling <see cref="TouchDown"/> pass — so a container (e.g.
         ///     <see cref="ScrollViewer"/>) sees touches that a clickable descendant will handle.
         /// </summary>
-        internal virtual void OnPreviewTouchDown(TouchEventArgs args)
+        /// <returns>True when the control started following the finger (see <see cref="OnPreviewWithdrawn"/>).</returns>
+        internal virtual bool OnPreviewTouchDown(TouchEventArgs args) => false;
+
+        /// <summary>
+        ///     The touch this control previewed went to a control on top of it, outside its own subtree (a tab bar
+        ///     floating over a list): stop following that finger.
+        /// </summary>
+        internal virtual void OnPreviewWithdrawn()
         {
         }
+
+        internal bool ContainsInTree(Control control) => IsSelfOrAncestorOf(control);
 
         /// <summary>Cancels a pending touch press (no click on release), e.g. when an ancestor starts panning.</summary>
         internal void CancelPendingTouch(TouchEventArgs args)

@@ -43,8 +43,12 @@ namespace MonoGame.PortableUI.Controls
             return false;
         }
 
-        /// <summary>Tunneling pre-pass for touch-down: notifies every routable control under the finger, ancestors first.</summary>
-        internal static void PreviewTouchDown(Control control, TouchEventArgs args)
+        /// <summary>
+        ///     Tunneling pre-pass for touch-down: notifies every routable control under the finger, ancestors first, and
+        ///     collects them in <paramref name="previewed"/> so the screen can withdraw the preview from those that lie
+        ///     under the control that takes the touch.
+        /// </summary>
+        internal static void PreviewTouchDown(Control control, TouchEventArgs args, List<Control>? previewed = null)
         {
             if (control.IsGone || !control.IsVisible || !control.IsEnabled || !control.IsHitTestVisible)
                 return;
@@ -53,11 +57,11 @@ namespace MonoGame.PortableUI.Controls
             if (!inside && control.ClipsDescendants)
                 return;
 
-            if (inside)
-                control.OnPreviewTouchDown(args);
+            if (inside && control.OnPreviewTouchDown(args))
+                previewed?.Add(control);
             var count = control.VisualChildCount;
             for (var i = 0; i < count; i++)
-                PreviewTouchDown(control.GetVisualChild(i), args);
+                PreviewTouchDown(control.GetVisualChild(i), args, previewed);
         }
 
         /// <summary>Cancels pending touch presses in the subtree below <paramref name="control"/>.</summary>
