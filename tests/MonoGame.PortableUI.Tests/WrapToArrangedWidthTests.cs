@@ -68,6 +68,25 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void Drawing_wraps_at_the_laid_out_width_not_at_a_rounded_rect()
+        {
+            // A left-aligned label is arranged as wide as its line; rounded to pixels that rect can be a
+            // fraction narrower than the line, and wrapping to it moved the last word into a clipped line.
+            using var game = new Game();
+            var engine = ScreenEngine.Initialize(game, new ScreenEngineOptions { AddComponentToGame = false, UseLayoutRounding = true });
+            engine.SetScreenSize(400, 600);
+            var label = new TextBlock { Text = "to Ben", TextWrapping = TextWrapping.Wrap, HorizontalAlignment = HorizontalAlignment.Left };
+            var screen = new TestScreen { Content = new StackPanel { Children = { label } } };
+            engine.NavigateToScreen(screen);
+            screen.PerformLayoutIfDirty();
+
+            var lineWidth = label.MeasuredText.X;
+            var narrower = new Rect(0, 0, lineWidth - 0.3f, label.ClippingRect.Height);
+
+            Assert.IsTrue(label.DrawWrapWidth(narrower) >= lineWidth, "draws on the line layout measured");
+        }
+
+        [TestMethod]
         public void A_label_that_fits_on_one_line_needs_no_second_pass()
         {
             using var game = new Game();

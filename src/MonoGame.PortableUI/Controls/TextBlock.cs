@@ -726,12 +726,20 @@ namespace MonoGame.PortableUI.Controls
             DrawTextRun(spriteBatch, renderText, offset);
         }
 
+        /// <summary>
+        ///     The width the drawn lines wrap at: the one layout measured them for (the slot, a fixed width), not
+        ///     the aligned rect. A left-aligned label's rect ends at its longest line, and pixel rounding can make
+        ///     it a fraction narrower than that line, which pushed the last word into a line nobody made room for.
+        /// </summary>
+        internal float DrawWrapWidth(Rect rect)
+            => TryGetWrapMeasureWidth(out var width) ? width : rect.Width / RenderScale.X;
+
         private void DrawWrapped(SpriteBatch spriteBatch, Rect rect)
         {
             if (RenderScale.X <= 0 || RenderScale.Y <= 0)
                 return;
 
-            var lines = GetWrappedLines(rect.Width / RenderScale.X);
+            var lines = GetWrappedLines(DrawWrapWidth(rect));
             var lineSpacing = LineSpacing * RenderScale.Y;
             var totalHeight = WrappedHeight(lines.Count) * RenderScale.Y;
             var top = rect.Top + (rect.Height - totalHeight) / 2;

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Fix: wrapped label losing its last word:** a left-aligned wrapping `TextBlock` is drawn on the lines layout measured; drawing re-wrapped to its pixel-rounded rect, which could be a fraction narrower than the line and pushed the last word (or a word's last letter) into a clipped second line.
+
 ## 0.4.0-alpha.10
 
 Android parity, round two: touch text selection with handles and the system's own floating text menu, Material ripples, layout rounding to whole device pixels and text measured at render resolution. Quick clicks during a slow frame are no longer lost. Behaviour change: touch selects text like Android by default (`ScreenEngineOptions.TouchTextSelection`).
