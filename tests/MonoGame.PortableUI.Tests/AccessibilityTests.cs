@@ -28,7 +28,7 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestInitialize]
-        public void Reset() { if (ScreenEngine.Instance != null) ScreenEngine.Instance.FocusedControl = null; }
+        public void Reset() { FallbackEngine.Reset(); }
 
         private static (ScreenEngine Engine, TestScreen Screen) Show(Game game, Control content)
         {

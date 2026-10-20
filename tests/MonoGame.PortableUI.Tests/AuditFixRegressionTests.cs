@@ -14,6 +14,9 @@ namespace MonoGame.PortableUI.Tests
     [TestClass]
     public class AuditFixRegressionTests
     {
+        [TestInitialize]
+        public void ResetEngine() => FallbackEngine.Reset();
+
         [TestMethod]
         public void Enter_activates_focused_button()
         {

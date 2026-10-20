@@ -47,7 +47,7 @@ namespace MonoGame.PortableUI.Tests
             engine.ConsumeRedrawRequest();
             Advance(surface, 500);
             engine.ConsumeRedrawRequest();
-            Assert.IsFalse(engine.PeekRedrawRequest(), "idle after the first frames");
+            Assert.IsFalse(engine.PeekRedrawRequest(), "idle after the first frames: " + engine.DescribeRedrawRequest());
 
             surface.Invalidate();
             for (var i = 0; i < 5; i++)
@@ -57,7 +57,7 @@ namespace MonoGame.PortableUI.Tests
             }
             Assert.AreEqual(TimeSpan.Zero, engine.NextRedrawDue);
             Assert.IsTrue(engine.ConsumeRedrawRequest());
-            Assert.IsFalse(engine.PeekRedrawRequest());
+            Assert.IsFalse(engine.PeekRedrawRequest(), engine.DescribeRedrawRequest());
         }
 
         [TestMethod]
@@ -75,7 +75,7 @@ namespace MonoGame.PortableUI.Tests
             var blink = ScreenSystem.TotalTime + TimeSpan.FromMilliseconds(530);
             engine.RequestRedrawAt(blink);
 
-            Assert.IsFalse(engine.PeekRedrawRequest());
+            Assert.IsFalse(engine.PeekRedrawRequest(), engine.DescribeRedrawRequest());
             Assert.AreEqual(blink, engine.NextRedrawDue);
             Advance(surface, 600);
             Assert.IsTrue(engine.PeekRedrawRequest(), "the caret flip is due");
