@@ -171,7 +171,7 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
-        public void Moving_text_scales_glyphs_of_a_whole_pixel_size_to_the_exact_size()
+        public void Moving_text_scales_glyphs_of_the_larger_end_to_the_size_shown()
         {
             var font = new SizeRecordingFont();
             var text = new TextBlock { Text = "Hello", TextSize = 14, DynamicFont = font, TextColor = Color.White };
@@ -180,13 +180,19 @@ namespace MonoGame.PortableUI.Tests
 
             At(text, 33);
             text.OnDraw(null!, new Rect(0, 0, 200, 40));
-            Assert.AreEqual(17, font.PixelSize, "rasterized at a whole pixel size");
-            Assert.AreEqual(17.399f, font.PixelSize * font.Scale.X, 0.001f, "drawn at the exact size: no steps");
+            Assert.AreEqual(24.3f, font.PixelSize, 0.001f, "set at the larger end for the whole transition");
+            Assert.AreEqual(17.399f, font.PixelSize * font.Scale.X, 0.001f, "drawn at the size shown: no steps");
+            Assert.AreEqual(5 * 17.399f / 2, text.MeasuredText.X, 0.01f, "measured like it is drawn");
 
             At(text, 100);
             text.OnDraw(null!, new Rect(0, 0, 200, 40));
             Assert.AreEqual(24.3f, font.PixelSize, 0.001f, "at rest the exact size is rasterized");
             Assert.AreEqual(1, font.Scale.X, 0.001f);
+
+            text.TextSize = 14;
+            At(text, 150);
+            text.OnDraw(null!, new Rect(0, 0, 200, 40));
+            Assert.AreEqual(24.3f, font.PixelSize, 0.001f, "shrinking scales the larger start down, never a small size up");
         }
 
         [TestMethod]

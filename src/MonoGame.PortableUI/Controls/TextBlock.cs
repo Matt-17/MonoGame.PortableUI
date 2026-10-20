@@ -19,6 +19,8 @@ namespace MonoGame.PortableUI.Controls
         private string _text = "";
         private float _textSize;
         private VectorTransition? _textSizeTransition;
+        // The size glyphs are set at while TextSize moves: the largest of the transition, so they are only scaled down.
+        private float _movingGlyphSize;
         private Color _textColor;
         // True while TextSize/TextColor hold the theme's value (seeded, not set by the app): only
         // those follow theme switches, so an explicit value equal to the old default survives.
@@ -102,22 +104,23 @@ namespace MonoGame.PortableUI.Controls
         protected float DynamicPixelSize(UIFont font) => (_textSize > 0 ? _textSize : font.DefaultSize) * TextScaling.Factor;
 
         /// <summary>
-        ///     While <see cref="TextSize"/> moves: glyphs come from a whole-pixel size and are scaled to the exact one, so
-        ///     the text grows smoothly while a dynamic font rasterizes only a few sizes (not one per frame).
+        ///     The size a dynamic font sets glyphs at, and the factor that brings them to the size shown. At rest the size
+        ///     itself and 1. While <see cref="TextSize"/> moves: one size for the whole transition (the larger end, so glyphs
+        ///     are only scaled down and stay sharp), scaled - text is measured and drawn alike, so it grows linearly (glyph
+        ///     advances of changing sizes would make it jitter) and adds no atlas sizes.
         /// </summary>
-        private bool TryMovingTextSize(UIFont font, out float rasterSize, out Vector2 scale)
+        private protected float GlyphSize(UIFont font, out float scale)
         {
-            var exact = DynamicPixelSize(font);
-            if (_textSizeTransition is not { IsRunning: true } || exact <= 0)
+            var size = DynamicPixelSize(font);
+            if (_textSizeTransition is not { IsRunning: true } || size <= 0 || _movingGlyphSize <= 0)
             {
-                rasterSize = exact;
-                scale = RenderScale;
-                return false;
+                scale = 1;
+                return size;
             }
 
-            rasterSize = Math.Max(1, MathF.Round(exact));
-            scale = RenderScale * (exact / rasterSize);
-            return true;
+            var glyphs = _movingGlyphSize * TextScaling.Factor;
+            scale = size / glyphs;
+            return glyphs;
         }
 
         /// <summary>True when there is some font to draw with.</summary>
@@ -127,12 +130,14 @@ namespace MonoGame.PortableUI.Controls
         protected void DrawText(SpriteBatch spriteBatch, string text, Vector2 position, Color color)
         {
             var dynamicFont = ActiveDynamicFont;
-            if (dynamicFont != null && TryMovingTextSize(dynamicFont, out var rasterSize, out var scale))
-                dynamicFont.DrawString(spriteBatch, text, position, color, rasterSize, scale, DrawsSubpixel ? RestRenderScale : RenderScale);
+            var glyphScale = 1f;
+            var glyphSize = dynamicFont != null ? GlyphSize(dynamicFont, out glyphScale) : 0;
+            if (dynamicFont != null && glyphScale != 1)
+                dynamicFont.DrawString(spriteBatch, text, position, color, glyphSize, RenderScale * glyphScale, DrawsSubpixel ? RestRenderScale : RenderScale);
             else if (dynamicFont != null && DrawsSubpixel)
-                dynamicFont.DrawString(spriteBatch, text, position, color, DynamicPixelSize(dynamicFont), RenderScale, RestRenderScale);
+                dynamicFont.DrawString(spriteBatch, text, position, color, glyphSize, RenderScale, RestRenderScale);
             else if (dynamicFont != null)
-                dynamicFont.DrawString(spriteBatch, text, position, color, DynamicPixelSize(dynamicFont), RenderScale);
+                dynamicFont.DrawString(spriteBatch, text, position, color, glyphSize, RenderScale);
             else if (Font != null && DrawsSubpixel)
                 SubpixelSpriteText.DrawString(spriteBatch, Font, text, position, color, RenderScale * FontScale);
             else if (Font != null)
@@ -142,12 +147,14 @@ namespace MonoGame.PortableUI.Controls
         protected void DrawText(SpriteBatch spriteBatch, System.Text.StringBuilder text, Vector2 position, Color color)
         {
             var dynamicFont = ActiveDynamicFont;
-            if (dynamicFont != null && TryMovingTextSize(dynamicFont, out var rasterSize, out var scale))
-                dynamicFont.DrawString(spriteBatch, text, position, color, rasterSize, scale, DrawsSubpixel ? RestRenderScale : RenderScale);
+            var glyphScale = 1f;
+            var glyphSize = dynamicFont != null ? GlyphSize(dynamicFont, out glyphScale) : 0;
+            if (dynamicFont != null && glyphScale != 1)
+                dynamicFont.DrawString(spriteBatch, text, position, color, glyphSize, RenderScale * glyphScale, DrawsSubpixel ? RestRenderScale : RenderScale);
             else if (dynamicFont != null && DrawsSubpixel)
-                dynamicFont.DrawString(spriteBatch, text, position, color, DynamicPixelSize(dynamicFont), RenderScale, RestRenderScale);
+                dynamicFont.DrawString(spriteBatch, text, position, color, glyphSize, RenderScale, RestRenderScale);
             else if (dynamicFont != null)
-                dynamicFont.DrawString(spriteBatch, text, position, color, DynamicPixelSize(dynamicFont), RenderScale);
+                dynamicFont.DrawString(spriteBatch, text, position, color, glyphSize, RenderScale);
             else if (Font != null && DrawsSubpixel)
                 SubpixelSpriteText.DrawString(spriteBatch, Font, text, position, color, RenderScale * FontScale);
             else if (Font != null)
@@ -415,8 +422,13 @@ namespace MonoGame.PortableUI.Controls
                 if (_textSizeTransition is { IsRunning: true } transition ? transition.Target.X == value : _textSize == value)
                     return;
                 // From the font's default size (0) there is nothing to move from.
+                var wasMoving = _textSizeTransition is { IsRunning: true };
                 if (_textSize > 0 && TryTransitionLength(TransitionProperty.TextSize, ref _textSizeTransition, _textSize, value, vertical: false))
+                {
+                    // A retarget keeps the glyph size unless the new end is larger: no switch mid-flight.
+                    _movingGlyphSize = Math.Max(wasMoving ? _movingGlyphSize : 0, Math.Max(_textSize, value));
                     return;
+                }
                 ApplyTextSize(value);
             }
         }
@@ -442,7 +454,7 @@ namespace MonoGame.PortableUI.Controls
         {
             if (_textSizeTransition is not { IsRunning: true } transition)
                 return false;
-            // Layout follows the exact size; drawing scales glyphs of a whole-pixel size meanwhile (TryMovingTextSize).
+            // Layout follows the exact size; meanwhile glyphs of the target size are scaled to it (GlyphSize).
             SetTextSizeShown(transition.Evaluate(now).X);
             return transition.IsRunning;
         }
@@ -554,11 +566,11 @@ namespace MonoGame.PortableUI.Controls
         private float WrappedHeight(int lines) => lines <= 0 ? 0 : LineHeight + (lines - 1) * LineSpacing;
 
         private float LineSpacing => ActiveDynamicFont is { } dynamicFont
-            ? dynamicFont.GetLineSpacing(DynamicPixelSize(dynamicFont))
+            ? dynamicFont.GetLineSpacing(GlyphSize(dynamicFont, out var scale)) * scale
             : LineHeight;
 
         private float LineHeight => ActiveDynamicFont is { } dynamicFont
-            ? dynamicFont.GetLineHeight(DynamicPixelSize(dynamicFont))
+            ? dynamicFont.GetLineHeight(GlyphSize(dynamicFont, out var scale)) * scale
             : Font != null
                 ? Font.LineSpacing * FontScale
                 : MeasureText("Ag").Y;
@@ -741,7 +753,7 @@ namespace MonoGame.PortableUI.Controls
         protected Vector2 MeasureText(string text)
         {
             if (ActiveDynamicFont is { } dynamicFont)
-                return dynamicFont.MeasureString(text ?? "", DynamicPixelSize(dynamicFont));
+                return dynamicFont.MeasureString(text ?? "", GlyphSize(dynamicFont, out var scale)) * scale;
             if (Font != null)
                 return Font.MeasureString(text ?? "") * FontScale;
             return TextMeasurer.MeasureString(text ?? "") * TextScaling.Factor;

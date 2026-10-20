@@ -117,7 +117,7 @@ start a transition and the getters return the *target*; what is drawn lives in t
 (`SetScaleShown` etc. also stop a running transition) - never route per-frame animation writes through the
 public setters. Layout values (`TransitionProperty.Size`/`Margin`/`TextSize`) are the exception: their fields hold the shown
 value, the getters return it (layout reads them everywhere) and each frame of the transition re-lays out; Auto (NaN) ends snap,
-moving text draws glyphs of a whole-pixel size scaled to the exact one (a dynamic font rasterizes per size). Background/border/text colours fade at draw time (`BrushFade`/`ColorFade`, keyed on the
+moving text is set at the larger end's size and scaled down (`TextBlock.GlyphSize`), measured and drawn alike - glyph advances of changing sizes jitter. Background/border/text colours fade at draw time (`BrushFade`/`ColorFade`, keyed on the
 brush reference; theme switch and first draw snap; `CompleteTransitions()` snaps a subtree).
 
 **Layout transitions (FLIP):** `TransitionProperty.Layout` / `Panel.LayoutTransition` / `ListBox.LayoutTransition`.

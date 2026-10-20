@@ -1838,7 +1838,7 @@ namespace MonoGame.PortableUI.Controls
         {
             // SpriteFont measures a StringBuilder without allocating a one-char string per glyph.
             if (ActiveDynamicFont is { } dynamicFont)
-                return dynamicFont.MeasureString(_charBuffer.Clear().Append(character), DynamicPixelSize(dynamicFont)).X;
+                return dynamicFont.MeasureString(_charBuffer.Clear().Append(character), GlyphSize(dynamicFont, out var scale)).X * scale;
             if (Font != null)
                 return Font.MeasureString(_charBuffer.Clear().Append(character)).X * FontScale;
             return TextMeasurer.MeasureString(character.ToString()).X * TextScaling.Factor;
