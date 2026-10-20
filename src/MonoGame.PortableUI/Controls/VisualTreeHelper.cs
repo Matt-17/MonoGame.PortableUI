@@ -48,10 +48,13 @@ namespace MonoGame.PortableUI.Controls
         {
             if (control.IsGone || !control.IsVisible || !control.IsEnabled || !control.IsHitTestVisible)
                 return;
-            if (!control.ClippingRect.Contains(args.Position))
+            var inside = control.ClippingRect.Contains(args.Position);
+            // Children drawn outside a control that does not clip them are touchable there too (see IterateVisualTree).
+            if (!inside && control.ClipsDescendants)
                 return;
 
-            control.OnPreviewTouchDown(args);
+            if (inside)
+                control.OnPreviewTouchDown(args);
             var count = control.VisualChildCount;
             for (var i = 0; i < count; i++)
                 PreviewTouchDown(control.GetVisualChild(i), args);
@@ -75,7 +78,10 @@ namespace MonoGame.PortableUI.Controls
             if (control.IsGone || !control.IsVisible || !control.IsEnabled || !control.IsHitTestVisible)
                 return;
             var actionAppliesToControl = actionFunc(control, args);
-            var goIntoTree = treeFunc?.Invoke(control, args) ?? actionAppliesToControl;
+            // Input reaches what is drawn: a control that does not clip its children (most panels) draws a child
+            // that overflows it, so the walk must reach that child outside the control's own box too. Only
+            // ClipsDescendants (scroll viewers) cuts the subtree off, as it does when drawing.
+            var goIntoTree = (treeFunc?.Invoke(control, args) ?? actionAppliesToControl) || !control.ClipsDescendants;
             if (!goIntoTree)
                 return;
             if (control.CapturesInputBeforeDescendants(args) && actionAppliesToControl)
