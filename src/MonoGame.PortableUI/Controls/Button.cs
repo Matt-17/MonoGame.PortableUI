@@ -44,8 +44,7 @@ namespace MonoGame.PortableUI.Controls
             DisabledTextColor = theme.DisabledTextColor;
             TextAlignment = TextAlignment.Center;
             ShowFocusVisual = true;
-            KeyPressed += ActivateOnKeyPressed;
-            KeyDown += ActivateOnKeyDown;
+            ActivatesOnKeys = true;
         }
 
         /// <summary>Internal chrome buttons (list items, tab headers, menu entries) opt out.</summary>

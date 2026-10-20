@@ -33,8 +33,7 @@ namespace MonoGame.PortableUI.Controls
             TextColor = theme.CheckBoxTextColor;
             ShowFocusVisual = true;
             Click += CheckBoxClick;
-            KeyPressed += ActivateOnKeyPressed;
-            KeyDown += ActivateOnKeyDown;
+            ActivatesOnKeys = true;
         }
 
         protected override Audio.UiSound? GetClickSound() => IsChecked ? Audio.UiSound.ToggleOn : Audio.UiSound.ToggleOff;

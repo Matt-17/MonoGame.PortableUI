@@ -1124,10 +1124,37 @@ namespace MonoGame.PortableUI.Controls
         /// </summary>
         protected virtual Audio.UiSound? GetClickSound() => Click != null ? Audio.UiSound.Click : null;
 
-        /// <summary>Raises Click when Enter or Space is pressed. Clickable controls (Button,
-        /// CheckBox, ToggleSwitch) subscribe this to their own KeyPressed so the focused control
-        /// can be activated from the keyboard, matching mouse/touch behavior.</summary>
-        private protected void ActivateOnKeyPressed(object? sender, KeyEventArgs args)
+        private bool _activatesOnKeys;
+
+        /// <summary>
+        ///     Whether Enter and Space click this control while it has focus, as they do a <see cref="Button"/>:
+        ///     Space as a key (no repeat, no modifiers; works without window text input), Enter as a command, and a
+        ///     typed space only from on-screen keyboards and IMEs. On for Button, CheckBox and ToggleSwitch; set it
+        ///     on an app's own focusable control (<see cref="IsFocusable"/>) to give it the same activation.
+        /// </summary>
+        public bool ActivatesOnKeys
+        {
+            get => _activatesOnKeys;
+            set
+            {
+                if (_activatesOnKeys == value)
+                    return;
+                _activatesOnKeys = value;
+                if (value)
+                {
+                    KeyPressed += ActivateOnKeyPressed;
+                    KeyDown += ActivateOnKeyDown;
+                }
+                else
+                {
+                    KeyPressed -= ActivateOnKeyPressed;
+                    KeyDown -= ActivateOnKeyDown;
+                }
+            }
+        }
+
+        /// <summary>Raises Click when Enter or a typed space arrives (<see cref="ActivatesOnKeys"/>).</summary>
+        private void ActivateOnKeyPressed(object? sender, KeyEventArgs args)
         {
             if (args.Modifiers != KeyboardModifiers.None)
                 return;
@@ -1142,7 +1169,7 @@ namespace MonoGame.PortableUI.Controls
         }
 
         /// <summary>Space activates as a key, so it works without window text input (surfaces, gamepad hosts).</summary>
-        private protected void ActivateOnKeyDown(object? sender, KeyEventArgs args)
+        private void ActivateOnKeyDown(object? sender, KeyEventArgs args)
         {
             if (args.Key != Keys.Space || args.IsRepeat || args.Modifiers != KeyboardModifiers.None || args.Handled)
                 return;

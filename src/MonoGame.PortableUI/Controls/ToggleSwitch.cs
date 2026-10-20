@@ -42,7 +42,7 @@ namespace MonoGame.PortableUI.Controls
             KnobShadow = theme.ToggleSwitchKnobShadow;
             ShowFocusVisual = true;
             Click += (_, _) => IsOn = !IsOn;
-            KeyPressed += ActivateOnKeyPressed;
+            ActivatesOnKeys = true;
         }
 
         protected override Audio.UiSound? GetClickSound() => IsOn ? Audio.UiSound.ToggleOn : Audio.UiSound.ToggleOff;

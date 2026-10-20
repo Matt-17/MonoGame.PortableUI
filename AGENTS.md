@@ -166,7 +166,7 @@ visited **topmost first** (reverse `GetDescendants` order = reverse draw order).
 `OnPreviewTouchDown`, which lets containers like `ScrollViewer` start a pan under a clickable child; a pan
 past the threshold cancels the child's pending click. Hit-testing uses `ClippingRect` — margins are inert. Focus lives in
 the owning engine's `FocusedControl` (per engine, so several surfaces/players keep separate focus; resolve it with `ScreenEngine.For(control)`); only controls with
-`IsFocusable` take focus on left-mouse-down. Enter/Space activate the focused clickable control.
+`IsFocusable` take focus on left-mouse-down. Enter/Space activate the focused clickable control (`Control.ActivatesOnKeys`: on for Button/CheckBox/ToggleSwitch, app controls opt in).
 `ScreenSystem.TotalTime` is the global clock for animations, timers, caret blink, and double-click.
 Keyboard: every key (F1-F12, Alt/Ctrl chords) is raised as `KeyDown`/`KeyUp` (`KeyEventArgs.Key`, `IsRepeat`,
 `Handled`) on the focused control, bubbling through its parents to `Screen.KeyDown`; only unclaimed keys get the
