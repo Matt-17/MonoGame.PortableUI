@@ -496,6 +496,9 @@ namespace MonoGame.PortableUI
             DrawBackground(spriteBatch);
 
             DrawControlTree(spriteBatch, _mainGrid, _mainGrid.BoundingRect);
+            // Shared-element flights belong to the content; adorners (handles, guides, a morph between pages) above them.
+            if (engine != null && !_drawingAsGroup && ReferenceEquals(engine.SharedFlightHost, this))
+                DrawSharedFlights(spriteBatch, engine);
             DrawAdorners(spriteBatch);
 
             if (FlyOut != null)
@@ -510,9 +513,6 @@ namespace MonoGame.PortableUI
 
             if (_activeDrag?.DragVisual is { } dragGhost)
                 DrawControlTree(spriteBatch, dragGhost, GetOverlayScissor(dragGhost));
-
-            if (engine != null && !_drawingAsGroup && ReferenceEquals(engine.SharedFlightHost, this))
-                DrawSharedFlights(spriteBatch, engine);
 
             DrawDebugOverlay(spriteBatch);
             DrawSoftwareCursor(spriteBatch, engine);
