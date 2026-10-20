@@ -13,6 +13,8 @@ namespace MonoGame.PortableUI.Controls
 {
     public class TextBox : TextBlock
     {
+        protected override bool UsesThemeMinimumSize => true;
+
         private IKeyboard? _attachedKeyboard;
         private int _cursorPosition;
         private int _maxLength;

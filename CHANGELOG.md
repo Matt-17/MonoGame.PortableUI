@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- **Native-look theme options** (all opt-in, existing themes unchanged), used to match .NET MAUI on Android:
+  - `TextLineMetrics.Android` for runtime fonts: line height and baseline in whole device pixels like an Android `TextView`.
+  - `PortableTheme.MinimumControlSize`: touch-target minimum for buttons, check boxes, radio buttons, text and combo boxes.
+  - Check box: checked/disabled box brushes, box corner radius, centered box without content, `CheckBoxGlyphKind.SmoothCheck`.
+  - Radio button: ring size, stroke, inset, spacing and checked ring brush.
+  - Toggle switch: theme size, track and knob geometry (knob overhanging a thin track), per-state brushes, knob shadow.
+  - Slider: track inset, track/thumb corner radius, auto width. Progress bar: track height, auto width.
+  - Combo box: padding, hideable glyph, `PlaceholderText`.
+  - `ControlStyle.ChromeInset` / `Control.ChromeInset`: background and border drawn inset, layout and hit testing unchanged.
+  - `ProgressIndicatorStyle.CircularArc`: Material's rotating, growing and shrinking arc.
 - **Fix: stray frames after scrolling (`RenderMode.OnDemand`):** a time a visual asked to be drawn at while drawing (`ScreenEngine.RequestAnimationFrameAt`) was kept as the earliest deadline until it fired, so after a long scroll the scroll bar's fade-out deadline from the start of the gesture drew an extra frame up to 750 ms after the content had stopped. These deadlines are now rebuilt by every drawn frame (a cached layer composited unchanged keeps the one its content asked for); `RequestRedrawAt` deadlines stay until due.
 - **Fix: a lifted finger hovered the control under it:** 600 ms after the last touch the mouse a touch platform emulates from the finger counted as a real mouse, so after a scroll the list row under the lifted finger lit up (and cost a layout pass). The pointer now stays a finger until the mouse actually moves.
 - **Platform fling physics:** `ScrollViewer.FlingPhysics` (default from `ScreenEngineOptions.FlingPhysics`) decides how a fling coasts. `FlingPhysics.Android()` is a port of Android's `OverScroller` spline (distance grows with the logarithm of the speed, long glide, soft stop), `FlingPhysics.IOS` UIKit's `UIScrollView` normal deceleration (exponential, 0.998 per ms), `FlingPhysics.Exponential(rate)` the previous curve. **Behaviour change on Android:** the default is now the system scroller with the device's `ViewConfiguration` values (scroll friction, minimum/maximum fling velocity, a 40 ms rest before lifting cancels the fling), so a fling travels as far as in native lists (3000 dp/s: 1309 dp in 1.25 s instead of ~860 dp). Elsewhere the default stays exponential with `FlingDeceleration`.

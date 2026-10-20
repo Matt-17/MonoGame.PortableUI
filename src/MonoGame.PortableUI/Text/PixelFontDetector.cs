@@ -8,6 +8,9 @@ namespace MonoGame.PortableUI.Text
     ///     sit on a coarse grid of font units. Reads the glyph outlines directly (head, hhea, maxp, loca and
     ///     glyf tables) - no rasterizer, no unsafe code.
     /// </summary>
+    /// <summary>Vertical font metrics in ems; descents are positive below the baseline.</summary>
+    internal readonly record struct FontVerticalMetrics(float Ascent, float Descent, float Top, float Bottom);
+
     internal static class PixelFontDetector
     {
         /// <summary>
@@ -44,6 +47,33 @@ namespace MonoGame.PortableUI.Text
             catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException)
             {
                 return 1;
+            }
+        }
+
+        /// <summary>
+        ///     The font's vertical metrics in ems: hhea ascent/descent (descent positive downwards) and the
+        ///     glyph bounding box top/bottom from head (yMax, -yMin). False when the tables are unreadable.
+        /// </summary>
+        public static bool TryReadVerticalMetrics(byte[] font, out FontVerticalMetrics metrics)
+        {
+            metrics = default;
+            try
+            {
+                if (!TryFindTable(font, "head", out var head) || !TryFindTable(font, "hhea", out var hhea))
+                    return false;
+                var unitsPerEm = (float)U16(font, head + 18);
+                if (unitsPerEm <= 0)
+                    return false;
+                metrics = new FontVerticalMetrics(
+                    S16(font, hhea + 4) / unitsPerEm,
+                    -S16(font, hhea + 6) / unitsPerEm,
+                    S16(font, head + 42) / unitsPerEm,
+                    -S16(font, head + 38) / unitsPerEm);
+                return true;
+            }
+            catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException)
+            {
+                return false;
             }
         }
 

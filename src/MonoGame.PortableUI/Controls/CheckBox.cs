@@ -10,6 +10,8 @@ namespace MonoGame.PortableUI.Controls
 {
     public class CheckBox : ContentControl
     {
+        protected override bool UsesThemeMinimumSize => true;
+
         private bool _isChecked;
         private Color _textColor;
 
@@ -24,6 +26,10 @@ namespace MonoGame.PortableUI.Controls
             BoxBorderBrush = theme.CheckBoxBoxBorderBrush;
             CheckMarkBrush = theme.CheckBoxCheckMarkBrush;
             GlyphKind = theme.CheckBoxGlyphKind;
+            BoxCornerRadius = theme.CheckBoxBoxCornerRadius;
+            CheckedBoxBackgroundBrush = theme.CheckBoxCheckedBoxBackgroundBrush;
+            CheckedBoxBorderBrush = theme.CheckBoxCheckedBoxBorderBrush;
+            DisabledBoxBrush = theme.CheckBoxDisabledBoxBrush;
             TextColor = theme.CheckBoxTextColor;
             ShowFocusVisual = true;
             Click += CheckBoxClick;
@@ -51,6 +57,14 @@ namespace MonoGame.PortableUI.Controls
                 CheckMarkBrush = newTheme.CheckBoxCheckMarkBrush;
             if (GlyphKind == oldTheme.CheckBoxGlyphKind)
                 GlyphKind = newTheme.CheckBoxGlyphKind;
+            if (BoxCornerRadius.Equals(oldTheme.CheckBoxBoxCornerRadius))
+                BoxCornerRadius = newTheme.CheckBoxBoxCornerRadius;
+            if (ReferenceEquals(CheckedBoxBackgroundBrush, oldTheme.CheckBoxCheckedBoxBackgroundBrush))
+                CheckedBoxBackgroundBrush = newTheme.CheckBoxCheckedBoxBackgroundBrush;
+            if (ReferenceEquals(CheckedBoxBorderBrush, oldTheme.CheckBoxCheckedBoxBorderBrush))
+                CheckedBoxBorderBrush = newTheme.CheckBoxCheckedBoxBorderBrush;
+            if (ReferenceEquals(DisabledBoxBrush, oldTheme.CheckBoxDisabledBoxBrush))
+                DisabledBoxBrush = newTheme.CheckBoxDisabledBoxBrush;
             if (TextColor.Equals(oldTheme.CheckBoxTextColor))
                 TextColor = newTheme.CheckBoxTextColor;
         }
@@ -114,6 +128,15 @@ namespace MonoGame.PortableUI.Controls
         public Brush? BoxBackgroundBrush { get; set; }
         public Brush? BoxBorderBrush { get; set; }
         public Brush? CheckMarkBrush { get; set; }
+
+        /// <summary>Box fill while checked; null keeps <see cref="BoxBackgroundBrush"/>.</summary>
+        public Brush? CheckedBoxBackgroundBrush { get; set; }
+
+        /// <summary>Box border while checked; null keeps <see cref="BoxBorderBrush"/>.</summary>
+        public Brush? CheckedBoxBorderBrush { get; set; }
+
+        /// <summary>Box border (and fill while checked) when disabled; null keeps the enabled brushes.</summary>
+        public Brush? DisabledBoxBrush { get; set; }
         public CheckBoxGlyphKind GlyphKind { get; set; }
 
         public event EventHandler<CheckedEventArgs>? Checked;
@@ -162,25 +185,33 @@ namespace MonoGame.PortableUI.Controls
         {
             base.OnDraw(spriteBatch, rect);
 
-            var box = GetBoxRect(rect - ToRender(Padding), ToRender(BoxSize));
+            var box = GetBoxRect(rect - ToRender(Padding), ToRender(BoxSize), centered: Content == null);
             var boxRadius = ToRender(BoxCornerRadius);
             var boxBorder = ToRender(BoxBorderWidth);
+            var disabled = !IsEnabled && DisabledBoxBrush != null;
+            var background = IsChecked ? (disabled ? DisabledBoxBrush : CheckedBoxBackgroundBrush ?? BoxBackgroundBrush) : BoxBackgroundBrush;
+            var border = disabled ? DisabledBoxBrush : IsChecked ? CheckedBoxBorderBrush ?? BoxBorderBrush : BoxBorderBrush;
             if (BoxCornerRadius.IsEmpty)
-                BoxBackgroundBrush?.Draw(spriteBatch, box, RenderOpacity);
+                background?.Draw(spriteBatch, box, RenderOpacity);
             else
-                BoxBackgroundBrush?.Draw(spriteBatch, new BrushContext(box, boxRadius, RenderOpacity, spriteBatch.GraphicsDevice));
+                background?.Draw(spriteBatch, new BrushContext(box, boxRadius, RenderOpacity, spriteBatch.GraphicsDevice));
 
-            if (IsChecked && CheckMarkBrush != null)
-                DrawCheckMark(spriteBatch, box, boxBorder, CheckMarkBrush, GlyphKind, RenderOpacity);
-
-            if (BoxBorderBrush != null && BoxBorderWidth > 0)
+            if (border != null && BoxBorderWidth > 0)
             {
                 // Same convention as Control's chrome: rounded borders need a solid color; other
                 // brushes fall back to the square border.
-                if (!BoxCornerRadius.IsEmpty && BoxBorderBrush is SolidColorBrush solidBorder)
+                if (!BoxCornerRadius.IsEmpty && border is SolidColorBrush solidBorder)
                     RoundedRectRenderer.DrawBorder(spriteBatch, box, boxRadius, new Thickness(boxBorder), Brush.ApplyOpacity(solidBorder.Color, RenderOpacity));
                 else
-                    BorderRenderer.Draw(spriteBatch, box, boxBorder, BoxBorderBrush, RenderOpacity);
+                    BorderRenderer.Draw(spriteBatch, box, boxBorder, border, RenderOpacity);
+            }
+
+            if (IsChecked && CheckMarkBrush != null)
+            {
+                if (GlyphKind == CheckBoxGlyphKind.SmoothCheck && CheckMarkBrush is SolidColorBrush solidMark)
+                    DrawSmoothCheck(spriteBatch, box, solidMark.Color, RenderOpacity);
+                else
+                    DrawCheckMark(spriteBatch, box, boxBorder, CheckMarkBrush, GlyphKind == CheckBoxGlyphKind.SmoothCheck ? CheckBoxGlyphKind.Check : GlyphKind, RenderOpacity);
             }
         }
 
@@ -201,15 +232,49 @@ namespace MonoGame.PortableUI.Controls
             Checked?.Invoke(this, new CheckedEventArgs { IsChecked = isChecked });
         }
 
-        private Rect GetBoxRect(Rect contentRect) => GetBoxRect(contentRect, BoxSize);
+        private Rect GetBoxRect(Rect contentRect) => GetBoxRect(contentRect, BoxSize, centered: Content == null);
 
-        private static Rect GetBoxRect(Rect contentRect, float boxSize)
+        // Vertically centered; without content (a label beside it) also horizontally, e.g. in a 44 dp touch target.
+        private static Rect GetBoxRect(Rect contentRect, float boxSize, bool centered)
         {
             return new Rect(
-                contentRect.Left,
+                centered ? contentRect.Left + Math.Max(0, (contentRect.Width - boxSize) / 2) : contentRect.Left,
                 contentRect.Top + Math.Max(0, (contentRect.Height - boxSize) / 2),
                 boxSize,
                 boxSize);
+        }
+
+        // The check of Material's check_box icon, in the coordinates of its 18 unit box, stretched over the box.
+        private static readonly PathGeometry SmoothCheckGeometry = new PathGeometry(18, 18)
+            .MoveTo(7, 14).LineTo(2, 9).LineTo(3.41f, 7.59f).LineTo(7, 11.17f).LineTo(14.59f, 3.58f).LineTo(16, 5).Close();
+
+        // One anti-aliased texture per pixel size and color, shared by all check boxes of a device.
+        private static readonly Dictionary<(int Size, uint Color), Texture2D> SmoothChecks = new Dictionary<(int Size, uint Color), Texture2D>();
+        private static GraphicsDevice? _smoothCheckDevice;
+        private static int _smoothCheckReset = -1;
+
+        private static void DrawSmoothCheck(SpriteBatch spriteBatch, Rect box, Color color, float opacity)
+        {
+            var device = spriteBatch.GraphicsDevice;
+            var size = (int)Math.Round(Math.Min(box.Width, box.Height));
+            if (size <= 0)
+                return;
+            var reset = PathRasterizer.GetResetGeneration(device);
+            if (!ReferenceEquals(device, _smoothCheckDevice) || reset != _smoothCheckReset)
+            {
+                foreach (var stale in SmoothChecks.Values)
+                    stale.Dispose();
+                SmoothChecks.Clear();
+                _smoothCheckDevice = device;
+                _smoothCheckReset = reset;
+            }
+            if (!SmoothChecks.TryGetValue((size, color.PackedValue), out var texture) || texture.IsDisposed)
+            {
+                texture = PathRasterizer.CreateTexture(device, SmoothCheckGeometry, size, size, color);
+                SmoothChecks[(size, color.PackedValue)] = texture;
+            }
+            var at = new Vector2(MathF.Round(box.Left + (box.Width - size) / 2), MathF.Round(box.Top + (box.Height - size) / 2));
+            spriteBatch.Draw(texture, at, Color.White * opacity);
         }
 
         private static void DrawCheckMark(SpriteBatch spriteBatch, Rect rect, float borderWidth, Brush brush, CheckBoxGlyphKind glyphKind, float opacity)

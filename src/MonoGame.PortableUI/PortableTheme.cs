@@ -177,6 +177,13 @@ namespace MonoGame.PortableUI
 
         public Color TextColor { get; set; } = Color.Black;
         public float TextSize { get; set; } = 14;
+
+        /// <summary>
+        ///     Minimum width and height of buttons (radio and toggle buttons, combo boxes included), check boxes
+        ///     and text boxes: a touch target, e.g. 44 like the .NET MAUI template or 48 like Material.
+        ///     0 (default) = none. A control's own <c>MinWidth</c>/<c>MinHeight</c> wins.
+        /// </summary>
+        public float MinimumControlSize { get; set; }
         public bool PixelSnapping { get; set; } = true;
 
         /// <summary>
@@ -350,6 +357,80 @@ namespace MonoGame.PortableUI
         public Brush? CheckBoxBoxBorderBrush { get; set; } = new SolidColorBrush(new Color(82, 101, 111));
         public Brush? CheckBoxCheckMarkBrush { get; set; } = new SolidColorBrush(new Color(20, 126, 133));
         public CheckBoxGlyphKind CheckBoxGlyphKind { get; set; } = CheckBoxGlyphKind.Cross;
+
+        /// <summary>Thickness of a progress bar's track and fill, centered in the control; null fills it.</summary>
+        public float? ProgressBarTrackHeight { get; set; }
+
+        /// <summary>Padding of a combo box's text; null uses <see cref="ButtonPadding"/> (Android Picker: 4, 10).</summary>
+        public Thickness? ComboBoxPadding { get; set; }
+
+        /// <summary>Width of a combo box's dropdown triangle; 0 hides it.</summary>
+        public float ComboBoxGlyphSize { get; set; } = 10;
+
+        /// <summary>Color of a combo box's placeholder text; null uses <see cref="TextBoxHintTextColor"/>.</summary>
+        public Color? ComboBoxPlaceholderColor { get; set; }
+
+        /// <summary>Space from a slider's edges to its track ends (Android: 16); null = half the thumb.</summary>
+        public float? SliderTrackInset { get; set; }
+
+        /// <summary>Corner radius of a slider's track and fill (a pill: half the track height).</summary>
+        public CornerRadius SliderTrackCornerRadius { get; set; }
+
+        /// <summary>Corner radius of a slider's thumb (a circle: half the thumb size).</summary>
+        public CornerRadius SliderThumbCornerRadius { get; set; }
+
+        /// <summary>Default size of a <c>ToggleSwitch</c> (iOS-style 96 x 52; Material 44 x 44 with a smaller track).</summary>
+        public float ToggleSwitchWidth { get; set; } = 96;
+        public float ToggleSwitchHeight { get; set; } = 52;
+
+        /// <summary>Track size, centered in the switch; null fills it.</summary>
+        public float? ToggleSwitchTrackWidth { get; set; }
+        public float? ToggleSwitchTrackHeight { get; set; }
+
+        /// <summary>Knob diameter; null fits it inside the track.</summary>
+        public float? ToggleSwitchKnobSize { get; set; }
+
+        /// <summary>Distance from a track end to the knob's center there; null = half the track height.</summary>
+        public float? ToggleSwitchKnobTravelInset { get; set; }
+
+        /// <summary>Knob while on; null keeps <see cref="ToggleSwitchKnobBrush"/>.</summary>
+        public Brush? ToggleSwitchOnKnobBrush { get; set; }
+
+        public Brush? ToggleSwitchDisabledTrackBrush { get; set; }
+        public Brush? ToggleSwitchDisabledKnobBrush { get; set; }
+
+        /// <summary>Shadow under the knob; null = none.</summary>
+        public ShadowStyle? ToggleSwitchKnobShadow { get; set; }
+
+        /// <summary>Diameter of a radio button's ring; null uses <see cref="CheckBoxBoxSize"/> (Material: 20).</summary>
+        public float? RadioButtonRingSize { get; set; }
+
+        /// <summary>Stroke width of a radio button's ring (Material: 2).</summary>
+        public float RadioButtonRingThickness { get; set; } = 1.5f;
+
+        /// <summary>Space left of a radio button's ring (Material: 6).</summary>
+        public float RadioButtonRingInset { get; set; }
+
+        /// <summary>Gap between a radio button's ring and its label; null uses <see cref="CheckBoxBoxSpacing"/>.</summary>
+        public float? RadioButtonSpacing { get; set; }
+
+        /// <summary>Ring outline; null uses <see cref="CheckBoxBoxBorderBrush"/> (Material: the secondary text color).</summary>
+        public Brush? RadioButtonRingBrush { get; set; }
+
+        /// <summary>Ring outline while checked; null keeps the unchecked ring (Material: the accent).</summary>
+        public Brush? RadioButtonCheckedRingBrush { get; set; }
+
+        /// <summary>Corner radius of the check box square (Material: 2).</summary>
+        public CornerRadius CheckBoxBoxCornerRadius { get; set; }
+
+        /// <summary>Box fill while checked (Material: the accent); null keeps <see cref="CheckBoxBoxBackgroundBrush"/>.</summary>
+        public Brush? CheckBoxCheckedBoxBackgroundBrush { get; set; }
+
+        /// <summary>Box border while checked; null keeps <see cref="CheckBoxBoxBorderBrush"/>.</summary>
+        public Brush? CheckBoxCheckedBoxBorderBrush { get; set; }
+
+        /// <summary>Box border, and fill while checked, of a disabled check box; null keeps the enabled brushes.</summary>
+        public Brush? CheckBoxDisabledBoxBrush { get; set; }
         public Color CheckBoxTextColor { get; set; } = Color.Black;
 
         public Brush? RadioButtonDotBrush { get; set; } = new SolidColorBrush(new Color(20, 126, 133));
@@ -363,6 +444,12 @@ namespace MonoGame.PortableUI
 
         public Color ProgressIndicatorForeground { get; set; } = Color.DarkBlue;
         public float ProgressIndicatorHeight { get; set; } = 48;
+
+        /// <summary>Squares (default) or Material's rotating arc.</summary>
+        public ProgressIndicatorStyle ProgressIndicatorStyle { get; set; }
+
+        /// <summary>Stroke width of the circular arc indicator (Material: 4).</summary>
+        public float ProgressIndicatorStrokeWidth { get; set; } = 4;
 
         public float SliderHeight { get; set; } = 32;
         public float SliderWidth { get; set; } = 160;

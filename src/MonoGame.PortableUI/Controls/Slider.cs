@@ -27,6 +27,9 @@ namespace MonoGame.PortableUI.Controls
             FillBrush = theme.SliderFillBrush;
             ThumbBrush = theme.SliderThumbBrush;
             ThumbBorderBrush = theme.SliderThumbBorderBrush;
+            TrackInset = theme.SliderTrackInset;
+            TrackCornerRadius = theme.SliderTrackCornerRadius;
+            ThumbCornerRadius = theme.SliderThumbCornerRadius;
             ShowFocusVisual = true;
             MouseDown += SliderMouseDown;
             MouseMove += SliderMouseMove;
@@ -58,6 +61,12 @@ namespace MonoGame.PortableUI.Controls
                 ThumbBrush = newTheme.SliderThumbBrush;
             if (ReferenceEquals(ThumbBorderBrush, oldTheme.SliderThumbBorderBrush))
                 ThumbBorderBrush = newTheme.SliderThumbBorderBrush;
+            if (Nullable.Equals(TrackInset, oldTheme.SliderTrackInset))
+                TrackInset = newTheme.SliderTrackInset;
+            if (TrackCornerRadius.Equals(oldTheme.SliderTrackCornerRadius))
+                TrackCornerRadius = newTheme.SliderTrackCornerRadius;
+            if (ThumbCornerRadius.Equals(oldTheme.SliderThumbCornerRadius))
+                ThumbCornerRadius = newTheme.SliderThumbCornerRadius;
         }
 
         // Horizontal track: Left/Right change the value, Up/Down leave the slider (gamepad-friendly).
@@ -139,11 +148,21 @@ namespace MonoGame.PortableUI.Controls
             if (IsGone)
                 return Size.Empty;
 
-            var width = Width.IsFixed() ? Width : PortableTheme.ResolveCurrent().SliderWidth;
-            var height = Height.IsFixed() ? Height : PortableTheme.ResolveCurrent().SliderHeight;
+            var theme = PortableTheme.ResolveCurrent();
+            // An auto width (theme SliderWidth NaN) measures the minimum and stretches when arranged.
+            var width = Width.IsFixed() ? Width : theme.SliderWidth.IsFixed() ? theme.SliderWidth : ThumbSize + 2 * EffectiveTrackInset;
+            var height = Height.IsFixed() ? Height : theme.SliderHeight;
             // Min/Max constrain the content box only; margin is added afterwards (same as Control).
             return ApplyConstraints(new Size(width, height)) + Margin;
         }
+
+        /// <summary>
+        ///     Space between the control's edges and the track ends, where the thumb's center stops
+        ///     (Android SeekBar: 16). Null = half the thumb, so the thumb stays inside the control.
+        /// </summary>
+        public float? TrackInset { get; set; }
+
+        private float EffectiveTrackInset => TrackInset ?? ThumbSize / 2;
 
         /// <summary>Corner radius of track and fill (0 = square, matching earlier versions).</summary>
         public CornerRadius TrackCornerRadius { get; set; }
@@ -189,11 +208,11 @@ namespace MonoGame.PortableUI.Controls
         // scale: the render scale when rect is a draw rect (1 for layout space).
         internal Rect GetTrackRect(Rect rect, float scale = 1f)
         {
-            var thumbSize = ThumbSize * scale;
+            var inset = EffectiveTrackInset * scale;
             var trackHeight = TrackHeight * scale;
-            var trackWidth = Math.Max(0, rect.Width - thumbSize);
+            var trackWidth = Math.Max(0, rect.Width - inset * 2);
             return new Rect(
-                rect.Left + thumbSize / 2,
+                rect.Left + inset,
                 rect.Top + (rect.Height - trackHeight) / 2,
                 trackWidth,
                 trackHeight);
