@@ -43,6 +43,18 @@ namespace MonoGame.PortableUI.Controls
         /// <summary>Stroke width of the <see cref="ProgressIndicatorStyle.CircularArc"/> (Material: 4).</summary>
         public float StrokeWidth { get; set; } = 4;
 
+        /// <summary>
+        ///     Axis the <see cref="ProgressIndicatorStyle.CircularArc"/> spins around: Z (default) turns it in the
+        ///     screen plane; X and Y also flip the ring in space around the horizontal or vertical axis.
+        /// </summary>
+        public ProgressIndicatorAxis RotationAxis { get; set; }
+
+        /// <summary>Turns the arc counterclockwise.</summary>
+        public bool Reverse { get; set; }
+
+        // One flip about the X or Y axis per this many seconds.
+        private const double FlipSeconds = 2.4;
+
         public int MinSize { get; set; }
         public int MaxSize { get; set; }
 
@@ -121,6 +133,15 @@ namespace MonoGame.PortableUI.Controls
             var phase = (float)(seconds / ArcSeconds - cycle);
             var grow = MaxSweepDegrees - MinSweepDegrees;
             var baseAngle = (float)(seconds / RotationSeconds * 360 + cycle * grow) - 90;
+            // Seen along the flip axis the ring is a circle squeezed by the cosine of the flip angle.
+            var flip = MathF.Cos((float)(seconds / FlipSeconds * Math.PI * 2));
+            var squeeze = RotationAxis switch
+            {
+                ProgressIndicatorAxis.X => new Vector2(1, flip),
+                ProgressIndicatorAxis.Y => new Vector2(flip, 1),
+                _ => Vector2.One
+            };
+            var direction = Reverse ? -1f : 1f;
             float tail, head;
             if (phase < 0.5f)
             {
@@ -141,7 +162,7 @@ namespace MonoGame.PortableUI.Controls
             for (var i = 0; i <= steps; i++)
             {
                 var angle = MathHelper.ToRadians(tail) + sweepRadians * i / steps;
-                var point = center + new Vector2(MathF.Cos(angle), MathF.Sin(angle)) * radius;
+                var point = center + new Vector2(MathF.Cos(angle), direction * MathF.Sin(angle)) * squeeze * radius;
                 RoundedRectRenderer.DrawSolid(spriteBatch, new Rect(point.X - stroke / 2, point.Y - stroke / 2, stroke, stroke), dotRadius, color);
             }
         }

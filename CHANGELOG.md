@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Spinner gimmick:** `ProgressIndicator.RotationAxis` (Z, or X/Y to also flip the circular arc in space) and `Reverse` (counterclockwise).
 - **Layout rounding:** `ScreenEngineOptions.UseLayoutRounding` rounds measured sizes, arranged edges and border strokes to whole device pixels (like WPF and Android): a 1 dp line at density 2.75 is 3 px, sizes no longer drift down a page.
 - **Text measured at render resolution:** runtime fonts measured at the small layout-unit size rounded every glyph advance there, up to several percent too wide (labels wrapped early, buttons grew). Wrapping labels also wrap to the slot width, not their aligned rect.
 - **Android text metrics, refined:** wrapped lines are spaced by the rounded hhea metrics (`UIFont.GetLineSpacing`), and glyphs are set at a whole-pixel em like FreeType with hinting (14 sp at density 2.75 is 38 px).
