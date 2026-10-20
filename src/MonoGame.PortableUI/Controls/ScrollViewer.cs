@@ -91,10 +91,20 @@ namespace MonoGame.PortableUI.Controls
                 // Scrolling moves content without a layout pass: still a visual change for redraws
                 // and for cached ancestor layers.
                 RequestRedraw();
+                ScrollChanged?.Invoke(this, EventArgs.Empty);
             }
         }
 
         private PointF _offset;
+
+        /// <summary>Raised whenever <see cref="Offset"/> changes (dragging, flinging, snapping, ScrollTo).</summary>
+        public event EventHandler? ScrollChanged;
+
+        /// <summary>
+        ///     Released drags settle on whole pages (one viewport per page) on a spring: a flick moves one page on,
+        ///     a slow drag goes to the nearer page (<see cref="Pager"/>).
+        /// </summary>
+        public bool SnapsToPages { get; set; }
 
         public bool ShowScrollBars { get; set; }
         public bool EnableFling { get; set; }
@@ -300,9 +310,16 @@ namespace MonoGame.PortableUI.Controls
                 return;
             }
 
+            var wasPanning = _isTouchPanning;
             _touchPosition = null;
             ReleaseTouchOwnership();
             _velocity = new PointF();
+            if (SnapsToPages)
+            {
+                if (wasPanning || IsOverscrolled)
+                    SnapTo(PageTarget());
+                return;
+            }
             if (EnableFling && !IsOverscrolled)
                 StartFling();
 
@@ -529,12 +546,92 @@ namespace MonoGame.PortableUI.Controls
         {
             _animating = false;
             _fling = null;
+            _snapping = false;
         }
 
         private void TrackVelocity(PointF fingerPosition)
         {
             _lastMoveTime = ScreenSystem.TotalTime;
             _velocityTracker.Add(_lastMoveTime, fingerPosition);
+        }
+
+        // Page snapping: a spring from the released offset to a page edge, keeping the finger's speed.
+        private bool _snapping;
+        private PointF _snapTarget;
+        private PointF _snapVelocity;
+        private TimeSpan _lastSnapTime;
+        private static readonly Animation.SpringSpec SnapSpring = Animation.SpringSpec.FromResponse(0.35, 0.9);
+
+        /// <summary>The page edge a released drag settles on: one page on for a flick, else the nearer one.</summary>
+        private PointF PageTarget()
+        {
+            // A finger that rested before lifting has no speed left (as for a fling).
+            var finger = ScreenSystem.TotalTime - _lastMoveTime > EffectiveFlingPhysics.RestTime ? new PointF() : _velocityTracker.GetVelocity();
+            return new PointF(
+                CanScrollX ? PageEdge(Offset.X, -finger.X, Viewport.Width, MaxHorizontalOffset) : 0,
+                CanScrollY ? PageEdge(Offset.Y, -finger.Y, Viewport.Height, MaxVerticalOffset) : 0);
+        }
+
+        private float PageEdge(float offset, float speed, float page, float max)
+        {
+            if (page <= 0)
+                return Clamp(offset, 0, max);
+            var position = offset / page;
+            // A flick (a third of a page per second, at least 300 units) goes on in its direction.
+            var flick = Math.Max(300, page / 3);
+            var index = speed > flick ? MathF.Floor(position) + 1 : speed < -flick ? MathF.Ceiling(position) - 1 : MathF.Round(position);
+            var last = MathF.Round(max / page);
+            return Clamp(Math.Clamp(index, 0, last) * page, 0, max);
+        }
+
+        /// <summary>Glides to <paramref name="target"/> on a spring (clamped to the content).</summary>
+        internal void SnapTo(PointF target)
+        {
+            _fling = null;
+            _animating = false;
+            _snapTarget = new PointF(Clamp(target.X, 0, MaxHorizontalOffset), Clamp(target.Y, 0, MaxVerticalOffset));
+            var finger = ScreenSystem.TotalTime - _lastMoveTime > EffectiveFlingPhysics.RestTime ? new PointF() : _velocityTracker.GetVelocity();
+            _snapVelocity = _touchPosition == null && _isTouchPanning ? new PointF(-finger.X, -finger.Y) : new PointF();
+            _isTouchPanning = false;
+            _snapping = true;
+            _lastSnapTime = ScreenSystem.TotalTime;
+            RequestRedraw();
+        }
+
+        private void AdvanceSnap()
+        {
+            if (_touchPosition != null)
+            {
+                _snapping = false;
+                return;
+            }
+            var now = ScreenSystem.TotalTime;
+            var dt = (float)Math.Min(0.05, Math.Max(0, (now - _lastSnapTime).TotalSeconds));
+            _lastSnapTime = now;
+            var x = Offset.X;
+            var y = Offset.Y;
+            var vx = _snapVelocity.X;
+            var vy = _snapVelocity.Y;
+            // Small steps keep the stiff spring stable on a slow frame.
+            for (var t = 0f; t < dt; t += 1f / 240)
+            {
+                var step = Math.Min(1f / 240, dt - t);
+                vx += (float)((-SnapSpring.Stiffness * (x - _snapTarget.X) - SnapSpring.Damping * vx) / SnapSpring.Mass) * step;
+                vy += (float)((-SnapSpring.Stiffness * (y - _snapTarget.Y) - SnapSpring.Damping * vy) / SnapSpring.Mass) * step;
+                x += vx * step;
+                y += vy * step;
+            }
+            var settled = Math.Abs(x - _snapTarget.X) < 0.25f && Math.Abs(y - _snapTarget.Y) < 0.25f && Math.Abs(vx) < 5 && Math.Abs(vy) < 5;
+            if (settled)
+            {
+                x = _snapTarget.X;
+                y = _snapTarget.Y;
+                _snapping = false;
+            }
+            _snapVelocity = new PointF(vx, vy);
+            Offset = new PointF(x, y);
+            UpdateContentLayout();
+            RequestRedraw();
         }
 
         /// <summary>Turns the finger's release speed into a fling along the scrollable axes.</summary>
@@ -586,6 +683,11 @@ namespace MonoGame.PortableUI.Controls
 
         internal override void OnFrameUpdate()
         {
+            if (_snapping)
+            {
+                AdvanceSnap();
+                return;
+            }
             if (!_animating)
                 return;
             if (_touchPosition != null || _isScrollBarDragging)
