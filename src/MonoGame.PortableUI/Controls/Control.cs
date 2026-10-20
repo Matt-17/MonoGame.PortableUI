@@ -1593,6 +1593,7 @@ namespace MonoGame.PortableUI.Controls
 
         internal void OnMouseDown(MouseEventArgs args)
         {
+            LastPressPosition = args.Position;
             ClearToolTipState();
             foreach (var button in args.Buttons)
                 MouseButtonStates[button] = ButtonState.Pressed;
@@ -1689,8 +1690,12 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        /// <summary>Where the pointer last went down on this control (layout units): a ripple's origin.</summary>
+        internal PointF LastPressPosition { get; private set; }
+
         internal void OnTouchDown(TouchEventArgs args)
         {
+            LastPressPosition = args.Position;
             TouchState = TouchStates.Touched;
             _touchDownTime = ScreenSystem.TotalTime;
             _tapFeedbackUntil = TimeSpan.Zero;

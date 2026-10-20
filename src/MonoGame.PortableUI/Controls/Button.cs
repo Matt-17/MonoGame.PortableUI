@@ -140,6 +140,14 @@ namespace MonoGame.PortableUI.Controls
             base.OnDraw(spriteBatch, rect);
             var context = new BrushContext(rect, CornerRadius, RenderOpacity, spriteBatch.GraphicsDevice, (float)ScreenSystem.TotalTime.TotalSeconds, null, ToRender(1f));
             var theme = _variant != ButtonVariant.Standard ? ResolveTheme() : null;
+            if (EffectiveRipple is { } ripple)
+            {
+                // The ripple is the pressed look; hover keeps its overlay.
+                DrawRipple(spriteBatch, rect, ripple);
+                if (ShowsHoverLook && !IsPressedVisualState())
+                    DrawStateOverlay(spriteBatch, HoverColor, in context);
+                return;
+            }
             if (IsPressedVisualState())
                 DrawStateOverlay(spriteBatch, theme != null && ReferenceEquals(PressedColor, theme.ButtonPressedBrush) ? theme.VariantButtonPressedBrush : PressedColor, in context);
             else if (ShowsHoverLook)
@@ -164,6 +172,68 @@ namespace MonoGame.PortableUI.Controls
             }
 
             brush.Draw(spriteBatch, in context);
+        }
+
+        /// <summary>
+        ///     Material ripple shown while pressed instead of <see cref="PressedColor"/>; null uses the theme's
+        ///     <see cref="PortableTheme.ButtonRipple"/> (chrome buttons such as list rows:
+        ///     <see cref="PortableTheme.ItemRipple"/>), which are off by default.
+        /// </summary>
+        public RippleStyle? Ripple { get; set; }
+
+        private RippleStyle? EffectiveRipple
+            => Ripple ?? (UseThemeStyle ? ResolveTheme().ButtonRipple : ResolveTheme().ItemRipple);
+
+        // The running ripple: its origin as a fraction of the control, when it started and was released.
+        private Vector2 _rippleOrigin;
+        private TimeSpan _rippleStart;
+        private TimeSpan? _rippleRelease;
+        private bool _rippleActive;
+
+        private void StartRipple()
+        {
+            var bounds = ClippingRect;
+            var press = LastPressPosition;
+            _rippleOrigin = bounds.Width > 0 && bounds.Height > 0 && bounds.Contains(press)
+                ? new Vector2((press.X - bounds.Left) / bounds.Width, (press.Y - bounds.Top) / bounds.Height)
+                : new Vector2(0.5f, 0.5f);
+            _rippleStart = ScreenSystem.TotalTime;
+            _rippleRelease = null;
+            _rippleActive = true;
+        }
+
+        private void DrawRipple(SpriteBatch spriteBatch, Rect rect, RippleStyle ripple)
+        {
+            if (!_rippleActive)
+                return;
+            var now = ScreenSystem.TotalTime;
+            var expand = Math.Max(1, ripple.ExpandDuration.TotalMilliseconds);
+            var grow = (float)Math.Min(1, (now - _rippleStart).TotalMilliseconds / expand);
+            var opacity = 1f;
+            if (_rippleRelease is { } released)
+            {
+                // Fades once it has grown: a quick tap still shows the full circle.
+                var fadeStart = released > _rippleStart + ripple.ExpandDuration ? released : _rippleStart + ripple.ExpandDuration;
+                var fade = (now - fadeStart).TotalMilliseconds / Math.Max(1, ripple.FadeDuration.TotalMilliseconds);
+                if (fade >= 1)
+                {
+                    _rippleActive = false;
+                    return;
+                }
+                opacity = (float)Math.Clamp(1 - fade, 0, 1);
+            }
+
+            var clip = ChromeRect(rect);
+            var center = new Vector2(clip.Left + clip.Width * _rippleOrigin.X, clip.Top + clip.Height * _rippleOrigin.Y);
+            // Material's decelerating growth up to the farthest corner.
+            var reach = MathF.Sqrt(MathF.Pow(Math.Max(center.X - clip.Left, clip.Right - center.X), 2)
+                + MathF.Pow(Math.Max(center.Y - clip.Top, clip.Bottom - center.Y), 2));
+            // The soft edge lies outside the reach at full size, so the whole control ends up covered.
+            reach /= 1 - Math.Clamp(ripple.EdgeSoftness, 0, 0.9f);
+            var eased = 1 - (1 - grow) * (1 - grow);
+            var radius = reach * (0.1f + 0.9f * eased);
+            RippleRenderer.Draw(spriteBatch, clip, ToRender(CornerRadius), center, radius, ripple.EdgeSoftness, Media.Brush.ApplyOpacity(ripple.Color, RenderOpacity * opacity));
+            ScreenEngine.RequestAnimationFrame();
         }
 
         #region Properties
@@ -310,7 +380,8 @@ namespace MonoGame.PortableUI.Controls
 
         private void UpdatePressedAnimation(bool isPressed)
         {
-            if (!AnimatePressedState || _isPressedVisualState == isPressed)
+            // A ripple is the pressed feedback; the button does not also shrink (Material).
+            if (!AnimatePressedState || EffectiveRipple != null || _isPressedVisualState == isPressed)
                 return;
 
             _isPressedVisualState = isPressed;
@@ -363,6 +434,10 @@ namespace MonoGame.PortableUI.Controls
             var pressed = IsPressedVisualState();
             if (pressed != _appliedPressedVisual)
             {
+                if (pressed)
+                    StartRipple();
+                else if (_rippleActive)
+                    _rippleRelease = ScreenSystem.TotalTime;
                 _appliedPressedVisual = pressed;
                 ChangeVisualState();
                 RequestRedraw();

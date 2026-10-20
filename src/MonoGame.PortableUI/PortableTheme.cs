@@ -358,6 +358,12 @@ namespace MonoGame.PortableUI
         public Brush? CheckBoxCheckMarkBrush { get; set; } = new SolidColorBrush(new Color(20, 126, 133));
         public CheckBoxGlyphKind CheckBoxGlyphKind { get; set; } = CheckBoxGlyphKind.Cross;
 
+        /// <summary>Material ripple of buttons (instead of the pressed overlay); null = none (default).</summary>
+        public RippleStyle? ButtonRipple { get; set; }
+
+        /// <summary>Ripple of chrome buttons: list and combo box rows, menu entries, tab headers; null = none.</summary>
+        public RippleStyle? ItemRipple { get; set; }
+
         /// <summary>Thickness of a progress bar's track and fill, centered in the control; null fills it.</summary>
         public float? ProgressBarTrackHeight { get; set; }
 
