@@ -130,6 +130,33 @@ namespace MonoGame.PortableUI.Controls
 
         public event EventHandler<CheckedEventArgs>? Toggled;
 
+        /// <summary>
+        ///     Ripple around the knob while pressed; null uses the theme's <see cref="PortableTheme.ToggleRipple"/>
+        ///     (off by default).
+        /// </summary>
+        public RippleStyle? Ripple { get; set; }
+
+        private RippleStyle? EffectiveRipple => Ripple ?? ResolveTheme().ToggleRipple;
+
+        private readonly RippleEffect _ripple = new RippleEffect();
+
+        internal override void OnFrameUpdate()
+        {
+            base.OnFrameUpdate();
+            if (_ripple.Track(IsPointerPressedVisual, ClippingRect, LastPressPosition) && EffectiveRipple != null)
+                RequestRedraw();
+        }
+
+        protected internal override Thickness GetInkOverflow() => RippleEffect.Overflow(base.GetInkOverflow(), EffectiveRipple);
+
+        private void DrawRipple(SpriteBatch spriteBatch, Rect around, bool on)
+        {
+            if (EffectiveRipple is not { } ripple)
+                return;
+            var center = new Vector2(around.Left + around.Width / 2, around.Top + around.Height / 2);
+            _ripple.DrawUnbounded(spriteBatch, center, ToRender(ripple.Radius), ripple, on ? ripple.CheckedColor ?? ripple.Color : ripple.Color, RenderOpacity);
+        }
+
         public override Size MeasureLayout()
         {
             if (IsGoneShown)
@@ -154,6 +181,15 @@ namespace MonoGame.PortableUI.Controls
             var track = new Rect(rect.Left + (rect.Width - trackWidth) / 2, rect.Top + (rect.Height - trackHeight) / 2, trackWidth, trackHeight);
             var radius = new CornerRadius(track.Height / 2);
 
+            var inset = ToRender(KnobInset);
+            var knobSize = KnobSize is { } ks ? ToRender(ks) : track.Height - inset * 2;
+            // The knob's center travels between the two ends, KnobTravelInset in from each.
+            var travelInset = KnobTravelInset is { } ti ? ToRender(ti) : track.Height / 2;
+            var centerX = track.Left + travelInset + (track.Width - travelInset * 2) * _anim;
+            var knob = new Rect(centerX - knobSize / 2, track.Top + (track.Height - knobSize) / 2, knobSize, knobSize);
+            // The ripple follows the knob, behind the track.
+            DrawRipple(spriteBatch, knob, _isOn);
+
             // Track: draw the off colour, then fade the on colour over it by the eased progress.
             if (!IsEnabled && DisabledTrackBrush != null)
                 DisabledTrackBrush.Draw(spriteBatch, new BrushContext(track, radius, RenderOpacity, device));
@@ -163,13 +199,6 @@ namespace MonoGame.PortableUI.Controls
                 if (_anim > 0.001f)
                     OnTrackBrush.Draw(spriteBatch, new BrushContext(track, radius, RenderOpacity * _anim, device));
             }
-
-            var inset = ToRender(KnobInset);
-            var knobSize = KnobSize is { } ks ? ToRender(ks) : track.Height - inset * 2;
-            // The knob's center travels between the two ends, KnobTravelInset in from each.
-            var travelInset = KnobTravelInset is { } ti ? ToRender(ti) : track.Height / 2;
-            var centerX = track.Left + travelInset + (track.Width - travelInset * 2) * _anim;
-            var knob = new Rect(centerX - knobSize / 2, track.Top + (track.Height - knobSize) / 2, knobSize, knobSize);
             var knobRadius = new CornerRadius(knobSize / 2);
             if (KnobShadow != null)
                 ShadowRenderer.Draw(spriteBatch, knob, knobRadius, KnobShadow, RenderOpacity, ToRender(1f));
