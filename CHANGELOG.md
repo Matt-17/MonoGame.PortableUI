@@ -2,8 +2,19 @@
 
 ## Unreleased
 
+## 0.4.0-alpha.10
+
+Android parity, round two: touch text selection with handles and the system's own floating text menu, Material ripples, layout rounding to whole device pixels and text measured at render resolution. Quick clicks during a slow frame are no longer lost. Behaviour change: touch selects text like Android by default (`ScreenEngineOptions.TouchTextSelection`).
+
 - **Fix: quick clicks during a slow frame:** a mouse click pressed and released between two frames never showed in the per-frame poll of the buttons and was lost. On DesktopGL `DeviceInputSource` now also counts presses from SDL's events and reports such a click as pressed for one frame (presses while the window is inactive are dropped); without SDL it polls as before.
 
+- **Touch text selection (`ScreenEngineOptions.TouchTextSelection`, default on):** a tap places the caret with a handle under it, a long press or double tap selects a word with draggable handles and a Cut / Copy / Paste / Select all bar, styled by the theme (`TextSelectionHandle*`, `TextSelectionToolbar*`, `TextBoxCaretWidth`). A tapped text box shows no focus ring. Off: a finger selects like a mouse drag.
+- **Platform text menu (`ScreenEngineOptions.TextSelectionMenu`, `ITextSelectionMenu`):** hand the selection to the platform's own floating menu instead of PortableUI's bar; `AndroidTextSelectionMenu` (API 23+) shows Android's, with share and translate via `ShowTextActions`.
+- **Screen adorners (`Screen.Adorners`, `Adorner`):** a public, non-modal overlay API: controls drawn above the screen's content (such as the selection handles) with their own `HitTest`, `OnPressOutside` and `OnUpdate`.
+- **Ripple on toggles (theme `ToggleRipple`, `RippleStyle.Radius`/`CheckedColor`):** check boxes, radio buttons and switches ripple as a circle around the box or knob.
+- **Fix: radio button label while pressed:** the label no longer turns white while the button is held.
+- **Fix: theme styles per control type:** `PortableTheme.FromPalette` gives every control type its own `ControlStyle`, so a theme that restyles its text boxes no longer restyles its combo boxes too.
+- **Fix: square corner between round ones:** a rounded rect whose corner is smaller than its neighbours (a teardrop) no longer leaves an unfilled notch.
 - **Ripple (`RippleStyle`, `Button.Ripple`, theme `ButtonRipple`/`ItemRipple`):** Material press feedback, a soft-edged circle growing from the press point, clipped to the corner radius, held while pressed and faded on release; replaces the pressed overlay and shrink. Off by default.
 - **Spinner gimmick:** `ProgressIndicator.RotationAxis` (Z, or X/Y to also flip the circular arc in space) and `Reverse` (counterclockwise).
 - **Layout rounding:** `ScreenEngineOptions.UseLayoutRounding` rounds measured sizes, arranged edges and border strokes to whole device pixels (like WPF and Android): a 1 dp line at density 2.75 is 3 px, sizes no longer drift down a page.
