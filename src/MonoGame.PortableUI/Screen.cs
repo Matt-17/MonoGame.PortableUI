@@ -514,6 +514,22 @@ namespace MonoGame.PortableUI
         private IBackdropRenderer? _preparedBackdrop;
 
         /// <summary>
+        ///     The software pointer while this screen is on top, instead of the engine's
+        ///     <see cref="ScreenEngineOptions.Cursor"/> or the theme's <see cref="PortableTheme.Cursor"/> (null = theirs).
+        ///     <see cref="CursorStyle.None"/>: the screen draws its own pointer (a game framebuffer with its arrow, also
+        ///     while a host captures the pointer into it), whatever the theme era would show.
+        /// </summary>
+        public CursorStyle? Cursor { get; set; }
+
+        /// <summary>The pointer to draw: this screen's, else the engine's, else the theme's; null for none (<see cref="CursorStyle.None"/>).</summary>
+        internal CursorStyle? ResolveSoftwareCursor()
+        {
+            var options = ScreenEngine?.Options;
+            var cursor = Cursor ?? options?.Cursor ?? options?.Theme?.Cursor;
+            return cursor is { IsNone: true } ? null : cursor;
+        }
+
+        /// <summary>
         ///     The theme's pointer, drawn last into the UI (before post effects, so a CRT barrel bends
         ///     it like the rest of the picture). The position is the UI-space pointer — already mapped
         ///     back through the barrel — so after the forward warp it sits under the physical pointer.
@@ -525,7 +541,7 @@ namespace MonoGame.PortableUI
             var position = LastMousePosition;
             if (!ScreenRect.Contains(position))
                 return;
-            var cursor = engine.Options.Theme?.Cursor;
+            var cursor = ResolveSoftwareCursor();
             if (cursor == null)
                 return;
             var scale = engine.DrawScale;
