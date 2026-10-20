@@ -16,7 +16,7 @@ namespace MonoGame.PortableUI.Tests
         [TestInitialize]
         public void ResetState()
         {
-            if (ScreenEngine.Instance != null) ScreenEngine.Instance.FocusedControl = null;
+            FallbackEngine.Reset();
             ScreenSystem.TotalTime = TimeSpan.Zero;
         }
 

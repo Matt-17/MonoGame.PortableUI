@@ -39,7 +39,7 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestInitialize]
-        public void Reset() { if (ScreenEngine.Instance != null) ScreenEngine.Instance.FocusedControl = null; }
+        public void Reset() { FallbackEngine.Reset(); }
 
         [TestMethod]
         public void Focusing_a_text_box_shows_the_keyboard_with_its_purpose_and_blur_hides_it()

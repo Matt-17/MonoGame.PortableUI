@@ -11,6 +11,9 @@ namespace MonoGame.PortableUI.Tests
     [TestClass]
     public class InputRegressionTests
     {
+        [TestInitialize]
+        public void ResetEngine() => FallbackEngine.Reset();
+
         [TestMethod]
         public void Double_click_event_uses_configured_time_window()
         {

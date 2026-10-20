@@ -9,7 +9,7 @@ namespace MonoGame.PortableUI.Tests
         [TestInitialize]
         public void ResetFocus()
         {
-            if (ScreenEngine.Instance != null) ScreenEngine.Instance.FocusedControl = null;
+            FallbackEngine.Reset();
         }
 
         [TestMethod]

@@ -15,7 +15,7 @@ namespace MonoGame.PortableUI.Tests
         [TestInitialize]
         public void ResetState()
         {
-            if (ScreenEngine.Instance != null) ScreenEngine.Instance.FocusedControl = null;
+            FallbackEngine.Reset();
             ScreenSystem.TotalTime = TimeSpan.Zero;
         }
 
@@ -139,10 +139,15 @@ namespace MonoGame.PortableUI.Tests
         [TestMethod]
         public void Disabling_control_clears_focus_inputs_and_active_tooltip()
         {
+            // Its own engine: focus lives per engine, and ScreenEngine.Instance is whatever an earlier test left.
+            using var game = new Microsoft.Xna.Framework.Game();
+            using var engine = ScreenEngine.CreateSurfaceEngine(game, new ScreenEngineOptions { AddComponentToGame = false, ScreenSizeMode = ScreenSizeMode.Manual, DebugOverlayKey = null });
             var screen = new TestScreen();
+            engine.NavigateToScreen(screen);
             var button = AttachButton(screen);
             button.ToolTip = "Disabled help";
             button.Focus();
+            Assert.AreSame(button, engine.FocusedControl, "precondition");
             screen.ShowToolTip(button, button.ToolTip!, new PointF(8, 8));
             button.OnMouseEnter(new MouseEventArgs(new PointF(8, 8), new List<MouseButton>()));
             button.OnMouseDown(new MouseEventArgs(new PointF(8, 8), MouseButton.Left));
@@ -150,7 +155,7 @@ namespace MonoGame.PortableUI.Tests
 
             button.IsEnabled = false;
 
-            Assert.IsNull(ScreenEngine.Instance!.FocusedControl);
+            Assert.IsNull(engine.FocusedControl);
             Assert.IsFalse(screen.IsToolTipVisibleFor(button));
             Assert.AreEqual(HoverStates.NotHovering, button.CurrentHoverState);
             Assert.AreEqual(TouchStates.Released, button.CurrentTouchState);

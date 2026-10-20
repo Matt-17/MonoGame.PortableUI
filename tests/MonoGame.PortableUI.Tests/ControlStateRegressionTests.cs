@@ -11,6 +11,9 @@ namespace MonoGame.PortableUI.Tests
     [TestClass]
     public class ControlStateRegressionTests
     {
+        [TestInitialize]
+        public void ResetEngine() => FallbackEngine.Reset();
+
         [TestMethod]
         public void Button_applies_initial_text_color_to_created_text_content()
         {

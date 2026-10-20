@@ -188,6 +188,15 @@ namespace MonoGame.PortableUI
                 || now < _redrawUntil || IsTransitioning || DebugOverlayEnabled;
         }
 
+        /// <summary>Which sources of <see cref="PeekRedrawRequest"/> are pending, for test failure messages.</summary>
+        internal string DescribeRedrawRequest()
+        {
+            var now = ScreenSystem.TotalTime;
+            return $"now={now.TotalMilliseconds} ms, requested={Volatile.Read(ref _redrawRequested) != 0}, redrawAt={_redrawAt.TotalMilliseconds} ms, "
+                + $"animationFrameAt={_animationFrameAt.TotalMilliseconds} ms, frames={Volatile.Read(ref _redrawFrames)}, "
+                + $"until={_redrawUntil.TotalMilliseconds} ms, transitioning={IsTransitioning}, debugOverlay={DebugOverlayEnabled}";
+        }
+
         /// <summary>When the next frame is due on the <see cref="ScreenSystem.TotalTime"/> clock: Zero when
         /// one is due now, MaxValue when idle.</summary>
         internal TimeSpan NextRedrawDue => PeekRedrawRequest() ? TimeSpan.Zero : NextScheduledRedraw;
