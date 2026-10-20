@@ -1848,6 +1848,12 @@ namespace MonoGame.PortableUI
             HandleKeyboardInput(inputSource);
             HandleGamePadInput(inputSource);
 
+            if (RoutePinch(touchCollection, content))
+            {
+                LastTouchPosition = touchPosition;
+                return;
+            }
+
             if (_activeDrag is { } drag)
             {
                 var dragPosition = drag.IsTouchDrag ? touchPosition : mousePosition;
