@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Ripple (`RippleStyle`, `Button.Ripple`, theme `ButtonRipple`/`ItemRipple`):** Material press feedback, a soft-edged circle growing from the press point, clipped to the corner radius, held while pressed and faded on release; replaces the pressed overlay and shrink. Off by default.
 - **Spinner gimmick:** `ProgressIndicator.RotationAxis` (Z, or X/Y to also flip the circular arc in space) and `Reverse` (counterclockwise).
 - **Layout rounding:** `ScreenEngineOptions.UseLayoutRounding` rounds measured sizes, arranged edges and border strokes to whole device pixels (like WPF and Android): a 1 dp line at density 2.75 is 3 px, sizes no longer drift down a page.
 - **Text measured at render resolution:** runtime fonts measured at the small layout-unit size rounded every glyph advance there, up to several percent too wide (labels wrapped early, buttons grew). Wrapping labels also wrap to the slot width, not their aligned rect.
