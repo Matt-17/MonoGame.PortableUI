@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Pager (`Pager`, `ScrollViewer.SnapsToPages`):** pages side by side, swiped like tabs: the next page follows the finger, a release settles on a whole page on a spring (a flick moves one page on), past the ends only the overscroll stretch; pages may scroll vertically. `PagePosition` follows the swipe continuously for a tab indicator, `GoTo(index)` glides, `PageChanged` reports the page. `ScrollViewer.ScrollChanged` reports every offset change.
 - **Swipes (`SwipeArea`):** horizontal swipes over any content: flick between pages or tabs, or swipe actions on list rows (`FollowsFinger`, `LeftAction`/`RightAction` revealed behind, `SlidesOutOnCommit`). It takes the touch over once the finger clearly moves sideways, so a button under it does not click and vertical scrolling keeps working.
 - **Particle bursts (`ParticleLayer`, `ParticleBurst`, `control.Burst()`):** confetti, sparks and bubbles above a screen as an adorner that never takes a touch; presets or your own (count, colours, shape, speed, spread, gravity, drag, spin, lifetime).
 - **Faster shared-element flights:** a flying control is drawn once at rest into a texture and the flight moves and scales that picture. Drawing it live at every in-between size built new textures for brushes, corner masks and shadows each frame (a flying card and avatar took 20-35 ms per frame on a Pixel 5, now 11 ms at 90 Hz). Content that animates on its own shows still while it flies.
