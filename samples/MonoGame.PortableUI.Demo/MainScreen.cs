@@ -891,7 +891,8 @@ namespace MonoGame.PortableUI.Demo
                 ball.Animate().TranslateTo(new Vector2(target, 0)).Spring(SpringSpec.FromResponse(0.55, 0.75)).Start();
             };
 
-            var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Thickness(0, 10, 0, 16) };
+            // Wrap instead of running past the tab: a button cut off at the edge looked clickable where it was not.
+            var buttons = new WrapPanel { HorizontalSpacing = 8, VerticalSpacing = 8, Margin = new Thickness(0, 10, 0, 16) };
             buttons.AddChild(MotionButton("Linear", box, Easings.Linear));
             buttons.AddChild(MotionButton("Quad", box, Easings.QuadOut));
             buttons.AddChild(MotionButton("Back", box, Easings.BackOut));
@@ -903,7 +904,7 @@ namespace MonoGame.PortableUI.Demo
             buttons.AddChild(MotionDemoButton("Lean", _motionActions["lean"]));
             grid.AddChild(buttons, row: 1);
 
-            var organicButtons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Thickness(0, 10, 0, 0) };
+            var organicButtons = new WrapPanel { HorizontalSpacing = 8, VerticalSpacing = 8, Margin = new Thickness(0, 10, 0, 0) };
             organicButtons.AddChild(MotionDemoButton("Throw ball", _motionActions["throw"]));
             organicButtons.AddChild(MotionDemoButton("Pop", _motionActions["pop"]));
             organicButtons.AddChild(MotionDemoButton("Jelly", _motionActions["jelly"]));
