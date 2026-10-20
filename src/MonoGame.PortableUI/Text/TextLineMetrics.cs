@@ -7,10 +7,11 @@ namespace MonoGame.PortableUI.Text
         Font,
 
         /// <summary>
-        ///     Like an Android <c>TextView</c> (<c>includeFontPadding</c>, the default): ascent and descent are
-        ///     the larger of <c>hhea</c> and the glyph bounding box (<c>head</c> yMax/yMin), each rounded up to
-        ///     whole device pixels; the baseline sits that rounded ascent below the line's top. Text then lines
-        ///     up with native Android (and .NET MAUI) labels to the pixel.
+        ///     Like an Android <c>TextView</c> (<c>includeFontPadding</c>, the default), in whole device pixels:
+        ///     a line's box reaches up and down to the larger of <c>hhea</c> and the glyph box (<c>head</c>
+        ///     yMax/yMin), each rounded up, with the baseline that far below the top; wrapped lines are the
+        ///     rounded hhea ascent + descent apart. Text then lines up with native Android (and .NET MAUI)
+        ///     labels within a pixel.
         /// </summary>
         Android
     }

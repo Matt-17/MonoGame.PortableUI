@@ -154,11 +154,28 @@ namespace MonoGame.PortableUI.Text
             if (UsesAndroidMetrics)
             {
                 var devicePixels = DevicePixelsPerUnit();
-                var (ascent, descent) = AndroidLine(Em(pixelSize) * devicePixels);
-                return (ascent + descent) / devicePixels;
+                var (top, bottom) = AndroidLine(Em(pixelSize) * devicePixels);
+                return (top + bottom) / devicePixels;
             }
             return GetFont(Size(pixelSize)).LineHeight * Correction(Size(pixelSize));
         }
+
+        public override float GetLineSpacing(float pixelSize)
+        {
+            if (!UsesAndroidMetrics)
+                return GetLineHeight(pixelSize);
+            // Between lines Android uses FontMetricsInt ascent + descent: the hhea values, each rounded.
+            var devicePixels = DevicePixelsPerUnit();
+            var em = Em(pixelSize) * devicePixels;
+            var m = VerticalMetrics!.Value;
+            return (MathF.Round(m.Ascent * em) + MathF.Round(m.Descent * em)) / devicePixels;
+        }
+
+        // Text is measured at the resolution it is drawn at: FontStashSharp rounds every glyph advance to whole
+        // pixels of the size it rasterizes, which at the small layout-unit size (14 sp is about 19 units)
+        // added up to several percent of a line's width (labels wrapped early, buttons grew). Pixel fonts
+        // keep their grid.
+        private float MeasureRaster() => PixelGrid > 0 ? 1f : DevicePixelsPerUnit();
 
         // Device pixels per layout unit: the drawing engine's scale, else the main engine's.
         private static float DevicePixelsPerUnit()
@@ -170,12 +187,23 @@ namespace MonoGame.PortableUI.Text
         // The em size in layout units (sizes are points scaled by PixelsPerPoint).
         private float Em(float pixelSize) => (pixelSize > 0 ? pixelSize : DefaultSize) * PixelsPerPoint;
 
-        // Android's FontMetricsInt with includeFontPadding: max(ascent, bbox top) and max(descent, bbox bottom),
-        // each rounded up to whole device pixels.
-        private (float Ascent, float Descent) AndroidLine(float emDevicePixels)
+        // A single line's box with Android's includeFontPadding: the larger of hhea and glyph box above and
+        // below the baseline, each rounded up to whole device pixels (matches TextView within a pixel).
+        private (float Top, float Bottom) AndroidLine(float emDevicePixels)
         {
             var m = VerticalMetrics!.Value;
             return (Ceiling(Math.Max(m.Ascent, m.Top) * emDevicePixels), Ceiling(Math.Max(m.Descent, m.Bottom) * emDevicePixels));
+        }
+
+        // Android (FreeType with hinting) renders glyphs at a whole-pixel em: 14 sp at density 2.75 (38.5 px) is
+        // set at 38 px, about 1.3 % narrower; line metrics keep the exact size. Measured against MAUI labels.
+        private float GlyphPixelSize(float pixelSize, float devicePixels)
+        {
+            if (!UsesAndroidMetrics || devicePixels <= 0)
+                return pixelSize;
+            var em = Em(pixelSize) * devicePixels;
+            var whole = MathF.Floor(em + 0.001f);
+            return whole > 0 ? (pixelSize > 0 ? pixelSize : DefaultSize) * (whole / em) : pixelSize;
         }
 
         // Rounds up, ignoring float noise just above a whole pixel.
@@ -188,8 +216,8 @@ namespace MonoGame.PortableUI.Text
                 return position;
             var devicePixels = Math.Abs(scale.Y) > 0.01f ? Math.Abs(scale.Y) : 1f;
             var em = Em(pixelSize);
-            var android = AndroidLine(em * devicePixels).Ascent / devicePixels;
-            var fontStash = em * VerticalMetrics!.Value.Ascent;
+            var android = AndroidLine(em * devicePixels).Top / devicePixels;
+            var fontStash = Em(GlyphPixelSize(pixelSize, devicePixels)) * VerticalMetrics!.Value.Ascent;
             return new Vector2(position.X, position.Y + (android - fontStash) * scale.Y);
         }
 
@@ -197,14 +225,18 @@ namespace MonoGame.PortableUI.Text
         {
             if (string.IsNullOrEmpty(text))
                 return new Vector2(0, GetLineHeight(pixelSize));
-            return WithLineHeight(GetFont(Size(pixelSize)).MeasureString(text) * Correction(Size(pixelSize)), pixelSize);
+            var raster = MeasureRaster();
+            var size = Size(GlyphPixelSize(pixelSize, raster)) * raster;
+            return WithLineHeight(GetFont(size).MeasureString(text) * (Correction(size) / raster), pixelSize);
         }
 
         public override Vector2 MeasureString(StringBuilder text, float pixelSize)
         {
             if (text == null || text.Length == 0)
                 return new Vector2(0, GetLineHeight(pixelSize));
-            return WithLineHeight(GetFont(Size(pixelSize)).MeasureString(text) * Correction(Size(pixelSize)), pixelSize);
+            var raster = MeasureRaster();
+            var size = Size(GlyphPixelSize(pixelSize, raster)) * raster;
+            return WithLineHeight(GetFont(size).MeasureString(text) * (Correction(size) / raster), pixelSize);
         }
 
         public override void DrawString(SpriteBatch spriteBatch, string text, Vector2 position, Color color, float pixelSize, Vector2 scale)
@@ -217,6 +249,7 @@ namespace MonoGame.PortableUI.Text
 
             var raster = RasterScale(scale);
             position = AndroidBaseline(position, pixelSize, scale);
+            pixelSize = GlyphPixelSize(pixelSize, raster);
             GetFont(Size(pixelSize) * raster).DrawText(spriteBatch, text, position, color, scale: scale / raster * Correction(Size(pixelSize) * raster));
         }
 
@@ -230,6 +263,7 @@ namespace MonoGame.PortableUI.Text
 
             var raster = RasterScale(scale);
             position = AndroidBaseline(position, pixelSize, scale);
+            pixelSize = GlyphPixelSize(pixelSize, raster);
             GetFont(Size(pixelSize) * raster).DrawText(spriteBatch, text, position, color, scale: scale / raster * Correction(Size(pixelSize) * raster));
         }
 
@@ -243,6 +277,7 @@ namespace MonoGame.PortableUI.Text
 
             var raster = RasterScale(rasterScale);
             position = AndroidBaseline(position, pixelSize, scale);
+            pixelSize = GlyphPixelSize(pixelSize, raster);
             // Scaled glyph quads take the atlas padding along, so their soft edges are not cut at fractional positions.
             _paddedRenderer.Batch = spriteBatch;
             GetFont(Size(pixelSize) * raster).DrawText(_paddedRenderer, text, position, color, scale: scale / raster * Correction(Size(pixelSize) * raster));
@@ -259,6 +294,7 @@ namespace MonoGame.PortableUI.Text
 
             var raster = RasterScale(rasterScale);
             position = AndroidBaseline(position, pixelSize, scale);
+            pixelSize = GlyphPixelSize(pixelSize, raster);
             GetFont(Size(pixelSize) * raster).DrawText(spriteBatch, text, position, color, scale: scale / raster * Correction(Size(pixelSize) * raster));
         }
 

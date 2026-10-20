@@ -133,7 +133,15 @@ namespace MonoGame.PortableUI.Common
 
         public static implicit operator Rectangle(Rect rect)
         {
-            return new Rectangle((int)rect.Left, (int)rect.Top, (int)rect.Width, (int)rect.Height);
+            return new Rectangle(Whole(rect.Left), Whole(rect.Top), Whole(rect.Width), Whole(rect.Height));
+        }
+
+        // Truncates like (int), except values within float noise of a whole number (448.9999 from
+        // rounded layout times a scale) count as that number instead of losing a pixel.
+        private static int Whole(float value)
+        {
+            var rounded = MathF.Round(value);
+            return MathF.Abs(value - rounded) < 0.001f ? (int)rounded : (int)value;
         }
 
         private Rect Intersects(Rect other)
