@@ -383,6 +383,7 @@ namespace MonoGame.PortableUI.Controls
             }
             SetCursorFromPosition(args.Position, _isPointerSelecting);
             _isPointerSelecting = false;
+            ShowKeyboardAgain();
         }
 
         private void OnTouchCancel(object? sender, TouchEventArgs args)
@@ -487,6 +488,7 @@ namespace MonoGame.PortableUI.Controls
                 && (layer?.InsertionHandleShown == true || Text.Length == 0);
             MoveCursorTo(position, false);
             layer?.ShowInsertion(this, toolbar: onCaret && !layer.ToolbarShown);
+            ShowKeyboardAgain();
         }
 
         internal override void OnFrameUpdate()
@@ -596,6 +598,20 @@ namespace MonoGame.PortableUI.Controls
             base.OnGotFocus(args);
             ScreenEngine.Instance?.RequestKeyboard(InputScope);
             AttachKeyboard(ScreenEngine.Instance?.CurrentKeyboard);
+            ShowOnScreenKeyboard();
+        }
+
+        // The focused field tapped again: bring back a keyboard closed meanwhile (Android back).
+        private void ShowKeyboardAgain()
+        {
+            // Android's IsVisible only knows what was asked for; the inset tells whether the system closed it.
+            if (IsFocused && (Screen?.ScreenEngine ?? ScreenEngine.Instance) is { } engine
+                && (!engine.OnScreenKeyboard.IsVisible || engine.KeyboardInset <= 0))
+                ShowOnScreenKeyboard();
+        }
+
+        private void ShowOnScreenKeyboard()
+        {
             if (!IsReadOnly && (Screen?.ScreenEngine ?? ScreenEngine.Instance) is { } engine)
             {
                 engine.OnScreenKeyboard.Show(new OnScreenKeyboardRequest

@@ -44,6 +44,12 @@ namespace MonoGame.PortableUI
         public bool TouchTextSelection { get; set; } = true;
 
         /// <summary>
+        ///     A finger tapping outside the focused text field (on nothing that takes focus itself) unfocuses it and
+        ///     the keyboard goes away (default on, as in iOS and Flutter apps). A scroll that starts outside keeps it.
+        /// </summary>
+        public bool TapOutsideUnfocusesText { get; set; } = true;
+
+        /// <summary>
         ///     The platform's own Cut / Copy / Paste menu for touch selection (e.g. <c>AndroidTextSelectionMenu</c>);
         ///     null (default) draws PortableUI's bar.
         /// </summary>
