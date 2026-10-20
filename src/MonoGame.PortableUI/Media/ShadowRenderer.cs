@@ -25,11 +25,23 @@ namespace MonoGame.PortableUI.Media
             // Each layer is a full translucent fill: Low quality keeps the overdraw to a few.
             var maxLayers = ScreenEngine.DrawingQuality == RenderQuality.Low ? LowQualityLayers : MaxLayers;
             var count = FillShadowLayers(rect, shadow, layers, scale, maxLayers);
-            for (var i = 0; i < count; i++)
+            // A soft shadow has no edge a fractional position could sharpen: its layers always use the shared whole-pixel
+            // corner masks. In motion, each layer's expanded radius built its own subpixel mask instead (a shadowed button
+            // and a tab bar starting to move cost 60-80 ms on a Pixel 5 the first time).
+            var subpixel = RoundedRectRenderer.Subpixel;
+            RoundedRectRenderer.Subpixel = false;
+            try
             {
-                var layer = layers[i];
-                var expansion = shadow.Inset ? 0 : Math.Max(0, (layer.Rect.Width - rect.Width) / 2);
-                RoundedRectRenderer.DrawSolid(spriteBatch, layer.Rect, Expand(radius, expansion), Brush.ApplyOpacity(layer.Color, opacity));
+                for (var i = 0; i < count; i++)
+                {
+                    var layer = layers[i];
+                    var expansion = shadow.Inset ? 0 : Math.Max(0, (layer.Rect.Width - rect.Width) / 2);
+                    RoundedRectRenderer.DrawSolid(spriteBatch, layer.Rect, Expand(radius, expansion), Brush.ApplyOpacity(layer.Color, opacity));
+                }
+            }
+            finally
+            {
+                RoundedRectRenderer.Subpixel = subpixel;
             }
         }
 
