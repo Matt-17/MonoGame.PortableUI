@@ -294,21 +294,22 @@ namespace MonoGame.PortableUI
     {
         public static IReadOnlyDictionary<string, ControlStyle> FromPalette(ThemePalette palette)
         {
-            var button = CreateControlStyle(
+            // One instance per key: a theme that restyles its text boxes must not restyle its combo boxes too.
+            ControlStyle Button() => CreateControlStyle(
                 palette.SurfaceBrush ?? Solid(palette.Surface),
                 Solid(palette.Primary),
                 palette.Text,
                 palette.SelectionBrush ?? Solid(palette.Selection),
                 palette.SelectionText);
 
-            var field = CreateControlStyle(
+            ControlStyle Field() => CreateControlStyle(
                 palette.FieldFrameBrush ?? Solid(palette.FieldFrame),
                 Solid(palette.FieldBorder),
                 palette.Text,
                 palette.SelectionBrush ?? Solid(palette.Selection),
                 palette.SelectionText);
 
-            var flat = CreateControlStyle(
+            ControlStyle Flat() => CreateControlStyle(
                 palette.SurfaceBrush ?? Solid(palette.Surface),
                 Solid(palette.FieldBorder),
                 palette.Text,
@@ -317,29 +318,29 @@ namespace MonoGame.PortableUI
 
             return new Dictionary<string, ControlStyle>(StringComparer.OrdinalIgnoreCase)
             {
-                ["Button"] = button,
+                ["Button"] = Button(),
                 ["PrimaryButton"] = Variant(palette.Primary, palette.SelectionText, palette.DisabledSurface),
                 ["SecondaryButton"] = Variant(palette.Secondary, palette.SelectionText, palette.DisabledSurface),
                 ["DangerButton"] = Variant(palette.Danger, palette.SelectionText, palette.DisabledSurface),
-                ["TextBox"] = field,
-                ["CheckBox"] = field,
-                ["RadioButton"] = field,
-                ["ToggleButton"] = button,
-                ["ComboBox"] = field,
+                ["TextBox"] = Field(),
+                ["CheckBox"] = Field(),
+                ["RadioButton"] = Field(),
+                ["ToggleButton"] = Button(),
+                ["ComboBox"] = Field(),
                 ["ListBox"] = CreateControlStyle(
                     palette.SurfaceBrush ?? Solid(palette.Surface),
                     Solid(palette.FieldBorder),
                     palette.Text,
                     palette.SelectionBrush ?? Solid(palette.Selection),
                     palette.SelectionText),
-                ["ListBoxItem"] = flat,
-                ["Tab"] = button,
+                ["ListBoxItem"] = Flat(),
+                ["Tab"] = Button(),
                 ["ToolTip"] = CreateControlStyle(Solid(palette.Background), Solid(palette.Primary), palette.Text, Solid(palette.SurfaceAlt), palette.Text),
-                ["ContextMenu"] = flat,
+                ["ContextMenu"] = Flat(),
                 ["ScrollBar"] = CreateControlStyle(Solid(palette.Primary), Solid(palette.Primary), palette.Text, Solid(palette.Secondary), palette.Text),
-                ["Slider"] = flat,
-                ["ProgressBar"] = flat,
-                ["Panel"] = flat
+                ["Slider"] = Flat(),
+                ["ProgressBar"] = Flat(),
+                ["Panel"] = Flat()
             };
         }
 
