@@ -20,22 +20,60 @@ namespace MonoGame.PortableUI.Input
 
         public PointF MousePosition => (PointF)Mouse.GetState().Position;
 
+        /// <summary>
+        ///     The buttons held now, plus (on DesktopGL) those pressed since the previous frame: a click pressed and
+        ///     released between two polls, as during a slow frame, then reads as pressed for one frame instead of
+        ///     never.
+        /// </summary>
         public IReadOnlyCollection<MouseButton> PressedMouseButtons
         {
             get
             {
                 var mouseState = Mouse.GetState();
+                TakeClicks();
                 // Polled every frame; callers snapshot the contents immediately, so reuse one list.
                 var buttons = _pressedButtons;
                 buttons.Clear();
-                if (mouseState.LeftButton == ButtonState.Pressed)
+                if (mouseState.LeftButton == ButtonState.Pressed || _leftClicked)
                     buttons.Add(MouseButton.Left);
-                if (mouseState.RightButton == ButtonState.Pressed)
+                if (mouseState.RightButton == ButtonState.Pressed || _rightClicked)
                     buttons.Add(MouseButton.Right);
-                if (mouseState.MiddleButton == ButtonState.Pressed)
+                if (mouseState.MiddleButton == ButtonState.Pressed || _middleClicked)
                     buttons.Add(MouseButton.Middle);
                 return buttons.Count == 0 ? EmptyButtons : buttons;
             }
+        }
+
+        private bool _leftClicked, _rightClicked, _middleClicked;
+        private System.TimeSpan _clicksTime = System.TimeSpan.MinValue;
+
+        /// <summary>
+        ///     Takes the presses SDL counted since the last frame, once per frame (keyed by
+        ///     <see cref="ScreenSystem.TotalTime"/>), so every screen and surface reading this frame sees them.
+        /// </summary>
+        private void TakeClicks()
+        {
+            var now = ScreenSystem.TotalTime;
+            if (now == _clicksTime)
+                return;
+            _clicksTime = now;
+#if !ANDROID
+            if (SdlMouseClicks.TryInstall())
+            {
+                _leftClicked = SdlMouseClicks.Take(SdlMouseClicks.Left) > 0;
+                _rightClicked = SdlMouseClicks.Take(SdlMouseClicks.Right) > 0;
+                _middleClicked = SdlMouseClicks.Take(SdlMouseClicks.Middle) > 0;
+            }
+#endif
+        }
+
+        /// <summary>Forgets presses made while the window was inactive and nobody read the device.</summary>
+        internal void DiscardClicks()
+        {
+            _leftClicked = _rightClicked = _middleClicked = false;
+#if !ANDROID
+            SdlMouseClicks.Discard();
+#endif
         }
 
         public int ScrollWheelValue => Mouse.GetState().ScrollWheelValue;

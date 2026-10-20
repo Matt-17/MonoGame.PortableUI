@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Fix: quick clicks during a slow frame:** a mouse click pressed and released between two frames never showed in the per-frame poll of the buttons and was lost. On DesktopGL `DeviceInputSource` now also counts presses from SDL's events and reports such a click as pressed for one frame (presses while the window is inactive are dropped); without SDL it polls as before.
+
 - **Ripple (`RippleStyle`, `Button.Ripple`, theme `ButtonRipple`/`ItemRipple`):** Material press feedback, a soft-edged circle growing from the press point, clipped to the corner radius, held while pressed and faded on release; replaces the pressed overlay and shrink. Off by default.
 - **Spinner gimmick:** `ProgressIndicator.RotationAxis` (Z, or X/Y to also flip the circular arc in space) and `Reverse` (counterclockwise).
 - **Layout rounding:** `ScreenEngineOptions.UseLayoutRounding` rounds measured sizes, arranged edges and border strokes to whole device pixels (like WPF and Android): a 1 dp line at density 2.75 is 3 px, sizes no longer drift down a page.

@@ -1705,6 +1705,7 @@ namespace MonoGame.PortableUI
             {
                 // Window in the background: the real devices are someone else's (see InputWhenInactive).
                 _inactiveInput ??= new InactiveWindowInputSource();
+                DeviceInputSource.Instance.DiscardClicks();
                 if (!_deviceInputSuspended)
                 {
                     _deviceInputSuspended = true;
