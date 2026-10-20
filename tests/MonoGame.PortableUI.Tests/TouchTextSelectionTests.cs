@@ -38,6 +38,15 @@ namespace MonoGame.PortableUI.Tests
             public void SetText(string? text) => Text = text;
         }
 
+        private sealed class RecordingMenu : ITextSelectionMenu
+        {
+            public TextSelectionMenuRequest? Shown;
+            public int Shows, Hides, Suspends;
+            public void Show(TextSelectionMenuRequest request) { Shown = request; Shows++; }
+            public void Hide() { Shown = null; Hides++; }
+            public void Suspend() => Suspends++;
+        }
+
         private sealed class Bar : Adorner
         {
             public int Outside;
@@ -312,6 +321,54 @@ namespace MonoGame.PortableUI.Tests
 
             CollectionAssert.AreEqual(new[] { "more", "Paste", "Select all" }, ToolbarLabels(), "a back arrow over the rest");
             Assert.AreEqual("world", _box.SelectedText);
+        }
+
+        [TestMethod]
+        public void A_platform_menu_replaces_the_drawn_bar()
+        {
+            var menu = new RecordingMenu();
+            _engine.Options.TextSelectionMenu = menu;
+            LongPress(X(7), LineY);
+
+            Assert.IsNotNull(menu.Shown);
+            CollectionAssert.AreEqual(new[] { TextSelectionAction.Cut, TextSelectionAction.Copy, TextSelectionAction.SelectAll }, menu.Shown!.Actions.ToArray());
+            Assert.AreEqual("world", menu.Shown.SelectedText);
+            Assert.IsFalse(((Border)_screen.ExistingTextSelection!.Content!).IsVisible, "no drawn bar");
+            _box.TryGetCaretPoint(6, out var start, out var lineHeight);
+            Assert.AreEqual(start.X, menu.Shown.ContentRect.Left, 0.5f, "the menu stands over the word");
+            Assert.AreEqual(start.Y - lineHeight, menu.Shown.ContentRect.Top, 0.5f);
+
+            // Dragging a handle hides the menu for the moment and brings it back with the new selection.
+            _box.TryGetCaretPoint(11, out var tip, out _);
+            Touch(TouchLocationState.Pressed, tip.X + 8, tip.Y + 10);
+            Touch(TouchLocationState.Moved, X(14) + 8, tip.Y + 10);
+            Assert.IsTrue(menu.Suspends > 0);
+            Assert.AreEqual(0, menu.Hides);
+            Touch(TouchLocationState.Released, X(14) + 8, tip.Y + 10);
+            Frame();
+            Assert.AreEqual("world fo", menu.Shown!.SelectedText);
+
+            // An entry chosen in the platform menu runs on the game thread.
+            menu.Shown.Invoke(TextSelectionAction.Copy);
+            _engine.Update(new GameTime(ScreenSystem.TotalTime, TimeSpan.FromMilliseconds(16)));
+            Assert.AreEqual("world fo", _clipboard.Text);
+            Assert.IsFalse(_box.HasSelection);
+            Assert.IsTrue(menu.Hides > 0);
+            Assert.IsNull(menu.Shown);
+        }
+
+        [TestMethod]
+        public void A_tap_outside_closes_the_platform_menu()
+        {
+            var menu = new RecordingMenu();
+            _engine.Options.TextSelectionMenu = menu;
+            LongPress(X(7), LineY);
+            var below = _below.ClippingRect;
+
+            Tap(below.Left + 20, below.Top + 20);
+
+            Assert.IsNull(menu.Shown);
+            Assert.AreEqual(1, _belowClicks);
         }
 
         [TestMethod]

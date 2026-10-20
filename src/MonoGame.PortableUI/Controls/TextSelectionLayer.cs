@@ -5,6 +5,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls.Events;
+using MonoGame.PortableUI.Input;
 using MonoGame.PortableUI.Localization;
 using MonoGame.PortableUI.Media;
 
@@ -107,7 +108,7 @@ namespace MonoGame.PortableUI.Controls
         {
             if (!IsShown || _owner is not { } owner)
                 return false;
-            if (_toolbarShown && _toolbar.ClippingRect.Contains(point))
+            if (_toolbarShown && _toolbar.IsVisible && _toolbar.ClippingRect.Contains(point))
                 return true;
             return HandleAt(owner, point) != Handle.None;
         }
@@ -140,7 +141,12 @@ namespace MonoGame.PortableUI.Controls
                 Hide();
                 return;
             }
-            if (_toolbarShown)
+            if (_toolbarShown && _platformMenuShown)
+            {
+                if (!_platformMenuSuspended)
+                    MovePlatformMenu(owner);
+            }
+            else if (_toolbarShown)
                 PlaceToolbar(owner);
             // The owner may scroll, move or animate under the handles.
             RequestRedraw();
@@ -149,7 +155,7 @@ namespace MonoGame.PortableUI.Controls
         public override void UpdateLayout(Rect rect)
         {
             base.UpdateLayout(rect);
-            if (_toolbarShown && _owner is { } owner)
+            if (_toolbarShown && !_platformMenuShown && _owner is { } owner)
                 PlaceToolbar(owner);
         }
 
@@ -158,6 +164,19 @@ namespace MonoGame.PortableUI.Controls
             if (!shown)
                 _overflowOpen = false;
             var owner = _owner;
+            if (shown && owner != null && PlatformMenu is { } menu)
+            {
+                var actions = Actions(owner);
+                _toolbarShown = actions.Count > 0;
+                _toolbar.IsVisible = false;
+                if (_toolbarShown)
+                    ShowPlatformMenu(menu, owner, actions);
+                else
+                    HidePlatformMenu();
+                InvalidateLayout(false);
+                return;
+            }
+            HidePlatformMenu();
             if (shown && owner != null)
                 shown = BuildToolbar(owner);
             _toolbarShown = shown;
@@ -172,18 +191,8 @@ namespace MonoGame.PortableUI.Controls
             var theme = ResolveTheme();
             _items.Children.Clear();
             var entries = new List<(string Key, Action Action)>();
-            var secret = owner.PasswordChar.HasValue;
-            if (owner.HasSelection)
-            {
-                if (!owner.IsReadOnly && !secret)
-                    entries.Add(("Cut", () => { owner.Cut(); Hide(); }));
-                if (!secret)
-                    entries.Add(("Copy", () => { owner.Copy(); owner.CollapseSelectionToEnd(); Hide(); }));
-            }
-            if (!owner.IsReadOnly && owner.ClipboardHasText())
-                entries.Add(("Paste", () => { owner.Paste(); Hide(); }));
-            if (owner.Text.Length > 0 && owner.SelectionLength < owner.Text.Length)
-                entries.Add(("SelectAll", () => { owner.SelectAll(); ShowSelection(owner, true); }));
+            foreach (var entry in Actions(owner))
+                entries.Add((entry.ToString(), () => Run(owner, entry)));
             if (entries.Count == 0)
                 return false;
 
@@ -336,14 +345,119 @@ namespace MonoGame.PortableUI.Controls
             };
         }
 
-        private void PlaceToolbar(TextBox owner)
+        /// <summary>The entries the text box offers now, in Android's order.</summary>
+        private static List<TextSelectionAction> Actions(TextBox owner)
         {
-            if (_toolbarThemeVersion != ThemeVersion.Current)
-                BuildToolbar(owner);
-            var size = _toolbar.Measure();
-            var screen = Screen?.ScreenRect ?? ClippingRect;
-            var handleSize = ResolveTheme().TextSelectionHandleSize;
+            var actions = new List<TextSelectionAction>(4);
+            var secret = owner.PasswordChar.HasValue;
+            if (owner.HasSelection)
+            {
+                if (!owner.IsReadOnly && !secret)
+                    actions.Add(TextSelectionAction.Cut);
+                if (!secret)
+                    actions.Add(TextSelectionAction.Copy);
+            }
+            if (!owner.IsReadOnly && owner.ClipboardHasText())
+                actions.Add(TextSelectionAction.Paste);
+            if (owner.Text.Length > 0 && owner.SelectionLength < owner.Text.Length)
+                actions.Add(TextSelectionAction.SelectAll);
+            return actions;
+        }
 
+        private void Run(TextBox owner, TextSelectionAction action)
+        {
+            switch (action)
+            {
+                case TextSelectionAction.Cut:
+                    owner.Cut();
+                    Hide();
+                    break;
+                case TextSelectionAction.Copy:
+                    owner.Copy();
+                    owner.CollapseSelectionToEnd();
+                    Hide();
+                    break;
+                case TextSelectionAction.Paste:
+                    owner.Paste();
+                    Hide();
+                    break;
+                case TextSelectionAction.SelectAll:
+                    owner.SelectAll();
+                    ShowSelection(owner, true);
+                    break;
+            }
+        }
+
+        // The platform's own menu ---------------------------------------------------------------------
+
+        private ITextSelectionMenu? PlatformMenu => (Screen?.ScreenEngine ?? ScreenEngine.Instance)?.Options.TextSelectionMenu;
+
+        private bool _platformMenuShown;
+        private bool _platformMenuSuspended;
+        private int _platformMenuToken;
+        private Rect _platformMenuRect;
+        private List<TextSelectionAction>? _platformMenuActions;
+
+        private void ShowPlatformMenu(ITextSelectionMenu menu, TextBox owner, List<TextSelectionAction> actions)
+        {
+            _platformMenuActions = actions;
+            _platformMenuToken++;
+            _platformMenuShown = true;
+            SendPlatformMenu(menu, owner);
+        }
+
+        private void SendPlatformMenu(ITextSelectionMenu menu, TextBox owner)
+        {
+            var engine = Screen?.ScreenEngine ?? ScreenEngine.Instance;
+            if (engine == null || _platformMenuActions == null)
+                return;
+            _platformMenuRect = engine.LayoutToWindow(ToolbarAnchor(owner));
+            var token = _platformMenuToken;
+            menu.Show(new TextSelectionMenuRequest
+            {
+                ContentRect = _platformMenuRect,
+                Actions = _platformMenuActions,
+                SelectedText = owner.HasSelection && !owner.PasswordChar.HasValue ? owner.SelectedText : null,
+                Invoke = action => engine.InvokeOnGameThread(() =>
+                {
+                    if (ReferenceEquals(_owner, owner) && token == _platformMenuToken)
+                        Run(owner, action);
+                }),
+                Dismissed = () => engine.InvokeOnGameThread(() =>
+                {
+                    if (token != _platformMenuToken || !_platformMenuShown)
+                        return;
+                    _platformMenuShown = false;
+                    _toolbarShown = false;
+                })
+            });
+        }
+
+        // The selection moved (scrolling, a handle): the menu follows.
+        private void MovePlatformMenu(TextBox owner)
+        {
+            if (PlatformMenu is not { } menu || (Screen?.ScreenEngine ?? ScreenEngine.Instance) is not { } engine)
+                return;
+            var rect = engine.LayoutToWindow(ToolbarAnchor(owner));
+            if (Math.Abs(rect.Left - _platformMenuRect.Left) < 0.5f && Math.Abs(rect.Top - _platformMenuRect.Top) < 0.5f
+                && Math.Abs(rect.Width - _platformMenuRect.Width) < 0.5f && Math.Abs(rect.Height - _platformMenuRect.Height) < 0.5f)
+                return;
+            SendPlatformMenu(menu, owner);
+        }
+
+        private void HidePlatformMenu()
+        {
+            if (!_platformMenuShown)
+                return;
+            _platformMenuShown = false;
+            _platformMenuToken++;
+            PlatformMenu?.Hide();
+        }
+
+        /// <summary>What the bar stands next to (layout units): the selection or caret line, down to its handles.</summary>
+        private Rect ToolbarAnchor(TextBox owner)
+        {
+            var handleSize = ResolveTheme().TextSelectionHandleSize;
             float left, right, top, bottom;
             if (owner.HasSelection)
             {
@@ -383,6 +497,20 @@ namespace MonoGame.PortableUI.Controls
                 top = text.Top;
                 bottom = text.Bottom;
             }
+            return new Rect(left, top, Math.Max(0, right - left), Math.Max(0, bottom - top));
+        }
+
+        private void PlaceToolbar(TextBox owner)
+        {
+            if (_toolbarThemeVersion != ThemeVersion.Current)
+                BuildToolbar(owner);
+            var size = _toolbar.Measure();
+            var screen = Screen?.ScreenRect ?? ClippingRect;
+            var anchor = ToolbarAnchor(owner);
+            var left = anchor.Left;
+            var right = anchor.Right;
+            var top = anchor.Top;
+            var bottom = anchor.Bottom;
 
             var x = _overflowOpen ? _overflowRight - size.Width : (left + right) / 2 - size.Width / 2;
             x = Math.Max(screen.Left + ToolbarScreenMargin, Math.Min(x, screen.Right - ToolbarScreenMargin - size.Width));
@@ -446,14 +574,21 @@ namespace MonoGame.PortableUI.Controls
 
         private void OnLayerTouchDown(object? sender, TouchEventArgs args)
         {
-            if (_owner is not { } owner || (_toolbarShown && _toolbar.ClippingRect.Contains(args.Position)))
+            if (_owner is not { } owner || (_toolbarShown && _toolbar.IsVisible && _toolbar.ClippingRect.Contains(args.Position)))
                 return;
             _dragging = HandleAt(owner, args.Position);
             if (_dragging == Handle.None)
                 return;
             var tip = HandleTip(owner, _dragging);
             _dragOffset = new PointF(args.Position.X - tip.X, args.Position.Y - tip.Y);
-            SetToolbar(false);
+            // Android hides its menu while a handle moves and brings it back afterwards (it is not closed).
+            if (_platformMenuShown)
+            {
+                _platformMenuSuspended = true;
+                PlatformMenu?.Suspend();
+            }
+            else
+                SetToolbar(false);
             args.Handled = true;
         }
 
@@ -461,6 +596,8 @@ namespace MonoGame.PortableUI.Controls
         {
             if (_dragging == Handle.None || _owner is not { } owner)
                 return;
+            if (_platformMenuSuspended)
+                PlatformMenu?.Suspend();
             owner.TryGetCaretPoint(owner.CursorPosition, out _, out var lineHeight);
             // The tip follows the finger; the line above the tip is the one the handle points at.
             var target = new PointF(args.Position.X - _dragOffset.X, args.Position.Y - _dragOffset.Y - lineHeight / 2);
@@ -490,12 +627,16 @@ namespace MonoGame.PortableUI.Controls
             EndDrag();
             if (dragged == Handle.None || _owner is not { } owner)
                 return;
-            if (owner.HasSelection)
+            if (owner.HasSelection || _toolbarShown)
                 SetToolbar(true);
             _insertionShownAt = ScreenSystem.TotalTime;
         }
 
-        private void EndDrag() => _dragging = Handle.None;
+        private void EndDrag()
+        {
+            _dragging = Handle.None;
+            _platformMenuSuspended = false;
+        }
 
         // Drawing -----------------------------------------------------------------------------------
 
