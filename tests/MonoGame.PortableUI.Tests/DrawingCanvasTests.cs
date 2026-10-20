@@ -75,6 +75,24 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void Round_cap_ends_the_line_in_a_half_circle()
+        {
+            var context = Record(dc => dc.DrawLine(new Vector2(0, 0), new Vector2(100, 0), Color.Red, 10, LineCap.Round));
+            var x = Extent(context, p => p.X, true);
+            Assert.AreEqual(10 - 4.5f, x.Min, 0.05f, "the solid cap reaches half the width (less the fringe) past the start");
+            Assert.AreEqual(110 + 4.5f, x.Max, 0.05f);
+            // Rounded: no solid vertex sits at a corner of the square cap.
+            foreach (var v in context.PendingVertices)
+            {
+                if (v.Color.A == 0)
+                    continue;
+                var dx = Math.Max(0, Math.Max(10 - v.Position.X, v.Position.X - 110));
+                var dy = v.Position.Y - 20;
+                Assert.IsTrue(dx * dx + dy * dy <= 4.5f * 4.5f + 0.01f, $"{v.Position} lies outside the half circle");
+            }
+        }
+
+        [TestMethod]
         public void Arc_vertices_stay_on_the_ring_and_span_the_sweep()
         {
             var center = new Vector2(50, 50);

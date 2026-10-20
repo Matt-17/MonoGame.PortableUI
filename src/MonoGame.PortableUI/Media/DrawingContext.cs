@@ -14,7 +14,10 @@ namespace MonoGame.PortableUI.Media
         Flat,
 
         /// <summary>The line extends half its thickness past its end points (closes wall corners).</summary>
-        Square
+        Square,
+
+        /// <summary>The line ends in a half circle around its end points (progress rings, pen strokes).</summary>
+        Round
     }
 
     /// <summary>
@@ -515,6 +518,11 @@ namespace MonoGame.PortableUI.Media
         {
             var p = _points[index];
             var normal = new Vector2(-outward.Y, outward.X);
+            if (cap == LineCap.Round)
+            {
+                AddRoundCap(p, outward, normal, width, inner, outer, fringe, core);
+                return;
+            }
             var extend = cap == LineCap.Square ? width / 2 : 0f;
             var end = p + outward * extend;
             if (extend > 0)
@@ -534,6 +542,24 @@ namespace MonoGame.PortableUI.Media
             AddQuad(end + normal * inner, core, tip + normal * inner, transparent, tip - normal * inner, transparent, end - normal * inner, core);
             AddTriangle(end + normal * inner, core, end + normal * outer, transparent, tip + normal * inner, transparent);
             AddTriangle(end - normal * inner, core, tip - normal * inner, transparent, end - normal * outer, transparent);
+        }
+
+        // A half disc around the end point: a fan from one side of the band over the tip to the other, fringed outside.
+        private void AddRoundCap(Vector2 p, Vector2 outward, Vector2 normal, float width, float inner, float outer, float fringe, Color core)
+        {
+            var steps = Math.Clamp((int)MathF.Ceiling(width * 0.75f), 4, 32);
+            EnsureVertices(steps * 9);
+            var previous = normal;
+            for (var k = 1; k <= steps; k++)
+            {
+                var angle = MathHelper.Pi * k / steps;
+                var direction = normal * MathF.Cos(angle) + outward * MathF.Sin(angle);
+                if (inner > 0)
+                    AddTriangle(p, core, p + previous * inner, core, p + direction * inner, core);
+                if (fringe > 0)
+                    AddQuad(p + previous * inner, core, p + previous * outer, Color.Transparent, p + direction * outer, Color.Transparent, p + direction * inner, core);
+                previous = direction;
+            }
         }
 
         /// <summary>Fills the convex polygon _points[0..count) (render pixels) with an anti-aliased fringe.</summary>
