@@ -51,6 +51,10 @@ namespace MonoGame.PortableUI
         /// <summary>Default look of a drag past the end of a scroll viewer (Shift = rubber band,
         /// Stretch = Android 12+ stretch). A <c>ScrollViewer.OverscrollEffect</c> overrides it.</summary>
         public Controls.OverscrollEffect OverscrollEffect { get; set; } = Controls.OverscrollEffect.Shift;
+
+        /// <summary>Default fling curve of every <c>ScrollViewer</c> (one can override it). Null (default):
+        /// Android's system scroller on Android, exponential braking elsewhere; see <see cref="Controls.FlingPhysics"/>.</summary>
+        public Controls.FlingPhysics? FlingPhysics { get; set; }
         public ScreenSizeMode ScreenSizeMode { get; set; } = ScreenSizeMode.Viewport;
 
         /// <summary>

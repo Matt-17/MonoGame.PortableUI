@@ -84,7 +84,10 @@ namespace MonoGame.PortableUI
             int left, top;
             if (valid)
             {
-                if (++cache!.ValidStreak >= MinLiveFrames)
+                // Composited without drawing its content: keep the frame that content asked for.
+                if (cache!.RefreshAt != TimeSpan.MaxValue)
+                    engine.ScheduleAnimationFrame(cache.RefreshAt);
+                if (++cache.ValidStreak >= MinLiveFrames)
                     cache.LiveSpan = 0;
                 left = (int)Math.Floor(renderRect.Left + cache!.OffsetX);
                 top = (int)Math.Floor(renderRect.Top + cache.OffsetY);
