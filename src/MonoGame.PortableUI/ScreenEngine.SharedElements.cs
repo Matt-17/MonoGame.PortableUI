@@ -106,6 +106,20 @@ namespace MonoGame.PortableUI
                 target.PostponeSharedFlight(hitch);
         }
 
+        private readonly Dictionary<Control, FlightSnapshot> _flightSnapshots = new();
+
+        internal FlightSnapshot? GetFlightSnapshot(Control control)
+            => _flightSnapshots.TryGetValue(control, out var snapshot) && !snapshot.Target.IsDisposed ? snapshot : null;
+
+        internal void StoreFlightSnapshot(Control control, FlightSnapshot snapshot) => _flightSnapshots[control] = snapshot;
+
+        private void ReleaseFlightSnapshot(Control control)
+        {
+            if (!_flightSnapshots.Remove(control, out var snapshot) || snapshot.Target.IsDisposed)
+                return;
+            Effects.RenderTargetPool.Return(snapshot.Target.GraphicsDevice, snapshot.Target);
+        }
+
         /// <summary>Ends flights whose control has arrived: both twins are drawn normally again.</summary>
         private void UpdateSharedFlights()
         {
@@ -116,6 +130,8 @@ namespace MonoGame.PortableUI
                     continue;
                 target.SetSharedFlightRole(SharedFlightRole.None);
                 source.SetSharedFlightRole(SharedFlightRole.None);
+                ReleaseFlightSnapshot(target);
+                ReleaseFlightSnapshot(source);
                 _sharedFlights.RemoveAt(i);
             }
         }
@@ -128,6 +144,8 @@ namespace MonoGame.PortableUI
                 target.FinishSharedFlight();
                 target.SetSharedFlightRole(SharedFlightRole.None);
                 source.SetSharedFlightRole(SharedFlightRole.None);
+                ReleaseFlightSnapshot(target);
+                ReleaseFlightSnapshot(source);
             }
             _sharedFlights.Clear();
         }

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Faster shared-element flights:** a flying control is drawn once at rest into a texture and the flight moves and scales that picture. Drawing it live at every in-between size built new textures for brushes, corner masks and shadows each frame (a flying card and avatar took 20-35 ms per frame on a Pixel 5, now 11 ms at 90 Hz). Content that animates on its own shows still while it flies.
 - **Round line caps (`LineCap.Round`):** `DrawingContext` lines, polylines and arcs can end in a half circle (progress rings, pen strokes).
 - **Fix: `DrawingCanvas.Invalidate()` from its own render:** an animation that invalidates while drawing got its next frame only when something else redrew (a ring filling at ~14 fps); it now asks for the next frame.
 - **Fix: wrapped label losing its last word:** a left-aligned wrapping `TextBlock` is drawn on the lines layout measured; drawing re-wrapped to its pixel-rounded rect, which could be a fraction narrower than the line and pushed the last word (or a word's last letter) into a clipped second line.
