@@ -70,6 +70,49 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void A_finger_that_scrolled_a_list_lights_up_no_row_after_lifting()
+        {
+            ScreenSystem.TotalTime = TimeSpan.Zero;
+            using var game = new Game();
+            var engine = ScreenEngine.Initialize(game, new ScreenEngineOptions { AddComponentToGame = false });
+            engine.SetScreenSize(400, 300);
+            var list = new ListBox { Width = 200, Height = 240, ItemHeight = 30, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top };
+            for (var i = 0; i < 80; i++)
+                list.Items.Add($"Row {i}");
+            var input = new VirtualInputSource();
+            engine.NavigateToScreen(new TestScreen { Content = list, InputSource = input });
+            void Tick()
+            {
+                ScreenSystem.TotalTime += TimeSpan.FromMilliseconds(16);
+                engine.Update(new GameTime(ScreenSystem.TotalTime, TimeSpan.FromMilliseconds(16)));
+            }
+            // A touch platform moves the emulated mouse along with the finger.
+            void Finger(Microsoft.Xna.Framework.Input.Touch.TouchLocationState state, float y)
+            {
+                input.SetPointer(new PointF(50, y));
+                input.SetTouches(new Microsoft.Xna.Framework.Input.Touch.TouchCollection(new[]
+                    { new Microsoft.Xna.Framework.Input.Touch.TouchLocation(1, state, new Vector2(50, y)) }));
+                Tick();
+            }
+            Tick();
+
+            Finger(Microsoft.Xna.Framework.Input.Touch.TouchLocationState.Pressed, 200);
+            for (var y = 190; y >= 60; y -= 10)
+                Finger(Microsoft.Xna.Framework.Input.Touch.TouchLocationState.Moved, y);
+            Finger(Microsoft.Xna.Framework.Input.Touch.TouchLocationState.Released, 60);
+            input.SetTouches(new Microsoft.Xna.Framework.Input.Touch.TouchCollection(Array.Empty<Microsoft.Xna.Framework.Input.Touch.TouchLocation>()));
+            for (var i = 0; i < 120; i++) // two seconds: fling over, well past the touch grace
+                Tick();
+
+            Assert.AreEqual(0, list.ItemButtons.Count(b => b.IsMouseHovering), "the lifted finger is no mouse");
+
+            // A real mouse moving afterwards hovers again.
+            input.SetPointer(new PointF(60, 100));
+            Tick();
+            Assert.AreEqual(1, list.ItemButtons.Count(b => b.IsMouseHovering));
+        }
+
+        [TestMethod]
         public void Scrolling_an_open_dropdown_keeps_hovering_the_row_under_the_pointer()
         {
             ScreenSystem.TotalTime = TimeSpan.Zero;

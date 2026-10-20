@@ -18,6 +18,10 @@ namespace MonoGame.PortableUI
         private readonly AutoResetEvent _wake = new AutoResetEvent(false);
         private int _gameThreadId = -1;
         private TimeSpan _redrawAt = TimeSpan.MaxValue;
+        // Frames asked for by visuals while drawing (RequestAnimationFrameAt): rebuilt by every drawn
+        // frame, so a deadline a visual no longer needs (a scroll bar fade-out that moved on) lapses
+        // instead of drawing a stray frame later.
+        private TimeSpan _animationFrameAt = TimeSpan.MaxValue;
         private TimeSpan _redrawUntil;
         private int _redrawFrames;
 
@@ -77,7 +81,7 @@ namespace MonoGame.PortableUI
         }
 
         /// <summary>When the next scheduled frame (<see cref="RequestRedrawAt"/>) is due; MaxValue for none.</summary>
-        internal TimeSpan NextScheduledRedraw => _redrawAt;
+        internal TimeSpan NextScheduledRedraw => _redrawAt < _animationFrameAt ? _redrawAt : _animationFrameAt;
 
         internal void MarkGameThread() => _gameThreadId = Environment.CurrentManagedThreadId;
 
@@ -117,9 +121,17 @@ namespace MonoGame.PortableUI
         {
             if (_drawingEngine is not { } engine)
                 return;
-            engine.RequestRedrawAt(time);
-            if (time < engine.EarliestAnimationFrameAt)
-                engine.EarliestAnimationFrameAt = time;
+            engine.ScheduleAnimationFrame(time);
+        }
+
+        /// <summary>Keeps a frame at <paramref name="time"/> for the visual being drawn (also used by a cached
+        /// layer that is composited without re-rendering the visual that asked for it).</summary>
+        internal void ScheduleAnimationFrame(TimeSpan time)
+        {
+            if (time < _animationFrameAt)
+                _animationFrameAt = time;
+            if (time < EarliestAnimationFrameAt)
+                EarliestAnimationFrameAt = time;
         }
 
         /// <summary>Draws at least the next <paramref name="frames"/> frames. Thread-safe.</summary>
@@ -150,6 +162,7 @@ namespace MonoGame.PortableUI
             var due = now >= _redrawAt;
             if (due)
                 _redrawAt = TimeSpan.MaxValue;
+            var animationDue = now >= _animationFrameAt;
             var counted = false;
             int frames;
             while ((frames = Volatile.Read(ref _redrawFrames)) > 0)
@@ -160,20 +173,24 @@ namespace MonoGame.PortableUI
                     break;
                 }
             }
-            return requested || due || counted || now < _redrawUntil || IsTransitioning || DebugOverlayEnabled;
+            var draw = requested || due || animationDue || counted || now < _redrawUntil || IsTransitioning || DebugOverlayEnabled;
+            // The frame about to be drawn asks again for what its visuals still need.
+            if (draw)
+                _animationFrameAt = TimeSpan.MaxValue;
+            return draw;
         }
 
         /// <summary>Whether <see cref="ConsumeRedrawRequest"/> would draw now, without clearing anything.</summary>
         internal bool PeekRedrawRequest()
         {
             var now = ScreenSystem.TotalTime;
-            return Volatile.Read(ref _redrawRequested) != 0 || now >= _redrawAt || Volatile.Read(ref _redrawFrames) > 0
+            return Volatile.Read(ref _redrawRequested) != 0 || now >= _redrawAt || now >= _animationFrameAt || Volatile.Read(ref _redrawFrames) > 0
                 || now < _redrawUntil || IsTransitioning || DebugOverlayEnabled;
         }
 
         /// <summary>When the next frame is due on the <see cref="ScreenSystem.TotalTime"/> clock: Zero when
         /// one is due now, MaxValue when idle.</summary>
-        internal TimeSpan NextRedrawDue => PeekRedrawRequest() ? TimeSpan.Zero : _redrawAt;
+        internal TimeSpan NextRedrawDue => PeekRedrawRequest() ? TimeSpan.Zero : NextScheduledRedraw;
 
         internal void RecordFrame(bool drawn)
         {
