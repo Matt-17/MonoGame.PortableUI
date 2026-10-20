@@ -50,6 +50,16 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void Curves_built_in_code_get_points_by_their_size()
+        {
+            var small = new PathGeometry(100, 100).MoveTo(0, 0).CubicTo(0.5f, 0, 1, 0.5f, 1, 1);
+            var large = new PathGeometry(100, 100).MoveTo(0, 0).CubicTo(100, 0, 100, 100, 0, 100);
+
+            Assert.AreEqual(3, small.Figures[0].Count, "a tiny corner: two segments");
+            Assert.AreEqual(25, large.Figures[0].Count, "a curve across the view box: all CurveSegments");
+        }
+
+        [TestMethod]
         public void Relative_lines_and_closing_build_a_square()
         {
             var square = PathGeometry.FromSvg("m2 2h20v20H2z", 24, 24);

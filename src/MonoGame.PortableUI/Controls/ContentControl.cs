@@ -69,8 +69,9 @@ namespace MonoGame.PortableUI.Controls
 
         private static Rect CenterFixedSize(Control child, Rect slot)
         {
-            var width = child.Width + child.Margin.Horizontal;
-            var height = child.Height + child.Margin.Vertical;
+            var size = child.ApplyConstraints(new Size(child.Width, child.Height));
+            var width = size.Width + child.Margin.Horizontal;
+            var height = size.Height + child.Margin.Vertical;
             if (child.HorizontalAlignment == HorizontalAlignment.Stretch && child.Width.IsFixed() && width < slot.Width)
                 slot = new Rect(slot.Left + (slot.Width - width) / 2, slot.Top, width, slot.Height);
             if (child.VerticalAlignment == VerticalAlignment.Stretch && child.Height.IsFixed() && height < slot.Height)

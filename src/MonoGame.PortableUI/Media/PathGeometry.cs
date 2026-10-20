@@ -24,7 +24,8 @@ namespace MonoGame.PortableUI.Media
         /// <summary>Even-odd (true) or non-zero (false, default) fill rule.</summary>
         public bool EvenOddFill { get; set; }
 
-        /// <summary>Segments used per curve or arc when flattening.</summary>
+        /// <summary>Segments used per arc and at most per Bézier curve when flattening: a curve gets points by its size
+        /// in the <see cref="ViewBox"/>, so an icon's tiny corner needs 2-4 and only a large one all of them.</summary>
         public int CurveSegments { get; set; } = 24;
 
         internal int Version => _version;
@@ -63,9 +64,10 @@ namespace MonoGame.PortableUI.Media
             var p0 = _cursor;
             var p1 = new Vector2(cx, cy);
             var p2 = new Vector2(x, y);
-            for (var i = 1; i <= CurveSegments; i++)
+            var segments = SegmentsFor(Vector2.Distance(p0, p1) + Vector2.Distance(p1, p2));
+            for (var i = 1; i <= segments; i++)
             {
-                var t = i / (float)CurveSegments;
+                var t = i / (float)segments;
                 var u = 1 - t;
                 _current!.Add(u * u * p0 + 2 * u * t * p1 + t * t * p2);
             }
@@ -81,9 +83,10 @@ namespace MonoGame.PortableUI.Media
             var p1 = new Vector2(c1x, c1y);
             var p2 = new Vector2(c2x, c2y);
             var p3 = new Vector2(x, y);
-            for (var i = 1; i <= CurveSegments; i++)
+            var segments = SegmentsFor(Vector2.Distance(p0, p1) + Vector2.Distance(p1, p2) + Vector2.Distance(p2, p3));
+            for (var i = 1; i <= segments; i++)
             {
-                var t = i / (float)CurveSegments;
+                var t = i / (float)segments;
                 var u = 1 - t;
                 _current!.Add(u * u * u * p0 + 3 * u * u * t * p1 + 3 * u * t * t * p2 + t * t * t * p3);
             }
@@ -149,6 +152,13 @@ namespace MonoGame.PortableUI.Media
                 LineTo(cx + rx * MathF.Cos(angle), cy + ry * MathF.Sin(angle));
             }
             return Close();
+        }
+
+        // The control polygon's length bounds the curve's: 64 segments across the whole view box.
+        private int SegmentsFor(float controlLength)
+        {
+            var size = Math.Max(ViewBox.Width, ViewBox.Height);
+            return Math.Max(2, Math.Min(CurveSegments, (int)Math.Ceiling(controlLength / Math.Max(1e-6f, size) * 64)));
         }
 
         private void EnsureFigure()

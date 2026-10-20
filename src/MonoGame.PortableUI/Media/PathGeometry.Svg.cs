@@ -87,7 +87,6 @@ namespace MonoGame.PortableUI.Media
         {
             private readonly string _data;
             private readonly PathGeometry _geometry;
-            private readonly int _maxSegments;
             private int _index;
 
             public SvgPathReader(string data, PathGeometry geometry)
@@ -95,32 +94,9 @@ namespace MonoGame.PortableUI.Media
                 _data = data ?? throw new ArgumentNullException(nameof(data));
                 _geometry = geometry;
                 _index = 0;
-                _maxSegments = geometry.CurveSegments;
             }
 
             public void Read()
-            {
-                var segments = _geometry.CurveSegments;
-                try
-                {
-                    ReadCommands();
-                }
-                finally
-                {
-                    _geometry.CurveSegments = segments;
-                }
-            }
-
-            // A curve gets points by its size against the view box: an icon's tiny corner needs 2-4, a large arc the
-            // geometry's full CurveSegments.
-            private void Adapt(Vector2 p0, Vector2 p1, Vector2 p2, Vector2 p3)
-            {
-                var length = Vector2.Distance(p0, p1) + Vector2.Distance(p1, p2) + Vector2.Distance(p2, p3);
-                var size = Math.Max(_geometry.ViewBox.Width, _geometry.ViewBox.Height);
-                _geometry.CurveSegments = Math.Clamp((int)Math.Ceiling(length / Math.Max(1e-6f, size) * 64), 2, _maxSegments);
-            }
-
-            private void ReadCommands()
             {
                 var current = Vector2.Zero;
                 var start = Vector2.Zero;
@@ -168,9 +144,7 @@ namespace MonoGame.PortableUI.Media
                         {
                             var c1 = origin + ReadPoint();
                             control = origin + ReadPoint();
-                            var from = current;
                             current = origin + ReadPoint();
-                            Adapt(from, c1, control, current);
                             _geometry.CubicTo(c1.X, c1.Y, control.X, control.Y, current.X, current.Y);
                             break;
                         }
@@ -178,30 +152,20 @@ namespace MonoGame.PortableUI.Media
                         {
                             var c1 = "CcSs".IndexOf(previous) >= 0 ? 2 * current - control : current;
                             control = origin + ReadPoint();
-                            var from = current;
                             current = origin + ReadPoint();
-                            Adapt(from, c1, control, current);
                             _geometry.CubicTo(c1.X, c1.Y, control.X, control.Y, current.X, current.Y);
                             break;
                         }
                         case 'Q':
-                        {
                             control = origin + ReadPoint();
-                            var from = current;
                             current = origin + ReadPoint();
-                            Adapt(from, control, control, current);
                             _geometry.QuadraticTo(control.X, control.Y, current.X, current.Y);
                             break;
-                        }
                         case 'T':
-                        {
                             control = "QqTt".IndexOf(previous) >= 0 ? 2 * current - control : current;
-                            var from = current;
                             current = origin + ReadPoint();
-                            Adapt(from, control, control, current);
                             _geometry.QuadraticTo(control.X, control.Y, current.X, current.Y);
                             break;
-                        }
                         case 'A':
                         {
                             var rx = ReadNumber();
@@ -210,7 +174,6 @@ namespace MonoGame.PortableUI.Media
                             var large = ReadFlag();
                             var sweep = ReadFlag();
                             current = origin + ReadPoint();
-                            _geometry.CurveSegments = _maxSegments;
                             _geometry.SvgArcTo(rx, ry, rotation, large, sweep, current.X, current.Y);
                             break;
                         }

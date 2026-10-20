@@ -1533,7 +1533,7 @@ namespace MonoGame.PortableUI.Controls
             return ApplyConstraints(new Size(width, height)) + Margin;
         }
 
-        protected Size ApplyConstraints(Size size)
+        protected internal Size ApplyConstraints(Size size)
         {
             if (MinWidth.IsFixed())
                 size.Width = Math.Max(size.Width, MinWidth);
