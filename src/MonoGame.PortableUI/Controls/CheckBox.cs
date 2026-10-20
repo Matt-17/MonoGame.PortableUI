@@ -143,6 +143,33 @@ namespace MonoGame.PortableUI.Controls
 
         public event EventHandler<CheckedEventArgs>? Checked;
 
+        /// <summary>
+        ///     Ripple around the box while pressed; null uses the theme's <see cref="PortableTheme.ToggleRipple"/>
+        ///     (off by default).
+        /// </summary>
+        public RippleStyle? Ripple { get; set; }
+
+        private RippleStyle? EffectiveRipple => Ripple ?? ResolveTheme().ToggleRipple;
+
+        private readonly RippleEffect _ripple = new RippleEffect();
+
+        internal override void OnFrameUpdate()
+        {
+            base.OnFrameUpdate();
+            if (_ripple.Track(IsPointerPressedVisual, ClippingRect, LastPressPosition) && EffectiveRipple != null)
+                RequestRedraw();
+        }
+
+        protected internal override Thickness GetInkOverflow() => RippleEffect.Overflow(base.GetInkOverflow(), EffectiveRipple);
+
+        private void DrawRipple(SpriteBatch spriteBatch, Rect around, bool on)
+        {
+            if (EffectiveRipple is not { } ripple)
+                return;
+            var center = new Vector2(around.Left + around.Width / 2, around.Top + around.Height / 2);
+            _ripple.DrawUnbounded(spriteBatch, center, ToRender(ripple.Radius), ripple, on ? ripple.CheckedColor ?? ripple.Color : ripple.Color, RenderOpacity);
+        }
+
         public override Size MeasureLayout()
         {
             if (IsGoneShown)
@@ -190,6 +217,7 @@ namespace MonoGame.PortableUI.Controls
             var box = GetBoxRect(rect - ToRender(Padding), ToRender(BoxSize), centered: Content == null);
             var boxRadius = ToRender(BoxCornerRadius);
             var boxBorder = ToRender(BoxBorderWidth);
+            DrawRipple(spriteBatch, box, IsChecked);
             var disabled = !IsEnabled && DisabledBoxBrush != null;
             var background = IsChecked ? (disabled ? DisabledBoxBrush : CheckedBoxBackgroundBrush ?? BoxBackgroundBrush) : BoxBackgroundBrush;
             var border = disabled ? DisabledBoxBrush : IsChecked ? CheckedBoxBorderBrush ?? BoxBorderBrush : BoxBorderBrush;

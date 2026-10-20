@@ -364,6 +364,12 @@ namespace MonoGame.PortableUI
         /// <summary>Ripple of chrome buttons: list and combo box rows, menu entries, tab headers; null = none.</summary>
         public RippleStyle? ItemRipple { get; set; }
 
+        /// <summary>
+        ///     Ripple of check boxes, radio buttons and switches: an unbounded circle of
+        ///     <see cref="RippleStyle.Radius"/> around the box, ring or knob; null = none (default).
+        /// </summary>
+        public RippleStyle? ToggleRipple { get; set; }
+
         /// <summary>Thickness of a progress bar's track and fill, centered in the control; null fills it.</summary>
         public float? ProgressBarTrackHeight { get; set; }
 
