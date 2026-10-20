@@ -33,8 +33,12 @@ namespace MonoGame.PortableUI.Demo
             _graphics = new GraphicsDeviceManager(this)
             {
                 PreferredBackBufferWidth = 1180,
-                PreferredBackBufferHeight = 760
+                PreferredBackBufferHeight = 760,
+                SynchronizeWithVerticalRetrace = true
             };
+            // Frames follow the display's refresh (a fixed 60 Hz step shows some frames twice on 120/144 Hz panels:
+            // judder in every animation). Animations already use the real elapsed time.
+            IsFixedTimeStep = false;
             Content.RootDirectory = "Content";
             IsMouseVisible = true;
             Window.AllowUserResizing = true;
