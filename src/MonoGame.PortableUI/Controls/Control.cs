@@ -1589,6 +1589,23 @@ namespace MonoGame.PortableUI.Controls
         public event TouchEventHandler? TouchMove;
         public event TouchEventHandler? TouchCancel;
 
+        /// <summary>A second finger joined the first on this control (it is the topmost one with pinch handlers).</summary>
+        public event EventHandler<PinchEventArgs>? PinchStarted;
+
+        /// <summary>Two fingers moved apart, together or turned (zoom, rotate); see <see cref="PinchEventArgs"/>.</summary>
+        public event EventHandler<PinchEventArgs>? Pinch;
+
+        /// <summary>A finger of the pinch lifted.</summary>
+        public event EventHandler<PinchEventArgs>? PinchEnded;
+
+        internal bool HandlesPinch => Pinch != null || PinchStarted != null;
+
+        internal void RaisePinchStarted(PinchEventArgs args) => PinchStarted?.Invoke(this, args);
+
+        internal void RaisePinch(PinchEventArgs args) => Pinch?.Invoke(this, args);
+
+        internal void RaisePinchEnded(PinchEventArgs args) => PinchEnded?.Invoke(this, args);
+
         public event EventHandler? Click;
         public event EventHandler? DoubleClick;
         public event EventHandler? RightClick;
