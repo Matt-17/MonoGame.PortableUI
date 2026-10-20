@@ -119,6 +119,17 @@ namespace MonoGame.PortableUI.Animation
             return this;
         }
 
+        /// <summary>
+        ///     Animates any number: <paramref name="getValue"/> reads where it starts, <paramref name="setValue"/> sets each
+        ///     step (a width, a corner radius, a counter). One per track; it takes the track's duration, easing or spring.
+        ///     <paramref name="restDelta"/>: how close a spring must be to count as settled.
+        /// </summary>
+        public Animation ValueTo(Func<Control, double> getValue, Action<Control, double> setValue, double valueTo, double restDelta = 0.5)
+        {
+            _current.Replace(new DoubleAnimationTween(AnimationProperty.Value, getValue, setValue, valueTo, restDelta));
+            return this;
+        }
+
         public Animation TextColorTo(Color colorTo)
         {
             return ColorTo(

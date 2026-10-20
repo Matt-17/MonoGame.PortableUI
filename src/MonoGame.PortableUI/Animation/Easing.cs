@@ -11,7 +11,8 @@ namespace MonoGame.PortableUI.Animation
         Opacity,
         Rotation,
         Skew,
-        Color
+        Color,
+        Value
     }
 
     public static class Easings

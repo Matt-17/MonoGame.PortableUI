@@ -50,6 +50,22 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void ValueTo_animates_any_number_and_a_new_one_takes_over_from_where_it_is()
+        {
+            var control = new TestControl { Width = 200 };
+            control.Animate().ValueTo(c => c.Width, (c, v) => c.Width = (float)v, 60).Duration(Ms(100)).Ease(Easings.Linear).Start();
+
+            At(control, 50);
+            Assert.AreEqual(130, control.Width, 0.01f);
+
+            control.Animate().ValueTo(c => c.Width, (c, v) => c.Width = (float)v, 200).Duration(Ms(100)).Ease(Easings.Linear).Start();
+            At(control, 100);
+            Assert.AreEqual(165, control.Width, 0.01f, "the second starts at 130 and is half way to 200");
+            At(control, 200);
+            Assert.AreEqual(200, control.Width, 0.01f);
+        }
+
+        [TestMethod]
         public void A_frame_spanning_two_steps_keeps_the_leftover_time()
         {
             var control = new TestControl();
