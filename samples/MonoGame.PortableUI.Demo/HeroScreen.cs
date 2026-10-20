@@ -13,7 +13,7 @@ namespace MonoGame.PortableUI.Demo
     {
         public const string CardKey = "motion-hero-card";
 
-        public HeroScreen(DemoThemePreset themePreset, Color cardColor, string title)
+        public HeroScreen(DemoThemePreset themePreset, Color cardColor, string title, ScreenTransition transition)
         {
             var palette = themePreset.Palette;
             BackgroundBrush = palette.BackgroundBrush ?? themePreset.BackgroundColor;
@@ -47,7 +47,7 @@ namespace MonoGame.PortableUI.Demo
 
             root.AddChild(new TextBlock
             {
-                Text = "The card flew here from the Motion tab: same SharedElementKey on both screens.",
+                Text = $"Screen transition: {transition}. The card flew here from the Motion tab: same SharedElementKey on both screens.",
                 TextColor = palette.MutedText,
                 TextSize = 16,
                 Margin = new Thickness(0, 16, 0, 12)
