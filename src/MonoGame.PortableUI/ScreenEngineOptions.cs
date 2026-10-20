@@ -144,6 +144,13 @@ namespace MonoGame.PortableUI
         public bool ShowSoftwareCursor { get; set; }
 
         /// <summary>
+        ///     The software pointer of this engine instead of the theme's <see cref="PortableTheme.Cursor"/> (null = the
+        ///     theme's). <see cref="Media.CursorStyle.None"/> draws none - for a surface whose content draws its own pointer.
+        ///     A screen's <see cref="Screen.Cursor"/> wins over it.
+        /// </summary>
+        public Media.CursorStyle? Cursor { get; set; }
+
+        /// <summary>
         ///     Key that toggles the debug overlay when no control claims it (F3 by default; null turns
         ///     the shortcut off). <see cref="UISurface"/> engines default to null, so applications on a
         ///     surface - an editor where F3 opens a file - keep the key.
