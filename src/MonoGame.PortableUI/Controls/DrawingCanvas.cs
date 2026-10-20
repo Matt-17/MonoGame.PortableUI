@@ -39,8 +39,16 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
-        /// <summary>Draws the canvas again on the next frame (its content changed).</summary>
-        public void Invalidate() => RequestRedraw();
+        /// <summary>
+        ///     Draws the canvas again on the next frame (its content changed). Also works from the canvas's own
+        ///     <see cref="Render"/> for an animation that draws frame by frame: a plain redraw request made while
+        ///     drawing is consumed by that same frame, so this also asks for the next one.
+        /// </summary>
+        public void Invalidate()
+        {
+            RequestRedraw();
+            ScreenEngine.RequestAnimationFrame();
+        }
 
         /// <summary>Draw the canvas's content here. The context is valid only during the call.</summary>
         protected virtual void OnRender(DrawingContext context)

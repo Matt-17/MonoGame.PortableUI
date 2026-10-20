@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Round line caps (`LineCap.Round`):** `DrawingContext` lines, polylines and arcs can end in a half circle (progress rings, pen strokes).
+- **Fix: `DrawingCanvas.Invalidate()` from its own render:** an animation that invalidates while drawing got its next frame only when something else redrew (a ring filling at ~14 fps); it now asks for the next frame.
 - **Fix: wrapped label losing its last word:** a left-aligned wrapping `TextBlock` is drawn on the lines layout measured; drawing re-wrapped to its pixel-rounded rect, which could be a fraction narrower than the line and pushed the last word (or a word's last letter) into a clipped second line.
 
 ## 0.4.0-alpha.10
