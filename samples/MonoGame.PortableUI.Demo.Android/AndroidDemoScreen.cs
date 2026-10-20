@@ -1,5 +1,7 @@
+using System;
 using Microsoft.Xna.Framework;
 using MonoGame.PortableUI;
+using MonoGame.PortableUI.Animation;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
 using MonoGame.PortableUI.Media;
@@ -162,6 +164,7 @@ namespace MonoGame.PortableUI.Demo.Android
             };
             panel.AddChild(tapLabel);
             panel.AddChild(tapButton);
+            panel.AddChild(BuildGrowCard());
 
             panel.AddChild(new TextBlock
             {
@@ -241,6 +244,44 @@ namespace MonoGame.PortableUI.Demo.Android
                 ScrollOrientation = Orientation.Vertical,
                 Content = panel
             };
+        }
+
+        /// <summary>
+        ///     Implicit transitions of layout values: a tap grows the card and its text slowly (re-laid out every frame,
+        ///     the text drawn from whole-pixel glyphs scaled to the exact size), the next tap shrinks them again.
+        /// </summary>
+        private Control BuildGrowCard()
+        {
+            var slow = new Transition(TimeSpan.FromSeconds(1.5), Easings.CubicInOut);
+            var text = new TextBlock
+            {
+                Text = "Tap to grow",
+                TextColor = Color.White,
+                TextSize = 16,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            text.Transitions.Add(TransitionProperty.TextSize, slow);
+            var card = new Border
+            {
+                BackgroundBrush = Accent,
+                CornerRadius = 12,
+                Width = 160,
+                Height = 56,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                Margin = new Thickness(16, 0, 16, 16),
+                Content = text
+            };
+            card.Transitions.Add(TransitionProperty.Size, slow);
+            var grown = false;
+            card.Click += (_, _) =>
+            {
+                grown = !grown;
+                card.Width = grown ? 320 : 160;
+                card.Height = grown ? 96 : 56;
+                text.TextSize = grown ? 34 : 16;
+            };
+            return card;
         }
 
         private DataGrid BuildDataGrid()
