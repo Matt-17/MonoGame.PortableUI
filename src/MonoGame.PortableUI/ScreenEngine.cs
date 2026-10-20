@@ -911,6 +911,8 @@ namespace MonoGame.PortableUI
             if (screen == null)
                 return;
 
+            // The last frame lands exactly on the end, for animations that move parts of a screen themselves.
+            ApplyTransition(1);
             _transitionScreen = null;
             screen.SetTransitionVisual(null);
             _transitionBelow?.SetTransitionVisual(null);
