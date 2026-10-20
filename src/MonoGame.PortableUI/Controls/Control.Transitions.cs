@@ -40,7 +40,8 @@ namespace MonoGame.PortableUI.Controls
         /// <summary>True while an implicit transition of Scale, Translation, Opacity, Rotation or Skew, or a layout transition, is moving.</summary>
         public bool IsTransitioning =>
             _scaleTransition is { IsRunning: true } || _translationTransition is { IsRunning: true } || _opacityTransition is { IsRunning: true }
-            || _rotationTransition is { IsRunning: true } || _skewTransition is { IsRunning: true } || IsLayoutTransitioning;
+            || _rotationTransition is { IsRunning: true } || _skewTransition is { IsRunning: true } || IsLayoutTransitioning
+            || _sharedScaleGlide is { IsRunning: true };
 
         /// <summary>
         ///     Ends every running transition at its target (an exit removes the control now), here and in the
@@ -97,6 +98,7 @@ namespace MonoGame.PortableUI.Controls
             if (_skewTransition is { IsRunning: true })
                 SetSkewShown(_skewTransition.Target);
             FinishLayoutGlide();
+            FinishSharedScale();
             _transitionsRunning = false;
         }
 
@@ -156,6 +158,7 @@ namespace MonoGame.PortableUI.Controls
             }
 
             running |= UpdateLayoutGlide(now);
+            running |= UpdateSharedScale(now);
 
             _transitionsRunning = running;
             RequestRedraw();

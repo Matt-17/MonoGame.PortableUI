@@ -615,6 +615,7 @@ namespace MonoGame.PortableUI
             try
             {
                 var screens = VisibleScreens;
+                ChooseSharedFlightHost(screens);
                 var start = DrawCoveredScreensForGlass(spriteBatch, screens);
                 for (var i = start; i < screens.Count; i++)
                     screens[i].Draw(spriteBatch);
@@ -728,6 +729,7 @@ namespace MonoGame.PortableUI
         {
             FinishTransition();
             var previous = ActiveScreen;
+            CaptureSharedElements(previous, screen);
             if (previous != null)
             {
                 // Remembered so NavigateBack can hand focus back to where the user was.
@@ -763,6 +765,7 @@ namespace MonoGame.PortableUI
             FinishTransition();
             FocusedControl = null;
             var screen = ScreenHistory.Pop();
+            CaptureSharedElements(screen, ScreenHistory.Count > 0 ? ScreenHistory.Peek() : null);
             screen.OnNavigationFrom(this);
             screen.RaiseNavigatedFrom();
             RebuildVisibleScreens();
@@ -897,6 +900,7 @@ namespace MonoGame.PortableUI
             UpdateTransition();
             ApplyPendingInsets(force: false);
             ActiveScreen?.Update();
+            UpdateSharedFlights();
             _haptics?.Update(ScreenSystem.TotalTime);
             _toasts?.Update();
             UpdateAccessibility();

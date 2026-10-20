@@ -86,6 +86,9 @@ namespace MonoGame.PortableUI
         /// <summary>What a screen reader traverses: the open flyout (it is modal) or the content.</summary>
         internal Control AccessibilityRoot => (Control?)_flyOut ?? _mainGrid;
 
+        /// <summary>The root of the screen's tree (holds <see cref="Content"/>; screen transitions move it).</summary>
+        internal Grid RootGrid => _mainGrid;
+
         internal void RequestBringFocusIntoView() => _bringFocusIntoView = true;
         // Rebuilt every Draw; Update reads the previous frame's entries for pointer inverse mapping.
         private static readonly ScreenEngineOptions DefaultOptions = new ScreenEngineOptions();
@@ -423,6 +426,7 @@ namespace MonoGame.PortableUI
             // Popups invalidate through this screen too (resize, rotation, theme switch).
             _flyOut?.UpdateLayout(ScreenRect);
             UpdateToolTipLayout();
+            ScreenEngine?.ResolveSharedElements(this);
         }
 
         public override IEnumerable<Control> GetDescendants()
@@ -434,6 +438,7 @@ namespace MonoGame.PortableUI
         {
             // Safety flush: timers/animations in Update may have invalidated after the layout pass.
             PerformLayoutIfDirty();
+            ScreenEngine?.ResolveSharedElements(this);
 
             var device = spriteBatch.GraphicsDevice;
             var engine = ScreenEngine;
@@ -488,6 +493,9 @@ namespace MonoGame.PortableUI
 
             if (_activeDrag?.DragVisual is { } dragGhost)
                 DrawControlTree(spriteBatch, dragGhost, GetOverlayScissor(dragGhost));
+
+            if (engine != null && ReferenceEquals(engine.SharedFlightHost, this))
+                DrawSharedFlights(spriteBatch, engine);
 
             DrawDebugOverlay(spriteBatch);
             DrawSoftwareCursor(spriteBatch, engine);
@@ -882,6 +890,79 @@ namespace MonoGame.PortableUI
             _toolTip.UpdateLayout(layoutRect);
         }
 
+        private bool _drawingSharedFlights;
+
+        /// <summary>
+        ///     Shared elements in flight, above every screen and its transition: drawn from the screen root with only
+        ///     their own transform (no ancestor's clip, opacity or screen slide), so they fly out of lists and over the
+        ///     incoming screen.
+        /// </summary>
+        private void DrawSharedFlights(SpriteBatch spriteBatch, ScreenEngine engine)
+        {
+            _drawingSharedFlights = true;
+            try
+            {
+                var root = RenderContext.Root(ScreenRect, engine.DrawScale);
+                var flights = engine.SharedFlights;
+                for (var i = 0; i < flights.Count; i++)
+                    DrawSharedFlight(spriteBatch, root, flights[i].Target, flights[i].Source);
+                FlushLayerComposites(spriteBatch);
+            }
+            finally
+            {
+                _drawingSharedFlights = false;
+            }
+        }
+
+        /// <summary>
+        ///     Cross-fade of one flight: the twin left behind, stretched onto the flying rect, under the flying control.
+        ///     Whichever of the two is closer to its own size shows (a scaled control alone shows shrunken text and
+        ///     corners at one end of the flight, a stretched twin distorted text at the other); the twin stays opaque
+        ///     until the flying control covers it, so the card never turns see-through.
+        /// </summary>
+        private void DrawSharedFlight(SpriteBatch spriteBatch, RenderContext root, Control target, Control source)
+        {
+            var flying = RenderContext.TransformRect(target.ClippingRect, target.GetRenderTransform());
+            var box = source.ClippingRect;
+            var targetOpacity = 1f;
+            if (box.Width > 0 && box.Height > 0 && flying.Width > 0 && flying.Height > 0)
+            {
+                var stretch = new Vector2(flying.Width / box.Width, flying.Height / box.Height);
+                var sourceDistortion = Distortion(stretch);
+                var targetDistortion = Distortion(target.SharedScale);
+                // 0: the twin is undistorted, 1: the flying control is.
+                var mix = sourceDistortion + targetDistortion < 0.001f ? 1 : sourceDistortion / (sourceDistortion + targetDistortion);
+                targetOpacity = MathHelper.SmoothStep(0, 1, MathHelper.Clamp((mix - 0.3f) / 0.3f, 0, 1));
+                var sourceOpacity = 1 - MathHelper.SmoothStep(0, 1, MathHelper.Clamp((mix - 0.55f) / 0.25f, 0, 1));
+                if (sourceOpacity > 0)
+                {
+                    var place = Matrix.CreateTranslation(-box.Left, -box.Top, 0) * Matrix.CreateScale(stretch.X, stretch.Y, 1)
+                        * Matrix.CreateTranslation(flying.Left, flying.Top, 0);
+                    var role = source.SharedFlight;
+                    source.SharedFlight = SharedFlightRole.None;
+                    source.RenderTransformSuppressed = true;
+                    try
+                    {
+                        DrawControlBatched(spriteBatch, source, root.Placed(place, stretch, sourceOpacity));
+                    }
+                    finally
+                    {
+                        source.RenderTransformSuppressed = false;
+                        source.SharedFlight = role;
+                    }
+                }
+            }
+
+            DrawControlBatched(spriteBatch, target, root.Placed(Matrix.Identity, Vector2.One, targetOpacity));
+        }
+
+        // How far a scale is from 1 in either direction (log scale: x2 and x0.5 distort alike).
+        private static float Distortion(Vector2 scale)
+            => Math.Max(Math.Abs(MathF.Log(Math.Max(scale.X, 0.001f))), Math.Abs(MathF.Log(Math.Max(scale.Y, 0.001f))));
+
+        /// <summary>A layout rect's bounds under <paramref name="transform"/> (where a shared element is drawn).</summary>
+        internal static Rect TransformRectForSharedElement(Rect rect, Matrix transform) => RenderContext.TransformRect(rect, transform);
+
         private void DrawControlTree(SpriteBatch spriteBatch, Control control, Rect scissorRect)
         {
             if (scissorRect.Width <= 0 || scissorRect.Height <= 0)
@@ -962,6 +1043,9 @@ namespace MonoGame.PortableUI
         private void DrawControlBatched(SpriteBatch spriteBatch, Control control, RenderContext parentContext)
         {
             if (!control.IsVisibleShown || control.IsGoneShown)
+                return;
+            // A shared-element flight draws its control above every screen, and hides the twin it flies from.
+            if (control.SharedFlight != SharedFlightRole.None && (control.SharedFlight == SharedFlightRole.Hidden || !_drawingSharedFlights))
                 return;
 
             var context = parentContext.ForControl(control);
@@ -1431,6 +1515,13 @@ namespace MonoGame.PortableUI
                     Math.Max(extent, ink.Left), Math.Max(extent, ink.Top),
                     Math.Max(extent, ink.Right), Math.Max(extent, ink.Bottom));
             }
+
+            /// <summary>
+            ///     This context moved by a layout-space <paramref name="placement"/> that scales by <paramref name="scale"/>,
+            ///     at <paramref name="opacity"/>; drawn as motion (subpixel). For shared-element flights.
+            /// </summary>
+            public RenderContext Placed(Matrix placement, Vector2 scale, float opacity)
+                => new RenderContext(placement * _transform, Scale * scale, Opacity * opacity, ScissorRect, ChildClipRect, RenderRect, true, RestScale);
 
             public static bool HasOverflow(Thickness overflow)
                 => overflow.Left > 0 || overflow.Top > 0 || overflow.Right > 0 || overflow.Bottom > 0;
