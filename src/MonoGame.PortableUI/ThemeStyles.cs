@@ -139,6 +139,12 @@ namespace MonoGame.PortableUI
         /// (reduced motion). A control's own <c>Transitions</c> entries win.</summary>
         public TimeSpan TransitionDuration { get; set; } = TimeSpan.FromMilliseconds(120);
 
+        /// <summary>
+        ///     Draws background and border inset from the control's bounds (Android's EditText: 4 left and
+        ///     right, 7 below the underline) while layout and hit testing keep the full size.
+        /// </summary>
+        public Common.Thickness? ChromeInset { get; set; }
+
         // Versions only ever increment, so the sum strictly increases on any mutation.
         private int CurrentVersion =>
             _slotVersion + _normal.Version + _hover.Version + _pressed.Version +

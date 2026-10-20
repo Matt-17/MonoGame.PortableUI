@@ -19,6 +19,7 @@ namespace MonoGame.PortableUI.Controls
             IsFocusable = false;
             Height = theme.ProgressBarHeight;
             Width = theme.ProgressBarWidth;
+            TrackHeight = theme.ProgressBarTrackHeight;
             FillBrush = theme.ProgressBarFillBrush;
         }
 
@@ -35,6 +36,8 @@ namespace MonoGame.PortableUI.Controls
                 Height = newTheme.ProgressBarHeight;
             if (Width.Equals(oldTheme.ProgressBarWidth))
                 Width = newTheme.ProgressBarWidth;
+            if (Nullable.Equals(TrackHeight, oldTheme.ProgressBarTrackHeight))
+                TrackHeight = newTheme.ProgressBarTrackHeight;
             if (ReferenceEquals(FillBrush, oldTheme.ProgressBarFillBrush))
                 FillBrush = newTheme.ProgressBarFillBrush;
         }
@@ -88,12 +91,27 @@ namespace MonoGame.PortableUI.Controls
         /// <summary>Duration of one marquee sweep in indeterminate mode.</summary>
         public TimeSpan IndeterminateCycle { get; set; } = TimeSpan.FromSeconds(1.6);
 
+        /// <summary>Thickness of track and fill, centered in the control (Android: a 4 dp bar in a 16 dp
+        /// control); null fills the control's height.</summary>
+        public float? TrackHeight { get; set; }
+
+        protected override Rect ChromeRect(Rect rect)
+        {
+            rect = base.ChromeRect(rect);
+            if (TrackHeight is not { } track)
+                return rect;
+            var height = Math.Min(rect.Height, ToRender(track));
+            return new Rect(rect.Left, rect.Top + (rect.Height - height) / 2, rect.Width, height);
+        }
+
         public override Size MeasureLayout()
         {
             if (IsGoneShown)
                 return Size.Empty;
 
-            var width = Width.IsFixed() ? Width : PortableTheme.ResolveCurrent().ProgressBarWidth;
+            // An auto ProgressBarWidth (NaN) measures nothing and stretches when arranged.
+            var themeWidth = PortableTheme.ResolveCurrent().ProgressBarWidth;
+            var width = Width.IsFixed() ? Width : themeWidth.IsFixed() ? themeWidth : 0;
             var height = Height.IsFixed() ? Height : PortableTheme.ResolveCurrent().ProgressBarHeight;
             // Min/Max constrain the content box only; margin is added afterwards (same as Control).
             return ApplyConstraints(new Size(width, height)) + Margin;
@@ -102,6 +120,8 @@ namespace MonoGame.PortableUI.Controls
         protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
         {
             base.OnDraw(spriteBatch, rect);
+            // The fill shares the track's rectangle (a thin bar centered in a taller control via ChromeInset).
+            rect = ChromeRect(rect);
             if (IsIndeterminate)
             {
                 DrawIndeterminate(spriteBatch, rect);

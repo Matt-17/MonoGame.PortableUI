@@ -30,12 +30,14 @@ namespace MonoGame.PortableUI.Controls
             ItemTextColor = theme.ListBoxItemTextColor;
             SelectedItemTextColor = theme.ListBoxSelectedItemTextColor;
             GlyphColor = theme.ComboBoxGlyphColor;
+            GlyphSize = theme.ComboBoxGlyphSize;
+            PlaceholderColor = theme.ComboBoxPlaceholderColor;
             // ComboBoxes may need their own text color (e.g. Turbo Vision: yellow on blue while
             // dialog buttons are black on gray) — the ComboBox style slot wins over ButtonTextColor.
             if (theme.ComboBox.Normal.TextColor is { } styleTextColor)
                 TextColor = styleTextColor;
             // Reserve room on the right so text never overlaps the dropdown glyph.
-            Padding = WithGlyphReserve(Padding);
+            Padding = WithGlyphReserve(theme.ComboBoxPadding ?? theme.ButtonPadding, GlyphSize);
             Click += ComboBoxClick;
         }
 
@@ -49,16 +51,45 @@ namespace MonoGame.PortableUI.Controls
         public Color SelectedItemTextColor { get; set; }
         /// <summary>Color of the dropdown triangle; null falls back to the current text color.</summary>
         public Color? GlyphColor { get; set; }
+        /// <summary>Width of the dropdown triangle; 0 hides it (an Android Picker has none).</summary>
         public float GlyphSize { get; set; } = 10;
+
+        /// <summary>Shown while nothing is selected (MAUI's Picker.Title), in <see cref="PlaceholderColor"/>.</summary>
+        public string? PlaceholderText
+        {
+            get => _placeholderText;
+            set
+            {
+                if (_placeholderText == value)
+                    return;
+                _placeholderText = value;
+                UpdateDisplay();
+                InvalidateLayout(true);
+            }
+        }
+
+        /// <summary>Color of <see cref="PlaceholderText"/>; null uses the theme's text box hint color.</summary>
+        public Color? PlaceholderColor { get; set; }
+
+        private string? _placeholderText;
+
+        private bool ShowsPlaceholder => SelectedItem == null && !string.IsNullOrEmpty(PlaceholderText);
 
         protected override ControlStyle? GetThemeStyle(PortableTheme theme)
         {
             return UseThemeStyle ? theme.ComboBox : null;
         }
 
-        private Thickness WithGlyphReserve(Thickness padding)
+        private static Thickness WithGlyphReserve(Thickness padding, float glyphSize)
         {
-            return new Thickness(padding.Left, padding.Top, padding.Right + GlyphSize + 8, padding.Bottom);
+            return glyphSize > 0 ? new Thickness(padding.Left, padding.Top, padding.Right + glyphSize + 8, padding.Bottom) : padding;
+        }
+
+        internal override void ChangeVisualState()
+        {
+            base.ChangeVisualState();
+            if (ShowsPlaceholder && Content is TextBlock placeholder)
+                placeholder.TextColor = PlaceholderColor ?? ResolveTheme().TextBoxHintTextColor;
         }
 
         protected override void OnThemeChanged(PortableTheme oldTheme, PortableTheme newTheme)
@@ -66,14 +97,18 @@ namespace MonoGame.PortableUI.Controls
             // Decide what was theme-seeded before base runs: Button re-seeds TextColor itself, after
             // which the ComboBox-specific comparison would no longer match.
             var textWasThemeDefault = TextColor.Equals(oldTheme.ComboBox.Normal.TextColor ?? oldTheme.ButtonTextColor);
-            var paddingWasThemeDefault = Padding.Equals(WithGlyphReserve(oldTheme.ButtonPadding));
+            var paddingWasThemeDefault = Padding.Equals(WithGlyphReserve(oldTheme.ComboBoxPadding ?? oldTheme.ButtonPadding, GlyphSize));
+            if (GlyphSize.Equals(oldTheme.ComboBoxGlyphSize))
+                GlyphSize = newTheme.ComboBoxGlyphSize;
+            if (Nullable.Equals(PlaceholderColor, oldTheme.ComboBoxPlaceholderColor))
+                PlaceholderColor = newTheme.ComboBoxPlaceholderColor;
 
             base.OnThemeChanged(oldTheme, newTheme);
 
             if (textWasThemeDefault)
                 TextColor = newTheme.ComboBox.Normal.TextColor ?? newTheme.ButtonTextColor;
             if (paddingWasThemeDefault)
-                Padding = WithGlyphReserve(newTheme.ButtonPadding);
+                Padding = WithGlyphReserve(newTheme.ComboBoxPadding ?? newTheme.ButtonPadding, GlyphSize);
 
             if (Height.Equals(oldTheme.ComboBoxHeight))
                 Height = newTheme.ComboBoxHeight;
@@ -182,9 +217,12 @@ namespace MonoGame.PortableUI.Controls
             _templatedItem = null;
             if (Content != null && Content is not TextBlock)
                 Content = null;
-            var text = item?.ToString() ?? "";
+            var text = item?.ToString() ?? PlaceholderText ?? "";
             if (Text != text)
+            {
                 Text = text;
+                ChangeVisualState();
+            }
         }
 
         public object? SelectedItem => SelectedIndex >= 0 && SelectedIndex < Items.Count ? Items[SelectedIndex] : null;

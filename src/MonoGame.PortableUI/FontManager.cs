@@ -68,6 +68,7 @@ namespace MonoGame.PortableUI
             public Func<Stream>? Open;
             public float DefaultSize;
             public float SizeScale = 1;
+            public Text.TextLineMetrics LineMetrics;
             public Text.UIFont? Font;
             public bool Failed;
         }
@@ -95,21 +96,24 @@ namespace MonoGame.PortableUI
         ///     <see cref="Text.FontStashUIFont"/> (pixel-art fonts are detected and kept crisp). Pass e.g.
         ///     <c>() =&gt; TitleContainer.OpenStream("Content/Fonts/Inter.ttf")</c>, which also reads Android assets.
         ///     <paramref name="sizeScale"/> scales every text size of the font, to match a SpriteFont that was
-        ///     baked at another size than its name says.
+        ///     baked at another size than its name says. <paramref name="lineMetrics"/> picks how lines are sized
+        ///     (<see cref="Text.TextLineMetrics.Android"/> lines text up with native Android labels).
         /// </summary>
-        public static void RegisterDynamicFont(string name, Func<Stream> open, float defaultSize = DefaultSize, float sizeScale = 1)
+        public static void RegisterDynamicFont(string name, Func<Stream> open, float defaultSize = DefaultSize, float sizeScale = 1,
+            Text.TextLineMetrics lineMetrics = Text.TextLineMetrics.Font)
         {
             if (string.IsNullOrWhiteSpace(name))
                 throw new ArgumentException("A font needs a name.", nameof(name));
             lock (DynamicFontsLock)
-                DynamicFonts[name] = new DynamicFontEntry { Open = open ?? throw new ArgumentNullException(nameof(open)), DefaultSize = defaultSize, SizeScale = sizeScale > 0 ? sizeScale : 1 };
+                DynamicFonts[name] = new DynamicFontEntry { Open = open ?? throw new ArgumentNullException(nameof(open)), DefaultSize = defaultSize, SizeScale = sizeScale > 0 ? sizeScale : 1, LineMetrics = lineMetrics };
             NotifyDynamicFontChanged();
         }
 
-        /// <summary><see cref="RegisterDynamicFont(string, Func{Stream}, float, float)"/> for a file read through
+        /// <summary><see cref="RegisterDynamicFont(string, Func{Stream}, float, float, Text.TextLineMetrics)"/> for a file read through
         /// <see cref="TitleContainer"/> (relative to the app; Android assets).</summary>
-        public static void RegisterDynamicFontFile(string name, string titleContainerPath, float defaultSize = DefaultSize, float sizeScale = 1)
-            => RegisterDynamicFont(name, () => TitleContainer.OpenStream(titleContainerPath), defaultSize, sizeScale);
+        public static void RegisterDynamicFontFile(string name, string titleContainerPath, float defaultSize = DefaultSize, float sizeScale = 1,
+            Text.TextLineMetrics lineMetrics = Text.TextLineMetrics.Font)
+            => RegisterDynamicFont(name, () => TitleContainer.OpenStream(titleContainerPath), defaultSize, sizeScale, lineMetrics);
 
         public static bool UnregisterDynamicFont(string name)
         {
@@ -139,7 +143,7 @@ namespace MonoGame.PortableUI
             try
             {
                 using var stream = entry.Open!();
-                var font = Text.FontStashUIFont.FromStreams(entry.DefaultSize, stream);
+                var font = Text.FontStashUIFont.FromStreams(entry.DefaultSize, entry.LineMetrics, stream);
                 entry.Font = entry.SizeScale == 1 ? font : font.WithSizeScale(entry.SizeScale);
             }
             catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or NotSupportedException or ArgumentException or InvalidOperationException)
