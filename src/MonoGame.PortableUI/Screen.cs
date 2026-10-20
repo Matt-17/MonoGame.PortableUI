@@ -38,6 +38,8 @@ namespace MonoGame.PortableUI
         internal PointF LastMousePosition;
         // When a finger last touched: the mouse a touch platform emulates from it must not hover.
         private TimeSpan? _lastTouchTime;
+        // Where the (emulated) mouse was at the last touch: until it moves away, it is still the finger.
+        private PointF? _mouseAtLastTouch;
         internal PointF LastTouchPosition;
         internal int LastScrollWheelValue;
         internal int LastHorizontalScrollWheelValue;
@@ -1589,11 +1591,17 @@ namespace MonoGame.PortableUI
             }
 
             if (touchCollection.Count > 0)
+            {
                 _lastTouchTime = ScreenSystem.TotalTime;
+                _mouseAtLastTouch = mousePosition;
+            }
             // Touch platforms move the mouse to the finger; that pointer must not hover controls
-            // (a tapped button would stay highlighted). A real mouse, used apart from touch, hovers.
+            // (a tapped button would stay highlighted, a list row under a lifted finger light up after
+            // a scroll). A real mouse, used apart from touch, hovers as soon as it moves.
             var pointerIsTouch = !(ScreenEngine?.Options.HoverOnTouch ?? false)
-                && (touchCollection.Count > 0 || (_lastTouchTime is { } touchedAt && (ScreenSystem.TotalTime - touchedAt).TotalMilliseconds < 600));
+                && (touchCollection.Count > 0
+                    || (_lastTouchTime is { } touchedAt && (ScreenSystem.TotalTime - touchedAt).TotalMilliseconds < 600)
+                    || _mouseAtLastTouch == mousePosition);
             if (pointerIsTouch)
                 ClearHover(content);
 
