@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Particle bursts (`ParticleLayer`, `ParticleBurst`, `control.Burst()`):** confetti, sparks and bubbles above a screen as an adorner that never takes a touch; presets or your own (count, colours, shape, speed, spread, gravity, drag, spin, lifetime).
 - **Faster shared-element flights:** a flying control is drawn once at rest into a texture and the flight moves and scales that picture. Drawing it live at every in-between size built new textures for brushes, corner masks and shadows each frame (a flying card and avatar took 20-35 ms per frame on a Pixel 5, now 11 ms at 90 Hz). Content that animates on its own shows still while it flies.
 - **Round line caps (`LineCap.Round`):** `DrawingContext` lines, polylines and arcs can end in a half circle (progress rings, pen strokes).
 - **Fix: `DrawingCanvas.Invalidate()` from its own render:** an animation that invalidates while drawing got its next frame only when something else redrew (a ring filling at ~14 fps); it now asks for the next frame.
