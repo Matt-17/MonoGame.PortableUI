@@ -258,6 +258,23 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void A_square_corner_between_round_ones_is_filled()
+        {
+            // A selection handle: a 22 px circle with its top right corner squared off. The straight fills
+            // stop at the 11 px radii, so the square corner needs its own fill.
+            var rect = new Rect(0, 0, 22, 22);
+            var radius = new CornerRadius(11, 0, 11, 11);
+            var fills = RoundedRectRenderer.GetFillRects(rect, radius).ToList();
+            var rest = new Rect[8];
+            RoundedRectRenderer.CornerRemainders(rect, radius, rest);
+            fills.AddRange(rest);
+
+            Assert.IsTrue(fills.Any(r => r.Contains(new PointF(20, 2))), "the square corner");
+            Assert.IsTrue(fills.Any(r => r.Contains(new PointF(12, 8))), "next to it");
+            Assert.IsFalse(rest.Any(r => r.Width > 0 && r.Height > 0 && r.Contains(new PointF(2, 2))), "the round corners stay round");
+        }
+
+        [TestMethod]
         public void Shadow_renderer_creates_single_hard_shadow_when_blur_is_zero()
         {
             var shadow = new ShadowStyle
