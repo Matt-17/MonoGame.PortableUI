@@ -618,7 +618,7 @@ namespace MonoGame.PortableUI.Media
             return MathHelper.Clamp(0.5f - distance * 2, 0, 1);
         }
 
-        private static CornerRadius Clamp(CornerRadius radius, Rect rect)
+        internal static CornerRadius Clamp(CornerRadius radius, Rect rect)
         {
             var max = Math.Max(0, Math.Min(rect.Width, rect.Height) / 2);
             return new CornerRadius(

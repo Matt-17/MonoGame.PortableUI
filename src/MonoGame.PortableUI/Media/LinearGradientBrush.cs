@@ -62,14 +62,17 @@ namespace MonoGame.PortableUI.Media
             }
             else
             {
-                // Corner-mask pixels are chosen from the actual pixel dimensions, so a rounded fill
-                // still needs an element-sized texture to look correct at every aspect ratio.
+                // Corner-mask pixels are chosen from the actual pixel dimensions, so the corners are
+                // computed for the element's size; the bands between them stretch (StretchedCorners).
                 var width = BrushTextureCache.PixelSize(context.Rect.Width);
                 var height = BrushTextureCache.PixelSize(context.Rect.Height);
                 var radius = context.Radius;
                 var key = CreateTextureCacheKey(width, height, radius);
+                var layout = StretchedCorners.For(width, height, radius);
                 if (!BrushTextureCache.TryGet(spriteBatch.GraphicsDevice, key, out texture))
-                    texture = CreateCachedTexture(spriteBatch.GraphicsDevice, key, width, height, radius);
+                    texture = CreateCachedTexture(spriteBatch.GraphicsDevice, key, layout);
+                layout.Draw(spriteBatch, texture, context.Rect, ApplyOpacity(Color.White, context.Opacity));
+                return;
             }
             spriteBatch.Draw(texture, context.Rect, ApplyOpacity(Color.White, context.Opacity));
         }
@@ -78,7 +81,12 @@ namespace MonoGame.PortableUI.Media
         // a cache hit allocates nothing.
         private Texture2D CreateCachedTexture(GraphicsDevice device, BrushTextureCacheKey key, int width, int height, CornerRadius radius)
         {
-            return BrushTextureCache.GetOrCreate(device, key, graphicsDevice => CreateTexture(graphicsDevice, width, height, radius));
+            return CreateCachedTexture(device, key, StretchedCorners.For(width, height, radius));
+        }
+
+        private Texture2D CreateCachedTexture(GraphicsDevice device, BrushTextureCacheKey key, StretchedCorners layout)
+        {
+            return BrushTextureCache.GetOrCreate(device, key, graphicsDevice => CreateTexture(graphicsDevice, layout));
         }
 
         private BrushTextureCacheKey CreateFastPathCacheKey()
@@ -97,17 +105,19 @@ namespace MonoGame.PortableUI.Media
         internal BrushTextureCacheKey CreateTextureCacheKey(int width, int height, CornerRadius radius)
         {
             return new BrushTextureCacheKey(
-                "linear-gradient-v2",
+                "linear-gradient-v3",
                 width,
                 height,
                 BitConverter.SingleToInt32Bits(AngleDegrees),
                 HashCode.Combine(GetStopsHash(), radius));
         }
 
-        private Texture2D CreateTexture(GraphicsDevice graphicsDevice, int width, int height, CornerRadius radius)
+        private Texture2D CreateTexture(GraphicsDevice graphicsDevice, StretchedCorners layout)
         {
+            var width = layout.Width;
+            var height = layout.Height;
             var stops = GetOrderedStops();
-            var data = new Color[width * height];
+            var data = new Color[layout.TextureWidth * layout.TextureHeight];
             var radians = MathHelper.ToRadians(AngleDegrees);
             var direction = new Vector2((float)Math.Cos(radians), (float)Math.Sin(radians));
             if (direction.LengthSquared() <= float.Epsilon)
@@ -138,18 +148,18 @@ namespace MonoGame.PortableUI.Media
             var tx = width == 1 ? 0 : GetProjection(new Vector2(1f / (width - 1), 0), direction) / range;
             var ty = height == 1 ? 0 : GetProjection(new Vector2(0, 1f / (height - 1)), direction) / range;
             var t0 = -min / range;
-            for (var y = 0; y < height; y++)
+            for (var y = 0; y < layout.TextureHeight; y++)
             {
-                var rowT = t0 + ty * y;
-                for (var x = 0; x < width; x++)
+                var rowT = t0 + ty * layout.ElementY(y);
+                for (var x = 0; x < layout.TextureWidth; x++)
                 {
-                    var t = MathHelper.Clamp(rowT + tx * x, 0, 1);
-                    data[y * width + x] = table[(int)(t * (steps - 1) + 0.5f)];
+                    var t = MathHelper.Clamp(rowT + tx * layout.ElementX(x), 0, 1);
+                    data[y * layout.TextureWidth + x] = table[(int)(t * (steps - 1) + 0.5f)];
                 }
             }
 
-            RoundedRectRenderer.ApplyCornerMask(data, width, height, radius);
-            var texture = new Texture2D(graphicsDevice, width, height);
+            layout.ApplyCornerMask(data);
+            var texture = new Texture2D(graphicsDevice, layout.TextureWidth, layout.TextureHeight);
             texture.SetData(data);
             return texture;
         }

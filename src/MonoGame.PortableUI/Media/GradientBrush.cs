@@ -126,29 +126,33 @@ namespace MonoGame.PortableUI.Media
             var height = BrushTextureCache.PixelSize(context.Rect.Height);
             var radius = context.Radius;
             var key = new BrushTextureCacheKey(
-                "linear-gradient-rounded-v1",
+                "linear-gradient-rounded-v2",
                 unchecked((int)StartColor.PackedValue),
                 unchecked((int)EndColor.PackedValue),
                 System.HashCode.Combine((int)Direction, width, height),
                 radius.GetHashCode());
             // Hit path first: the factory lambda below captures locals, and a closure is
             // allocated at method entry, so it lives in a helper that only runs on a miss.
+            // Only the corners are element-sized; the bands between them stretch (StretchedCorners).
+            var layout = StretchedCorners.For(width, height, radius);
             if (!BrushTextureCache.TryGet(spriteBatch.GraphicsDevice, key, out var texture))
-                texture = CreateRoundedTexture(spriteBatch.GraphicsDevice, key, width, height, radius);
-            spriteBatch.Draw(texture, context.Rect, ApplyOpacity(Color.White, context.Opacity));
+                texture = CreateRoundedTexture(spriteBatch.GraphicsDevice, key, layout);
+            layout.Draw(spriteBatch, texture, context.Rect, ApplyOpacity(Color.White, context.Opacity));
         }
 
-        private Texture2D CreateRoundedTexture(GraphicsDevice device, BrushTextureCacheKey key, int width, int height, CornerRadius radius)
+        private Texture2D CreateRoundedTexture(GraphicsDevice device, BrushTextureCacheKey key, StretchedCorners layout)
         {
             return BrushTextureCache.GetOrCreate(device, key, graphicsDevice =>
             {
-                var data = new Color[width * height];
-                for (var y = 0; y < height; y++)
+                var width = layout.Width;
+                var height = layout.Height;
+                var data = new Color[layout.TextureWidth * layout.TextureHeight];
+                for (var y = 0; y < layout.TextureHeight; y++)
                 {
-                    var v = height == 1 ? 0 : y / (float)(height - 1);
-                    for (var x = 0; x < width; x++)
+                    var v = height == 1 ? 0 : layout.ElementY(y) / (height - 1);
+                    for (var x = 0; x < layout.TextureWidth; x++)
                     {
-                        var u = width == 1 ? 0 : x / (float)(width - 1);
+                        var u = width == 1 ? 0 : layout.ElementX(x) / (width - 1);
                         var t = Direction switch
                         {
                             GradientDirection.Horizontal => u,
@@ -156,12 +160,12 @@ namespace MonoGame.PortableUI.Media
                             GradientDirection.DiagonalUp => (u + (1 - v)) / 2,
                             _ => v
                         };
-                        data[y * width + x] = Premultiply(Color.Lerp(StartColor, EndColor, t));
+                        data[y * layout.TextureWidth + x] = Premultiply(Color.Lerp(StartColor, EndColor, t));
                     }
                 }
 
-                RoundedRectRenderer.ApplyCornerMask(data, width, height, radius);
-                var rounded = new Texture2D(graphicsDevice, width, height);
+                layout.ApplyCornerMask(data);
+                var rounded = new Texture2D(graphicsDevice, layout.TextureWidth, layout.TextureHeight);
                 rounded.SetData(data);
                 return rounded;
             });

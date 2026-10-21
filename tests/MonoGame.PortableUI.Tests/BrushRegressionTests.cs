@@ -20,6 +20,54 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void A_rounded_gradient_keeps_element_pixels_only_in_its_corners()
+        {
+            var layout = StretchedCorners.For(992, 330, new CornerRadius(24));
+
+            Assert.AreEqual(24 + StretchedCorners.Band + 24, layout.TextureWidth);
+            Assert.AreEqual(24 + StretchedCorners.Band + 24, layout.TextureHeight);
+            Assert.AreEqual(23f, layout.ElementX(23), "left corner keeps its pixels");
+            Assert.AreEqual(968f, layout.ElementX(24 + StretchedCorners.Band), "right corner starts where the element's does");
+            Assert.AreEqual(991f, layout.ElementX(layout.TextureWidth - 1));
+            Assert.AreEqual(329f, layout.ElementY(layout.TextureHeight - 1));
+        }
+
+        [TestMethod]
+        public void A_stretched_band_samples_a_linear_fill_exactly()
+        {
+            var layout = StretchedCorners.For(992, 330, new CornerRadius(24));
+            var stretch = (992 - 48) / (float)StretchedCorners.Band;
+            // Each element pixel of the band samples the texture where SpriteBatch puts it; bilinear
+            // filtering between texel centres must give back its own index.
+            for (var pixel = 40; pixel < 950; pixel += 7)
+            {
+                var texel = 24 + (pixel + 0.5f - 24) / stretch - 0.5f;
+                var below = (int)System.MathF.Floor(texel);
+                var fraction = texel - below;
+                var sampled = layout.ElementX(below) * (1 - fraction) + layout.ElementX(below + 1) * fraction;
+                Assert.AreEqual(pixel, sampled, 0.01f, $"pixel {pixel}");
+            }
+        }
+
+        [TestMethod]
+        public void Small_or_uneven_rounded_fills_stay_element_sized_where_nothing_stretches()
+        {
+            var small = StretchedCorners.For(100, 40, new CornerRadius(8));
+            Assert.AreEqual(8 + StretchedCorners.Band + 8, small.TextureWidth);
+            Assert.AreEqual(40, small.TextureHeight, "too short to stretch");
+            Assert.AreEqual(17f, small.ElementY(17));
+
+            var uneven = StretchedCorners.For(400, 400, new CornerRadius(30, 0, 10, 0));
+            Assert.AreEqual(30 + StretchedCorners.Band + 10, uneven.TextureWidth);
+            Assert.AreEqual(30 + StretchedCorners.Band + 10, uneven.TextureHeight);
+
+            var pill = StretchedCorners.For(300, 40, new CornerRadius(100));
+            Assert.AreEqual(20f, pill.Radius.TopLeft, "radius clamped to the element");
+            Assert.AreEqual(20 + StretchedCorners.Band + 20, pill.TextureWidth);
+            Assert.AreEqual(40, pill.TextureHeight);
+        }
+
+        [TestMethod]
         public void Gradient_brush_defaults_to_vertical_direction()
         {
             var brush = new GradientBrush(Color.Red, Color.Blue);

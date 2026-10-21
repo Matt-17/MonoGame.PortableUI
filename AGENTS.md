@@ -72,7 +72,8 @@ Update/Draw. Each `Screen` is a `FrameworkElement` hosting a private root `Grid`
 `OnDraw` runs in its own `SpriteBatch.Begin/End` (skipped for controls without an `OnDraw` override,
 background, border or shadow); `OnDrawOverlay` gets a second batch only for types that override it.
 Translucent rounded fills use a 9-slice of a per-radius mask (`RoundedRectRenderer`), never a
-per-size texture. Offscreen passes: backdrop blur (glass brushes) and post-FX (CRT/scanline/etc.) via the
+per-size texture; rounded gradients (`StretchedCorners`) compute only the corners at element pixels and stretch 64 texels
+between them. Offscreen passes: backdrop blur (glass brushes) and post-FX (CRT/scanline/etc.) via the
 effects package's renderers (UI and island targets rented from `RenderTargetPool`), and the letter-box scale target. Render targets are pooled (`RenderTargetHelper`) and recreated on device reset.
 
 **Render on demand:** `ScreenEngineOptions.RenderMode = OnDemand` (the Android demo uses it) draws only
