@@ -235,5 +235,27 @@ namespace MonoGame.PortableUI.Tests
             Assert.AreEqual(50f, context.Size.Width);
             Assert.AreEqual(new Vector2(12, 12), context.MeasureText("AB", 12));
         }
+
+        [TestMethod]
+        public void Dots_and_glows_are_sprites_not_triangles()
+        {
+            var canvas = new Canvas
+            {
+                Draw = dc =>
+                {
+                    for (var i = 0; i < 1000; i++)
+                    {
+                        dc.FillDot(new Vector2(i % 100, i / 10), 40, Color.White);
+                        dc.FillGlow(new Vector2(i % 100, i / 10), 60, new Color(Color.White, 0.1f));
+                    }
+                    // Nothing to draw: no size, no colour.
+                    dc.FillDot(Vector2.Zero, 0, Color.White);
+                    dc.FillGlow(Vector2.Zero, 10, Color.Transparent);
+                }
+            };
+            var context = canvas.RenderInto(null, new Rect(0, 0, 100, 100));
+            Assert.AreEqual(2000, context.SpriteDraws);
+            Assert.AreEqual(0, context.PendingVertices.Length);
+        }
     }
 }
