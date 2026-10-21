@@ -257,5 +257,25 @@ namespace MonoGame.PortableUI.Tests
             Assert.AreEqual(2000, context.SpriteDraws);
             Assert.AreEqual(0, context.PendingVertices.Length);
         }
+
+        [TestMethod]
+        public void A_triangle_keeps_its_corner_colours_and_has_no_fringe()
+        {
+            var canvas = new Canvas
+            {
+                Draw = dc =>
+                {
+                    dc.FillTriangle(new Vector2(0, 0), Color.Red, new Vector2(10, 0), Color.Lime, new Vector2(0, 10), new Color(0, 0, 255, 128));
+                    dc.FillTriangle(Vector2.Zero, Color.Transparent, Vector2.One, Color.Transparent, Vector2.UnitY, Color.Transparent);
+                }
+            };
+            var vertices = canvas.RenderInto(null, new Rect(0, 0, 20, 20)).PendingVertices;
+            Assert.AreEqual(3, vertices.Length);
+            Assert.AreEqual(Color.Red, vertices[0].Color);
+            Assert.AreEqual(Color.Lime, vertices[1].Color);
+            // Straight alpha in, premultiplied out.
+            Assert.AreEqual(new Color(0, 0, 128, 128), vertices[2].Color);
+            Assert.AreEqual(new Vector3(10, 0, 0), vertices[1].Position);
+        }
     }
 }
