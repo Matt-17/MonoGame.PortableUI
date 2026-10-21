@@ -37,6 +37,8 @@ namespace MonoGame.PortableUI
         private PointF? _themeOrigin;
         private TimeSpan _themeDuration;
         private Color _themeBackdrop;
+        // Set from any thread when the frame was lost; the game thread drops the picture on its next update.
+        private volatile bool _themeFrameLost;
 
         /// <summary>Whether a theme change is fading in.</summary>
         public bool IsThemeTransitioning => _themeCapture != null || _themeApply != null || _themeStart != null;
@@ -76,6 +78,11 @@ namespace MonoGame.PortableUI
         /// <summary>At the start of an update: the picture was taken, the new look comes in now.</summary>
         private void ApplyPendingTheme()
         {
+            if (_themeFrameLost)
+            {
+                _themeFrameLost = false;
+                EndThemeTransition();
+            }
             if (_themeApply is not { } apply)
                 return;
             _themeApply = null;
@@ -129,6 +136,8 @@ namespace MonoGame.PortableUI
 
         private void DrawThemeSnapshot(SpriteBatch spriteBatch)
         {
+            if (_themeFrameLost)
+                return;
             if (_themeStart is not { } start || _themeSnapshot == null || _themeSnapshot.IsDisposed)
                 return;
             var t = (float)((ScreenSystem.TotalTime - start).TotalMilliseconds / Math.Max(1, _themeDuration.TotalMilliseconds));
@@ -204,7 +213,13 @@ namespace MonoGame.PortableUI
             return _revealMask;
         }
 
-        /// <summary>Drops the picture (done, or its frame was lost with the surface).</summary>
+        /// <summary>
+        ///     The frame was lost with the surface (any thread: Android raises <c>Game.Activated</c> on its UI thread,
+        ///     where disposing a render target would wait for the paused game thread): the picture goes on the next update.
+        /// </summary>
+        internal void ThemeFrameLost() => _themeFrameLost = true;
+
+        /// <summary>Drops the picture (done, or its frame was lost with the surface). On the game thread.</summary>
         internal void EndThemeTransition()
         {
             _themeStart = null;
