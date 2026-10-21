@@ -129,14 +129,22 @@ namespace MonoGame.PortableUI.Media
             }
 
             var range = Math.Max(0.0001f, max - min);
+            // The colours along the gradient once, finer than any pixel step; each pixel then only looks one up.
+            var steps = Math.Clamp(2 * Math.Max(width, height), 2, 4096);
+            var table = new Color[steps];
+            for (var i = 0; i < steps; i++)
+                table[i] = Premultiply(GradientStops.Evaluate(stops, i / (float)(steps - 1)));
+            // t is linear in the pixel position: t = tx·x + ty·y + t0.
+            var tx = width == 1 ? 0 : GetProjection(new Vector2(1f / (width - 1), 0), direction) / range;
+            var ty = height == 1 ? 0 : GetProjection(new Vector2(0, 1f / (height - 1)), direction) / range;
+            var t0 = -min / range;
             for (var y = 0; y < height; y++)
             {
-                var v = height == 1 ? 0 : y / (float)(height - 1);
+                var rowT = t0 + ty * y;
                 for (var x = 0; x < width; x++)
                 {
-                    var u = width == 1 ? 0 : x / (float)(width - 1);
-                    var t = (GetProjection(new Vector2(u, v), direction) - min) / range;
-                    data[y * width + x] = Premultiply(GradientStops.Evaluate(stops, t));
+                    var t = MathHelper.Clamp(rowT + tx * x, 0, 1);
+                    data[y * width + x] = table[(int)(t * (steps - 1) + 0.5f)];
                 }
             }
 
