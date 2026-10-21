@@ -31,7 +31,7 @@ dotnet run --project benchmarks/MonoGame.PortableUI.Benchmarks -c Release -- --f
 - Building the `.slnx` includes `net10.0-android` inner builds and needs `dotnet workload install android`.
   **Prefer targeting individual projects** when iterating on desktop.
 - Demo flags: `--theme <id>`, `--screenshot <dir>` (renders every theme to PNG and exits — the primary
-  visual-verification loop), `--screenshot-screen <tab>`, `--benchmark-navigation out.csv` (frame times while never-seen pages slide in); env var `PORTABLEUI_DEMO_THEME`.
+  visual-verification loop), `--screenshot-screen <tab>`, `--benchmark-navigation out.csv` (frame times while never-seen pages slide in), `--benchmark-scale out.csv` (a shadowed solid/gradient/glass card scaling); env var `PORTABLEUI_DEMO_THEME`.
 - Conventions: `Nullable=enable`, `ImplicitUsings=disable` (write full `using`s), central package versions
   (`Directory.Packages.props`), warnings-as-errors only on CI (`CI=true`).
 
@@ -145,6 +145,10 @@ animation, transition, squash/breath). Then `Control.DrawsSubpixel` (unless the 
 off text snapping (`SnapsDrawing`) and `RoundedRectRenderer.Subpixel` draws fractional rects through padded
 9-slice masks with linear filtering; whole-pixel rects keep the snapped path, so static output never changes.
 With `PixelMotion` the motion part of `RenderScale` is rounded to whole multiples (`PixelStep`).
+Size-keyed textures are built at the rest size while a control moves (`Control.MotionScale` = render scale / rest scale,
+passed as `BrushContext.MotionScale`; brushes read `RestPixelWidth`/`RestPixelHeight`/`RestRadius`) and stretched: rounded
+gradients and image brushes, `PathShape` rasters, and shadow layers (rest layer count and corner masks,
+`RoundedRectRenderer.DrawSolidScaledCorners`), so a Scale animation builds nothing per frame.
 
 **Deformation:** `Control.Deformation` (soft-body grid, `Animation/Deformation.cs`) is updated in `UpdateMotion` from the
 translation velocity; while `IsActive`, `Screen.TryDrawDeformed` renders the control with `RenderTransformSuppressed`
@@ -187,7 +191,8 @@ visual moves the screen root and its background);
 `OnNavigatedTo`/`OnNavigatedFrom` hooks; focus is restored on `NavigateBack`. A screen pushed with a transition is drawn
 once offscreen at rest (half a pixel off, as in motion) at the next `DrawStack` (`WarmUpScreens`); the transition and flights
 are postponed by that draw's time, so first-use costs (glyphs, masks, gradients) land before the first step. The Android demo's
-"Open a new page" (with a warm-up switch) logs each transition's frame times to logcat (`PortableUI.Nav`).
+"Open a new page" (with a warm-up switch) logs each transition's frame times to logcat (`PortableUI.Nav`); a tapped card on
+that page pulses (Scale transition, the third card is acrylic glass) and logs its frames as `pulse`.
 
 **UI sound:** `ScreenEngine.Sounds` (`UiSoundService`) plays semantic events through an `IUiSoundPlayer`
 (`SoundEffectUiSoundPlayer`, synthesized defaults in `UiSoundSynth`). Controls raise them: `Control.OnClick` plays

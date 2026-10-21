@@ -103,7 +103,7 @@ namespace MonoGame.PortableUI.Demo.Android
             base.Update(gameTime);
             _screen?.SyncRenderQuality();
             // On demand the frame after a transition may never be drawn: the trace ends here.
-            if (_tracing && _engine?.IsTransitioning == false)
+            if (_tracing && !IsTraced)
             {
                 _tracing = false;
                 global::Android.Util.Log.Info("PortableUI.Nav", _transitionTrace.ToString());
@@ -147,18 +147,24 @@ namespace MonoGame.PortableUI.Demo.Android
             TraceTransition(interval, System.Diagnostics.Stopwatch.GetElapsedTime(now).TotalMilliseconds);
         }
 
+        // A screen transition or a card pulse on a detail page.
+        private bool IsTraced => _engine is { IsTransitioning: true } || _engine?.ActiveScreen is DetailPage { IsPulsing: true };
+
         private void TraceTransition(double interval, double draw)
         {
-            if (_engine is not { IsTransitioning: true })
+            if (_engine == null || !IsTraced)
                 return;
             var culture = System.Globalization.CultureInfo.InvariantCulture;
             if (!_tracing)
             {
                 _tracing = true;
-                _transitionTrace.Clear()
-                    .Append(_engine.ActiveScreen is DetailPage ? "open" : "back")
-                    .Append(_engine.WarmUpScreens ? ", warm-up on: -/" : ", warm-up off: -/")
-                    .Append(draw.ToString("0", culture));
+                if (!_engine.IsTransitioning)
+                    _transitionTrace.Clear().Append("pulse: -/");
+                else
+                    _transitionTrace.Clear()
+                        .Append(_engine.ActiveScreen is DetailPage ? "open" : "back")
+                        .Append(_engine.WarmUpScreens ? ", warm-up on: -/" : ", warm-up off: -/");
+                _transitionTrace.Append(draw.ToString("0", culture));
                 return;
             }
             _transitionTrace.Append(' ').Append(interval.ToString("0", culture)).Append('/').Append(draw.ToString("0", culture));

@@ -64,9 +64,10 @@ namespace MonoGame.PortableUI.Media
             {
                 // Corner-mask pixels are chosen from the actual pixel dimensions, so the corners are
                 // computed for the element's size; the bands between them stretch (StretchedCorners).
-                var width = BrushTextureCache.PixelSize(context.Rect.Width);
-                var height = BrushTextureCache.PixelSize(context.Rect.Height);
-                var radius = context.Radius;
+                // In motion at the rest size, stretched: a scale animation builds no texture per frame.
+                var width = context.RestPixelWidth;
+                var height = context.RestPixelHeight;
+                var radius = context.RestRadius;
                 var key = CreateTextureCacheKey(width, height, radius);
                 var layout = StretchedCorners.For(width, height, radius);
                 if (!BrushTextureCache.TryGet(spriteBatch.GraphicsDevice, key, out texture))

@@ -122,9 +122,10 @@ namespace MonoGame.PortableUI.Media
                 return;
             }
 
-            var width = BrushTextureCache.PixelSize(context.Rect.Width);
-            var height = BrushTextureCache.PixelSize(context.Rect.Height);
-            var radius = context.Radius;
+            // In motion at the rest size, stretched: a scale animation builds no texture per frame.
+            var width = context.RestPixelWidth;
+            var height = context.RestPixelHeight;
+            var radius = context.RestRadius;
             var key = new BrushTextureCacheKey(
                 "linear-gradient-rounded-v2",
                 unchecked((int)StartColor.PackedValue),

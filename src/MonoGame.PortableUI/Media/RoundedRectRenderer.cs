@@ -274,6 +274,33 @@ namespace MonoGame.PortableUI.Media
         }
 
         /// <summary>
+        ///     <see cref="DrawSolid"/> of a rect drawn <paramref name="cornerScale"/> times its rest size (a scale animation):
+        ///     translucent fills take the corner mask of the rest radius (<paramref name="radius"/> / scale) and stretch its
+        ///     corners, so in-between sizes build no masks.
+        /// </summary>
+        internal static void DrawSolidScaledCorners(SpriteBatch spriteBatch, Rect rect, CornerRadius radius, float cornerScale, Color color)
+        {
+            if (color.A == 255 || cornerScale <= 0 || radius.IsEmpty || rect.Width <= 0 || rect.Height <= 0 || color.A == 0)
+            {
+                DrawSolid(spriteBatch, rect, radius, color);
+                return;
+            }
+
+            radius = Clamp(radius, rect);
+            var rest = new CornerRadius(
+                MathF.Round(radius.TopLeft / cornerScale),
+                MathF.Round(radius.TopRight / cornerScale),
+                MathF.Round(radius.BottomRight / cornerScale),
+                MathF.Round(radius.BottomLeft / cornerScale));
+            if (rest.IsEmpty)
+            {
+                DrawSolid(spriteBatch, rect, rest, color);
+                return;
+            }
+            DrawNineSlice(spriteBatch, rect, rest, color, cornerScale);
+        }
+
+        /// <summary>
         ///     Per corner, the part of its band square (side bands × top/bottom bands, sized by the larger
         ///     radius on each side) that neither the straight fills nor the corner's own mask cover.
         /// </summary>
@@ -298,7 +325,8 @@ namespace MonoGame.PortableUI.Media
             rects[7] = new Rect(rect.Left, rect.Bottom - bottom, left, bottom - bl);
         }
 
-        private static void DrawNineSlice(SpriteBatch spriteBatch, Rect rect, CornerRadius radius, Color color)
+        // cornerScale: the corners are drawn this many times the mask's size (DrawSolidScaledCorners).
+        private static void DrawNineSlice(SpriteBatch spriteBatch, Rect rect, CornerRadius radius, Color color, float cornerScale = 1)
         {
             var tl = (int)Math.Ceiling(radius.TopLeft);
             var tr = (int)Math.Ceiling(radius.TopRight);
@@ -321,15 +349,15 @@ namespace MonoGame.PortableUI.Media
             // Integer destination like every other SpriteBatch draw here (Rect -> Rectangle), so
             // edges land on the same pixels as the opaque path instead of half-covering a row.
             Rectangle target = rect;
-            var left = srcLeft;
-            var right = srcRight;
+            var left = Scaled(srcLeft, cornerScale);
+            var right = Scaled(srcRight, cornerScale);
             if (left + right > target.Width)
             {
                 left = target.Width * left / Math.Max(1, left + right);
                 right = target.Width - left;
             }
-            var top = srcTop;
-            var bottom = srcBottom;
+            var top = Scaled(srcTop, cornerScale);
+            var bottom = Scaled(srcBottom, cornerScale);
             if (top + bottom > target.Height)
             {
                 top = target.Height * top / Math.Max(1, top + bottom);
@@ -357,6 +385,8 @@ namespace MonoGame.PortableUI.Media
                 }
             }
         }
+
+        private static int Scaled(int length, float scale) => scale == 1 ? length : (int)MathF.Round(length * scale);
 
         private static Texture2D GetNineSliceMask(GraphicsDevice device, int tl, int tr, int br, int bl)
         {

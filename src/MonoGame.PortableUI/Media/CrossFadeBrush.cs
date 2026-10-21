@@ -56,14 +56,16 @@ namespace MonoGame.PortableUI.Media
                 context.Opacity * (1 - Progress),
                 context.Device,
                 context.TimeSeconds,
-                context.PointerPosition);
+                context.PointerPosition,
+                context.Scale) { MotionScale = context.MotionScale };
             var toContext = new BrushContext(
                 context.Rect,
                 context.Radius,
                 context.Opacity * Progress,
                 context.Device,
                 context.TimeSeconds,
-                context.PointerPosition);
+                context.PointerPosition,
+                context.Scale) { MotionScale = context.MotionScale };
 
             From.Draw(spriteBatch, in fromContext);
             To.Draw(spriteBatch, in toContext);

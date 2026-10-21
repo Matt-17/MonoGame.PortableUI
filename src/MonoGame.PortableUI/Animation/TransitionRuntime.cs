@@ -369,7 +369,7 @@ namespace MonoGame.PortableUI.Animation
 
             if (brush == null)
                 return;
-            var endContext = new BrushContext(context.Rect, context.Radius, opacity, context.Device, context.TimeSeconds, context.PointerPosition, context.Scale);
+            var endContext = new BrushContext(context.Rect, context.Radius, opacity, context.Device, context.TimeSeconds, context.PointerPosition, context.Scale) { MotionScale = context.MotionScale };
             brush.Draw(spriteBatch, in endContext);
         }
     }

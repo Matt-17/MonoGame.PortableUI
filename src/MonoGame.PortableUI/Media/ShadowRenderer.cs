@@ -16,15 +16,21 @@ namespace MonoGame.PortableUI.Media
         public static void Draw(SpriteBatch spriteBatch, Rect rect, CornerRadius radius, ShadowStyle shadow, float opacity)
             => Draw(spriteBatch, rect, radius, shadow, opacity, 1f);
 
-        // scale: the control's render scale; offset, blur and spread are layout lengths.
-        public static void Draw(SpriteBatch spriteBatch, Rect rect, CornerRadius radius, ShadowStyle shadow, float opacity, float scale)
+        // scale: the control's render scale; offset, blur and spread are layout lengths. motion: how much a running
+        // animation scales the control beyond its rest pose (Control.MotionScale).
+        public static void Draw(SpriteBatch spriteBatch, Rect rect, CornerRadius radius, ShadowStyle shadow, float opacity, float scale, Vector2 motion = default)
         {
             // Stack buffer instead of an iterator: shadows are drawn for every shadowed control
             // every frame.
             Span<ShadowLayer> layers = stackalloc ShadowLayer[MaxLayers];
             // Each layer is a full translucent fill: Low quality keeps the overdraw to a few.
             var maxLayers = ScreenEngine.DrawingQuality == RenderQuality.Low ? LowQualityLayers : MaxLayers;
-            var count = FillShadowLayers(rect, shadow, layers, scale, maxLayers);
+            // A scale animation draws the rest pose's layers (count, radii) scaled: every in-between size had other
+            // layer radii, each a corner mask built on first use.
+            var motionScale = motion == default ? 1 : Math.Min(motion.X, motion.Y);
+            if (motionScale <= 0)
+                motionScale = 1;
+            var count = FillShadowLayers(rect, shadow, layers, scale, maxLayers, scale / motionScale);
             // A soft shadow has no edge a fractional position could sharpen: its layers always use the shared whole-pixel
             // corner masks. In motion, each layer's expanded radius built its own subpixel mask instead (a shadowed button
             // and a tab bar starting to move cost 60-80 ms on a Pixel 5 the first time).
@@ -36,7 +42,11 @@ namespace MonoGame.PortableUI.Media
                 {
                     var layer = layers[i];
                     var expansion = shadow.Inset ? 0 : Math.Max(0, (layer.Rect.Width - rect.Width) / 2);
-                    RoundedRectRenderer.DrawSolid(spriteBatch, layer.Rect, Expand(radius, expansion), Brush.ApplyOpacity(layer.Color, opacity));
+                    var color = Brush.ApplyOpacity(layer.Color, opacity);
+                    if (motionScale != 1)
+                        RoundedRectRenderer.DrawSolidScaledCorners(spriteBatch, layer.Rect, Expand(radius, expansion), motionScale, color);
+                    else
+                        RoundedRectRenderer.DrawSolid(spriteBatch, layer.Rect, Expand(radius, expansion), color);
                 }
             }
             finally
@@ -55,7 +65,8 @@ namespace MonoGame.PortableUI.Media
             return layers.AsSpan(0, count).ToArray();
         }
 
-        internal static int FillShadowLayers(Rect rect, ShadowStyle shadow, Span<ShadowLayer> layers, float scale = 1f, int maxLayers = MaxLayers)
+        // restScale: the scale the layer count follows (the rest pose's while a scale animation runs).
+        internal static int FillShadowLayers(Rect rect, ShadowStyle shadow, Span<ShadowLayer> layers, float scale = 1f, int maxLayers = MaxLayers, float restScale = float.NaN)
         {
             if (shadow == null || shadow.Color.A == 0 || shadow.Opacity <= 0)
                 return 0;
@@ -74,7 +85,8 @@ namespace MonoGame.PortableUI.Media
                 return 1;
             }
 
-            var count = Math.Max(2, Math.Min(Math.Min(maxLayers, MaxLayers), (int)Math.Ceiling(blur / 2)));
+            var countBlur = float.IsNaN(restScale) ? blur : Math.Max(0, shadow.Blur * restScale);
+            var count = Math.Max(2, Math.Min(Math.Min(maxLayers, MaxLayers), (int)Math.Ceiling(countBlur / 2)));
             var weightSum = 0f;
             for (var i = 0; i < count; i++)
             {

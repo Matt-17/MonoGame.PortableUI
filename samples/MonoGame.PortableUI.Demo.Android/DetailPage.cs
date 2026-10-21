@@ -1,5 +1,6 @@
 using System;
 using Microsoft.Xna.Framework;
+using MonoGame.PortableUI.Animation;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
 using MonoGame.PortableUI.Media;
@@ -10,6 +11,7 @@ namespace MonoGame.PortableUI.Demo.Android
     ///     A page opened with a slide: title, shadowed gradient cards and a chart. Every page uses text sizes, shadow
     ///     blurs and corner radii no page before it used, so its first draw builds glyphs, masks and gradients like an
     ///     app page opened for the first time - what <see cref="ScreenEngine.WarmUpScreens"/> moves ahead of the slide.
+    ///     A tapped card pulses (an implicit Scale transition; the third card is glass), its frames logged like a slide.
     /// </summary>
     public sealed class DetailPage : Screen
     {
@@ -41,9 +43,13 @@ namespace MonoGame.PortableUI.Demo.Android
                     Height = 120,
                     Margin = new Thickness(0, 16, 0, 0),
                     CornerRadius = new CornerRadius(8 + number % 10 + i * 2),
-                    BackgroundBrush = new LinearGradientBrush(new Color(20 + i * 40, 126, 133), new Color(10, 60 + i * 30, 90)),
+                    BackgroundBrush = i == 2
+                        ? new AcrylicBrush(new Color(20, 126, 133, 150))
+                        : new LinearGradientBrush(new Color(20 + i * 40, 126, 133), new Color(10, 60 + i * 30, 90)),
                     Shadow = new ShadowStyle { Blur = 6 + number % 10 * 1.5f + i * 2, Offset = new Vector2(0, 3 + i) }
                 };
+                card.Transitions.Add(TransitionProperty.Scale, PulseDuration);
+                card.Click += (_, _) => Pulse(card);
                 card.Content = new TextBlock
                 {
                     Text = "Card " + (i + 1),
@@ -64,11 +70,27 @@ namespace MonoGame.PortableUI.Demo.Android
             };
             panel.AddChild(chart);
             Content = new SafeAreaPanel(new ScrollViewer { Content = panel });
+            _number = number;
             BackRequested += (_, args) =>
             {
                 args.Handled = true;
                 ScreenEngine?.NavigateBack();
             };
+        }
+
+        private static readonly TimeSpan PulseDuration = TimeSpan.FromMilliseconds(350);
+        private readonly int _number;
+        private int _pulses;
+        private TimeSpan _pulseEnds;
+
+        /// <summary>A card's pulse is running (the demo logs its frame times).</summary>
+        public bool IsPulsing => ScreenSystem.TotalTime < _pulseEnds;
+
+        private void Pulse(Border card)
+        {
+            // A size no pulse before used: grows a little further every time.
+            card.Scale = card.Scale.X > 1 ? Vector2.One : new Vector2(1.06f + (_number % 10 + _pulses++) * 0.003f);
+            _pulseEnds = ScreenSystem.TotalTime + PulseDuration;
         }
     }
 }

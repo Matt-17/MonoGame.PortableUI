@@ -1268,6 +1268,7 @@ namespace MonoGame.PortableUI.Controls
             if (LayoutRoundingScale > 0)
                 border = new Thickness(WholePixels(border.Left), WholePixels(border.Top), WholePixels(border.Right), WholePixels(border.Bottom));
             var scale = Math.Min(RenderScale.X, RenderScale.Y);
+            var motion = MotionScale;
 
             var shadow = Shadow;
             var background = BackgroundBrush;
@@ -1280,24 +1281,24 @@ namespace MonoGame.PortableUI.Controls
             for (var s = shadow; s != null; s = s.Also)
             {
                 if (!s.Inset)
-                    ShadowRenderer.Draw(spriteBatch, rect, shadowRadius, s, RenderOpacity, scale);
+                    ShadowRenderer.Draw(spriteBatch, rect, shadowRadius, s, RenderOpacity, scale, motion);
             }
 
             if (backgroundFading)
             {
-                var context = new BrushContext(rect, radius, RenderOpacity, spriteBatch.GraphicsDevice, (float)ScreenSystem.TotalTime.TotalSeconds, null, ToRender(1f));
+                var context = new BrushContext(rect, radius, RenderOpacity, spriteBatch.GraphicsDevice, (float)ScreenSystem.TotalTime.TotalSeconds, null, ToRender(1f)) { MotionScale = motion };
                 _backgroundFade!.Draw(spriteBatch, in context);
             }
             else if (background != null)
             {
-                var context = new BrushContext(rect, radius, RenderOpacity, spriteBatch.GraphicsDevice, (float)ScreenSystem.TotalTime.TotalSeconds, null, ToRender(1f));
+                var context = new BrushContext(rect, radius, RenderOpacity, spriteBatch.GraphicsDevice, (float)ScreenSystem.TotalTime.TotalSeconds, null, ToRender(1f)) { MotionScale = motion };
                 background.Draw(spriteBatch, in context);
             }
 
             for (var s = shadow; s != null; s = s.Also)
             {
                 if (s.Inset)
-                    ShadowRenderer.Draw(spriteBatch, rect, radius, s, RenderOpacity, scale);
+                    ShadowRenderer.Draw(spriteBatch, rect, radius, s, RenderOpacity, scale, motion);
             }
 
             if (BorderBevelLight is { } bevelLight && BorderBevelDark is { } bevelDark && HasBorder(BorderThickness) && !CornerRadius.IsEmpty)
@@ -1941,6 +1942,7 @@ namespace MonoGame.PortableUI.Controls
             RenderScale = scale;
             RestRenderScale = restScale ?? scale;
             DrawsSubpixel = false;
+            DrawnInMotion = moving;
             if (!moving)
                 return;
             if (!ResolveTheme().PixelMotion)
@@ -1975,6 +1977,17 @@ namespace MonoGame.PortableUI.Controls
         /// <summary>The render scale without the motion of this control and its ancestors (layout scale,
         /// popup zoom): text in motion rasterizes its glyphs at this size and scales them.</summary>
         protected Vector2 RestRenderScale { get; private set; } = Vector2.One;
+
+        private bool DrawnInMotion { get; set; }
+
+        /// <summary>
+        ///     While the control is drawn in motion, how much its motion (its own and its ancestors' Scale, squash)
+        ///     scales it beyond the rest pose; otherwise one. Size-keyed textures (gradients, shadow masks, rasterized
+        ///     paths) are built at the rest size and stretched by it, so a scale animation builds nothing per frame.
+        /// </summary>
+        internal Vector2 MotionScale => DrawnInMotion && RestRenderScale.X > 0 && RestRenderScale.Y > 0
+            ? RenderScale / RestRenderScale
+            : Vector2.One;
 
         /// <summary>Whether drawing snaps to whole pixels now: <see cref="SnapToPixel"/>, except while the
         /// control moves with subpixel precision (<see cref="DrawsSubpixel"/>).</summary>

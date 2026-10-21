@@ -20,6 +20,46 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void A_scaling_control_keys_its_brush_textures_by_the_rest_size()
+        {
+            var control = new Controls.Border();
+            control.SetRenderState(1, new Vector2(2.75f * 1.13f), moving: true, restScale: new Vector2(2.75f));
+            Assert.AreEqual(1.13f, control.MotionScale.X, 0.0001f);
+
+            var context = new BrushContext(new Rect(10, 10, 906 * 1.13f, 330 * 1.13f), new CornerRadius(24 * 1.13f), 1, null!) { MotionScale = control.MotionScale };
+            Assert.AreEqual(906, context.RestPixelWidth);
+            Assert.AreEqual(330, context.RestPixelHeight);
+            Assert.AreEqual(24f, context.RestRadius.TopLeft, 0.001f);
+
+            control.SetRenderState(1, new Vector2(2.75f * 1.13f), moving: false, restScale: new Vector2(2.75f));
+            Assert.AreEqual(Vector2.One, control.MotionScale, "at rest a scaled control draws at its real size");
+            Assert.AreEqual(Vector2.One, new BrushContext(new Rect(0, 0, 10, 10), 0, 1, null!).MotionScale);
+        }
+
+        [TestMethod]
+        public void A_scaling_shadow_keeps_the_layers_of_its_rest_pose()
+        {
+            var shadow = new ShadowStyle { Blur = 24, Spread = 2, Offset = new Vector2(0, 8) };
+            var rest = new ShadowRenderer.ShadowLayer[ShadowRenderer.MaxLayers];
+            var moving = new ShadowRenderer.ShadowLayer[ShadowRenderer.MaxLayers];
+            var rect = new Rect(0, 0, 300, 200);
+            var restCount = ShadowRenderer.FillShadowLayers(rect, shadow, rest, 2.75f);
+            foreach (var motion in new[] { 1.07f, 1.13f, 1.4f })
+            {
+                var scaled = new Rect(0, 0, rect.Width * motion, rect.Height * motion);
+                var count = ShadowRenderer.FillShadowLayers(scaled, shadow, moving, 2.75f * motion, ShadowRenderer.MaxLayers, 2.75f);
+                Assert.AreEqual(restCount, count, "layer count follows the rest pose");
+                for (var i = 0; i < count; i++)
+                {
+                    // The expansion scales with the motion, so the rest radius (and its corner mask) is the same.
+                    var restExpansion = (rest[i].Rect.Width - rect.Width) / 2;
+                    var expansion = (moving[i].Rect.Width - scaled.Width) / 2;
+                    Assert.AreEqual(restExpansion, expansion / motion, 0.01f);
+                }
+            }
+        }
+
+        [TestMethod]
         public void A_rounded_gradient_keeps_element_pixels_only_in_its_corners()
         {
             var layout = StretchedCorners.For(992, 330, new CornerRadius(24));

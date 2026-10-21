@@ -89,6 +89,13 @@ namespace MonoGame.PortableUI.Demo
                 return;
             }
 
+            if (_runOptions.ScaleBenchmarkFile != null)
+            {
+                ScaleBenchmark.Run(this, _runOptions.ScaleBenchmarkFile);
+                Exit();
+                return;
+            }
+
             if (_runOptions.BenchmarkFile != null)
             {
                 BenchmarkThemes(_runOptions.BenchmarkFile, deleteIcon);

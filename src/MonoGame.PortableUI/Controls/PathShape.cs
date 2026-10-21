@@ -131,8 +131,13 @@ namespace MonoGame.PortableUI.Controls
             if (Geometry == null || rect.Width < 1 || rect.Height < 1)
                 return;
 
-            var width = Media.BrushTextureCache.PixelSize(rect.Width);
-            var height = Media.BrushTextureCache.PixelSize(rect.Height);
+            // In motion rasterized at the rest size and stretched: a scale animation rasterizes nothing per frame.
+            var motion = MotionScale;
+            var width = Media.BrushTextureCache.PixelSize(rect.Width / motion.X);
+            var height = Media.BrushTextureCache.PixelSize(rect.Height / motion.Y);
+            var target = motion == Vector2.One
+                ? new Rectangle((int)rect.Left, (int)rect.Top, width, height)
+                : new Rectangle((int)rect.Left, (int)rect.Top, (int)System.MathF.Round(width * motion.X), (int)System.MathF.Round(height * motion.Y));
             if (Tinted)
             {
                 // A shape that had its own texture (stroked before) no longer needs it.
@@ -142,7 +147,7 @@ namespace MonoGame.PortableUI.Controls
                     _texture = null;
                 }
                 var mask = SharedMask(spriteBatch.GraphicsDevice, Geometry, width, height);
-                spriteBatch.Draw(mask, new Rectangle((int)rect.Left, (int)rect.Top, width, height), Brush.ApplyOpacity(Fill!.Value, RenderOpacity));
+                spriteBatch.Draw(mask, target, Brush.ApplyOpacity(Fill!.Value, RenderOpacity));
                 return;
             }
 
@@ -159,7 +164,7 @@ namespace MonoGame.PortableUI.Controls
                 _dirty = false;
             }
 
-            spriteBatch.Draw(_texture, new Rectangle((int)rect.Left, (int)rect.Top, width, height), Brush.ApplyOpacity(Color.White, RenderOpacity));
+            spriteBatch.Draw(_texture, target, Brush.ApplyOpacity(Color.White, RenderOpacity));
         }
 
         // Fill only: rasterized as a white mask, the fill applied as the sprite's tint.
