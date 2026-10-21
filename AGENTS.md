@@ -194,7 +194,7 @@ set comes from `control.ResolveTheme().ResolveSounds()` (`PortableTheme.Sounds`,
 players are cached per `UiSoundSet` in a static table (`UiSoundSet.PlayerFactory` is swappable for tests). Controls and Screen
 raise events through `ScreenEngine.PlayFeedback`, which also fires `engine.Haptics` (`UiHapticService`) on the
 device in `engine.LastInputDevice` (tracked in `Screen.TrackInputActivity`); backends `GamePadRumbleHaptics`,
-`AndroidHaptics` (`#if ANDROID`, `View.PerformHapticFeedback`, not device-tested). The pulse per event comes from the
+`AndroidHaptics` (`#if ANDROID`, `View.PerformHapticFeedback`; on a Pixel 5 Tick/Tap/Click/Heavy/Double play TEXTURE_TICK/CLICK/CLICK/HEAVY_CLICK/DOUBLE_CLICK, usage TOUCH, off with the touch-feedback setting; check with `dumpsys vibrator_manager`). The pulse per event comes from the
 control's theme (`PortableTheme.Haptics` / `ResolveHaptics()`, era defaults in `ThemeBuilder.DefaultHaptics`) unless
 `engine.Haptics.SetHaptic` overrides it.
 
@@ -204,8 +204,8 @@ version counters, never by rebuilding): `TextScaling` (static, text size factor)
 backend; a theme's `Typography.ResolveDynamicFont()` - its `DynamicFont` or the TTF registered for its `FontName` via
 `FontManager.RegisterDynamicFont` - overrides it per screen/surface/island; pixel fonts snap to their grid, `PixelFontDetector`), `SafeAreaInsets` (+ `SafeAreaPanel`), `OnScreenKeyboard`, `AccessibilityBridge`, `Toasts`,
 `ShowModal`. Platform hooks for Android live in the core's `#if ANDROID` files (`AndroidWindowInsets`,
-`AndroidOnScreenKeyboard`, `AndroidTextScaling`, `AndroidAccessibilityBridge`, `AndroidHaptics`); they are compiled but not
-device-tested. There is no iOS head. Platform callbacks must go through `InvokeOnGameThread`.
+`AndroidOnScreenKeyboard`, `AndroidTextScaling`, `AndroidAccessibilityBridge`); they are compiled but not
+device-tested (`AndroidHaptics` is). There is no iOS head. Platform callbacks must go through `InvokeOnGameThread`.
 Desktop window text input reaches exactly one engine per `Game`: the `UISurface` with
 `HasKeyboardFocus` (set directly or via `SurfaceFocusManager`), otherwise the regular engine(s);
 surface engines never type on their own. A display can be a text-mode screen (`TextGrid`): the
