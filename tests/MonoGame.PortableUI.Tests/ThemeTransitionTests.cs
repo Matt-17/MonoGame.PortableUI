@@ -67,13 +67,16 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
-        public void A_lost_frame_still_applies_the_change()
+        public void A_lost_frame_still_applies_the_change_on_the_next_update()
         {
             _engine.NavigateToScreen(new TestScreen());
             var applied = 0;
             _engine.TransitionTheme(() => applied++);
 
-            _engine.EndThemeTransition();
+            // Android reports it on its UI thread: nothing happens there, the game thread cleans up.
+            _engine.ThemeFrameLost();
+            Assert.AreEqual(0, applied);
+            _engine.Update(new GameTime(TimeSpan.FromSeconds(101), TimeSpan.FromMilliseconds(16)));
 
             Assert.AreEqual(1, applied);
             Assert.IsFalse(_engine.IsThemeTransitioning);

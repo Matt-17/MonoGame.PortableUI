@@ -40,7 +40,7 @@ namespace MonoGame.PortableUI
         {
             // Render target contents do not survive a lost surface either.
             _screenEngine.InvalidateLayerCaches();
-            _screenEngine.EndThemeTransition();
+            _screenEngine.ThemeFrameLost();
             _screenEngine.RequestRedrawFrames(ScreenEngine.SurfaceRestoreFrames);
         }
 
