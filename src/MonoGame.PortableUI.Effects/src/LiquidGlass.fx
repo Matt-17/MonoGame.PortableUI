@@ -25,6 +25,12 @@ float RoundedBox(float2 p, float2 halfSize, float r)
     return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
 }
 
+// Interleaved gradient noise: a fine, even pattern in 0..1 per pixel.
+float Noise(float2 pixel)
+{
+    return frac(52.9829189 * frac(dot(pixel, float2(0.06711056, 0.00583715))));
+}
+
 float4 MainPS(float4 position : SV_POSITION, float4 color : COLOR0, float2 uv : TEXCOORD0) : COLOR0
 {
     float2 span = max(UvMax - UvMin, float2(1e-6, 1e-6));
@@ -62,6 +68,11 @@ float4 MainPS(float4 position : SV_POSITION, float4 color : COLOR0, float2 uv : 
     glass *= 1.0 - 0.18 * rim * shade;
     // Soft inner sheen across the top half.
     glass += Highlight * 0.06 * saturate(1.0 - local.y / max(RectSize.y * 0.5, 1.0));
+
+    // Dither by up to one step of 8-bit colour: the blur and the clear body smooth away the noise that hides a
+    // gradient's steps in the scene, and without it soft backdrops show bands.
+    float2 pixel = floor(uv / TexelSize);
+    glass += (Noise(pixel) + Noise(pixel + float2(37.0, 17.0)) - 1.0) / 255.0;
 
     float alpha = saturate(0.5 - d);
     return float4(glass * alpha, alpha) * color;
