@@ -26,7 +26,7 @@ namespace MonoGame.PortableUI.Tests
             return (byte)(coverage * 255);
         }
 
-        [DataTestMethod]
+        [TestMethod]
         [DataRow(12, 12, 12, 12)]
         [DataRow(137, 137, 137, 137)]
         [DataRow(20, 6, 0, 33)]
