@@ -40,6 +40,7 @@ namespace MonoGame.PortableUI
         {
             // Render target contents do not survive a lost surface either.
             _screenEngine.InvalidateLayerCaches();
+            _screenEngine.EndThemeTransition();
             _screenEngine.RequestRedrawFrames(ScreenEngine.SurfaceRestoreFrames);
         }
 
@@ -126,7 +127,7 @@ namespace MonoGame.PortableUI
 
         /// <summary>Draws the visible stack bottom to top (overlays over the screens they cover),
         /// then a screen that is still playing its exit transition.</summary>
-        private void DrawScreens(SpriteBatch spriteBatch) => _screenEngine.DrawStack(spriteBatch);
+        private void DrawScreens(SpriteBatch spriteBatch) => _screenEngine.DrawStackWithThemeTransition(spriteBatch);
 
         private RenderTarget2D EnsureScaleTarget(int width, int height)
         {
