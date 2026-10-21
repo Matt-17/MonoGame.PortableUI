@@ -284,6 +284,18 @@ namespace MonoGame.PortableUI.Media
             FillPoints(points.Length, color);
         }
 
+        /// <summary>
+        ///     A triangle whose colour blends between its corners. Its edges are not anti-aliased, so triangles sharing
+        ///     edges join without seams: a mesh of them shades a smooth field (a glow, a density map, a gradient).
+        /// </summary>
+        public void FillTriangle(Vector2 a, Color colorA, Vector2 b, Color colorB, Vector2 c, Color colorC)
+        {
+            if (colorA.A == 0 && colorB.A == 0 && colorC.A == 0)
+                return;
+            EnsureVertices(3);
+            AddTriangle(ToRender(a), Premultiplied(colorA), ToRender(b), Premultiplied(colorB), ToRender(c), Premultiplied(colorC));
+        }
+
         private void RectanglePoints(Vector2 center, Vector2 size, float rotation)
         {
             EnsurePoints(4);
