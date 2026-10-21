@@ -1036,6 +1036,7 @@ namespace MonoGame.PortableUI
             LayoutPassesThisFrame = 0;
             FramesPerSecond = gameTime.ElapsedGameTime.TotalSeconds > 0 ? 1 / gameTime.ElapsedGameTime.TotalSeconds : 0;
             DrainGameThreadQueue();
+            ApplyPendingTheme();
             UpdateRenderQuality();
             ApplyGlobalBrushChanges();
             CompensateHitch();
@@ -1119,6 +1120,7 @@ namespace MonoGame.PortableUI
             _postEffects?.Dispose();
             DisposeLayerCaches();
             _stackBackdropTarget?.Dispose();
+            _themeSnapshot?.Dispose();
             _wake.Dispose();
         }
     }
