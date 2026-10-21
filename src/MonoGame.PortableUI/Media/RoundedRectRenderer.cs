@@ -364,46 +364,64 @@ namespace MonoGame.PortableUI.Media
             if (cache.NineSliceMasks.TryGetValue((tl, tr, br, bl), out var texture))
                 return texture;
 
-            var width = Math.Max(tl, bl) + 3 + Math.Max(tr, br);
-            var height = Math.Max(tl, tr) + 3 + Math.Max(bl, br);
-            var radius = new CornerRadius(tl, tr, br, bl);
-            var data = new Color[width * height];
-            for (var y = 0; y < height; y++)
-            {
-                for (var x = 0; x < width; x++)
-                {
-                    var value = (byte)(RoundedRectCoverage(x + 0.5f, y + 0.5f, width, height, radius) * 255);
-                    data[y * width + x] = new Color(value, value, value, value);
-                }
-            }
-
+            var data = NineSliceMaskPixels(tl, tr, br, bl, out var width, out var height);
             texture = new Texture2D(device, width, height);
             texture.SetData(data);
             cache.NineSliceMasks[(tl, tr, br, bl)] = texture;
             return texture;
         }
 
-        private static float RoundedRectCoverage(float x, float y, int width, int height, CornerRadius radius)
+        /// <summary>The 9-slice mask's pixels: the four corners with a three-pixel cross between them.</summary>
+        internal static uint[] NineSliceMaskPixels(int tl, int tr, int br, int bl, out int width, out int height)
         {
-            float CoverageForCorner(float centerX, float centerY, float cornerRadius)
+            width = Math.Max(tl, bl) + 3 + Math.Max(tr, br);
+            height = Math.Max(tl, tr) + 3 + Math.Max(bl, br);
+            // Fully covered, then each corner square written from its quarter circle (mirrored into place).
+            // Shadow layers ask for many large radii, so this runs often on the first frames of a page.
+            var data = new uint[width * height];
+            Array.Fill(data, 0xFFFFFFFFu);
+            var quarter = tl == tr && tr == br && br == bl ? QuarterCircle(tl) : null;
+            WriteCorner(data, width, quarter ?? QuarterCircle(tl), tl, 0, 0, false, false);
+            WriteCorner(data, width, quarter ?? QuarterCircle(tr), tr, width - tr, 0, true, false);
+            WriteCorner(data, width, quarter ?? QuarterCircle(br), br, width - br, height - br, true, true);
+            WriteCorner(data, width, quarter ?? QuarterCircle(bl), bl, 0, height - bl, false, true);
+            return data;
+        }
+
+        // Coverage of a top-left corner square of radius r (row-major, r×r): 1 inside the arc, 0 outside, the
+        // one-pixel band between from the distance to the arc's centre - squared distances skip the root
+        // everywhere but on that band.
+        private static byte[] QuarterCircle(int r)
+        {
+            var coverage = new byte[r * r];
+            var inner = Math.Max(0, r - 0.5f);
+            var inner2 = inner * inner;
+            var outer2 = (r + 0.5f) * (r + 0.5f);
+            for (var y = 0; y < r; y++)
             {
-                if (cornerRadius <= 0)
-                    return 1f;
-
-                var distance = Vector2.Distance(new Vector2(x, y), new Vector2(centerX, centerY));
-                return MathHelper.Clamp(cornerRadius + 0.5f - distance, 0, 1);
+                var dy = r - (y + 0.5f);
+                for (var x = 0; x < r; x++)
+                {
+                    var dx = r - (x + 0.5f);
+                    var d2 = dx * dx + dy * dy;
+                    coverage[y * r + x] = d2 <= inner2 ? (byte)255 : d2 >= outer2 ? (byte)0 : (byte)(MathHelper.Clamp(r + 0.5f - MathF.Sqrt(d2), 0, 1) * 255);
+                }
             }
+            return coverage;
+        }
 
-            if (x < radius.TopLeft && y < radius.TopLeft)
-                return CoverageForCorner(radius.TopLeft, radius.TopLeft, radius.TopLeft);
-            if (x >= width - radius.TopRight && y < radius.TopRight)
-                return CoverageForCorner(width - radius.TopRight, radius.TopRight, radius.TopRight);
-            if (x >= width - radius.BottomRight && y >= height - radius.BottomRight)
-                return CoverageForCorner(width - radius.BottomRight, height - radius.BottomRight, radius.BottomRight);
-            if (x < radius.BottomLeft && y >= height - radius.BottomLeft)
-                return CoverageForCorner(radius.BottomLeft, height - radius.BottomLeft, radius.BottomLeft);
-
-            return 1f;
+        private static void WriteCorner(uint[] data, int width, byte[] coverage, int r, int left, int top, bool flipX, bool flipY)
+        {
+            for (var y = 0; y < r; y++)
+            {
+                var row = (top + y) * width + left;
+                var sourceRow = (flipY ? r - 1 - y : y) * r;
+                for (var x = 0; x < r; x++)
+                {
+                    uint value = coverage[sourceRow + (flipX ? r - 1 - x : x)];
+                    data[row + x] = value | value << 8 | value << 16 | value << 24;
+                }
+            }
         }
 
         internal static IEnumerable<Rect> GetFillRects(Rect rect, CornerRadius radius, float overlap = 0f)

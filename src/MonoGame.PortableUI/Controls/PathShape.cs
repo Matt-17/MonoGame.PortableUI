@@ -9,7 +9,9 @@ namespace MonoGame.PortableUI.Controls
     ///     Draws a <see cref="PathGeometry"/> filled and/or stroked, scaled to the control's arranged
     ///     size. The shape is rasterized once per pixel size (and on geometry changes) and then drawn as a
     ///     sprite, so it is crisp at any size and costs one draw per frame. A fill-only shape (an icon) is
-    ///     rasterized in white and tinted when drawn, so changing its <see cref="Fill"/> costs nothing.
+    ///     rasterized in white and tinted when drawn, so changing its <see cref="Fill"/> costs nothing; that white
+    ///     mask is shared by every fill-only shape of the same geometry and pixel size, so a list of a hundred
+    ///     identical icons rasterizes once (<see cref="Prepare"/> can do it ahead of time).
     /// </summary>
     public class PathShape : Control
     {
@@ -23,6 +25,57 @@ namespace MonoGame.PortableUI.Controls
         private float _strokeWidth = 1;
         private bool _dirty = true;
         private int _resetGeneration;
+
+        // Fill-only masks, shared: per geometry, by pixel size. A geometry that is gone takes its masks with it.
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<PathGeometry, System.Collections.Generic.Dictionary<(int Width, int Height), Mask>> Masks = new();
+
+        private sealed class Mask
+        {
+            public Texture2D Texture = null!;
+            public int Version;
+            public int ResetGeneration;
+        }
+
+        /// <summary>
+        ///     Rasterizes the shared white mask of <paramref name="geometry"/> at <paramref name="width"/>×
+        ///     <paramref name="height"/> device pixels now, so the first fill-only shape drawn at that size does not
+        ///     pay for it (a page's icons before the page opens, say).
+        /// </summary>
+        public static void Prepare(GraphicsDevice device, PathGeometry geometry, int width, int height)
+        {
+            if (device == null || geometry == null || width < 1 || height < 1)
+                return;
+            SharedMask(device, geometry, width, height);
+        }
+
+        private static Texture2D SharedMask(GraphicsDevice device, PathGeometry geometry, int width, int height)
+        {
+            var masks = Masks.GetValue(geometry, static _ => new System.Collections.Generic.Dictionary<(int, int), Mask>());
+            var generation = PathRasterizer.GetResetGeneration(device);
+            lock (masks)
+            {
+                if (masks.TryGetValue((width, height), out var mask) && !mask.Texture.IsDisposed && mask.Version == geometry.Version
+                    && mask.ResetGeneration == generation && ReferenceEquals(mask.Texture.GraphicsDevice, device))
+                    return mask.Texture;
+                // A changed geometry makes all its masks stale, not just this size.
+                if (mask != null && mask.Version != geometry.Version)
+                {
+                    foreach (var stale in masks.Values)
+                        stale.Texture.Dispose();
+                    masks.Clear();
+                }
+                else
+                    mask?.Texture.Dispose();
+                mask = new Mask
+                {
+                    Texture = PathRasterizer.CreateTexture(device, geometry, width, height, Color.White),
+                    Version = geometry.Version,
+                    ResetGeneration = generation
+                };
+                masks[(width, height)] = mask;
+                return mask.Texture;
+            }
+        }
 
         public PathShape()
         {
@@ -80,21 +133,33 @@ namespace MonoGame.PortableUI.Controls
 
             var width = (int)System.Math.Ceiling(rect.Width);
             var height = (int)System.Math.Ceiling(rect.Height);
+            if (Tinted)
+            {
+                // A shape that had its own texture (stroked before) no longer needs it.
+                if (_texture != null)
+                {
+                    _texture.Dispose();
+                    _texture = null;
+                }
+                var mask = SharedMask(spriteBatch.GraphicsDevice, Geometry, width, height);
+                spriteBatch.Draw(mask, new Rectangle((int)rect.Left, (int)rect.Top, width, height), Brush.ApplyOpacity(Fill!.Value, RenderOpacity));
+                return;
+            }
+
             if (_texture == null || _texture.IsDisposed || _dirty || width != _textureWidth || height != _textureHeight
                 || _textureVersion != Geometry.Version || !ReferenceEquals(_texture.GraphicsDevice, spriteBatch.GraphicsDevice)
                 || _resetGeneration != PathRasterizer.GetResetGeneration(spriteBatch.GraphicsDevice))
             {
                 _resetGeneration = PathRasterizer.GetResetGeneration(spriteBatch.GraphicsDevice);
                 _texture?.Dispose();
-                _texture = PathRasterizer.CreateTexture(spriteBatch.GraphicsDevice, Geometry, width, height, Tinted ? Color.White : Fill, Stroke, StrokeWidth);
+                _texture = PathRasterizer.CreateTexture(spriteBatch.GraphicsDevice, Geometry, width, height, Fill, Stroke, StrokeWidth);
                 _textureWidth = width;
                 _textureHeight = height;
                 _textureVersion = Geometry.Version;
                 _dirty = false;
             }
 
-            var tint = Brush.ApplyOpacity(Tinted ? Fill!.Value : Color.White, RenderOpacity);
-            spriteBatch.Draw(_texture, new Rectangle((int)rect.Left, (int)rect.Top, width, height), tint);
+            spriteBatch.Draw(_texture, new Rectangle((int)rect.Left, (int)rect.Top, width, height), Brush.ApplyOpacity(Color.White, RenderOpacity));
         }
 
         // Fill only: rasterized as a white mask, the fill applied as the sprite's tint.
