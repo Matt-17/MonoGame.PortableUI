@@ -125,6 +125,35 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void A_screen_pushed_with_a_transition_is_drawn_ahead_once()
+        {
+            using var game = new Game();
+            var engine = CreateEngine(game);
+            var log = new List<string>();
+            var home = new RecordingScreen("home", log);
+            var detail = new RecordingScreen("detail", log);
+            engine.NavigateToScreen(home);
+            Assert.IsNull(engine.PendingWarmUp, "nothing moves: the first frame is the warm-up");
+
+            engine.NavigateToScreen(detail, ScreenTransition.SlideFromRight);
+            Assert.AreSame(detail, engine.PendingWarmUp);
+
+            engine.NavigateBack();
+            Assert.IsNull(engine.PendingWarmUp, "the transition it was for has ended; the revealed screen was drawn before");
+        }
+
+        [TestMethod]
+        public void Warm_up_can_be_turned_off()
+        {
+            using var game = new Game();
+            var engine = CreateEngine(game);
+            engine.WarmUpScreens = false;
+            engine.NavigateToScreen(new RecordingScreen("home", new List<string>()));
+            engine.PushOverlay(new RecordingScreen("pause", new List<string>()), ScreenTransition.Fade);
+            Assert.IsNull(engine.PendingWarmUp);
+        }
+
+        [TestMethod]
         public void Fade_transition_animates_in_and_the_popped_screen_stays_drawn_until_it_finished()
         {
             using var game = new Game();

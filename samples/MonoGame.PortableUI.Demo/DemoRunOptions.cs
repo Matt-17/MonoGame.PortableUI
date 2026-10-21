@@ -32,6 +32,9 @@ namespace MonoGame.PortableUI.Demo
         /// <summary>--benchmark-garbage out.csv: managed bytes allocated per frame, per theme and tab, idle and with a moving pointer.</summary>
         public string? GarbageBenchmarkFile { get; init; }
 
+        /// <summary>--benchmark-navigation out.csv: frame times while never-seen pages slide or fade in.</summary>
+        public string? NavigationBenchmarkFile { get; init; }
+
         public int SurfaceCount { get; init; } = 100;
 
         /// <summary>--record-motion dir: renders the Motion tab playing its demos as numbered PNG frames (30 fps).</summary>
@@ -68,6 +71,7 @@ namespace MonoGame.PortableUI.Demo
                 ScreenshotOverlay = TryParseValue(args, "--screenshot-overlay"),
                 BenchmarkFile = TryParseValue(args, "--benchmark-themes"),
                 SurfaceBenchmarkFile = TryParseValue(args, "--benchmark-surfaces"),
+                NavigationBenchmarkFile = TryParseValue(args, "--benchmark-navigation"),
                 GarbageBenchmarkFile = TryParseValue(args, "--benchmark-garbage"),
                 MotionRecordDirectory = TryParseValue(args, "--record-motion"),
                 MotionRecordTimeline = TryParseValue(args, "--record-timeline"),

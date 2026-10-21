@@ -626,6 +626,8 @@ namespace MonoGame.PortableUI
                 AdvanceLayerCacheTick();
             try
             {
+                if (_warmUpScreen != null)
+                    WarmUpPushedScreen(spriteBatch);
                 var screens = VisibleScreens;
                 // During a transition the screen under the moving one is drawn too: a covered screen (non-overlay
                 // push) under the new one, the revealed one under the leaving one - or above it for a reveal.
@@ -751,6 +753,24 @@ namespace MonoGame.PortableUI
         /// <summary>Duration of screen transitions (unless a <see cref="ScreenTransitionAnimation.Duration"/> sets its own).</summary>
         public TimeSpan TransitionDuration { get; set; } = TimeSpan.FromMilliseconds(300);
 
+        /// <summary>
+        ///     Draws a screen pushed with a transition once offscreen, at rest, before the transition moves (default on).
+        ///     A page's first draw builds what it shows for the first time - glyphs of new text sizes, shadow and corner
+        ///     masks, gradients - which takes tens of milliseconds on a phone. Unwarmed, a slide pays it in the frames where
+        ///     the content enters the view and a fade in its first visible frame, so the page jumps mid-transition. Warmed,
+        ///     the cost lands before the first step and the transition's clock starts after it.
+        /// </summary>
+        public bool WarmUpScreens { get; set; } = true;
+
+        // The screen pushed with a transition that the next DrawStack draws once offscreen.
+        private Screen? _warmUpScreen;
+        private RenderTargetBinding[]? _warmUpPreviousTargets;
+        // The rest pose drawn as in motion and half a pixel off: a moving screen lands between pixels, so the subpixel
+        // masks the transition draws are the ones warmed.
+        private static readonly ScreenVisual RestInMotion = new ScreenVisual { Translation = new Vector2(0.5f, 0.5f) };
+
+        internal Screen? PendingWarmUp => _warmUpScreen;
+
         private void Push(Screen screen, bool isOverlay, ScreenTransitionAnimation? transition)
         {
             FinishTransition();
@@ -772,7 +792,8 @@ namespace MonoGame.PortableUI
             ScreenHistory.Push(screen);
             screen.InvalidateLayout(true);
             RebuildVisibleScreens();
-            StartTransition(screen, previous, transition, entering: true);
+            if (StartTransition(screen, previous, transition, entering: true) && WarmUpScreens)
+                _warmUpScreen = screen;
             screen.RaiseNavigatedTo();
         }
 
@@ -881,12 +902,59 @@ namespace MonoGame.PortableUI
             if (_transitionScreen == null)
                 return;
 
-            var elapsed = (ScreenSystem.TotalTime - _transitionStart).TotalMilliseconds;
-            var progress = (float)Math.Clamp(elapsed / Math.Max(1, _transitionDuration.TotalMilliseconds), 0, 1);
+            var progress = TransitionProgress();
             if (progress >= 1)
                 FinishTransition();
             else
                 ApplyTransition(progress);
+        }
+
+        private float TransitionProgress()
+        {
+            var elapsed = (ScreenSystem.TotalTime - _transitionStart).TotalMilliseconds;
+            return (float)Math.Clamp(elapsed / Math.Max(1, _transitionDuration.TotalMilliseconds), 0, 1);
+        }
+
+        /// <summary>
+        ///     Draws the screen being pushed into a scratch target, at rest, and postpones its transition and the
+        ///     shared-element flights by the time that took (see <see cref="WarmUpScreens"/>).
+        /// </summary>
+        private void WarmUpPushedScreen(SpriteBatch spriteBatch)
+        {
+            var screen = _warmUpScreen!;
+            _warmUpScreen = null;
+            var device = spriteBatch.GraphicsDevice;
+            var width = device.Viewport.Width;
+            var height = device.Viewport.Height;
+            if (!ReferenceEquals(screen, _transitionScreen) || !_transitionEntering || width <= 0 || height <= 0)
+                return;
+
+            var started = System.Diagnostics.Stopwatch.GetTimestamp();
+            var previousTargets = RenderTargetHelper.SnapshotRenderTargets(device, ref _warmUpPreviousTargets);
+            var target = RenderTargetPool.Rent(device, width, height);
+            screen.SetTransitionVisual(RestInMotion);
+            try
+            {
+                device.SetRenderTarget(target);
+                device.Clear(Color.Transparent);
+                screen.Draw(spriteBatch);
+            }
+            finally
+            {
+                if (previousTargets.Length == 0)
+                    device.SetRenderTarget(null);
+                else
+                    device.SetRenderTargets(previousTargets);
+                RenderTargetPool.Return(device, target);
+                ApplyTransition(TransitionProgress());
+            }
+
+            var spent = System.Diagnostics.Stopwatch.GetElapsedTime(started);
+            _transitionStart += spent;
+            PostponeSharedFlights(spent);
+            // Already postponed: the hitch compensation must not count this draw again.
+            if (_lastUpdateTime is { } last)
+                _lastUpdateTime = last + spent;
         }
 
         private void ApplyTransition(float time)
@@ -914,6 +982,7 @@ namespace MonoGame.PortableUI
             // The last frame lands exactly on the end, for animations that move parts of a screen themselves.
             ApplyTransition(1);
             _transitionScreen = null;
+            _warmUpScreen = null;
             screen.SetTransitionVisual(null);
             _transitionBelow?.SetTransitionVisual(null);
             _transitionBelow = null;

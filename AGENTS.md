@@ -31,7 +31,7 @@ dotnet run --project benchmarks/MonoGame.PortableUI.Benchmarks -c Release -- --f
 - Building the `.slnx` includes `net10.0-android` inner builds and needs `dotnet workload install android`.
   **Prefer targeting individual projects** when iterating on desktop.
 - Demo flags: `--theme <id>`, `--screenshot <dir>` (renders every theme to PNG and exits — the primary
-  visual-verification loop), `--screenshot-screen <tab>`; env var `PORTABLEUI_DEMO_THEME`.
+  visual-verification loop), `--screenshot-screen <tab>`, `--benchmark-navigation out.csv` (frame times while never-seen pages slide in); env var `PORTABLEUI_DEMO_THEME`.
 - Conventions: `Nullable=enable`, `ImplicitUsings=disable` (write full `using`s), central package versions
   (`Directory.Packages.props`), warnings-as-errors only on CI (`CI=true`).
 
@@ -183,7 +183,9 @@ Navigation: `NavigateToScreen` / `PushOverlay` (screens below stay drawn, frozen
 `ScreenTransitionAnimation` (progress 0..1 sets `ScreenVisual`s of the top screen and the one below; popping runs it
 backwards; a non-overlay push draws the covered screen during the transition, `BelowOnTop` swaps the order; the
 visual moves the screen root and its background);
-`OnNavigatedTo`/`OnNavigatedFrom` hooks; focus is restored on `NavigateBack`.
+`OnNavigatedTo`/`OnNavigatedFrom` hooks; focus is restored on `NavigateBack`. A screen pushed with a transition is drawn
+once offscreen at rest (half a pixel off, as in motion) at the next `DrawStack` (`WarmUpScreens`); the transition and flights
+are postponed by that draw's time, so first-use costs (glyphs, masks, gradients) land before the first step.
 
 **UI sound:** `ScreenEngine.Sounds` (`UiSoundService`) plays semantic events through an `IUiSoundPlayer`
 (`SoundEffectUiSoundPlayer`, synthesized defaults in `UiSoundSynth`). Controls raise them: `Control.OnClick` plays
