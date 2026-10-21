@@ -371,6 +371,93 @@ namespace MonoGame.PortableUI.Media
                 _spriteBatch!.Draw(texture, at, src, Premultiplied(tint), rotation, new Vector2(src.Width / 2f, src.Height / 2f), scale, SpriteEffects.None, 0);
         }
 
+        /// <summary>
+        ///     A filled, anti-aliased disc drawn as one textured quad: thousands of them (stars, particles) cost one
+        ///     draw call, where <see cref="FillCircle"/> builds a polygon on the CPU.
+        /// </summary>
+        public void FillDot(Vector2 center, float radius, Color color) => DrawSoft(SoftTexture.Dot, center, radius, color);
+
+        /// <summary>
+        ///     A soft glow fading from <paramref name="color"/> at the centre to nothing at <paramref name="radius"/>,
+        ///     one textured quad like <see cref="FillDot"/>; overlapping glows add up to a haze.
+        /// </summary>
+        public void FillGlow(Vector2 center, float radius, Color color) => DrawSoft(SoftTexture.Glow, center, radius, color);
+
+        private void DrawSoft(SoftTexture kind, Vector2 center, float radius, Color color)
+        {
+            if (radius <= 0 || color.A == 0)
+                return;
+            if (!BeginSprites())
+                return;
+            var texture = SoftTextureFor(_spriteBatch!.GraphicsDevice, kind);
+            var at = ToRender(center);
+            var scale = RenderLength(radius) * 2 / SoftSize;
+            if (_hasTransform)
+                scale *= Vector2.TransformNormal(Vector2.UnitX, _transform).Length();
+            _spriteBatch.Draw(texture, at, null, Premultiplied(color), 0, new Vector2(SoftSize / 2f), scale, SpriteEffects.None, 0);
+        }
+
+        private enum SoftTexture
+        {
+            Dot,
+            Glow
+        }
+
+        private const int SoftSize = 128;
+        private static readonly Dictionary<(GraphicsDevice, SoftTexture), Texture2D> SoftTextures = new Dictionary<(GraphicsDevice, SoftTexture), Texture2D>();
+
+        // Premultiplied white: a disc with a one-texel edge, or a smooth falloff to the rim.
+        private static Texture2D SoftTextureFor(GraphicsDevice device, SoftTexture kind)
+        {
+            lock (SoftTextures)
+            {
+                if (SoftTextures.TryGetValue((device, kind), out var cached) && !cached.IsDisposed)
+                    return cached;
+            }
+            var data = new Color[SoftSize * SoftSize];
+            const float half = SoftSize / 2f;
+            for (var y = 0; y < SoftSize; y++)
+            {
+                for (var x = 0; x < SoftSize; x++)
+                {
+                    var d = MathF.Sqrt((x + 0.5f - half) * (x + 0.5f - half) + (y + 0.5f - half) * (y + 0.5f - half)) / half;
+                    float alpha;
+                    if (kind == SoftTexture.Dot)
+                        alpha = MathHelper.Clamp((1 - d) * half + 0.5f, 0, 1);
+                    else
+                    {
+                        var t = MathHelper.Clamp(1 - d, 0, 1);
+                        alpha = t * t * (3 - 2 * t);
+                        alpha *= alpha;
+                    }
+                    data[y * SoftSize + x] = Color.White * alpha;
+                }
+            }
+            // With mipmaps, so small dots shrink smoothly instead of sparkling.
+            var texture = new Texture2D(device, SoftSize, SoftSize, true, SurfaceFormat.Color);
+            texture.SetData(0, null, data, 0, data.Length);
+            for (int level = 1, size = SoftSize / 2; size >= 1; level++, size /= 2)
+            {
+                var next = new Color[size * size];
+                for (var y = 0; y < size; y++)
+                {
+                    for (var x = 0; x < size; x++)
+                    {
+                        var a = data[2 * y * size * 2 + 2 * x];
+                        var b = data[2 * y * size * 2 + 2 * x + 1];
+                        var c = data[(2 * y + 1) * size * 2 + 2 * x];
+                        var e = data[(2 * y + 1) * size * 2 + 2 * x + 1];
+                        next[y * size + x] = new Color((a.ToVector4() + b.ToVector4() + c.ToVector4() + e.ToVector4()) / 4);
+                    }
+                }
+                texture.SetData(level, null, next, 0, next.Length);
+                data = next;
+            }
+            lock (SoftTextures)
+                SoftTextures[(device, kind)] = texture;
+            return texture;
+        }
+
         public void DrawImage(Texture2D texture, Rect destination, Color tint, Rectangle? source = null)
             => DrawImage(texture, new Vector2(destination.Left + destination.Width / 2, destination.Top + destination.Height / 2),
                 new Vector2(destination.Width, destination.Height), tint, 0, source);
