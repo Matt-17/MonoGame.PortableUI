@@ -10,6 +10,16 @@ namespace MonoGame.PortableUI.Tests
     public class BrushRegressionTests
     {
         [TestMethod]
+        public void A_moving_rect_keeps_the_texture_size_of_its_rest_pose()
+        {
+            // A card 906 px wide at rest comes back a hair wider in motion (rect transformed by a fractional offset).
+            Assert.AreEqual(906, BrushTextureCache.PixelSize(906f));
+            Assert.AreEqual(906, BrushTextureCache.PixelSize(906.00006f), "float error is not a new texture");
+            Assert.AreEqual(907, BrushTextureCache.PixelSize(906.25f), "a real fraction still covers its last pixel");
+            Assert.AreEqual(1, BrushTextureCache.PixelSize(0));
+        }
+
+        [TestMethod]
         public void Gradient_brush_defaults_to_vertical_direction()
         {
             var brush = new GradientBrush(Color.Red, Color.Blue);

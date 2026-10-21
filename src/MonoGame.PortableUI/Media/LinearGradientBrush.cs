@@ -64,8 +64,8 @@ namespace MonoGame.PortableUI.Media
             {
                 // Corner-mask pixels are chosen from the actual pixel dimensions, so a rounded fill
                 // still needs an element-sized texture to look correct at every aspect ratio.
-                var width = Math.Max(1, (int)Math.Ceiling(context.Rect.Width));
-                var height = Math.Max(1, (int)Math.Ceiling(context.Rect.Height));
+                var width = BrushTextureCache.PixelSize(context.Rect.Width);
+                var height = BrushTextureCache.PixelSize(context.Rect.Height);
                 var radius = context.Radius;
                 var key = CreateTextureCacheKey(width, height, radius);
                 if (!BrushTextureCache.TryGet(spriteBatch.GraphicsDevice, key, out texture))

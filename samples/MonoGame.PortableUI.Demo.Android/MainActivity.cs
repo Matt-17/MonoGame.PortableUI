@@ -63,6 +63,20 @@ namespace MonoGame.PortableUI.Demo.Android
             _game.Run();
         }
 
+        // The game view consumes key events itself (MonoGame turns back into a gamepad button PortableUI does not read),
+        // so the back key is taken before it gets there while the game can use it.
+        public override bool DispatchKeyEvent(KeyEvent? e)
+        {
+            if (e is { KeyCode: Keycode.Back } && _game != null)
+            {
+                if (e.Action == KeyEventActions.Up && _game.HandleBack())
+                    return true;
+                if (e.Action == KeyEventActions.Down && _game.CanHandleBack)
+                    return true;
+            }
+            return base.DispatchKeyEvent(e);
+        }
+
         /// <summary>Hides or shows the status and navigation bars at runtime (called from the game thread).</summary>
         private void SetFullscreen(bool fullscreen)
         {

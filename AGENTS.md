@@ -185,7 +185,8 @@ backwards; a non-overlay push draws the covered screen during the transition, `B
 visual moves the screen root and its background);
 `OnNavigatedTo`/`OnNavigatedFrom` hooks; focus is restored on `NavigateBack`. A screen pushed with a transition is drawn
 once offscreen at rest (half a pixel off, as in motion) at the next `DrawStack` (`WarmUpScreens`); the transition and flights
-are postponed by that draw's time, so first-use costs (glyphs, masks, gradients) land before the first step.
+are postponed by that draw's time, so first-use costs (glyphs, masks, gradients) land before the first step. The Android demo's
+"Open a new page" (with a warm-up switch) logs each transition's frame times to logcat (`PortableUI.Nav`).
 
 **UI sound:** `ScreenEngine.Sounds` (`UiSoundService`) plays semantic events through an `IUiSoundPlayer`
 (`SoundEffectUiSoundPlayer`, synthesized defaults in `UiSoundSynth`). Controls raise them: `Control.OnClick` plays

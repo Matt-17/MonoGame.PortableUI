@@ -18,6 +18,13 @@ namespace MonoGame.PortableUI.Media
 
         /// <summary>Cache lookup without a factory: callers check this first so the per-frame hit
         /// path allocates no delegate/closure; only a miss goes through <see cref="GetOrCreate"/>.</summary>
+        /// <summary>
+        ///     Whole texture pixels for a drawn length. A moving control's rect is its rest rect plus a fractional offset, so
+        ///     its width comes out of float rounding a hair off (906 px as 906.00006): plain Ceiling then keyed a new
+        ///     element-sized texture as soon as a page moved (a slide built every gradient card again, ~10 ms each on a phone).
+        /// </summary>
+        public static int PixelSize(float length) => Math.Max(1, (int)MathF.Ceiling(length - 0.01f));
+
         public static bool TryGet(GraphicsDevice graphicsDevice, BrushTextureCacheKey key, out Texture2D texture)
         {
             lock (SyncRoot)

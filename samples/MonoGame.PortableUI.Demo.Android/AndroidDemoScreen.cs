@@ -165,6 +165,7 @@ namespace MonoGame.PortableUI.Demo.Android
             panel.AddChild(tapLabel);
             panel.AddChild(tapButton);
             panel.AddChild(BuildGrowCard());
+            panel.AddChild(BuildPageRow());
 
             panel.AddChild(new TextBlock
             {
@@ -250,6 +251,46 @@ namespace MonoGame.PortableUI.Demo.Android
         ///     Implicit transitions of layout values: a tap grows the card and its text slowly (re-laid out every frame,
         ///     the text drawn from whole-pixel glyphs scaled to the exact size), the next tap shrinks them again.
         /// </summary>
+        private int _pagesOpened;
+
+        /// <summary>Opens a never-seen page with a slide; the switch turns the engine's warm-up draw off to compare
+        /// (frame intervals of each slide go to logcat, tag PortableUI.Nav).</summary>
+        private Control BuildPageRow()
+        {
+            var row = new Grid
+            {
+                Margin = new Thickness(16, 0, 16, 16),
+                ColumnDefinitions = { new ColumnDefinition(), new ColumnDefinition { Width = GridLength.Auto }, new ColumnDefinition { Width = GridLength.Auto } }
+            };
+            var open = new TextButton("Open a new page") { Height = 48 };
+            open.Click += (_, _) => ScreenEngine?.NavigateToScreen(new DetailPage(++_pagesOpened), ScreenTransition.SlideFromRight);
+            row.AddChild(open, column: 0);
+            row.AddChild(new TextBlock
+            {
+                Text = "Warm up",
+                TextColor = Muted,
+                TextSize = 14,
+                Margin = new Thickness(12, 0, 8, 0),
+                VerticalAlignment = VerticalAlignment.Center
+            }, column: 1);
+            var warmUp = new ToggleSwitch
+            {
+                Width = 52,
+                Height = 30,
+                IsOn = true,
+                VerticalAlignment = VerticalAlignment.Center,
+                OffTrackBrush = new SolidColorBrush(new Color(185, 190, 195)),
+                OnTrackBrush = new SolidColorBrush(Accent)
+            };
+            warmUp.Toggled += (_, _) =>
+            {
+                if (ScreenEngine is { } engine)
+                    engine.WarmUpScreens = warmUp.IsOn;
+            };
+            row.AddChild(warmUp, column: 2);
+            return row;
+        }
+
         private Control BuildGrowCard()
         {
             var slow = new Transition(TimeSpan.FromSeconds(1.5), Easings.CubicInOut);

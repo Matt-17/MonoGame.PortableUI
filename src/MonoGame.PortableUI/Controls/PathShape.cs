@@ -131,8 +131,8 @@ namespace MonoGame.PortableUI.Controls
             if (Geometry == null || rect.Width < 1 || rect.Height < 1)
                 return;
 
-            var width = (int)System.Math.Ceiling(rect.Width);
-            var height = (int)System.Math.Ceiling(rect.Height);
+            var width = Media.BrushTextureCache.PixelSize(rect.Width);
+            var height = Media.BrushTextureCache.PixelSize(rect.Height);
             if (Tinted)
             {
                 // A shape that had its own texture (stroked before) no longer needs it.

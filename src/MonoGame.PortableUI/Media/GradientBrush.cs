@@ -122,8 +122,8 @@ namespace MonoGame.PortableUI.Media
                 return;
             }
 
-            var width = Math.Max(1, (int)Math.Ceiling(context.Rect.Width));
-            var height = Math.Max(1, (int)Math.Ceiling(context.Rect.Height));
+            var width = BrushTextureCache.PixelSize(context.Rect.Width);
+            var height = BrushTextureCache.PixelSize(context.Rect.Height);
             var radius = context.Radius;
             var key = new BrushTextureCacheKey(
                 "linear-gradient-rounded-v1",

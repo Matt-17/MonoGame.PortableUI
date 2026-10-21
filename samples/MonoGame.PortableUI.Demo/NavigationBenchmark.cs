@@ -53,10 +53,11 @@ namespace MonoGame.PortableUI.Demo
                 var chart = new DrawingCanvas { Height = 220, Margin = new Thickness(0, 16, 0, 0) };
                 chart.Render += (canvas, context) =>
                 {
-                    var rect = canvas.ClippingRect;
+                    // Canvas coordinates start at its top-left corner.
+                    var size = canvas.ClippingRect;
                     for (var i = 0; i < 12; i++)
-                        context.FillCircle(new Vector2(rect.Left + 30 + i * 70, rect.Top + 110 + MathF.Sin(i + seed) * 60), 9 + seed % 5, Color.OrangeRed);
-                    context.DrawRectangle(rect, Color.Gray, 2);
+                        context.FillCircle(new Vector2(30 + i * 70, 110 + MathF.Sin(i + seed) * 60), 9 + seed % 5, Color.OrangeRed);
+                    context.DrawRectangle(new Rect(0, 0, size.Width, size.Height), Color.Gray, 2);
                 };
                 stack.AddChild(chart);
                 Content = new ScrollViewer { Content = stack };

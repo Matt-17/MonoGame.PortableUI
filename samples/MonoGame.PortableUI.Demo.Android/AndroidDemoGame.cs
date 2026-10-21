@@ -82,10 +82,32 @@ namespace MonoGame.PortableUI.Demo.Android
             }
         }
 
+        /// <summary>Whether the system back key closes an opened page (otherwise Android handles it). UI thread.</summary>
+        public bool CanHandleBack => _engine?.ActiveScreen is DetailPage;
+
+        /// <summary>The system back key, from the activity (UI thread): closes an opened page on the game thread.</summary>
+        public bool HandleBack()
+        {
+            if (_engine == null || !CanHandleBack)
+                return false;
+            _engine.InvokeOnGameThread(() =>
+            {
+                if (_engine.ActiveScreen is DetailPage)
+                    _engine.NavigateBack();
+            });
+            return true;
+        }
+
         protected override void Update(GameTime gameTime)
         {
             base.Update(gameTime);
             _screen?.SyncRenderQuality();
+            // On demand the frame after a transition may never be drawn: the trace ends here.
+            if (_tracing && _engine?.IsTransitioning == false)
+            {
+                _tracing = false;
+                global::Android.Util.Log.Info("PortableUI.Nav", _transitionTrace.ToString());
+            }
         }
 
         protected override void LoadContent()
@@ -109,10 +131,37 @@ namespace MonoGame.PortableUI.Demo.Android
             _engine?.NavigateToScreen(_screen);
         }
 
+        // Frame times while a screen transition runs, logged when it ends (logcat tag PortableUI.Nav): each entry is the
+        // interval since the previous frame / that frame's draw time in ms; the first frame has only its draw time.
+        private readonly System.Text.StringBuilder _transitionTrace = new System.Text.StringBuilder();
+        private long _lastDrawTimestamp;
+        private bool _tracing;
+
         protected override void Draw(GameTime gameTime)
         {
+            var now = System.Diagnostics.Stopwatch.GetTimestamp();
+            var interval = System.Diagnostics.Stopwatch.GetElapsedTime(_lastDrawTimestamp, now).TotalMilliseconds;
+            _lastDrawTimestamp = now;
             GraphicsDevice.Clear(Color.White);
             base.Draw(gameTime);
+            TraceTransition(interval, System.Diagnostics.Stopwatch.GetElapsedTime(now).TotalMilliseconds);
+        }
+
+        private void TraceTransition(double interval, double draw)
+        {
+            if (_engine is not { IsTransitioning: true })
+                return;
+            var culture = System.Globalization.CultureInfo.InvariantCulture;
+            if (!_tracing)
+            {
+                _tracing = true;
+                _transitionTrace.Clear()
+                    .Append(_engine.ActiveScreen is DetailPage ? "open" : "back")
+                    .Append(_engine.WarmUpScreens ? ", warm-up on: -/" : ", warm-up off: -/")
+                    .Append(draw.ToString("0", culture));
+                return;
+            }
+            _transitionTrace.Append(' ').Append(interval.ToString("0", culture)).Append('/').Append(draw.ToString("0", culture));
         }
     }
 }

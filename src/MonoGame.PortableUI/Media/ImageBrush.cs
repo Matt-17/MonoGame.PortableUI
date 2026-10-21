@@ -90,8 +90,8 @@ namespace MonoGame.PortableUI.Media
                 // a rectangle. Build (and cache) a target-sized copy that has the image sampled into
                 // it and the corners masked out — the same CPU-mask trick the gradient brushes use —
                 // then draw that once. Tint/opacity stay on the draw call so the cache is stable.
-                var width = Math.Max(1, (int)Math.Ceiling(context.Rect.Width));
-                var height = Math.Max(1, (int)Math.Ceiling(context.Rect.Height));
+                var width = BrushTextureCache.PixelSize(context.Rect.Width);
+                var height = BrushTextureCache.PixelSize(context.Rect.Height);
                 var radius = context.Radius;
                 var key = CreateRoundedCacheKey(width, height, sourceRect, radius);
                 if (!BrushTextureCache.TryGet(spriteBatch.GraphicsDevice, key, out var rounded))
