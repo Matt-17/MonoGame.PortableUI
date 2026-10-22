@@ -37,6 +37,23 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void The_offset_counts_from_the_safe_area()
+        {
+            using var game = new Game();
+            var engine = CreateEngine(game);
+            engine.SetSystemInsets(new Thickness(0, 24, 0, 40));
+            engine.Toasts.Show("leave?");
+            Advance(engine, 1);
+
+            var toast = (Control)engine.Toasts.Layer.Content!;
+            Assert.AreEqual(40 + engine.Toasts.EdgeOffset, toast.Margin.Bottom, 0.001f);
+
+            engine.SetSystemInsets(new Thickness(0, 24, 0, 10));
+            Advance(engine, 1);
+            Assert.AreEqual(10 + engine.Toasts.EdgeOffset, toast.Margin.Bottom, 0.001f, "follows a change while shown");
+        }
+
+        [TestMethod]
         public void Messages_are_shown_one_after_another_in_order()
         {
             using var game = new Game();

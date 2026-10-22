@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Fix: toasts ignored the safe area:** `ToastService.EdgeOffset` counted from the screen edge, so with an app drawn edge to edge a bottom toast sat over the navigation bar. It now counts from `ScreenEngine.SafeAreaInsets` (system bars, cutouts, the on-screen keyboard), and a shown toast follows inset changes.
+
 - **Element fade (`ThemeTransitionStyle.ElementFade`, `Control.ThemeFade`):** for long, unprompted theme changes such as a sunset schedule or the system's dark mode, there is no picture of the old look. The rebuilt tree is paired with the old one element by element (by place, or by `Tag` among siblings), and each element draws its old twin over itself at its own pace.
   - `ThemeFadeMode.Slow` (the default) blends evenly and gently over the parent's time.
   - `ThemeFadeMode.Flip` stays near the old look, crosses quickly when the parent passes the middle, and settles within 80 % of the parent's time. It is for a selection indicator, a knob or high-contrast text, so it is never grey on grey for more than a moment.

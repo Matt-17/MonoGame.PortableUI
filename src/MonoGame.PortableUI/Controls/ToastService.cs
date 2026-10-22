@@ -52,7 +52,8 @@ namespace MonoGame.PortableUI.Controls
 
         public ToastEdge Edge { get; set; } = ToastEdge.Bottom;
 
-        /// <summary>Distance from the anchored screen edge.</summary>
+        /// <summary>Distance from the anchored edge of the safe area (<see cref="ScreenEngine.SafeAreaInsets"/>: system
+        /// bars, cutouts, the on-screen keyboard).</summary>
         public float EdgeOffset { get; set; } = 48;
 
         /// <summary>Messages waiting behind the visible one; further ones follow <see cref="Overflow"/>.</summary>
@@ -113,7 +114,12 @@ namespace MonoGame.PortableUI.Controls
                 StartLeaving();
 
             if (_current != null)
+            {
+                var margin = ToastMargin();
+                if (!_current.Margin.Equals(margin))
+                    _current.Margin = margin;
                 _layer.Update();
+            }
         }
 
         private void ShowNext(TimeSpan now)
@@ -131,7 +137,7 @@ namespace MonoGame.PortableUI.Controls
                 MaxWidth = 480,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = Edge == ToastEdge.Top ? VerticalAlignment.Top : VerticalAlignment.Bottom,
-                Margin = Edge == ToastEdge.Top ? new Thickness(16, EdgeOffset, 16, 0) : new Thickness(16, 0, 16, EdgeOffset),
+                Margin = ToastMargin(),
                 IsHitTestVisible = false,
                 IsFocusable = false
             };
@@ -152,6 +158,14 @@ namespace MonoGame.PortableUI.Controls
                 .Ease(Easings.CubicOut)
                 .Start();
             Shown?.Invoke(this, message);
+        }
+
+        private Thickness ToastMargin()
+        {
+            var insets = _engine.SafeAreaInsets;
+            return Edge == ToastEdge.Top
+                ? new Thickness(16 + insets.Left, insets.Top + EdgeOffset, 16 + insets.Right, 0)
+                : new Thickness(16 + insets.Left, 0, 16 + insets.Right, insets.Bottom + EdgeOffset);
         }
 
         private void StartLeaving()
