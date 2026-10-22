@@ -66,6 +66,9 @@ namespace MonoGame.PortableUI.Controls
             set => SetBlurValue(ref _tintOpacity, Math.Min(1, value));
         }
 
+        /// <summary>The bands as drawn in the last frame (flights out of this blur are drawn with them).</summary>
+        internal BlurBands? DrawnBands;
+
         private void SetBlurValue(ref float field, float value)
         {
             value = float.IsFinite(value) ? Math.Max(0, value) : 0;

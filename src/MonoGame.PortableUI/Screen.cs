@@ -1040,37 +1040,52 @@ namespace MonoGame.PortableUI
             order.Clear();
             var flights = engine.SharedFlights;
             for (var i = 0; i < flights.Count; i++)
-                order.Add(new FlightItem(flights[i].Target.SharedFlightLayer, 0, order.Count, null, i));
+            {
+                var target = flights[i].Target;
+                order.Add(new FlightItem(target.SharedFlightLayer ?? 0, 0, order.Count, null, i, DrawnBlurAround(target, engine)));
+            }
             for (var s = 0; s < aside.Count; s++)
             {
                 var entries = aside[s]._aboveFlights;
                 for (var i = 0; i < entries.Count; i++)
-                    order.Add(new FlightItem(entries[i].Control.SharedFlightLayer, 1, order.Count, aside[s], i));
+                {
+                    var control = entries[i].Control;
+                    order.Add(new FlightItem(control.SharedFlightLayer ?? 0, 1, order.Count, aside[s], i, DrawnBlurAround(control, engine)));
+                }
             }
             order.Sort(FlightItemOrder);
 
             try
             {
                 var root = RenderContext.Root(ScreenRect, engine.DrawScale);
-                for (var i = 0; i < order.Count; i++)
+                for (var i = 0; i < order.Count;)
                 {
-                    var item = order[i];
-                    if (item.Screen != null)
+                    var blur = order[i].Blur;
+                    if (blur == null)
                     {
-                        item.Screen.DrawAboveFlights(spriteBatch, item.Index);
+                        DrawFlightItem(spriteBatch, engine, root, order[i++]);
                         continue;
                     }
 
-                    _drawingSharedFlights = true;
-                    try
+                    // Consecutive items out of the same ProgressiveBlur: drawn together into one picture that gets the
+                    // blur's bands, so nothing changes where they land.
+                    var device = spriteBatch.GraphicsDevice;
+                    var previousTargets = RenderTargetHelper.SnapshotRenderTargets(device, ref _flightGroupTargets);
+                    var bands = blur.DrawnBands!.Value;
+                    var group = RentFrameTarget(device, bands.Rect);
+                    if (group == null || engine.ProgressiveBlurRenderer == null)
                     {
-                        DrawSharedFlight(spriteBatch, engine, root, flights[item.Index].Target, flights[item.Index].Source);
-                        FlushLayerComposites(spriteBatch);
+                        while (i < order.Count && ReferenceEquals(order[i].Blur, blur))
+                            DrawFlightItem(spriteBatch, engine, root, order[i++]);
+                        continue;
                     }
-                    finally
-                    {
-                        _drawingSharedFlights = false;
-                    }
+
+                    device.SetRenderTarget(group);
+                    device.Clear(Color.Transparent);
+                    while (i < order.Count && ReferenceEquals(order[i].Blur, blur))
+                        DrawFlightItem(spriteBatch, engine, root, order[i++]);
+                    ComposeBlurred(spriteBatch, engine, group, bands, previousTargets, root.ScissorRect, tintByCoverage: true);
+                    RenderTargetPool.Return(device, group);
                 }
             }
             finally
@@ -1082,17 +1097,42 @@ namespace MonoGame.PortableUI
             }
         }
 
+        private RenderTargetBinding[]? _flightGroupTargets;
+
+        private void DrawFlightItem(SpriteBatch spriteBatch, ScreenEngine engine, RenderContext root, FlightItem item)
+        {
+            if (item.Screen != null)
+            {
+                item.Screen.DrawAboveFlights(spriteBatch, item.Index);
+                return;
+            }
+
+            var flight = engine.SharedFlights[item.Index];
+            _drawingSharedFlights = true;
+            try
+            {
+                DrawSharedFlight(spriteBatch, engine, root, flight.Target, flight.Source);
+                FlushLayerComposites(spriteBatch);
+            }
+            finally
+            {
+                _drawingSharedFlights = false;
+            }
+        }
+
         /// <summary>A flight (<see cref="Screen"/> null, <see cref="Index"/> into the engine's flights) or a control set
-        /// aside by <see cref="Screen"/> (<see cref="Index"/> into its list), in drawing order.</summary>
+        /// aside by <see cref="Screen"/> (<see cref="Index"/> into its list), in drawing order, with the ProgressiveBlur
+        /// it lands in (drawn this frame) if any.</summary>
         private readonly struct FlightItem
         {
-            public FlightItem(int layer, int kind, int sequence, Screen? screen, int index)
+            public FlightItem(int layer, int kind, int sequence, Screen? screen, int index, ProgressiveBlur? blur)
             {
                 Layer = layer;
                 Kind = kind;
                 Sequence = sequence;
                 Screen = screen;
                 Index = index;
+                Blur = blur;
             }
 
             public int Layer { get; }
@@ -1100,6 +1140,7 @@ namespace MonoGame.PortableUI
             public int Sequence { get; }
             public Screen? Screen { get; }
             public int Index { get; }
+            public ProgressiveBlur? Blur { get; }
         }
 
         private static readonly Comparison<FlightItem> FlightItemOrder = static (a, b) =>
@@ -1109,15 +1150,15 @@ namespace MonoGame.PortableUI
 
         private readonly List<FlightItem> _flightOrder = new List<FlightItem>();
 
-        // Controls set aside while drawing the tree (DrawsAboveSharedFlights), with the context they would have been
-        // drawn in and the fade of a screen drawn as one faded picture.
+        // Controls set aside while drawing the tree (a SharedFlightLayer without a SharedElementKey), with the context
+        // they would have been drawn in and the fade of a screen drawn as one faded picture.
         private readonly List<(Control Control, RenderContext Parent, float Fade)> _aboveFlights = new List<(Control, RenderContext, float)>();
         private bool _drawingAboveFlights;
         private bool _drawingIntoPostFx;
 
-        /// <summary>Whether a control marked to draw above the flights is set aside now: flights are drawn this frame
-        /// and the tree is drawn in frame coordinates (into the frame or a ProgressiveBlur's full-frame picture - it is
-        /// then drawn unblurred - not into a layer, clip, island or warm-up picture).</summary>
+        /// <summary>Whether a control with a flight layer is set aside now: flights are drawn this frame and the tree is
+        /// drawn in frame coordinates (into the frame or a ProgressiveBlur's full-frame picture, whose bands it then gets
+        /// above the flights - not into a layer, clip, island or warm-up picture).</summary>
         private bool SetsAsideForFlights()
             => !_drawingAboveFlights && !_drawingSharedFlights && !_drawingIntoPostFx
                 && ScreenEngine is { HasSharedFlights: true, SharedFlightHost: not null, IsWarmingUp: false }
@@ -1282,7 +1323,7 @@ namespace MonoGame.PortableUI
                 return;
             if (SkipsInSnapshot(control))
                 return;
-            if (control.DrawsAboveSharedFlights && SetsAsideForFlights())
+            if (control.SharedFlightLayer.HasValue && control.SharedElementKey == null && SetsAsideForFlights())
             {
                 _aboveFlights.Add((control, parentContext, _drawingAsGroup ? TransitionOpacity : 1f));
                 var aside = ScreenEngine!.AboveFlightScreens;

@@ -134,11 +134,12 @@ rows are recycled, so the list keys shown tops by item (`TakeShownRowTops` befor
 controls on the screen being left (`ScreenEngine.SharedElements.cs`, only once `SharedElementsInUse`); the target screen's
 first layout (`PerformLayoutIfDirty` / `Draw` → `ResolveSharedElements`) starts flights: shared scale + layout-glide offset
 from the twin's rect, `SharedFlightRole.Flying` controls are skipped in their tree and drawn by the last-drawn screen
-(`SharedFlightHost`) from the root, cross-faded with the hidden twin stretched onto the flying rect (by distortion). Controls with `DrawsAboveSharedFlights` are set aside
-during the tree draw while flights run (`Screen.SetsAsideForFlights`: in frame coordinates only - the frame or a ProgressiveBlur's full-frame picture, then unblurred -
-not in layers/clips/islands/warm-up)
-with their parent context; the host draws flights and set-aside controls in one order by `SharedFlightLayer` (flights first at equal
-layers, `Screen.DrawSharedFlights`, `ScreenEngine.AboveFlightScreens`).
+(`SharedFlightHost`) from the root, cross-faded with the hidden twin stretched onto the flying rect (by distortion). Unkeyed controls with a `SharedFlightLayer` are set aside
+during the tree draw while flights run (`Screen.SetsAsideForFlights`: in frame coordinates only - the frame or a ProgressiveBlur's full-frame picture -
+not in layers/clips/islands/warm-up) with their parent context; the host draws flights and set-aside controls in one order by
+`SharedFlightLayer` (flights first at equal layers, `Screen.DrawSharedFlights`, `ScreenEngine.AboveFlightScreens`). Consecutive items
+whose target lies in a `ProgressiveBlur` drawn this frame (`ProgressiveBlur.DrawnBands`) go into one frame-sized picture that gets
+its bands (`ComposeBlurred`, tint by coverage so it is not applied twice).
 
 **Enter/exit:** `Control.VisibilityTransition` animates `IsVisible`/`IsGone`. The properties return the target; while an exit plays
 `UIElement.ExitHolds` keeps it in layout and drawing. Layout and draw code therefore read `IsGoneShown`/`IsVisibleShown`, while input, focus,

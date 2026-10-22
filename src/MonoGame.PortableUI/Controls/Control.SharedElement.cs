@@ -31,22 +31,18 @@ namespace MonoGame.PortableUI.Controls
         }
 
         /// <summary>
-        ///     While shared elements fly, draw this control (and its subtree) above the flights instead of in its place
-        ///     in the tree - a scrim or caption over the area a hero lands in, which a flying control would otherwise pass
-        ///     over and then suddenly sit under. It keeps its screen's transform, clip and opacity. Inside a
-        ///     <see cref="ProgressiveBlur"/> it is set aside too, drawn unblurred during the flight. Not inside a
-        ///     <see cref="CacheMode.Bitmap"/> layer, clip shape or effect island (drawn in place there). Without a flight
-        ///     nothing changes. <see cref="SharedFlightLayer"/> orders it among the flights.
+        ///     The layer above the screens this control takes while shared elements fly. Flights and controls with a
+        ///     layer are drawn after every screen, sorted by it, at equal layers the flights first.
+        ///     <para>On a control with a <see cref="SharedElementKey"/> it orders that control's flights (null counts as 0).</para>
+        ///     <para>On any other control a value draws it (and its subtree) up there while flights run instead of in its
+        ///     place in the tree - a scrim or caption over where a hero lands, which a flying control would otherwise pass
+        ///     over and then suddenly sit under. It keeps its screen's transform, clip and opacity; a flying picture of
+        ///     layer 0 passes under a caption of layer 0, a flying name of layer 1 over it. Inside a
+        ///     <see cref="ProgressiveBlur"/> it (like a flight landing in one) gets the blur's bands. Not inside a
+        ///     <see cref="CacheMode.Bitmap"/> layer, clip shape or effect island (drawn in place there).</para>
+        ///     Null (default): drawn in the tree. Without a flight nothing changes.
         /// </summary>
-        public bool DrawsAboveSharedFlights { get; set; }
-
-        /// <summary>
-        ///     Drawing order above the screens while shared elements fly: flights (by their landing control's layer) and
-        ///     <see cref="DrawsAboveSharedFlights"/> controls are drawn sorted by it, at equal layers the flights first.
-        ///     Default 0: a marked control lies above every flight of layer 0; a flight of layer 1 passes over it (a
-        ///     flying name over the scrim behind it, the flying picture under that scrim).
-        /// </summary>
-        public int SharedFlightLayer { get; set; }
+        public int? SharedFlightLayer { get; set; }
 
         /// <summary>
         ///     The control's part in a running shared-element flight: drawn apart above every screen, or hidden as the

@@ -1,6 +1,7 @@
 using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
 using MonoGame.PortableUI.Effects;
 
@@ -8,6 +9,8 @@ namespace MonoGame.PortableUI
 {
     // ProgressiveBlur: the content goes into a texture; the rows outside the bands are composited sharp, the bands
     // through the core ProgressiveBlurRenderer (if its shader cannot load, reported once, the content draws sharp).
+    // The bands of each blur drawn this frame are kept, so shared-element flights and controls set aside above them
+    // that belong to it get the same bands (Screen.DrawSharedFlights).
     public abstract partial class Screen
     {
         private ProgressiveBlur? _blurInProgress;
@@ -27,19 +30,14 @@ namespace MonoGame.PortableUI
             var topHeight = control.TopHeight * context.Scale.Y;
             var bottomHeight = control.BottomHeight * context.Scale.Y;
             if (rect.Width <= 0 || rect.Height <= 0 || radius < 1 || (topHeight < 1 && bottomHeight < 1)
-                || engine.ProgressiveBlurRenderer is not { } renderer)
+                || engine.ProgressiveBlurRenderer == null)
                 return false;
 
             var device = spriteBatch.GraphicsDevice;
-            // Full-frame target so the subtree keeps drawing at its own coordinates.
-            var width = (int)Math.Ceiling(Math.Max(PixelScreenRect.Right, rect.Right));
-            var height = (int)Math.Ceiling(Math.Max(PixelScreenRect.Bottom, rect.Bottom));
-            if (width <= 0 || height <= 0)
-                return false;
-
             var previousTargets = RenderTargetHelper.SnapshotRenderTargets(device, ref _blurPreviousTargets);
-            var previousScissor = device.ScissorRectangle;
-            var content = RenderTargetPool.Rent(device, width, height);
+            var content = RentFrameTarget(device, rect);
+            if (content == null)
+                return false;
             device.SetRenderTarget(content);
             device.Clear(Color.Transparent);
             _blurInProgress = control;
@@ -52,13 +50,46 @@ namespace MonoGame.PortableUI
                 _blurInProgress = null;
             }
 
+            var tint = control.TintColor * (control.TintColor.A / 255f * control.TintOpacity * parentContext.Opacity);
+            tint.A = (byte)Math.Round(control.TintColor.A * control.TintOpacity * parentContext.Opacity);
+            var bands = new BlurBands(rect, radius, topHeight, bottomHeight, tint, engine.DrawFrameNumber);
+            control.DrawnBands = bands;
+            ComposeBlurred(spriteBatch, engine, content, bands, previousTargets, parentContext.ChildClipRect, tintByCoverage: false);
+            RenderTargetPool.Return(device, content);
+            return true;
+        }
+
+        // A transparent-to-be target covering the frame (and the rect, if it reaches past it), so a subtree keeps drawing
+        // at its own coordinates.
+        private RenderTarget2D? RentFrameTarget(GraphicsDevice device, Rect rect)
+        {
+            var width = (int)Math.Ceiling(Math.Max(PixelScreenRect.Right, rect.Right));
+            var height = (int)Math.Ceiling(Math.Max(PixelScreenRect.Bottom, rect.Bottom));
+            return width <= 0 || height <= 0 ? null : RenderTargetPool.Rent(device, width, height);
+        }
+
+        /// <summary>
+        ///     Composites <paramref name="content"/> (drawn at frame coordinates) into <paramref name="previousTargets"/>
+        ///     with the bands of <paramref name="bands"/> blurred and tinted, clipped to <paramref name="clip"/>.
+        ///     <paramref name="tintByCoverage"/>: tint only where the content draws (a layer over content that already has
+        ///     its tint), not over its transparent parts.
+        /// </summary>
+        private void ComposeBlurred(SpriteBatch spriteBatch, ScreenEngine engine, RenderTarget2D content, in BlurBands bands,
+            RenderTargetBinding[] previousTargets, Rect clip, bool tintByCoverage)
+        {
+            var device = spriteBatch.GraphicsDevice;
+            var renderer = engine.ProgressiveBlurRenderer!;
+            var width = content.Width;
+            var height = content.Height;
+            var rect = bands.Rect;
+
             // Bands in whole rows of the content texture, covering partly drawn edge rows; the bottom one never
             // reaches into the top one. Only the control's own columns blur, so its sides clamp instead of fading
             // into what lies beside it.
             var topEdge = (int)Math.Floor(rect.Top);
-            var topLength = (int)Math.Round(topHeight);
+            var topLength = (int)Math.Round(bands.TopHeight);
             var bottomEdge = (int)Math.Ceiling(rect.Bottom);
-            var bottomLength = (int)Math.Round(bottomHeight);
+            var bottomLength = (int)Math.Round(bands.BottomHeight);
             var top0 = Math.Clamp(topEdge, 0, height);
             var top1 = Math.Clamp(topEdge + topLength, top0, height);
             var bottom1 = Math.Clamp(bottomEdge, top1, height);
@@ -68,15 +99,13 @@ namespace MonoGame.PortableUI
             if (right <= left)
                 top1 = top0 = bottom0 = bottom1;
 
-            var tint = control.TintColor * (control.TintColor.A / 255f * control.TintOpacity * parentContext.Opacity);
-            tint.A = (byte)Math.Round(control.TintColor.A * control.TintOpacity * parentContext.Opacity);
             // Both bands blurred before the frame's target is bound again (a tiled GPU reloads it each time).
             var hasTop = top1 > top0;
             var hasBottom = bottom1 > bottom0;
             if (hasTop)
-                hasTop = renderer.Prepare(spriteBatch, content, new Rectangle(left, top0, right - left, top1 - top0), topEdge, topLength, radius, tint, 0);
+                hasTop = renderer.Prepare(spriteBatch, content, new Rectangle(left, top0, right - left, top1 - top0), topEdge, topLength, bands.Radius, bands.Tint, tintByCoverage, 0);
             if (hasBottom)
-                hasBottom = renderer.Prepare(spriteBatch, content, new Rectangle(left, bottom0, right - left, bottom1 - bottom0), bottomEdge, bottomLength, radius, tint, 1);
+                hasBottom = renderer.Prepare(spriteBatch, content, new Rectangle(left, bottom0, right - left, bottom1 - bottom0), bottomEdge, bottomLength, bands.Radius, bands.Tint, tintByCoverage, 1);
             // A band the renderer could not blur (no shader) is drawn sharp with the rows around it.
             if (!hasTop)
                 top1 = top0;
@@ -88,7 +117,8 @@ namespace MonoGame.PortableUI
             else
                 device.SetRenderTargets(previousTargets);
 
-            device.ScissorRectangle = ToScissorRectangle(parentContext.ChildClipRect);
+            var previousScissor = device.ScissorRectangle;
+            device.ScissorRectangle = ToScissorRectangle(clip);
             spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, rasterizerState: ScissorRasterizer);
             DrawPart(spriteBatch, content, 0, 0, width, top0);
             if (hasTop)
@@ -105,9 +135,19 @@ namespace MonoGame.PortableUI
             renderer.Release();
             device.ScissorRectangle = previousScissor;
             engine.RecordBatchFlush();
+        }
 
-            RenderTargetPool.Return(device, content);
-            return true;
+        /// <summary>The <see cref="ProgressiveBlur"/> around <paramref name="control"/> if it drew its bands this frame
+        /// (flights and set-aside controls are drawn with them), else null.</summary>
+        private static ProgressiveBlur? DrawnBlurAround(Control control, ScreenEngine engine)
+        {
+            for (var parent = control.Parent; parent != null; parent = parent.Parent)
+            {
+                if (parent is ProgressiveBlur blur)
+                    return blur.DrawnBands is { } bands && bands.Frame == engine.DrawFrameNumber ? blur : null;
+            }
+
+            return null;
         }
 
         private static void DrawPart(SpriteBatch spriteBatch, Texture2D texture, int left, int top, int right, int bottom)
@@ -122,5 +162,27 @@ namespace MonoGame.PortableUI
             DrawPart(spriteBatch, content, 0, top, left, bottom);
             DrawPart(spriteBatch, content, right, top, content.Width, bottom);
         }
+    }
+
+    /// <summary>Where a <see cref="ProgressiveBlur"/> was drawn in a frame and how its bands look, in pixels.</summary>
+    internal readonly struct BlurBands
+    {
+        public BlurBands(Rect rect, float radius, float topHeight, float bottomHeight, Color tint, long frame)
+        {
+            Rect = rect;
+            Radius = radius;
+            TopHeight = topHeight;
+            BottomHeight = bottomHeight;
+            Tint = tint;
+            Frame = frame;
+        }
+
+        public Rect Rect { get; }
+        public float Radius { get; }
+        public float TopHeight { get; }
+        public float BottomHeight { get; }
+        /// <summary>Premultiplied, ancestor opacity included.</summary>
+        public Color Tint { get; }
+        public long Frame { get; }
     }
 }

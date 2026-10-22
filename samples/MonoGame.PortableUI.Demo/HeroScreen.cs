@@ -53,7 +53,7 @@ namespace MonoGame.PortableUI.Demo
                 VerticalAlignment = VerticalAlignment.Bottom,
                 CornerRadius = new CornerRadius(0, 0, 16, 16),
                 BackgroundBrush = new LinearGradientBrush(Color.Transparent, new Color(0, 0, 0, 150)),
-                DrawsAboveSharedFlights = true,
+                SharedFlightLayer = 0,
                 Content = new TextBlock
                 {
                     Text = "Caption above the flight",

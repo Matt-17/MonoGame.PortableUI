@@ -27,9 +27,10 @@ namespace MonoGame.PortableUI.Effects
 
         /// <summary>Blurs <paramref name="band"/> of <paramref name="content"/> (pixels) into target <paramref name="slot"/>
         /// (0 or 1): radius <paramref name="radius"/> pixels at row <paramref name="edgeRow"/>, falling to 0 over
-        /// <paramref name="length"/> rows, <paramref name="tint"/> (premultiplied) mixed in along the same gradient. Switches
+        /// <paramref name="length"/> rows, <paramref name="tint"/> (premultiplied) mixed in along the same gradient, only where the content draws with
+        /// <paramref name="tintByCoverage"/>. Switches
         /// render targets; the caller rebinds its own. False when the shader is not available.</summary>
-        public bool Prepare(SpriteBatch spriteBatch, Texture2D content, Rectangle band, int edgeRow, int length, float radius, Color tint, int slot)
+        public bool Prepare(SpriteBatch spriteBatch, Texture2D content, Rectangle band, int edgeRow, int length, float radius, Color tint, bool tintByCoverage, int slot)
         {
             var state = _slots[slot];
             Return(state);
@@ -81,6 +82,7 @@ namespace MonoGame.PortableUI.Effects
             state.Slope = slope;
             state.Radius = radius;
             state.Tint = tint.ToVector4();
+            state.TintCoverage = tintByCoverage ? 1f : 0f;
             // Fully blurred from two downscaled texels on: below that the downscale itself would show.
             state.FadeRadius = Math.Max(2f, 2f * scale);
             return true;
@@ -103,6 +105,7 @@ namespace MonoGame.PortableUI.Effects
             effect.Parameters["MaxRadius"].SetValue(state.Radius);
             effect.Parameters["FadeRadius"].SetValue(state.FadeRadius);
             effect.Parameters["Tint"].SetValue(state.Tint);
+            effect.Parameters["TintCoverage"].SetValue(state.TintCoverage);
             effect.Parameters["SharpTexture"].SetValue(content);
             effect.Parameters["SharpRect"].SetValue(new Vector4(
                 band.Left / (float)content.Width, band.Top / (float)content.Height,
@@ -147,6 +150,7 @@ namespace MonoGame.PortableUI.Effects
             public float Radius;
             public float FadeRadius;
             public Vector4 Tint;
+            public float TintCoverage;
         }
     }
 }

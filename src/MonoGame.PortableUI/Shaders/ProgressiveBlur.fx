@@ -6,7 +6,8 @@
 // so their weights stay constant. Direction is one texel along the pass, MaxRadius the edge radius in texels.
 // Compose: the sharp content and the blurred band mixed by the row's radius (fully blurred from FadeRadius
 // pixels on), so the band runs out into the untouched content without a seam; then Tint (premultiplied) laid over
-// it, scaled by the row's strength, and half a step of noise so long soft gradients do not band.
+// it, scaled by the row's strength (and by the content's coverage with TintCoverage = 1, for a layer drawn over
+// content that has its tint already), and half a step of noise so long soft gradients do not band.
 
 sampler2D TextureSampler : register(s0);
 
@@ -27,6 +28,7 @@ float MaxRadius;
 float4 SharpRect;
 float FadeRadius;
 float4 Tint;
+float TintCoverage;
 
 static const float Weights[13] = { 1.000000, 0.986207, 0.945959, 0.882497, 0.800737, 0.706648, 0.606531, 0.506336, 0.411112, 0.324652, 0.249352, 0.186270, 0.135335 };
 
@@ -56,7 +58,8 @@ float4 ComposePS(float4 position : SV_POSITION, float4 color : COLOR0, float2 uv
     float strength = Strength(uv.y);
     float weight = saturate(strength * MaxRadius / FadeRadius);
     float4 mixed = lerp(sharp, blurred, weight);
-    float4 result = Tint * strength + mixed * (1.0 - Tint.a * strength);
+    float tint = strength * lerp(1.0, mixed.a, TintCoverage);
+    float4 result = Tint * tint + mixed * (1.0 - Tint.a * tint);
     float noise = frac(sin(dot(floor(uv * 4096.0), float2(12.9898, 78.233))) * 43758.5453) - 0.5;
     result.rgb += noise / 255.0 * result.a;
     return result * color;
