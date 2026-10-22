@@ -303,24 +303,20 @@ namespace MonoGame.PortableUI
 
         private IBackdropRenderer? _backdrop;
         private IPostEffectRenderer? _postEffects;
-        private IProgressiveBlurRenderer? _progressiveBlur;
+        private ProgressiveBlurRenderer? _progressiveBlur;
 
-        /// <summary>
-        ///     Renderer of <see cref="ProgressiveBlur"/> bands, or null without the optional effects package (the
-        ///     content then draws sharp). Recreated when the GraphicsDevice is replaced.
-        /// </summary>
-        public IProgressiveBlurRenderer? ProgressiveBlurRenderer
+        /// <summary>Renderer of <see cref="ProgressiveBlur"/> bands (core shader), recreated when the GraphicsDevice is replaced.</summary>
+        internal ProgressiveBlurRenderer? ProgressiveBlurRenderer
         {
             get
             {
-                var factory = EffectRenderers.ProgressiveBlur;
                 var device = Game.GraphicsDevice;
-                if (factory == null || device == null)
+                if (device == null)
                     return null;
                 if (_progressiveBlur == null || !ReferenceEquals(_progressiveBlur.GraphicsDevice, device))
                 {
                     _progressiveBlur?.Dispose();
-                    _progressiveBlur = factory(device);
+                    _progressiveBlur = new ProgressiveBlurRenderer(device);
                 }
 
                 return _progressiveBlur;

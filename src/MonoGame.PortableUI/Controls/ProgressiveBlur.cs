@@ -6,9 +6,9 @@ namespace MonoGame.PortableUI.Controls
     /// <summary>
     ///     Blurs its own content along its top and bottom edge, strongest at the edge and fading to sharp at the
     ///     band's inner end - a list scrolling under a status bar or navigation bar. The content is drawn into a
-    ///     texture each frame and only the two bands are blurred (a Gaussian whose radius follows the row), by the
-    ///     effects package (CodeIX.PortableUI.Effects); without it, and at <see cref="RenderQuality.Low"/>, the
-    ///     content is drawn sharp and untinted. <see cref="TintColor"/>/<see cref="TintOpacity"/> tint the bands along
+    ///     texture each frame and only the two bands are blurred (a Gaussian whose radius follows the row; a core
+    ///     shader, no package or install needed). At <see cref="RenderQuality.Low"/> the content is drawn sharp and
+    ///     untinted. <see cref="TintColor"/>/<see cref="TintOpacity"/> tint the bands along
     ///     the same gradient.
     /// </summary>
     public class ProgressiveBlur : ContentControl

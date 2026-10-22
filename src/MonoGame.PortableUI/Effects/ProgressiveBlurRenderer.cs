@@ -5,13 +5,13 @@ using Microsoft.Xna.Framework.Graphics;
 namespace MonoGame.PortableUI.Effects
 {
     /// <summary>
-    ///     Blurs the bands of a <see cref="Controls.ProgressiveBlur"/>: the band is scaled down once (so the blur
+    ///     Blurs the bands of a <see cref="Controls.ProgressiveBlur"/> (core shader <see cref="CoreShaders.ProgressiveBlur"/>): the band is scaled down once (so the blur
     ///     has at most 24 texels of radius), blurred by a separable Gaussian whose taps spread with each row's radius,
     ///     and mixed into the sharp content where the radius runs out. A Gaussian on one fixed downscale stays still
     ///     while content scrolls through it; a deep pyramid of halvings shimmered, every pixel of movement landing
     ///     differently in its coarse levels. Targets are rented per draw.
     /// </summary>
-    public sealed class ProgressiveBlurRenderer : IProgressiveBlurRenderer
+    internal sealed class ProgressiveBlurRenderer : IDisposable
     {
         /// <summary>Most radius, in texels of the downscaled band, the 12 taps per side cover without gaps.</summary>
         private const float MaxTexelRadius = 24;
@@ -25,13 +25,17 @@ namespace MonoGame.PortableUI.Effects
 
         public GraphicsDevice GraphicsDevice { get; }
 
-        public void Prepare(SpriteBatch spriteBatch, Texture2D content, Rectangle band, int edgeRow, int length, float radius, Color tint, int slot)
+        /// <summary>Blurs <paramref name="band"/> of <paramref name="content"/> (pixels) into target <paramref name="slot"/>
+        /// (0 or 1): radius <paramref name="radius"/> pixels at row <paramref name="edgeRow"/>, falling to 0 over
+        /// <paramref name="length"/> rows, <paramref name="tint"/> (premultiplied) mixed in along the same gradient. Switches
+        /// render targets; the caller rebinds its own. False when the shader is not available.</summary>
+        public bool Prepare(SpriteBatch spriteBatch, Texture2D content, Rectangle band, int edgeRow, int length, float radius, Color tint, int slot)
         {
             var state = _slots[slot];
             Return(state);
             if (band.Width <= 0 || band.Height <= 0 || length <= 0
-                || !EffectCache.TryGetEffect(GraphicsDevice, EffectNames.ProgressiveBlur, out var effect) || effect == null)
-                return;
+                || !CoreShaders.TryGet(GraphicsDevice, CoreShaders.ProgressiveBlur, out var effect) || effect == null)
+                return false;
 
             // Halvings until the radius fits the taps; each one a 2x2 box.
             var scale = 1;
@@ -79,13 +83,16 @@ namespace MonoGame.PortableUI.Effects
             state.Tint = tint.ToVector4();
             // Fully blurred from two downscaled texels on: below that the downscale itself would show.
             state.FadeRadius = Math.Max(2f, 2f * scale);
+            return true;
         }
 
+        /// <summary>Draws a prepared band at its place in the bound target, the sharp content mixed into its weakly blurred
+        /// rows; the scissor of <paramref name="rasterizer"/> applies.</summary>
         public void Draw(SpriteBatch spriteBatch, int slot, RasterizerState rasterizer)
         {
             var state = _slots[slot];
             if (state.Blurred == null || state.Content == null
-                || !EffectCache.TryGetEffect(GraphicsDevice, EffectNames.ProgressiveBlur, out var effect) || effect == null)
+                || !CoreShaders.TryGet(GraphicsDevice, CoreShaders.ProgressiveBlur, out var effect) || effect == null)
                 return;
 
             var content = state.Content;
@@ -105,6 +112,7 @@ namespace MonoGame.PortableUI.Effects
             spriteBatch.End();
         }
 
+        /// <summary>Returns the targets of this draw.</summary>
         public void Release()
         {
             foreach (var slot in _slots)

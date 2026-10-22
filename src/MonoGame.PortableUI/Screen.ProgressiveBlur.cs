@@ -7,7 +7,7 @@ using MonoGame.PortableUI.Effects;
 namespace MonoGame.PortableUI
 {
     // ProgressiveBlur: the content goes into a texture; the rows outside the bands are composited sharp, the bands
-    // through the effects package's renderer (without it the content draws sharp).
+    // through the core ProgressiveBlurRenderer (if its shader cannot load, reported once, the content draws sharp).
     public abstract partial class Screen
     {
         private ProgressiveBlur? _blurInProgress;
@@ -74,9 +74,14 @@ namespace MonoGame.PortableUI
             var hasTop = top1 > top0;
             var hasBottom = bottom1 > bottom0;
             if (hasTop)
-                renderer.Prepare(spriteBatch, content, new Rectangle(left, top0, right - left, top1 - top0), topEdge, topLength, radius, tint, 0);
+                hasTop = renderer.Prepare(spriteBatch, content, new Rectangle(left, top0, right - left, top1 - top0), topEdge, topLength, radius, tint, 0);
             if (hasBottom)
-                renderer.Prepare(spriteBatch, content, new Rectangle(left, bottom0, right - left, bottom1 - bottom0), bottomEdge, bottomLength, radius, tint, 1);
+                hasBottom = renderer.Prepare(spriteBatch, content, new Rectangle(left, bottom0, right - left, bottom1 - bottom0), bottomEdge, bottomLength, radius, tint, 1);
+            // A band the renderer could not blur (no shader) is drawn sharp with the rows around it.
+            if (!hasTop)
+                top1 = top0;
+            if (!hasBottom)
+                bottom0 = bottom1;
 
             if (previousTargets.Length == 0)
                 device.SetRenderTarget(null);

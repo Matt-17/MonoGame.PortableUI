@@ -34,6 +34,10 @@
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
   <ItemGroup>
+    <!-- Shaders of core visuals (CoreShaders), compiled with mgfxc for OpenGL (DesktopGL and Android). -->
+    <EmbeddedResource Include="Shaders\*.ogl.mgfxo" LogicalName="MonoGame.PortableUI.Shaders.%(Filename)%(Extension)" />
+  </ItemGroup>
+  <ItemGroup>
     <InternalsVisibleTo Include="MonoGame.PortableUI.Benchmarks" />
     <InternalsVisibleTo Include="MonoGame.PortableUI.Tests" />
     <!-- The optional effects package ships in lockstep with the core (same version) and reuses its

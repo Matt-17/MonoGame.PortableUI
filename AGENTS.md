@@ -5,7 +5,8 @@ No XAML — trees are built in C#. Known open issues and deferred work live in `
 
 ## Repository layout
 
-- `src/MonoGame.PortableUI` — the library (controls, layout, input, media/brushes, theming core, `FontStashUIFont` runtime fonts via FontStashSharp — in the core until MonoGame's own font system lands).
+- `src/MonoGame.PortableUI` — the library (controls, layout, input, media/brushes, theming core, `FontStashUIFont` runtime fonts via FontStashSharp — in the core until MonoGame's own font system lands). Shaders of core visuals live here too (`Shaders/*.fx` + `*.ogl.mgfxo`, embedded, `CoreShaders`; a shader that cannot load is reported once via `Trace`).
+  **Decision:** the effects package is for decorative post effects; core visuals (blur building blocks like `ProgressiveBlur`) belong in the core and must never silently degrade because an optional assembly did not load (a referenced package whose types are unused never runs its module initializer).
 - `src/MonoGame.PortableUI.Effects` — optional shader visuals, NuGet ID `CodeIX.PortableUI.Effects`: post effects
   (concrete `PostEffect`s + `PostProcessManager`), backdrop blur (`BackdropRenderer`/`BackdropManager`/`BackdropSource`),
   glass brushes, all shaders (`compiled/*.mgfxo`, `src/*.fx`, `EffectCache`). It installs itself on first use
@@ -154,7 +155,7 @@ gradients and image brushes, `PathShape` rasters, and shadow layers (rest layer 
 
 **Progressive blur:** `ProgressiveBlur` (`Screen.ProgressiveBlur.cs`) draws its subtree into a full-frame `RenderTargetPool`
 target, composites the rows outside its bands sharp and hands each band to `ScreenEngine.ProgressiveBlurRenderer`
-(`IProgressiveBlurRenderer`, effects package: one downscale to <= 12 texels of radius, separable Gaussian with taps spread by the
+(core `ProgressiveBlurRenderer`, shader `Shaders/ProgressiveBlur.fx`: one downscale to <= 24 texels of radius, separable Gaussian with taps spread by the
 row's radius, compose shader mixes sharp/blurred/tint by row). Both bands are prepared before the frame's target is rebound.
 A deep 2x pyramid was tried first and shimmered while scrolling. Nested blurs draw sharp inside the outer one.
 
