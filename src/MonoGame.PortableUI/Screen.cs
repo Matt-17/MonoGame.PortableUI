@@ -172,6 +172,9 @@ namespace MonoGame.PortableUI
         /// live theme change (<see cref="ScreenEngine.TransitionTheme"/>).</summary>
         internal PortableTheme? ThemeOverride { get; set; }
 
+        /// <summary>Scroll positions kept under <see cref="Controls.ScrollViewer.StateKey"/>, for the screen's lifetime.</summary>
+        internal Dictionary<string, PointF> ScrollStates { get; } = new Dictionary<string, PointF>(StringComparer.Ordinal);
+
         /// <summary>The engine whose focus this screen routes to: its own, or the default engine for
         /// a screen that is not hosted yet.</summary>
         private ScreenEngine? FocusEngine => ScreenEngine ?? MonoGame.PortableUI.ScreenEngine.Instance;

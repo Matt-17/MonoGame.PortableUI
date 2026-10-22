@@ -123,12 +123,18 @@ namespace MonoGame.PortableUI.Tests
             ScreenSystem.TotalTime = TimeSpan.FromSeconds(100);
             var viewer = new ScrollViewer { Content = new Border { Height = 300 }, ScrollBarVisibility = ScrollBarVisibility.AutoHide };
             viewer.UpdateLayout(new Rect(0, 0, 100, 100));
-            Assert.AreEqual(1f, viewer.ScrollBarOpacity, "shown at first");
+            Assert.AreEqual(0f, viewer.ScrollBarOpacity, "a new viewer keeps its bar hidden");
+
+            viewer.ScrollTo(new PointF(0, 50));
+            Assert.AreEqual(1f, viewer.ScrollBarOpacity, "shown while scrolling");
 
             ScreenSystem.TotalTime += TimeSpan.FromSeconds(2);
             Assert.AreEqual(0f, viewer.ScrollBarOpacity, "faded out after the idle delay");
 
-            viewer.ScrollTo(new PointF(0, 50));
+            viewer.ScrollTo(new PointF(0, 80), revealScrollBar: false);
+            Assert.AreEqual(0f, viewer.ScrollBarOpacity, "a quiet jump does not show it");
+
+            viewer.ScrollTo(new PointF(0, 20));
             Assert.AreEqual(1f, viewer.ScrollBarOpacity, "back while scrolling");
         }
 

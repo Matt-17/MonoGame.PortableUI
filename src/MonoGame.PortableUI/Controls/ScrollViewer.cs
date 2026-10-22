@@ -37,8 +37,11 @@ namespace MonoGame.PortableUI.Controls
         private bool _isScrollBarDragging;
         private bool _isScrollBarThumbHovering;
         private bool _hasHorizontalScrollBar;
-        // AutoHide: when the content last moved (or the bar was hovered/dragged), and the offset seen then.
-        private TimeSpan _lastScrollActivity = ScreenSystem.TotalTime;
+        // AutoHide: when the content last moved (or the bar was hovered/dragged), and the offset seen then. Null until
+        // the first activity: a new viewer keeps its bar hidden.
+        private TimeSpan? _lastScrollActivity;
+        private string? _stateKey;
+        private bool _stateRestored;
         private PointF _activityOffset;
         private const double ScrollBarFadeMilliseconds = 300;
         private bool _hasVerticalScrollBar;
@@ -88,6 +91,8 @@ namespace MonoGame.PortableUI.Controls
                 if (_offset == value)
                     return;
                 _offset = value;
+                if (_stateKey != null && Screen is { } screen)
+                    screen.ScrollStates[_stateKey] = value;
                 // Scrolling moves content without a layout pass: still a visual change for redraws
                 // and for cached ancestor layers.
                 RequestRedraw();
@@ -96,6 +101,24 @@ namespace MonoGame.PortableUI.Controls
         }
 
         private PointF _offset;
+
+        /// <summary>
+        ///     Keeps the scroll position on the <see cref="Screen"/> under this key: a new viewer with the same key there
+        ///     (the page built again for a new theme or new data) starts where the last one was, from its first layout,
+        ///     without animation and without showing an auto-hiding scroll bar. Null (default): no state is kept.
+        /// </summary>
+        public string? StateKey
+        {
+            get => _stateKey;
+            set
+            {
+                if (_stateKey == value)
+                    return;
+                _stateKey = value;
+                _stateRestored = false;
+                InvalidateLayout(true);
+            }
+        }
 
         /// <summary>Raised whenever <see cref="Offset"/> changes (dragging, flinging, snapping, ScrollTo).</summary>
         public event EventHandler? ScrollChanged;
@@ -239,12 +262,18 @@ namespace MonoGame.PortableUI.Controls
             SynchronizeHoverAfterScroll(args.Position);
         }
 
-        public void ScrollTo(PointF offset)
+        public void ScrollTo(PointF offset) => ScrollTo(offset, revealScrollBar: true);
+
+        /// <summary>Jumps to <paramref name="offset"/>; with <paramref name="revealScrollBar"/> false the jump does not count
+        /// as scrolling, so an auto-hiding scroll bar stays as it is (restoring a position, not the user scrolling).</summary>
+        public void ScrollTo(PointF offset, bool revealScrollBar)
         {
             StopAnimation();
             Offset = new PointF(
                 CanScrollX ? Clamp(offset.X, 0, MaxHorizontalOffset) : 0,
                 CanScrollY ? Clamp(offset.Y, 0, MaxVerticalOffset) : 0);
+            if (!revealScrollBar)
+                _activityOffset = Offset;
 
             UpdateContentLayout();
         }
@@ -278,10 +307,26 @@ namespace MonoGame.PortableUI.Controls
         {
             base.UpdateLayout(rect);
             UpdateViewportAndExtent();
+            RestoreState();
             ClampOffset();
             // An arrange from the parent always lays the content out in full.
             _contentArrangeValid = false;
             UpdateContentLayout();
+        }
+
+        // The first layout on a screen that kept a position under StateKey starts there, quietly.
+        private void RestoreState()
+        {
+            if (_stateRestored || _stateKey == null || Screen is not { } screen)
+                return;
+            _stateRestored = true;
+            if (!screen.ScrollStates.TryGetValue(_stateKey, out var kept))
+                return;
+            _offset = new PointF(
+                CanScrollX ? Clamp(kept.X, 0, MaxHorizontalOffset) : 0,
+                CanScrollY ? Clamp(kept.Y, 0, MaxVerticalOffset) : 0);
+            _activityOffset = _offset;
+            // Where it starts is no scroll: no ScrollChanged, and the kept value stays as it was (content may still grow).
         }
 
         protected internal override void OnDrawOverlay(SpriteBatch spriteBatch, Rect rect)
@@ -994,12 +1039,15 @@ namespace MonoGame.PortableUI.Controls
                     _activityOffset = Offset;
                     _lastScrollActivity = now;
                 }
+                // Hidden until someone scrolls.
+                if (_lastScrollActivity is not { } last)
+                    return 0f;
                 var delay = Screen?.ScreenEngine?.Options.ScrollBarAutoHideDelay ?? TimeSpan.FromSeconds(0.75);
-                var idle = (now - _lastScrollActivity - delay).TotalMilliseconds;
+                var idle = (now - last - delay).TotalMilliseconds;
                 if (idle <= 0)
                 {
                     // Shown: wake up when the fade-out starts.
-                    ScreenEngine.RequestAnimationFrameAt(_lastScrollActivity + delay);
+                    ScreenEngine.RequestAnimationFrameAt(last + delay);
                     return 1f;
                 }
                 var opacity = (float)Math.Max(0, 1 - idle / ScrollBarFadeMilliseconds);
