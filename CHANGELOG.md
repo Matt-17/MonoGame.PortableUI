@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Content under the on-screen keyboard can be scrolled up (`ScrollViewer.ScrollsAboveKeyboard`, default on):** while the keyboard covers the bottom of a page's scroll viewer (the outermost one that scrolls vertically), its range grows by the covered part, as Android's adjustResize does but without re-laying out the page. Everything can be scrolled above the keyboard; the focused field is brought into view above it when the keyboard opens and when focus moves to another field while it is open. When the keyboard closes, content scrolled into that range glides back instead of jumping.
+
 - **A tap on moving content only stops it (`ScrollViewer.CatchVelocity`):** a finger landing on a list that is still flinging (faster than `CatchVelocity`, 150 layout units per second by default), snapping or springing back from overscroll now only catches it, as on Android: the button under it is not pressed, shows no ripple and does not click. A drag from there pans on. Nested viewers work alike: the moving one takes the gesture. Content drifting slower can still be tapped through.
 
 - **Toasts with any content (`ToastService.Show(Control content, duration, message)`):** a toast can show an icon and text, or anything else, in its bubble instead of plain text; text stays the shortcut. `message` is what `CurrentMessage`, `Shown` and `Dismissed` report for it.

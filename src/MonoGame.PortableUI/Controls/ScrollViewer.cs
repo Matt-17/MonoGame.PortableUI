@@ -26,6 +26,12 @@ namespace MonoGame.PortableUI.Controls
         private TimeSpan _flingStartTime;
         private TimeSpan _lastAnimationTime;
         private bool _animating;
+        // The part of the viewport the on-screen keyboard covers, added below the content so all of it scrolls above
+        // the keyboard (Android's adjustResize). Shown value: it eases out when the keyboard closes.
+        private float _keyboardExtra;
+        private float _keyboardExtraTarget;
+        private float _measuredContentHeight;
+        private TimeSpan _lastKeyboardEaseTime;
         private Control? _arrangedContent;
         private Rect _arrangedContentRect;
         private bool _contentArrangeValid;
@@ -80,6 +86,26 @@ namespace MonoGame.PortableUI.Controls
         private bool CanScrollX => _directions is ScrollDirections.Horizontal or ScrollDirections.Both;
 
         private bool CanScrollY => _directions is ScrollDirections.Vertical or ScrollDirections.Both;
+
+        /// <summary>
+        ///     While the on-screen keyboard covers the bottom of this viewer, the scrollable range grows by the covered
+        ///     part, so all content can be scrolled above the keyboard and a focused field is brought into view above it
+        ///     (as Android's adjustResize, without re-laying out the page). When the keyboard closes, content scrolled into
+        ///     that range glides back. Only the outermost vertically scrolling viewer does this. Default true.
+        /// </summary>
+        public bool ScrollsAboveKeyboard
+        {
+            get => _scrollsAboveKeyboard;
+            set
+            {
+                if (_scrollsAboveKeyboard == value)
+                    return;
+                _scrollsAboveKeyboard = value;
+                InvalidateLayout(true);
+            }
+        }
+
+        private bool _scrollsAboveKeyboard = true;
 
         protected internal override bool ClipsDescendants => true;
 
@@ -299,6 +325,9 @@ namespace MonoGame.PortableUI.Controls
         public void BringIntoView(Control control)
         {
             var viewportRect = ContentViewportRect;
+            // Above the keyboard: the covered part of the viewport does not count as visible.
+            if (_keyboardExtraTarget > 0)
+                viewportRect = new Rect(viewportRect.Left, viewportRect.Top, viewportRect.Width, Math.Max(0, viewportRect.Height - _keyboardExtraTarget));
             var targetRect = control.BoundingRect;
 
             var offsetX = Offset.X;
@@ -833,6 +862,8 @@ namespace MonoGame.PortableUI.Controls
 
         internal override void OnFrameUpdate()
         {
+            if (_keyboardExtra > _keyboardExtraTarget)
+                EaseKeyboardExtra();
             if (_snapping)
             {
                 AdvanceSnap();
@@ -952,10 +983,62 @@ namespace MonoGame.PortableUI.Controls
 
             var contentViewportRect = GetContentViewportRect(viewportRect, _hasVerticalScrollBar, _hasHorizontalScrollBar);
             Viewport = new Size(MathHelper.Max(0, contentViewportRect.Width), MathHelper.Max(0, contentViewportRect.Height));
-            Extent = new Size(
-                MathHelper.Max(Viewport.Width, measuredContent.Width),
-                MathHelper.Max(Viewport.Height, measuredContent.Height));
+            _measuredContentHeight = measuredContent.Height;
+            _keyboardExtraTarget = KeyboardOverlap(contentViewportRect);
+            if (_keyboardExtraTarget >= _keyboardExtra)
+            {
+                _keyboardExtra = _keyboardExtraTarget;
+            }
+            else
+            {
+                // The keyboard closed: content scrolled into the extra range glides back instead of jumping.
+                _keyboardExtra = Math.Min(_keyboardExtra, Math.Max(_keyboardExtraTarget, Offset.Y - MaxOffsetWithExtra(_keyboardExtraTarget)));
+                _lastKeyboardEaseTime = ScreenSystem.TotalTime;
+            }
+            Extent = new Size(MathHelper.Max(Viewport.Width, measuredContent.Width), ExtentHeight(_keyboardExtra));
         }
+
+        private float ExtentHeight(float extra) => MathHelper.Max(Viewport.Height - extra, _measuredContentHeight) + extra;
+
+        private float MaxOffsetWithExtra(float extra) => MathHelper.Max(0, ExtentHeight(extra) - Viewport.Height);
+
+        // How far the on-screen keyboard reaches into the viewport, for the outermost vertically scrolling viewer.
+        private float KeyboardOverlap(Rect viewport)
+        {
+            if (!ScrollsAboveKeyboard || !CanScrollY || Screen is not { } screen || screen.ScreenEngine is not { } engine || engine.KeyboardInset <= 0)
+                return 0;
+            for (var parent = Parent as Control; parent != null; parent = parent.Parent as Control)
+            {
+                if (parent is ScrollViewer { CanScrollY: true })
+                    return 0;
+            }
+            var keyboardTop = screen.ScreenRect.Bottom - engine.KeyboardInset;
+            return MathHelper.Clamp(viewport.Bottom - keyboardTop, 0, viewport.Height);
+        }
+
+        private void EaseKeyboardExtra()
+        {
+            var now = ScreenSystem.TotalTime;
+            var dt = (float)Math.Min(0.05, Math.Max(0, (now - _lastKeyboardEaseTime).TotalSeconds));
+            _lastKeyboardEaseTime = now;
+            if (dt <= 0)
+            {
+                RequestRedraw();
+                return;
+            }
+            // Never below what the offset needs: the content only moves while the extra range shrinks under it.
+            var extra = _keyboardExtra + (_keyboardExtraTarget - _keyboardExtra) * (1 - MathF.Exp(-KeyboardEaseRate * dt));
+            if (extra - _keyboardExtraTarget < 0.5f)
+                extra = _keyboardExtraTarget;
+            _keyboardExtra = extra;
+            Extent = new Size(Extent.Width, ExtentHeight(extra));
+            if (!_animating && !_snapping && _touchPosition == null && Offset.Y > MaxVerticalOffset)
+                Offset = new PointF(Offset.X, MaxVerticalOffset);
+            UpdateContentLayout();
+            RequestRedraw();
+        }
+
+        private const float KeyboardEaseRate = 14f;
 
         private void ClampOffset()
         {

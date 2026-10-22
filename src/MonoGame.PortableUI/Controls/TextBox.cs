@@ -777,6 +777,9 @@ namespace MonoGame.PortableUI.Controls
             ScreenEngine.Instance?.RequestKeyboard(InputScope);
             AttachKeyboard(ScreenEngine.Instance?.CurrentKeyboard);
             ShowOnScreenKeyboard();
+            // Focus moved to another field while the keyboard is open: keep it above the keyboard.
+            if ((Screen?.ScreenEngine ?? ScreenEngine.Instance) is { KeyboardInset: > 0 })
+                Screen?.RequestBringFocusIntoView();
         }
 
         // The focused field tapped again: bring back a keyboard closed meanwhile (Android back).
