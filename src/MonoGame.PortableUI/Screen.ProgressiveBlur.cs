@@ -56,14 +56,22 @@ namespace MonoGame.PortableUI
                 _blurInProgress = null;
             }
 
-            var tint = control.TintColor * (control.TintColor.A / 255f * control.TintOpacity * parentContext.Opacity);
-            tint.A = (byte)Math.Round(control.TintColor.A * control.TintOpacity * parentContext.Opacity);
+            var tint = PremultipliedTint(control, parentContext.Opacity);
+            if (ThemeTwins != null && ThemeTwins.TryGetValue(control, out var pair) && pair.Old is ProgressiveBlur old)
+                tint = Color.Lerp(PremultipliedTint(old, parentContext.Opacity), tint, pair.Mix(ThemeTwinProgress, ThemeTwinDuration));
             var tints = new BlurTints(ownTint, topTint, bottomTint, control.TintSolidHeight * context.Scale.Y);
             var bands = new BlurBands(rect, radius, topHeight, bottomHeight, tint, tints, engine.DrawFrameNumber);
             control.DrawnBands = bands;
             ComposeBlurred(spriteBatch, engine, content, bands, previousTargets, parentContext.ChildClipRect, tintByCoverage: false);
             RenderTargetPool.Return(device, content);
             return true;
+        }
+
+        private static Color PremultipliedTint(ProgressiveBlur blur, float opacity)
+        {
+            var tint = blur.TintColor * (blur.TintColor.A / 255f * blur.TintOpacity * opacity);
+            tint.A = (byte)Math.Round(blur.TintColor.A * blur.TintOpacity * opacity);
+            return tint;
         }
 
         // A transparent-to-be target covering the frame (and the rect, if it reaches past it), so a subtree keeps drawing

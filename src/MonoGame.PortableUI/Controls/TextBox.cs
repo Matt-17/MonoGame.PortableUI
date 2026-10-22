@@ -180,6 +180,7 @@ namespace MonoGame.PortableUI.Controls
             var theme = PortableTheme.ResolveCurrent();
 
             IsFocusable = true; // TextBlock disables this; text input needs focus back
+            ThemeFade = ThemeFadeMode.Inherit;
             SeedThemeTextColor(theme.TextBoxTextColor);
             CursorColor = theme.TextBoxCursorBrush;
             CaretStyle = theme.TextBoxCaretStyle;

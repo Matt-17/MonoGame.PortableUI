@@ -824,6 +824,7 @@ namespace MonoGame.PortableUI.Controls
             var theme = PortableTheme.ResolveCurrent();
 
             IsFocusable = false; // plain labels must not steal focus; TextBox re-enables this
+            ThemeFade = ThemeFadeMode.Flip;
             Font = FontManager.DefaultFont;
             _textMeasurer = Font != null ? new SpriteFontTextMeasurer(Font) : ApproximateTextMeasurer.Default;
             ApplyTextColor(theme.TextColor);

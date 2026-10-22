@@ -444,6 +444,14 @@ namespace MonoGame.PortableUI
             ScreenEngine?.RequestRedraw();
         }
 
+        /// <summary>The tree was moved here already laid out and themed: no layout pass or theme refresh for the move.</summary>
+        internal void KeepArrangement()
+        {
+            _layoutDirty = false;
+            _themeRefreshRequested = false;
+            _appliedTextScaleVersion = MonoGame.PortableUI.Text.TextScaling.Version + FontManager.DynamicFontVersion;
+        }
+
         /// <summary>Runs the deferred layout pass if anything invalidated since the last one.
         /// Call this when fresh <see cref="Control.BoundingRect"/>s are needed synchronously
         /// (e.g. in tests that route input right after building a tree).</summary>
@@ -1975,7 +1983,8 @@ namespace MonoGame.PortableUI
                 content = RouteAdornerPress(hasTouch, touchState.State, touchPosition, mousePosition, pressedMouseButtons) ?? (Control)_mainGrid;
 
             var themeVersion = ThemeVersion.Current;
-            if (_appliedThemeVersion != themeVersion || _themeRefreshRequested)
+            // A screen showing an old look keeps it whatever the current theme becomes.
+            if ((_appliedThemeVersion != themeVersion && ThemeOverride == null) || _themeRefreshRequested)
             {
                 _appliedThemeVersion = themeVersion;
                 ScreenEngine?.InvalidateLayerCaches();

@@ -97,7 +97,7 @@ namespace MonoGame.PortableUI
             if (_themeCapture is { } uncaptured)
             {
                 _themeCapture = null;
-                _themePending?.Target?.Dispose();
+                _themePending?.ReleaseTarget();
                 _themePending = null;
                 uncaptured();
             }
@@ -159,8 +159,10 @@ namespace MonoGame.PortableUI
                 StartLiveTheme(layer, oldTheme, screens, contents, backgrounds);
             }
             // Element by element needs every old tree beside its new one; else the whole look cross-fades.
-            if (layer.Style == ThemeTransitionStyle.ElementFade && (layer.Ghosts.Count == 0 || !layer.Ghosts.TrueForAll(g => g is GhostScreen)))
+            if (layer.Style == ThemeTransitionStyle.ElementFade && !PairsElements(layer.Style, layer.Ghosts))
                 layer.Style = ThemeTransitionStyle.Crossfade;
+            if (layer.Style == ThemeTransitionStyle.ElementFade)
+                layer.ReleaseTarget();
             layer.Start = ScreenSystem.TotalTime;
             _themeLayers.Add(layer);
             RequestRedraw();
@@ -182,6 +184,8 @@ namespace MonoGame.PortableUI
                 ghosts.Add(replaced ? screen : new GhostScreen(contents[i]!, backgrounds[i], screen));
             }
 
+            // Paired, the old trees are never drawn as a whole and keep the layout they had on screen.
+            var keep = PairsElements(layer.Style, ghosts);
             foreach (var ghost in ghosts)
             {
                 if (ghost is not GhostScreen)
@@ -189,12 +193,18 @@ namespace MonoGame.PortableUI
                 ghost.ThemeOverride = oldTheme;
                 ghost.ScreenEngine = this;
                 ghost.InputSource = Input.NullInputSource.Instance;
-                ghost.InvalidateLayout(true);
+                if (keep)
+                    ghost.KeepArrangement();
+                else
+                    ghost.InvalidateLayout(true);
                 layer.Ghosts.Add(ghost);
                 if (ghost is GhostScreen { Content: { } content } paired)
                     CollectPairedScrolls(content, paired.Source, layer.PairedScrolls);
             }
         }
+
+        private static bool PairsElements(ThemeTransitionStyle style, List<Screen> ghosts)
+            => style == ThemeTransitionStyle.ElementFade && ghosts.Count > 0 && ghosts.TrueForAll(g => g is GhostScreen);
 
         // Scroll viewers with a StateKey in an old tree follow the position kept on the screen the new tree lives in.
         private static void CollectPairedScrolls(Control control, Screen source, List<(ScrollViewer Viewer, Screen Source)> pairs)
@@ -299,8 +309,7 @@ namespace MonoGame.PortableUI
             layer.Ghosts.Clear();
             layer.Reused.Clear();
             layer.PairedScrolls.Clear();
-            layer.Target?.Dispose();
-            layer.Target = null;
+            layer.ReleaseTarget();
         }
 
         /// <summary>Hosts the content a live theme change replaced, in the old look.</summary>
@@ -336,6 +345,13 @@ namespace MonoGame.PortableUI
             public readonly List<Screen> Shown = new List<Screen>();
             public readonly List<(ScrollViewer Viewer, Screen Source)> PairedScrolls = new();
             public readonly List<Screen> Ghosts = new List<Screen>();
+
+            public void ReleaseTarget()
+            {
+                if (Target is { } target)
+                    Effects.RenderTargetPool.Return(target.GraphicsDevice, target);
+                Target = null;
+            }
             public readonly List<(Screen Screen, Input.IInputSource Input, ScreenEngine? Engine)> Reused = new();
         }
 
@@ -357,8 +373,9 @@ namespace MonoGame.PortableUI
             var width = Math.Max(1, device.Viewport.Width);
             var height = Math.Max(1, device.Viewport.Height);
             var layer = _themePending!;
-            layer.Target?.Dispose();
-            layer.Target = new RenderTarget2D(device, width, height, false, SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.PreserveContents);
+            layer.ReleaseTarget();
+            // Pooled: creating a frame-sized target stalls the GPU for a frame or more.
+            layer.Target = Effects.RenderTargetPool.Rent(device, width, height);
 
             // What is on screen now - running changes included - is the old look.
             var previousTargets = Effects.RenderTargetHelper.SnapshotRenderTargets(device, ref _themePreviousTargets);
@@ -562,7 +579,7 @@ namespace MonoGame.PortableUI
             {
                 // Never taken: apply without the soft change.
                 _themeCapture = null;
-                _themePending?.Target?.Dispose();
+                _themePending?.ReleaseTarget();
                 _themePending = null;
                 capture();
             }

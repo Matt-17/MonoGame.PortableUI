@@ -20,7 +20,8 @@ namespace MonoGame.PortableUI.Controls
     public partial class Control
     {
         /// <summary>How this element (and, unless they set their own, its descendants) changes over in an
-        /// <see cref="ThemeTransitionStyle.ElementFade"/>. <see cref="ThemeFadeMode.Inherit"/> by default.</summary>
+        /// <see cref="ThemeTransitionStyle.ElementFade"/>. <see cref="ThemeFadeMode.Inherit"/> by default;
+        /// <see cref="ThemeFadeMode.Flip"/> for a <see cref="TextBlock"/> (not a <see cref="TextBox"/>).</summary>
         public ThemeFadeMode ThemeFade { get; set; }
     }
 }

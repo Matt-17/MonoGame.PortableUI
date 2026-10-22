@@ -42,7 +42,7 @@ namespace MonoGame.PortableUI.Tests
 
         private static StackPanel Page(bool dark, out TextBlock plain, out TextBlock flipping)
         {
-            plain = new TextBlock { Text = "plain", TextColor = dark ? Color.White : Color.Black };
+            plain = new TextBlock { Text = "plain", ThemeFade = ThemeFadeMode.Slow, TextColor = dark ? Color.White : Color.Black };
             flipping = new TextBlock { Text = "flip", TextColor = dark ? Color.White : Color.Black, ThemeFade = ThemeFadeMode.Flip };
             return new StackPanel
             {
@@ -91,6 +91,14 @@ namespace MonoGame.PortableUI.Tests
             Assert.IsTrue(flip.Mix(0.55f, eight) > 0.8f, "and near the new one shortly after");
             Assert.AreEqual(1f, flip.Mix(0.9f, eight), 0.001f, "done within 80 % of the parent's time");
             _engine.EndThemeTransition();
+        }
+
+        [TestMethod]
+        public void Text_flips_by_default_but_a_text_box_takes_its_parents_pace()
+        {
+            Assert.AreEqual(ThemeFadeMode.Flip, new TextBlock().ThemeFade);
+            Assert.AreEqual(ThemeFadeMode.Inherit, new TextBox().ThemeFade);
+            Assert.AreEqual(ThemeFadeMode.Inherit, new Border().ThemeFade);
         }
 
         [TestMethod]
