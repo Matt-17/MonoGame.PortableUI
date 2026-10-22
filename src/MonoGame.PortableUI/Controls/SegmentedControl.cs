@@ -41,6 +41,16 @@ namespace MonoGame.PortableUI.Controls
         public object? Tag { get; set; }
     }
 
+    /// <summary>How wide (stacked: how tall) the options of a <see cref="SegmentedControl"/> are.</summary>
+    public enum SegmentSizing
+    {
+        /// <summary>All as large as the largest.</summary>
+        Equal,
+
+        /// <summary>Each as large as its own content (a rail of chips); the indicator changes size between them.</summary>
+        Auto
+    }
+
     /// <summary>
     ///     A choice between options side by side (<see cref="Orientation.Horizontal"/>, like "Light / System / Dark") or
     ///     stacked (<see cref="Orientation.Vertical"/>, like a list of plans), equally sized. A selection
@@ -65,6 +75,13 @@ namespace MonoGame.PortableUI.Controls
         private Vector2 _to;
         private Vector2 _offset;
         private Vector2 _slotStep;
+        private readonly List<Rect> _slots = new List<Rect>();
+        private SegmentSizing _sizing;
+        // Auto: the indicator's length along the rail, moving from one option's to the next one's.
+        private float _fromLength;
+        private float _toLength;
+        private float _length;
+        private bool _revealsSelection;
         private TimeSpan _lastStep;
         private bool _hasLastStep;
         private bool _optionsDirty = true;
@@ -160,6 +177,20 @@ namespace MonoGame.PortableUI.Controls
                 NoteColor = newTheme.SegmentedNoteColor;
             if (_selectedNoteColor.Equals(oldTheme.SegmentedSelectedNoteColor))
                 SelectedNoteColor = newTheme.SegmentedSelectedNoteColor;
+        }
+
+        /// <summary>Equal (default): all options as large as the largest. Auto: each as large as its content, the control as
+        /// large as all of them (to sit in a horizontal <see cref="ScrollViewer"/>, which then keeps the selected one in view).</summary>
+        public SegmentSizing SegmentSizing
+        {
+            get => _sizing;
+            set
+            {
+                if (_sizing == value)
+                    return;
+                _sizing = value;
+                InvalidateLayout(true);
+            }
         }
 
         /// <summary>The options, in order.</summary>
@@ -434,6 +465,16 @@ namespace MonoGame.PortableUI.Controls
             var gaps = _segmentSpacing * (count - 1);
             var width = _orientation == Orientation.Horizontal ? widest * count + gaps : widest;
             var height = _orientation == Orientation.Horizontal ? tallest : tallest * count + gaps;
+            if (_sizing == SegmentSizing.Auto)
+            {
+                var sum = 0f;
+                foreach (var option in _options)
+                    sum += _orientation == Orientation.Horizontal ? option.Measure().Width : Math.Max(_itemHeight - inset * 2, option.Measure().Height);
+                if (_orientation == Orientation.Horizontal)
+                    width = sum + gaps;
+                else
+                    height = sum + gaps;
+            }
             return ApplyConstraints(new Size(
                 Width.IsFixed() ? Width : width + inset * 2,
                 Height.IsFixed() ? Height : height + inset * 2)) + Margin;
@@ -451,20 +492,85 @@ namespace MonoGame.PortableUI.Controls
                 ? new Rect(inner.Left, inner.Top, Math.Max(0, inner.Width - gaps) / count, inner.Height)
                 : new Rect(inner.Left, inner.Top, inner.Width, Math.Max(0, inner.Height - gaps) / count);
             _slotStep = horizontal ? new Vector2(slot.Width + _segmentSpacing, 0) : new Vector2(0, slot.Height + _segmentSpacing);
+            ComputeSlots(slot, inner, horizontal, gaps);
             for (var i = 0; i < _options.Count; i++)
             {
-                var place = slot + new PointF(_slotStep.X * i, _slotStep.Y * i);
-                _options[i].UpdateLayout(place);
-                _covered[i].UpdateLayout(place);
+                _options[i].UpdateLayout(_slots[i]);
+                _covered[i].UpdateLayout(_slots[i]);
             }
 
             _indicator.CornerRadius = OptionRadius;
-            _indicator.UpdateLayout(slot);
-            _cover.UpdateLayout(slot);
             // A new width moves the indicator's place along with the options.
             if (!_move.IsMoving)
-                _offset = _to = _from = _slotStep * Math.Max(0, _shownIndex);
+            {
+                _offset = _to = _from = SlotOffset(_shownIndex);
+                _length = _toLength = _fromLength = SlotLength(_shownIndex);
+            }
+            ArrangeIndicator();
             PlaceIndicator();
+        }
+
+        private void ComputeSlots(Rect slot, Rect inner, bool horizontal, float gaps)
+        {
+            _slots.Clear();
+            if (_sizing == SegmentSizing.Equal)
+            {
+                for (var i = 0; i < _options.Count; i++)
+                    _slots.Add(slot + new PointF(_slotStep.X * i, _slotStep.Y * i));
+                return;
+            }
+
+            // Auto: each its content; space left over (or missing) is shared out evenly.
+            var available = (horizontal ? inner.Width : inner.Height) - gaps;
+            var natural = 0f;
+            foreach (var option in _options)
+                natural += Natural(option, horizontal);
+            var extra = _options.Count > 0 ? (available - natural) / _options.Count : 0;
+            var position = horizontal ? inner.Left : inner.Top;
+            foreach (var option in _options)
+            {
+                var length = Math.Max(0, Natural(option, horizontal) + extra);
+                _slots.Add(horizontal ? new Rect(position, inner.Top, length, inner.Height) : new Rect(inner.Left, position, inner.Width, length));
+                position += length + _segmentSpacing;
+            }
+        }
+
+        private float Natural(Option option, bool horizontal)
+            => horizontal ? option.Measure().Width : Math.Max(_itemHeight - _indicatorInset * 2, option.Measure().Height);
+
+        private Vector2 SlotOffset(int index)
+        {
+            if (_slots.Count == 0 || index <= 0)
+                return Vector2.Zero;
+            var slot = _slots[Math.Min(index, _slots.Count - 1)];
+            return new Vector2(slot.Left - _slots[0].Left, slot.Top - _slots[0].Top);
+        }
+
+        private float SlotLength(int index)
+        {
+            if (_slots.Count == 0)
+                return 0;
+            var slot = _slots[Math.Clamp(index, 0, _slots.Count - 1)];
+            return _orientation == Orientation.Horizontal ? slot.Width : slot.Height;
+        }
+
+        // The indicator (and the cover moving with it) at the first option's place, as long as it is now; moved by its
+        // shown translation.
+        private void ArrangeIndicator()
+        {
+            if (_slots.Count == 0)
+            {
+                _indicator.UpdateLayout(ClippingRect - new Thickness(_indicatorInset));
+                return;
+            }
+            var first = _slots[0];
+            var rect = _sizing == SegmentSizing.Equal
+                ? first
+                : _orientation == Orientation.Horizontal
+                    ? new Rect(first.Left, first.Top, _length, first.Height)
+                    : new Rect(first.Left, first.Top, first.Width, _length);
+            _indicator.UpdateLayout(rect);
+            _cover.UpdateLayout(rect);
         }
 
         internal override void OnFrameUpdate()
@@ -567,20 +673,28 @@ namespace MonoGame.PortableUI.Controls
             if (target != _shownIndex)
             {
                 var appearing = _shownIndex < 0 || target < 0;
+                if (!appearing || _revealsSelection)
+                    RevealSelected(target);
+                _revealsSelection = true;
                 _shownIndex = target;
-                var destination = _slotStep * Math.Max(0, target);
+                var destination = SlotOffset(Math.Max(0, target));
                 var previous = _to - _from;
                 _from = _offset;
                 _to = destination;
+                _fromLength = _length;
+                _toLength = SlotLength(target);
                 var distance = _to - _from;
                 if (appearing || seconds <= 0 || distance == Vector2.Zero)
                 {
                     _move.Stop();
                     _from = _to;
+                    _length = _fromLength = _toLength;
+                    if (_sizing == SegmentSizing.Auto)
+                        ArrangeIndicator();
                 }
                 else
                 {
-                    var longest = Math.Max(1, _slotStep.Length() * Math.Max(1, Segments.Count - 1));
+                    var longest = Math.Max(1, SlotOffset(_slots.Count - 1).Length());
                     var lengthSquared = distance.LengthSquared();
                     _move.Start(motion, distance.Length() / longest, Vector2.Dot(previous, distance) / lengthSquared);
                 }
@@ -592,9 +706,29 @@ namespace MonoGame.PortableUI.Controls
 
             _move.Step(motion, seconds);
             _offset = _from + (_to - _from) * _move.Progress;
+            if (_sizing == SegmentSizing.Auto)
+            {
+                _length = _fromLength + (_toLength - _fromLength) * Math.Clamp(_move.Progress, 0, 1);
+                ArrangeIndicator();
+            }
             motion.Update(_indicator, _move.Progress);
             PlaceIndicator();
             RequestRedraw();
+        }
+
+        // In a scrolling parent, the newly selected option comes into view.
+        private void RevealSelected(int index)
+        {
+            if (index < 0 || index >= _options.Count)
+                return;
+            for (var parent = Parent as Control; parent != null; parent = parent.Parent as Control)
+            {
+                if (parent is ScrollViewer viewer)
+                {
+                    viewer.BringIntoView(_options[index]);
+                    return;
+                }
+            }
         }
 
         /// <summary>The label (and note), or the custom content, of one option; tapping it selects it.</summary>

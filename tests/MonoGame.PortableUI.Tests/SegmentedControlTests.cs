@@ -70,6 +70,41 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void Auto_sized_options_fit_their_content_and_the_indicator_takes_the_size_of_the_selected_one()
+        {
+            using var game = new Game();
+            var segmented = new SegmentedControl { SegmentSizing = SegmentSizing.Auto, IndicatorInset = 0, IndicatorMotion = PartMotion.Ease, SelectedIndex = 0, HorizontalAlignment = HorizontalAlignment.Left };
+            segmented.Add("All").Add("Longdrinks & Gin Tonics");
+            for (var i = 0; i < 8; i++)
+                segmented.Add("Category " + i);
+            var viewer = new ScrollViewer { ScrollOrientation = Orientation.Horizontal, ScrollDirections = ScrollDirections.Horizontal, Content = segmented };
+            var engine = Show(game, viewer);
+
+            var first = segmented.GetOption(0)!.ClippingRect;
+            var second = segmented.GetOption(1)!.ClippingRect;
+            Assert.IsTrue(second.Width > first.Width * 2, $"own widths: {first.Width} / {second.Width}");
+            var sum = 0f;
+            for (var i = 0; i < segmented.Segments.Count; i++)
+                sum += segmented.GetOption(i)!.ClippingRect.Width;
+            Assert.AreEqual(sum, segmented.ClippingRect.Width, 0.5f, "as wide as its options");
+            Assert.AreEqual(first.Width, segmented.Indicator.ClippingRect.Width, 0.5f);
+
+            segmented.SelectedIndex = 1;
+            for (var i = 0; i < 60; i++)
+                Step(engine, 0.016);
+            Assert.AreEqual(second.Width, segmented.Indicator.ClippingRect.Width, 0.5f);
+            Assert.AreEqual(second.Left - first.Left, segmented.Indicator.ShownTranslation.X, 0.5f);
+
+            var last = segmented.Segments.Count - 1;
+            segmented.SelectedIndex = last;
+            Step(engine, 0.016);
+            for (var i = 0; i < 60; i++)
+                Step(engine, 0.016);
+            var lastRect = segmented.GetOption(last)!.ClippingRect;
+            Assert.IsTrue(lastRect.Right <= viewer.ClippingRect.Right + 0.5f && lastRect.Left >= viewer.ClippingRect.Left - 0.5f, $"in view: {lastRect} in {viewer.ClippingRect}");
+        }
+
+        [TestMethod]
         public void Options_share_the_width_and_the_indicator_rests_on_the_first()
         {
             using var game = new Game();

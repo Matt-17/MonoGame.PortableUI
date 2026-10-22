@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **`SegmentedControl.SegmentSizing`:** `Equal` (default) keeps all options as wide as the widest; `Auto` makes each as wide as its content (stacked: as tall), so a rail of chips ("Alle", "Longdrinks & Gin Tonics") needs no hand-set width. The indicator moves and changes size between options under its motion, and the control is as wide as its options, so it can sit in a horizontal `ScrollViewer`, which brings a newly selected option into view.
+
 - **Any content in `SegmentedControl` options (`Segment.Content`, `Add(Func<bool, Control>)`, `ContentTemplate`):** an option can show any control (an icon, an icon and text, a dot and text) instead of its label; text stays the shortcut. The content is built twice, with `false` for the option's own look and `true` for the copy under the indicator, so the selected colours cross over with the indicator as they do for text. `ContentTemplate(segment, selected)` builds every option from its `Segment` (Text, Note, Tag); a segment's own `Content` wins.
 
 - **Fix: a scrim tap leaked into the screen below:** the finger that closed a modal or bottom sheet by tapping its scrim stayed down while the screen below became active, so its moves and release reached that screen: a list there panned a little and showed its scroll bar, or a button or chip under the release was clicked. A touch that began on another screen is now ignored by the revealed screen until the finger lifts.
