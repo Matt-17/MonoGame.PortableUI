@@ -31,6 +31,9 @@ namespace MonoGame.PortableUI.Controls
         // Set by the app (not the default): then the theme's MinimumControlSize no longer applies.
         private bool _minHeightSet;
         private bool _minWidthSet;
+        // A fixed Width/Height set by the app (not seeded from the theme) also wins over MinimumControlSize.
+        private bool _widthSet;
+        private bool _heightSet;
         private FrameworkElement? _parent;
         private float _width;
         private bool _isEnabled;
@@ -270,6 +273,7 @@ namespace MonoGame.PortableUI.Controls
             get { return _width; }
             set
             {
+                _widthSet = value.IsFixed();
                 if (_widthTransition is { IsRunning: true } transition ? transition.Target.X == value : Math.Abs(_width - value) < float.Epsilon)
                     return;
                 if (TryTransitionLength(TransitionProperty.Size, ref _widthTransition, _width, value, vertical: false))
@@ -286,6 +290,7 @@ namespace MonoGame.PortableUI.Controls
             get { return _height; }
             set
             {
+                _heightSet = value.IsFixed();
                 if (_heightTransition is { IsRunning: true } transition ? transition.Target.Y == value : Math.Abs(_height - value) < float.Epsilon)
                     return;
                 if (TryTransitionLength(TransitionProperty.Size, ref _heightTransition, _height, value, vertical: true))
@@ -293,6 +298,13 @@ namespace MonoGame.PortableUI.Controls
                 _height = value;
                 InvalidateLayout(true);
             }
+        }
+
+        /// <summary>Sets <see cref="Height"/> from the theme: unlike an app's height it leaves <see cref="PortableTheme.MinimumControlSize"/> in force.</summary>
+        private protected void SeedThemeHeight(float value)
+        {
+            Height = value;
+            _heightSet = false;
         }
 
         public float MinWidth
@@ -1554,11 +1566,14 @@ namespace MonoGame.PortableUI.Controls
                 size.Width = Math.Max(size.Width, MinWidth);
             if (MinHeight.IsFixed())
                 size.Height = Math.Max(size.Height, MinHeight);
-            if ((!_minWidthSet || !_minHeightSet) && UsesThemeMinimumSize && ResolveTheme().MinimumControlSize is > 0 and var themeMinimum)
+            // The theme minimum fills in only where the app stated nothing: an own MinWidth/MinHeight or a fixed Width/Height wins.
+            var themeWidth = !_minWidthSet && !_widthSet;
+            var themeHeight = !_minHeightSet && !_heightSet;
+            if ((themeWidth || themeHeight) && UsesThemeMinimumSize && ResolveTheme().MinimumControlSize is > 0 and var themeMinimum)
             {
-                if (!_minWidthSet)
+                if (themeWidth)
                     size.Width = Math.Max(size.Width, themeMinimum);
-                if (!_minHeightSet)
+                if (themeHeight)
                     size.Height = Math.Max(size.Height, themeMinimum);
             }
             if (MaxWidth.IsFixed())

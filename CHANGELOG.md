@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Fix: the theme's `MinimumControlSize` overrode an explicit size:** a button with `Height = 38` under a theme minimum of 44 was laid out 44 high, off-centre against what the app sized. A fixed `Width`/`Height` now wins on its axis, like an own `MinWidth`/`MinHeight`; the other axis still gets the minimum.
+
 - **Fix: a button replaced its label's own text colour on the first state change:** with a `TextBlock` as `Content` whose `TextColor` the app set, the button overwrote it with its `TextColor`/`HoverTextColor`/`PressedTextColor` at the first press or hover - a navy label on a white button turned white after a press slid off. The label's own colour now stays in every state (an explicitly set `Button.TextColor` still drives it), and a label without its own colour shows the button's state colours from the moment it is set, not only after the first state change.
 
 - **Wrap modes for headings (`TextWrapping.WrapBottomHeavy`, `TextWrapping.WrapBalanced`):** both keep the fewest lines plain wrapping needs and one line when the text fits. Bottom-heavy fills from the bottom, each lower line as long as it fits ("Deep" over "Purple Magic Sour"); balanced makes the longest line as short as possible ("Deep Purple" over "Magic Sour"). A word wider than the line still breaks by characters (that paragraph wraps plainly). A `TextBox` wraps like `Wrap` in every mode.

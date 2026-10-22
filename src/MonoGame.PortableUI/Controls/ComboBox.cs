@@ -20,7 +20,7 @@ namespace MonoGame.PortableUI.Controls
             var theme = PortableTheme.ResolveCurrent();
 
             Items = new List<object>();
-            Height = theme.ComboBoxHeight;
+            SeedThemeHeight(theme.ComboBoxHeight);
             TextAlignment = TextAlignment.Left;
             DropDownMaxHeight = theme.ComboBoxDropDownMaxHeight;
             ItemHeight = theme.ListBoxItemHeight;
@@ -111,7 +111,7 @@ namespace MonoGame.PortableUI.Controls
                 Padding = WithGlyphReserve(newTheme.ComboBoxPadding ?? newTheme.ButtonPadding, GlyphSize);
 
             if (Height.Equals(oldTheme.ComboBoxHeight))
-                Height = newTheme.ComboBoxHeight;
+                SeedThemeHeight(newTheme.ComboBoxHeight);
             if (DropDownMaxHeight.Equals(oldTheme.ComboBoxDropDownMaxHeight))
                 DropDownMaxHeight = newTheme.ComboBoxDropDownMaxHeight;
             if (ItemHeight.Equals(oldTheme.ListBoxItemHeight))

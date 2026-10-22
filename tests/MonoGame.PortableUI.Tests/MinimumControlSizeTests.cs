@@ -62,6 +62,19 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void An_explicit_size_wins_on_its_axis()
+        {
+            using var game = new Game();
+            var engine = Engine(game, 44);
+
+            var size = Measured(engine, new TextButton("S") { Height = 38 });
+            Assert.AreEqual(38, size.Height, 0.01f, "a fixed Height is not raised");
+            Assert.AreEqual(44, size.Width, 0.01f, "the other axis still gets the minimum");
+            Assert.AreEqual(30, Measured(engine, new TextButton("S") { Width = 30 }).Width, 0.01f);
+            Assert.AreEqual(44, Measured(engine, new ComboBox()).Height, 0.01f, "a height seeded from the theme is not the app's");
+        }
+
+        [TestMethod]
         public void No_minimum_by_default()
         {
             using var game = new Game();

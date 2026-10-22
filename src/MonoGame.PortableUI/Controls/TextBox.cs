@@ -196,7 +196,7 @@ namespace MonoGame.PortableUI.Controls
             TouchMove += OnTouchMove;
             TouchUp += OnTouchUp;
             TouchCancel += OnTouchCancel;
-            Height = theme.TextBoxHeight;
+            SeedThemeHeight(theme.TextBoxHeight);
             Padding = theme.TextBoxPadding;
             ShowFocusVisual = true;
         }
@@ -238,7 +238,7 @@ namespace MonoGame.PortableUI.Controls
             if (HintTextColor.Equals(oldTheme.TextBoxHintTextColor))
                 HintTextColor = newTheme.TextBoxHintTextColor;
             if (Height.Equals(oldTheme.TextBoxHeight))
-                Height = newTheme.TextBoxHeight;
+                SeedThemeHeight(newTheme.TextBoxHeight);
             if (Padding.Equals(oldTheme.TextBoxPadding))
                 Padding = newTheme.TextBoxPadding;
         }

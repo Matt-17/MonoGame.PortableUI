@@ -181,7 +181,8 @@ namespace MonoGame.PortableUI
         /// <summary>
         ///     Minimum width and height of buttons (radio and toggle buttons, combo boxes included), check boxes
         ///     and text boxes: a touch target, e.g. 44 like the .NET MAUI template or 48 like Material.
-        ///     0 (default) = none. A control's own <c>MinWidth</c>/<c>MinHeight</c> wins.
+        ///     0 (default) = none. A control's own <c>MinWidth</c>/<c>MinHeight</c> or a fixed <c>Width</c>/<c>Height</c>
+        ///     wins on that axis.
         /// </summary>
         public float MinimumControlSize { get; set; }
         public bool PixelSnapping { get; set; } = true;
