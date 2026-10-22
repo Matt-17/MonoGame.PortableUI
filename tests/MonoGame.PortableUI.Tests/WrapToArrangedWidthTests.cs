@@ -68,6 +68,39 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void A_trimmed_label_that_fits_its_box_draws_untrimmed_on_a_narrower_rect()
+        {
+            // A left-aligned label in a horizontal stack ends at its text; a rounded or flying rect a fraction
+            // narrower than the text cut it with an ellipsis although the layout gave it room.
+            using var game = new Game();
+            var engine = ScreenEngine.Initialize(game, new ScreenEngineOptions { AddComponentToGame = false, UseLayoutRounding = true });
+            engine.SetScreenSize(400, 600);
+            var label = new TextBlock { Text = "Softdrinks & Wasser", TextTrimming = TextTrimming.Ellipsis, HorizontalAlignment = HorizontalAlignment.Left };
+            var screen = new TestScreen { Content = new StackPanel { Orientation = Orientation.Horizontal, Children = { label } } };
+            engine.NavigateToScreen(screen);
+            screen.PerformLayoutIfDirty();
+
+            var textWidth = label.MeasuredText.X;
+            var narrower = new Rect(0, 0, textWidth - 0.4f, label.ClippingRect.Height);
+
+            Assert.IsTrue(label.DrawTrimWidth(narrower) >= textWidth, "trims to the box layout gave the text");
+        }
+
+        [TestMethod]
+        public void A_trimmed_label_narrower_than_its_text_still_trims()
+        {
+            using var game = new Game();
+            var engine = ScreenEngine.Initialize(game, new ScreenEngineOptions { AddComponentToGame = false });
+            engine.SetScreenSize(400, 600);
+            var label = new TextBlock { Text = "Softdrinks & Wasser", TextTrimming = TextTrimming.Ellipsis, Width = 40 };
+            var screen = new TestScreen { Content = new StackPanel { Children = { label } } };
+            engine.NavigateToScreen(screen);
+            screen.PerformLayoutIfDirty();
+
+            Assert.AreEqual(40f, label.DrawTrimWidth(label.ClippingRect), 0.01f);
+        }
+
+        [TestMethod]
         public void Drawing_wraps_at_the_laid_out_width_not_at_a_rounded_rect()
         {
             // A left-aligned label is arranged as wide as its line; rounded to pixels that rect can be a

@@ -823,13 +823,26 @@ namespace MonoGame.PortableUI.Controls
             var renderText = Text;
             var measured = MeasuredText;
             if (TextTrimming == TextTrimming.Ellipsis && RenderScale.X > 0)
-                GetTrimmedText(rect.Width / RenderScale.X, out renderText, out measured);
+                GetTrimmedText(DrawTrimWidth(rect), out renderText, out measured);
 
             var offset = rect.Offset;
             var measuredText = new Vector2(measured.X * RenderScale.X, measured.Y * RenderScale.Y);
             offset.Y += (rect.Height - measuredText.Y) / 2;
             offset.X += AlignmentOffsetX(rect.Width, measuredText.X);
             DrawTextRun(spriteBatch, renderText, offset);
+        }
+
+        /// <summary>
+        ///     The width a single line is trimmed to: the box layout gave the text, not the drawn rect. A left-aligned
+        ///     label's rect ends at its text, so pixel rounding or a shared-element flight from a smaller twin made it
+        ///     a fraction narrower and trimmed text that fits; layout rounding may cost the box up to a pixel too.
+        /// </summary>
+        internal float DrawTrimWidth(Rect rect)
+        {
+            var width = ClippingRect.Width;
+            if (!(width > 0))
+                width = rect.Width / RenderScale.X;
+            return MeasuredText.X - width < 1f ? Math.Max(width, MeasuredText.X) : width;
         }
 
         /// <summary>
