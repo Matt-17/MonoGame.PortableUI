@@ -137,7 +137,8 @@ from the twin's rect, `SharedFlightRole.Flying` controls are skipped in their tr
 (`SharedFlightHost`) from the root, cross-faded with the hidden twin stretched onto the flying rect (by distortion). Controls with `DrawsAboveSharedFlights` are set aside
 during the tree draw while flights run (`Screen.SetsAsideForFlights`: in frame coordinates only - the frame or a ProgressiveBlur's full-frame picture, then unblurred -
 not in layers/clips/islands/warm-up)
-with their parent context and drawn by the host after the flights (`ScreenEngine.AboveFlightScreens`).
+with their parent context; the host draws flights and set-aside controls in one order by `SharedFlightLayer` (flights first at equal
+layers, `Screen.DrawSharedFlights`, `ScreenEngine.AboveFlightScreens`).
 
 **Enter/exit:** `Control.VisibilityTransition` animates `IsVisible`/`IsGone`. The properties return the target; while an exit plays
 `UIElement.ExitHolds` keeps it in layout and drawing. Layout and draw code therefore read `IsGoneShown`/`IsVisibleShown`, while input, focus,

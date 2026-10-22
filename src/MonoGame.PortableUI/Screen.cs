@@ -1034,25 +1034,80 @@ namespace MonoGame.PortableUI
         /// </summary>
         private void DrawSharedFlights(SpriteBatch spriteBatch, ScreenEngine engine)
         {
-            _drawingSharedFlights = true;
+            // Flights and set-aside controls in one order: by SharedFlightLayer, at equal layers the flights first.
+            var aside = engine.AboveFlightScreens;
+            var order = _flightOrder;
+            order.Clear();
+            var flights = engine.SharedFlights;
+            for (var i = 0; i < flights.Count; i++)
+                order.Add(new FlightItem(flights[i].Target.SharedFlightLayer, 0, order.Count, null, i));
+            for (var s = 0; s < aside.Count; s++)
+            {
+                var entries = aside[s]._aboveFlights;
+                for (var i = 0; i < entries.Count; i++)
+                    order.Add(new FlightItem(entries[i].Control.SharedFlightLayer, 1, order.Count, aside[s], i));
+            }
+            order.Sort(FlightItemOrder);
+
             try
             {
                 var root = RenderContext.Root(ScreenRect, engine.DrawScale);
-                var flights = engine.SharedFlights;
-                for (var i = 0; i < flights.Count; i++)
-                    DrawSharedFlight(spriteBatch, engine, root, flights[i].Target, flights[i].Source);
-                FlushLayerComposites(spriteBatch);
+                for (var i = 0; i < order.Count; i++)
+                {
+                    var item = order[i];
+                    if (item.Screen != null)
+                    {
+                        item.Screen.DrawAboveFlights(spriteBatch, item.Index);
+                        continue;
+                    }
+
+                    _drawingSharedFlights = true;
+                    try
+                    {
+                        DrawSharedFlight(spriteBatch, engine, root, flights[item.Index].Target, flights[item.Index].Source);
+                        FlushLayerComposites(spriteBatch);
+                    }
+                    finally
+                    {
+                        _drawingSharedFlights = false;
+                    }
+                }
             }
             finally
             {
-                _drawingSharedFlights = false;
+                for (var s = 0; s < aside.Count; s++)
+                    aside[s]._aboveFlights.Clear();
+                aside.Clear();
+                order.Clear();
+            }
+        }
+
+        /// <summary>A flight (<see cref="Screen"/> null, <see cref="Index"/> into the engine's flights) or a control set
+        /// aside by <see cref="Screen"/> (<see cref="Index"/> into its list), in drawing order.</summary>
+        private readonly struct FlightItem
+        {
+            public FlightItem(int layer, int kind, int sequence, Screen? screen, int index)
+            {
+                Layer = layer;
+                Kind = kind;
+                Sequence = sequence;
+                Screen = screen;
+                Index = index;
             }
 
-            var aside = engine.AboveFlightScreens;
-            for (var i = 0; i < aside.Count; i++)
-                aside[i].DrawAboveFlights(spriteBatch);
-            aside.Clear();
+            public int Layer { get; }
+            public int Kind { get; }
+            public int Sequence { get; }
+            public Screen? Screen { get; }
+            public int Index { get; }
         }
+
+        private static readonly Comparison<FlightItem> FlightItemOrder = static (a, b) =>
+            a.Layer != b.Layer ? a.Layer.CompareTo(b.Layer)
+            : a.Kind != b.Kind ? a.Kind.CompareTo(b.Kind)
+            : a.Sequence.CompareTo(b.Sequence);
+
+        private readonly List<FlightItem> _flightOrder = new List<FlightItem>();
 
         // Controls set aside while drawing the tree (DrawsAboveSharedFlights), with the context they would have been
         // drawn in and the fade of a screen drawn as one faded picture.
@@ -1069,22 +1124,18 @@ namespace MonoGame.PortableUI
                 && _layerInProgress == null && _clipDepth == 0 && _clipInProgress == null
                 && !_inIslandPostFx && _deformInProgress == null;
 
-        private void DrawAboveFlights(SpriteBatch spriteBatch)
+        private void DrawAboveFlights(SpriteBatch spriteBatch, int index)
         {
             _drawingAboveFlights = true;
             try
             {
-                for (var i = 0; i < _aboveFlights.Count; i++)
-                {
-                    var (control, parent, fade) = _aboveFlights[i];
-                    DrawControlBatched(spriteBatch, control, fade < 0.999f ? parent.Faded(fade) : parent);
-                }
+                var (control, parent, fade) = _aboveFlights[index];
+                DrawControlBatched(spriteBatch, control, fade < 0.999f ? parent.Faded(fade) : parent);
                 FlushLayerComposites(spriteBatch);
             }
             finally
             {
                 _drawingAboveFlights = false;
-                _aboveFlights.Clear();
             }
         }
 

@@ -36,9 +36,17 @@ namespace MonoGame.PortableUI.Controls
         ///     over and then suddenly sit under. It keeps its screen's transform, clip and opacity. Inside a
         ///     <see cref="ProgressiveBlur"/> it is set aside too, drawn unblurred during the flight. Not inside a
         ///     <see cref="CacheMode.Bitmap"/> layer, clip shape or effect island (drawn in place there). Without a flight
-        ///     nothing changes.
+        ///     nothing changes. <see cref="SharedFlightLayer"/> orders it among the flights.
         /// </summary>
         public bool DrawsAboveSharedFlights { get; set; }
+
+        /// <summary>
+        ///     Drawing order above the screens while shared elements fly: flights (by their landing control's layer) and
+        ///     <see cref="DrawsAboveSharedFlights"/> controls are drawn sorted by it, at equal layers the flights first.
+        ///     Default 0: a marked control lies above every flight of layer 0; a flight of layer 1 passes over it (a
+        ///     flying name over the scrim behind it, the flying picture under that scrim).
+        /// </summary>
+        public int SharedFlightLayer { get; set; }
 
         /// <summary>
         ///     The control's part in a running shared-element flight: drawn apart above every screen, or hidden as the
