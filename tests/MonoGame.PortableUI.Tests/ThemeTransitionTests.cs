@@ -66,6 +66,97 @@ namespace MonoGame.PortableUI.Tests
             Assert.IsTrue(_engine.IsThemeTransitioning);
         }
 
+        private void Step(double seconds)
+        {
+            ScreenSystem.TotalTime += TimeSpan.FromSeconds(seconds);
+            _engine.Update(new GameTime(ScreenSystem.TotalTime, TimeSpan.FromSeconds(seconds)));
+        }
+
+        [TestMethod]
+        public void Replaced_content_goes_on_live_in_the_old_theme()
+        {
+            var oldTheme = _engine.Options.Theme;
+            var newTheme = PortableTheme.CreateDefault();
+            var oldSwitch = new Controls.ToggleSwitch { KnobMotion = Animation.PartMotion.Linear };
+            var screen = new TestScreen { Content = new Controls.StackPanel { Children = { oldSwitch } } };
+            _engine.NavigateToScreen(screen);
+            Step(0.016);
+            var oldContent = screen.Content;
+
+            _engine.TransitionTheme(() =>
+            {
+                _engine.Options.Theme = newTheme;
+                screen.Content = new Controls.StackPanel { Children = { new Controls.ToggleSwitch() } };
+            });
+            _engine.TakeThemePictureForTests();
+            Step(0.016);
+
+            Assert.AreEqual(1, _engine.ThemeGhosts.Count);
+            var ghost = _engine.ThemeGhosts[0];
+            Assert.AreNotSame(screen, ghost);
+            Assert.AreSame(oldContent, ghost.Content);
+            Assert.AreSame(oldTheme, oldSwitch.Knob.Screen!.ThemeOverride);
+
+            // Its animations run on: the knob of the old switch slides.
+            oldSwitch.IsOn = true;
+            Step(0.016);
+            Step(0.05);
+            Assert.IsTrue(oldSwitch.Knob.ShownTranslation.X > 0, "the old tree is updated every frame");
+
+            _engine.EndThemeTransition();
+            Assert.AreEqual(0, _engine.ThemeGhosts.Count);
+            Assert.IsNull(oldContent!.Parent, "the old tree is let go");
+        }
+
+        [TestMethod]
+        public void A_change_in_place_keeps_the_picture()
+        {
+            var block = new Controls.TextBlock { Text = "x" };
+            _engine.NavigateToScreen(new TestScreen { Content = block });
+            Step(0.016);
+
+            _engine.TransitionTheme(() => block.TextColor = Color.Red);
+            _engine.TakeThemePictureForTests();
+            Step(0.016);
+
+            Assert.AreEqual(0, _engine.ThemeGhosts.Count);
+            Assert.IsTrue(_engine.IsThemeTransitioning);
+        }
+
+        [TestMethod]
+        public void A_replaced_screen_is_its_own_ghost_and_handed_back_after()
+        {
+            var old = new TestScreen { Content = new Controls.Border() };
+            _engine.NavigateToScreen(old);
+            Step(0.016);
+            var input = old.InputSource;
+
+            _engine.TransitionTheme(() => _engine.NavigateToScreen(new TestScreen { Content = new Controls.Border() }));
+            _engine.TakeThemePictureForTests();
+            Step(0.016);
+
+            Assert.AreSame(old, _engine.ThemeGhosts[0]);
+            Assert.AreSame(Input.NullInputSource.Instance, old.InputSource, "a ghost takes no input");
+
+            _engine.EndThemeTransition();
+            Assert.AreSame(input, old.InputSource);
+            Assert.IsNull(old.ThemeOverride);
+        }
+
+        [TestMethod]
+        public void Without_live_the_picture_is_used()
+        {
+            var screen = new TestScreen { Content = new Controls.Border() };
+            _engine.NavigateToScreen(screen);
+            Step(0.016);
+
+            _engine.TransitionTheme(() => screen.Content = new Controls.Border(), live: false);
+            _engine.TakeThemePictureForTests();
+            Step(0.016);
+
+            Assert.AreEqual(0, _engine.ThemeGhosts.Count);
+        }
+
         [TestMethod]
         public void A_lost_frame_still_applies_the_change_on_the_next_update()
         {

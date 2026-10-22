@@ -1064,6 +1064,7 @@ namespace MonoGame.PortableUI
             UpdateTransition();
             ApplyPendingInsets(force: false);
             ActiveScreen?.Update();
+            UpdateLiveTheme();
             UpdateSharedFlights();
             _haptics?.Update(ScreenSystem.TotalTime);
             _toasts?.Update();

@@ -206,6 +206,8 @@ are postponed by that draw's time, so first-use costs (glyphs, masks, gradients)
 "Open a new page" (with a warm-up switch) logs each transition's frame times to logcat (`PortableUI.Nav`); a tapped card on
 that page pulses (Scale transition, the third card is acrylic glass) and logs its frames as `pulse`.
 
+**Theme transitions:** `ScreenEngine.TransitionTheme` takes a picture of the old look at the next draw and applies the change at the following update. Live (the default): if `apply` replaced every visible screen or its `Content`, the old screens (or `GhostScreen`s holding the old content) are kept in `_themeGhosts` with `Screen.ThemeOverride` = the old theme (read first by `Control.ResolveTheme`) and `NullInputSource`. They are updated each frame and redrawn into the picture target before it is composited; otherwise the picture stays still.
+
 **UI sound:** `ScreenEngine.Sounds` (`UiSoundService`) plays semantic events through an `IUiSoundPlayer`
 (`SoundEffectUiSoundPlayer`, synthesized defaults in `UiSoundSynth`). Controls raise them: `Control.OnClick` plays
 `GetClickSound()` (Click when a Click handler exists; toggles override with their new state), hover only on a real

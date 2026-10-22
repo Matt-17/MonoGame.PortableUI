@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI.Common;
+using MonoGame.PortableUI.Controls;
 
 namespace MonoGame.PortableUI
 {
@@ -16,7 +18,10 @@ namespace MonoGame.PortableUI
     }
 
     // A theme change without a jump: the last frame in the old look is kept as a picture, the new theme is applied,
-    // and the picture fades out (or opens up as a circle) over the live UI in the new look.
+    // and the old look fades out (or opens up as a circle) over the live UI in the new look. Live (the default): when
+    // apply replaced the visible screens or their content, the old trees go on - laid out, animated, drawn every frame
+    // with the old theme, without input - as ghost screens, and the old look is drawn from them each frame; where it
+    // changed controls in place there is no old tree, and the picture stays.
     public partial class ScreenEngine
     {
         // (Zero, InverseSourceAlpha): what is drawn punches a hole into the picture.
@@ -37,6 +42,10 @@ namespace MonoGame.PortableUI
         private PointF? _themeOrigin;
         private TimeSpan _themeDuration;
         private Color _themeBackdrop;
+        private bool _themeLive;
+        // The old look while a live change runs, bottom first; reused screens are the ones apply replaced.
+        private readonly List<Screen> _themeGhosts = new List<Screen>();
+        private readonly List<(Screen Screen, Input.IInputSource Input, ScreenEngine? Engine)> _themeReusedScreens = new();
         // Set from any thread when the frame was lost; the game thread drops the picture on its next update.
         private volatile bool _themeFrameLost;
 
@@ -50,9 +59,13 @@ namespace MonoGame.PortableUI
         ///     <paramref name="backdrop"/>: what the game clears the frame with under the UI, so the picture is opaque.
         ///     <paramref name="origin"/> (layout units): the centre of a <see cref="ThemeTransitionStyle.Reveal"/>;
         ///     the screen's centre when null. A zero duration applies at once.
+        ///     <paramref name="live"/> (default): when <paramref name="apply"/> replaces the visible screens or their
+        ///     <see cref="Screen.Content"/> (a rebuild in the new look), the old trees keep running in the old part - their
+        ///     animations (a sliding indicator, a ripple, a switch) go on - instead of a still picture; where it changes the
+        ///     same controls in place, the picture is used. False: always the picture.
         /// </summary>
         public void TransitionTheme(Action apply, ThemeTransitionStyle style = ThemeTransitionStyle.Crossfade, PointF? origin = null,
-            TimeSpan? duration = null, Color? backdrop = null)
+            TimeSpan? duration = null, Color? backdrop = null, bool live = true)
         {
             var length = duration ?? TimeSpan.FromMilliseconds(style == ThemeTransitionStyle.Reveal ? 550 : 350);
             if (length <= TimeSpan.Zero || ActiveScreen == null)
@@ -72,6 +85,7 @@ namespace MonoGame.PortableUI
             _themeOrigin = origin;
             _themeDuration = length;
             _themeBackdrop = backdrop ?? Color.Transparent;
+            _themeLive = live;
             RequestRedraw();
         }
 
@@ -86,9 +100,125 @@ namespace MonoGame.PortableUI
             if (_themeApply is not { } apply)
                 return;
             _themeApply = null;
-            apply();
+            EndLiveTheme();
+            if (!_themeLive)
+            {
+                apply();
+            }
+            else
+            {
+                // What is shown before apply: if each screen (or its content) is replaced, the old ones go on as ghosts.
+                var oldTheme = Options.Theme;
+                var screens = new List<Screen>(VisibleScreens);
+                var contents = new Control?[screens.Count];
+                var backgrounds = new Media.Brush?[screens.Count];
+                for (var i = 0; i < screens.Count; i++)
+                {
+                    contents[i] = screens[i].Content;
+                    backgrounds[i] = screens[i].BackgroundBrush;
+                }
+                apply();
+                StartLiveTheme(oldTheme, screens, contents, backgrounds);
+            }
             _themeStart = ScreenSystem.TotalTime;
             RequestRedraw();
+        }
+
+        private void StartLiveTheme(PortableTheme oldTheme, List<Screen> screens, Control?[] contents, Media.Brush?[] backgrounds)
+        {
+            var current = VisibleScreens;
+            var ghosts = new List<Screen>(screens.Count);
+            for (var i = 0; i < screens.Count; i++)
+            {
+                var screen = screens[i];
+                var replaced = true;
+                for (var j = 0; j < current.Count; j++)
+                    replaced &= !ReferenceEquals(current[j], screen);
+                // Changed in place: no old tree to draw, the picture stays.
+                if (!replaced && (contents[i] == null || ReferenceEquals(screen.Content, contents[i])))
+                    return;
+                ghosts.Add(replaced ? screen : new GhostScreen(contents[i]!, backgrounds[i]));
+            }
+
+            foreach (var ghost in ghosts)
+            {
+                if (ghost is not GhostScreen)
+                    _themeReusedScreens.Add((ghost, ghost.InputSource, ghost.ScreenEngine));
+                ghost.ThemeOverride = oldTheme;
+                ghost.ScreenEngine = this;
+                ghost.InputSource = Input.NullInputSource.Instance;
+                ghost.InvalidateLayout(true);
+                _themeGhosts.Add(ghost);
+            }
+        }
+
+        /// <summary>The screens drawing the old look of a live change (empty: none, or the picture is used).</summary>
+        internal IReadOnlyList<Screen> ThemeGhosts => _themeGhosts;
+
+        /// <summary>Tests: as if the picture of the old look was taken (that happens while drawing).</summary>
+        internal void TakeThemePictureForTests()
+        {
+            _themeApply = _themeCapture;
+            _themeCapture = null;
+        }
+
+        /// <summary>The old trees of a live change take their step: layout, transitions, animations (no input).</summary>
+        private void UpdateLiveTheme()
+        {
+            foreach (var ghost in _themeGhosts)
+                ghost.Update();
+        }
+
+        private void EndLiveTheme()
+        {
+            foreach (var ghost in _themeGhosts)
+            {
+                ghost.ThemeOverride = null;
+                if (ghost is GhostScreen own)
+                    own.Content = null;
+            }
+            foreach (var (screen, input, engine) in _themeReusedScreens)
+            {
+                // Back to how it was handed over (it may be navigated to again).
+                screen.InputSource = input;
+                screen.ScreenEngine = engine;
+                screen.InvalidateLayout(true);
+            }
+            _themeGhosts.Clear();
+            _themeReusedScreens.Clear();
+        }
+
+        // The old look of the live change into the picture's target, every frame.
+        private void DrawLiveTheme(SpriteBatch spriteBatch)
+        {
+            var device = spriteBatch.GraphicsDevice;
+            var previousTargets = Effects.RenderTargetHelper.SnapshotRenderTargets(device, ref _themePreviousTargets);
+            device.SetRenderTarget(_themeSnapshot);
+            device.Clear(_themeBackdrop);
+            var previous = EnterDraw();
+            try
+            {
+                foreach (var ghost in _themeGhosts)
+                    ghost.Draw(spriteBatch);
+            }
+            finally
+            {
+                ExitDraw(previous);
+            }
+            if (previousTargets.Length == 0)
+                device.SetRenderTarget(null);
+            else
+                device.SetRenderTargets(previousTargets);
+        }
+
+        /// <summary>Hosts the content a live theme change replaced, in the old look.</summary>
+        private sealed class GhostScreen : Screen
+        {
+            public GhostScreen(Control content, Media.Brush? background)
+            {
+                BackgroundBrush = background;
+                Content = content;
+            }
         }
 
         /// <summary>Draws the stack for this frame: into the picture first when a theme change waits for it.</summary>
@@ -150,6 +280,8 @@ namespace MonoGame.PortableUI
             var device = spriteBatch.GraphicsDevice;
             var width = device.Viewport.Width;
             var height = device.Viewport.Height;
+            if (_themeGhosts.Count > 0)
+                DrawLiveTheme(spriteBatch);
 
             if (_themeStyle == ThemeTransitionStyle.Reveal)
             {
@@ -222,6 +354,7 @@ namespace MonoGame.PortableUI
         /// <summary>Drops the picture (done, or its frame was lost with the surface). On the game thread.</summary>
         internal void EndThemeTransition()
         {
+            EndLiveTheme();
             _themeStart = null;
             _themeSnapshot?.Dispose();
             _themeSnapshot = null;

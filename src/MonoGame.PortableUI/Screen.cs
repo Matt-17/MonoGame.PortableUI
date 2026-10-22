@@ -168,6 +168,10 @@ namespace MonoGame.PortableUI
 
         protected internal ScreenEngine? ScreenEngine { get; set; }
 
+        /// <summary>The theme this screen's controls resolve instead of the engine's: the old look kept alive during a
+        /// live theme change (<see cref="ScreenEngine.TransitionTheme"/>).</summary>
+        internal PortableTheme? ThemeOverride { get; set; }
+
         /// <summary>The engine whose focus this screen routes to: its own, or the default engine for
         /// a screen that is not hosted yet.</summary>
         private ScreenEngine? FocusEngine => ScreenEngine ?? MonoGame.PortableUI.ScreenEngine.Instance;

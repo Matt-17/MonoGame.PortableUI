@@ -883,7 +883,9 @@ namespace MonoGame.PortableUI.Controls
                 parent = parent.Parent;
             }
 
-            var theme = Screen?.ScreenEngine?.Options.Theme
+            var screen = Screen;
+            var theme = screen?.ThemeOverride
+                ?? screen?.ScreenEngine?.Options.Theme
                 ?? ScreenEngine.Instance?.Options.Theme
                 ?? PortableTheme.ResolveCurrent();
             return CacheResolvedTheme(theme, version);
