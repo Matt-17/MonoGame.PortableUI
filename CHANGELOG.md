@@ -7,6 +7,7 @@
   - `ThemeFadeMode.Flip` stays near the old look, crosses quickly when the parent passes the middle, and settles within 80 % of the parent's time. It is for a selection indicator, a knob or high-contrast text, so it is never grey on grey for more than a moment.
   - `Inherit` takes the parent's pace. `TextBlock`s (not `TextBox`es), the `SegmentedControl` indicator with its selected labels and the `ToggleSwitch` knob flip by default.
   - A `ProgressiveBlur`'s tint fades from its old twin's tint along with it.
+  - `ScreenEngine.PrepareThemeTransition()` pays the first change's one-time costs ahead of time (call it at app start or when a scheduled change is near): the frame-sized targets are created at the next draw and the pairing runs once.
   - Starting costs less: the picture of the old look is a pooled target (a new frame-sized one stalled the GPU), and old trees that are paired keep their layout instead of being laid out and themed again. Old looks no longer refresh their theme when a further change comes in.
   - The screen background fades evenly, elements without a twin come in at their parent's pace, and layer caches draw live meanwhile.
   - Without a rebuilt tree it is a cross-fade.

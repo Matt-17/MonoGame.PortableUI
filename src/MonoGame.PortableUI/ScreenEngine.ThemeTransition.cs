@@ -60,6 +60,19 @@ namespace MonoGame.PortableUI
         // Set from any thread when the frame was lost; the game thread drops the pictures on its next update.
         private volatile bool _themeFrameLost;
 
+        private bool _themeWarmUp;
+
+        /// <summary>
+        ///     Pays the first theme change's one-time costs ahead of time - at app start, or when a scheduled change is
+        ///     near: the frame-sized targets the change draws into are created at the next draw, and the element pairing
+        ///     runs once. Optional; without it the first change pays this in its first frames.
+        /// </summary>
+        public void PrepareThemeTransition()
+        {
+            _themeWarmUp = true;
+            RequestRedraw();
+        }
+
         /// <summary>Whether a theme change is fading in.</summary>
         public bool IsThemeTransitioning => _themeCapture != null || _themeApply != null || _themeLayers.Count > 0;
 
@@ -358,6 +371,11 @@ namespace MonoGame.PortableUI
         /// <summary>Draws the stack for this frame: into the picture first when a theme change waits for it.</summary>
         internal void DrawStackWithThemeTransition(SpriteBatch spriteBatch)
         {
+            if (_themeWarmUp)
+            {
+                _themeWarmUp = false;
+                WarmUpThemeTransition(spriteBatch.GraphicsDevice);
+            }
             if (_themeCapture != null)
             {
                 CaptureThemeSnapshot(spriteBatch);
@@ -365,6 +383,36 @@ namespace MonoGame.PortableUI
             }
             DrawStack(spriteBatch);
             DrawThemeLayers(spriteBatch);
+        }
+
+        private void WarmUpThemeTransition(GraphicsDevice device)
+        {
+            // Two: the picture, and a full-frame pass (a ProgressiveBlur) drawn into it.
+            var width = Math.Max(1, device.Viewport.Width);
+            var height = Math.Max(1, device.Viewport.Height);
+            var previousTargets = Effects.RenderTargetHelper.SnapshotRenderTargets(device, ref _themePreviousTargets);
+            var first = Effects.RenderTargetPool.Rent(device, width, height);
+            var second = Effects.RenderTargetPool.Rent(device, width, height);
+            foreach (var target in new[] { first, second })
+            {
+                device.SetRenderTarget(target);
+                device.Clear(Color.Transparent);
+            }
+            if (previousTargets.Length == 0)
+                device.SetRenderTarget(null);
+            else
+                device.SetRenderTargets(previousTargets);
+            Effects.RenderTargetPool.Return(device, first);
+            Effects.RenderTargetPool.Return(device, second);
+
+            var twins = new Dictionary<Control, ThemeTwin>();
+            foreach (var screen in VisibleScreens)
+            {
+                if (screen.Content is { } content)
+                    Pair(content, content, new ThemeTwin(null, 0, 1, false, false), twins);
+            }
+            foreach (var twin in twins.Values)
+                twin.Mix(0.5f, TimeSpan.FromSeconds(8));
         }
 
         private void CaptureThemeSnapshot(SpriteBatch spriteBatch)
