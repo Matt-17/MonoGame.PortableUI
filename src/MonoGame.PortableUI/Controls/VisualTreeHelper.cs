@@ -59,8 +59,10 @@ namespace MonoGame.PortableUI.Controls
 
             if (inside && control.OnPreviewTouchDown(args))
                 previewed?.Add(control);
+            if (args.CaughtBy != null)
+                return;
             var count = control.VisualChildCount;
-            for (var i = 0; i < count; i++)
+            for (var i = 0; i < count && args.CaughtBy == null; i++)
                 PreviewTouchDown(control.GetVisualChild(i), args, previewed);
         }
 

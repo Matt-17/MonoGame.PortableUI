@@ -546,8 +546,29 @@ namespace MonoGame.PortableUI.Controls
         {
             if (TryHitScrollBarThumb(args.Position, out _, out _))
                 return false;
+            var catches = IsMovingNoticeably();
             BeginTouchPan(args.Position);
+            if (catches)
+                args.CaughtBy = this;
             return true;
+        }
+
+        /// <summary>
+        ///     Speed (layout units per second) above which a finger landing on the moving content only stops it, as on
+        ///     Android: that touch presses and clicks nothing below, and a drag from it pans on. Slower drifting content can
+        ///     still be tapped through. A spring back from overscroll is always caught.
+        /// </summary>
+        public float CatchVelocity { get; set; } = 150;
+
+        private bool IsMovingNoticeably()
+        {
+            if (_fling != null)
+                return Math.Abs(_fling.VelocityAt((ScreenSystem.TotalTime - _flingStartTime).TotalSeconds)) >= CatchVelocity;
+            if (_snapping)
+                return Math.Max(Math.Abs(_snapVelocity.X), Math.Abs(_snapVelocity.Y)) >= CatchVelocity;
+            if (!_animating)
+                return false;
+            return IsOverscrolled || Math.Max(Math.Abs(_velocity.X), Math.Abs(_velocity.Y)) >= CatchVelocity;
         }
 
         internal override void OnPreviewWithdrawn() => EndTouchForProgrammaticMove();

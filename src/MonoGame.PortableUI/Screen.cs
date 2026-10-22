@@ -2187,16 +2187,29 @@ namespace MonoGame.PortableUI
                 _previewed.Clear();
                 VisualTreeHelper.PreviewTouchDown(content, args, _previewed);
                 Control? takenBy = null;
-                VisualTreeHelper.IterateVisualTree(content, args,
-                    (c, a) => c.ClippingRect.Contains(a.Position),
-                    (c, a) =>
+                if (args.CaughtBy is { } catcher)
+                {
+                    // A finger on moving content only stops it (Android's catch): nothing below is pressed.
+                    foreach (var previewed in _previewed)
                     {
-                        c.OnTouchDown(a);
-                        if (a.Handled)
-                            takenBy ??= c;
-                    },
-                    null
-                    );
+                        if (!ReferenceEquals(previewed, catcher))
+                            previewed.OnPreviewWithdrawn();
+                    }
+                    TouchScrollOwner = catcher;
+                }
+                else
+                {
+                    VisualTreeHelper.IterateVisualTree(content, args,
+                        (c, a) => c.ClippingRect.Contains(a.Position),
+                        (c, a) =>
+                        {
+                            c.OnTouchDown(a);
+                            if (a.Handled)
+                                takenBy ??= c;
+                        },
+                        null
+                        );
+                }
                 // The preview reached every scroll viewer under the finger, also one lying under the control that took
                 // the touch (a tab bar over a list): only those it lies in keep following the finger.
                 if (takenBy != null)

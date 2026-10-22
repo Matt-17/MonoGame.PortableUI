@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **A tap on moving content only stops it (`ScrollViewer.CatchVelocity`):** a finger landing on a list that is still flinging (faster than `CatchVelocity`, 150 layout units per second by default), snapping or springing back from overscroll now only catches it, as on Android: the button under it is not pressed, shows no ripple and does not click. A drag from there pans on. Nested viewers work alike: the moving one takes the gesture. Content drifting slower can still be tapped through.
+
 - **Toasts with any content (`ToastService.Show(Control content, duration, message)`):** a toast can show an icon and text, or anything else, in its bubble instead of plain text; text stays the shortcut. `message` is what `CurrentMessage`, `Shown` and `Dismissed` report for it.
 
 - **`SegmentedControl.SegmentSizing`:** `Equal` (default) keeps all options as wide as the widest; `Auto` makes each as wide as its content (stacked: as tall), so a rail of chips ("Alle", "Longdrinks & Gin Tonics") needs no hand-set width. The indicator moves and changes size between options under its motion, and the control is as wide as its options, so it can sit in a horizontal `ScrollViewer`, which brings a newly selected option into view.

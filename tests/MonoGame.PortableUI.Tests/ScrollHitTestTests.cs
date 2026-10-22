@@ -195,5 +195,62 @@ namespace MonoGame.PortableUI.Tests
             Step(engine);
             Assert.AreEqual(2, pageTouches, "the next gesture is the page's");
         }
+
+        [TestMethod]
+        public void A_tap_on_a_flinging_list_only_stops_it_and_the_next_tap_clicks()
+        {
+            using var game = new Game();
+            var engine = ScreenEngine.Initialize(game, new ScreenEngineOptions { AddComponentToGame = false });
+            engine.SetScreenSize(392, 800);
+            var clicks = 0;
+            var rows = new StackPanel();
+            for (var i = 0; i < 200; i++)
+            {
+                var row = new Button { Text = "Row " + i, Height = 48 };
+                row.Click += (_, _) => clicks++;
+                rows.AddChild(row);
+            }
+            var list = new ScrollViewer { Content = rows };
+            var source = new TouchSource();
+            engine.NavigateToScreen(new TestScreen { Content = list, InputSource = source });
+            Step(engine);
+            Step(engine);
+
+            source.Set(TouchLocationState.Pressed, new Vector2(200, 700));
+            Step(engine);
+            foreach (var y in new[] { 620f, 520f, 400f, 280f })
+            {
+                source.Set(TouchLocationState.Moved, new Vector2(200, y));
+                Step(engine);
+            }
+            source.Set(TouchLocationState.Released, new Vector2(200, 280));
+            Step(engine);
+            source.Clear();
+            Step(engine);
+            Step(engine);
+            var moving = list.Offset.Y;
+            Step(engine);
+            Assert.IsTrue(list.Offset.Y > moving + 1, "the list flings");
+
+            source.Set(TouchLocationState.Pressed, new Vector2(200, 400));
+            Step(engine);
+            source.Set(TouchLocationState.Released, new Vector2(200, 400));
+            Step(engine);
+            source.Clear();
+            Step(engine);
+            var stopped = list.Offset.Y;
+            Step(engine);
+            Step(engine);
+            Assert.AreEqual(0, clicks, "the catch clicks nothing");
+            Assert.AreEqual(stopped, list.Offset.Y, 0.01f, "and stops the fling");
+
+            source.Set(TouchLocationState.Pressed, new Vector2(200, 400));
+            Step(engine);
+            source.Set(TouchLocationState.Released, new Vector2(200, 400));
+            Step(engine);
+            source.Clear();
+            Step(engine);
+            Assert.AreEqual(1, clicks, "a tap on resting content clicks");
+        }
     }
 }
