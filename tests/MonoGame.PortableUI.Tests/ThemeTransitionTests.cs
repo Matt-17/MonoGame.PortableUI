@@ -135,6 +135,20 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void A_long_cross_fade_crosses_the_grey_middle_quickly()
+        {
+            var eight = TimeSpan.FromSeconds(8);
+            Assert.AreEqual(0.5f, ScreenEngine.LegibleFade(0.5f, eight), 0.001f);
+            Assert.IsTrue(ScreenEngine.LegibleFade(0.45f, eight) <= 0.2f, "still mostly the old look 0.4 s before the middle");
+            Assert.IsTrue(ScreenEngine.LegibleFade(0.55f, eight) >= 0.8f, "mostly the new look 0.4 s after it");
+            Assert.AreEqual(0f, ScreenEngine.LegibleFade(0, eight));
+            Assert.AreEqual(1f, ScreenEngine.LegibleFade(1, eight));
+
+            // A short fade keeps its plain ease in and out.
+            Assert.AreEqual(0.25f * 0.25f * (3 - 0.5f), ScreenEngine.LegibleFade(0.25f, TimeSpan.FromMilliseconds(350)), 0.0001f);
+        }
+
+        [TestMethod]
         public void A_change_in_place_keeps_the_picture()
         {
             var block = new Controls.TextBlock { Text = "x" };

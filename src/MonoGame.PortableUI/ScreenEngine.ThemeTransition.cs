@@ -66,9 +66,13 @@ namespace MonoGame.PortableUI
         ///     same controls in place, the picture is used. False: always the picture.
         ///     Called while a change still runs, the new one starts from what is on screen then; the running one goes on
         ///     inside its old look.
+        ///     <paramref name="easing"/>: how the change runs over its duration (0..1 in, 0..1 out); null = the default:
+        ///     ease in and out, and for a cross-fade longer than a second a curve that drifts slowly at both ends and
+        ///     crosses the middle - where light-on-dark and dark-on-light text would average to grey on grey - in about
+        ///     0.6 s, so the UI stays legible all along.
         /// </summary>
         public void TransitionTheme(Action apply, ThemeTransitionStyle style = ThemeTransitionStyle.Crossfade, PointF? origin = null,
-            TimeSpan? duration = null, Color? backdrop = null, bool live = true)
+            TimeSpan? duration = null, Color? backdrop = null, bool live = true, Animation.Easing? easing = null)
         {
             var length = duration ?? TimeSpan.FromMilliseconds(style == ThemeTransitionStyle.Reveal ? 550 : 350);
             if (length <= TimeSpan.Zero || ActiveScreen == null)
@@ -96,7 +100,8 @@ namespace MonoGame.PortableUI
                 Origin = origin,
                 Duration = length,
                 Backdrop = backdrop ?? Color.Transparent,
-                Live = live
+                Live = live,
+                Easing = easing
             };
             RequestRedraw();
         }
@@ -235,13 +240,19 @@ namespace MonoGame.PortableUI
                     layer.HurryFrom = Progress(layer);
                     layer.HurryStart = now;
                 }
-                foreach (var (viewer, source) in layer.PairedScrolls)
-                {
-                    if (source.ScrollStates.TryGetValue(viewer.StateKey!, out var offset) && viewer.Offset != offset)
-                        viewer.ScrollTo(offset, revealScrollBar: false);
-                }
+                SyncPairedScrolls(layer);
                 foreach (var ghost in layer.Ghosts)
                     ghost.Update();
+            }
+        }
+
+        // The old look's keyed scroll viewers take the new tree's positions (flinging included, frame by frame).
+        private static void SyncPairedScrolls(ThemeLayer layer)
+        {
+            foreach (var (viewer, source) in layer.PairedScrolls)
+            {
+                if (source.ScrollStates.TryGetValue(viewer.StateKey!, out var offset) && viewer.Offset != offset)
+                    viewer.ScrollTo(offset, revealScrollBar: false);
             }
         }
 
@@ -291,6 +302,7 @@ namespace MonoGame.PortableUI
             public TimeSpan Duration;
             public Color Backdrop;
             public bool Live;
+            public Animation.Easing? Easing;
             // The ghosts must be drawn again (first frame, or they asked for an animation frame while drawing).
             public bool NeedsRender = true;
             public TimeSpan? HurryStart;
@@ -374,6 +386,8 @@ namespace MonoGame.PortableUI
                     continue;
                 // An old look that did not change keeps its target (a reveal's hole only grows, a fade draws it fainter);
                 // one with an earlier change inside it changes every frame.
+                // The new tree is drawn: its scroll positions are final for this frame, the old look takes them now.
+                SyncPairedScrolls(layer);
                 var dirty = layer.NeedsRender || i > 0;
                 foreach (var ghost in layer.Ghosts)
                     dirty |= ghost.VisualDirty;
@@ -403,6 +417,25 @@ namespace MonoGame.PortableUI
             ComposeLayer(spriteBatch, _themeLayers[_themeLayers.Count - 1], null, frameTargets);
             RecordBatchFlush();
             RequestRedraw();
+        }
+
+        /// <summary>Middle stretch of a long cross-fade, in seconds: the blend goes from 20 % to 80 % in this time.</summary>
+        private const double LegibleCrossingSeconds = 0.6;
+
+        // The default cross-fade: ease in and out; a long one drifts to 20 % over the first half less the crossing, crosses
+        // to 80 % in LegibleCrossingSeconds (grey on grey only for a moment), and drifts on to the end.
+        internal static float LegibleFade(float t, TimeSpan duration)
+        {
+            static float Smooth(float x) => x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x);
+            var crossing = (float)(LegibleCrossingSeconds / Math.Max(0.001, duration.TotalSeconds));
+            if (crossing >= 0.6f)
+                return Smooth(t);
+            var start = 0.5f - crossing / 2;
+            if (t < start)
+                return 0.2f * Smooth(t / start);
+            if (t < start + crossing)
+                return 0.2f + 0.6f * Smooth((t - start) / crossing);
+            return 0.8f + 0.2f * Smooth((t - start - crossing) / start);
         }
 
         private static float Progress(ThemeLayer layer)
@@ -435,7 +468,7 @@ namespace MonoGame.PortableUI
                 foreach (var corner in new[] { Vector2.Zero, new Vector2(width, 0), new Vector2(0, height), new Vector2(width, height) })
                     farthest = Math.Max(farthest, Vector2.Distance(origin, corner));
                 // Ease in and out; the soft rim (a few % of the radius) is past the farthest corner at the end.
-                var eased = t < 0.5f ? 4 * t * t * t : 1 - MathF.Pow(-2 * t + 2, 3) / 2;
+                var eased = layer.Easing is { } easing ? (float)easing(t) : t < 0.5f ? 4 * t * t * t : 1 - MathF.Pow(-2 * t + 2, 3) / 2;
                 var radius = eased * farthest * 1.08f;
                 var disc = RevealMask(device);
                 device.SetRenderTarget(layer.Target);
@@ -445,7 +478,7 @@ namespace MonoGame.PortableUI
             }
             else
             {
-                fade = 1 - t * t * (3 - 2 * t);
+                fade = 1 - (layer.Easing is { } easing ? (float)easing(t) : LegibleFade(t, layer.Duration));
             }
 
             if (onto != null)
