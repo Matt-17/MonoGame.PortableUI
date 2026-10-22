@@ -91,6 +91,19 @@ namespace MonoGame.PortableUI.Animation
             _dynamicAtRest = false;
         }
 
+        /// <summary>A new deformation with the same grid and settings, at rest (a template handed to each control).</summary>
+        public Deformation Clone() => new Deformation(_columns, _rows)
+        {
+            Trail = Trail,
+            Taper = Taper,
+            Spring = Spring,
+            Bulge = Bulge,
+            Bend = Bend,
+            Wave = Wave,
+            WaveLength = WaveLength,
+            WaveSpeed = WaveSpeed
+        };
+
         /// <summary>Drops all motion; the shape is the rectangle again (static deformers stay).</summary>
         public void Reset()
         {

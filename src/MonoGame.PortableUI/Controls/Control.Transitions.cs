@@ -293,13 +293,23 @@ namespace MonoGame.PortableUI.Controls
             return running;
         }
 
-        // What is drawn now; differs from the property while a transition moves it. Explicit animations
-        // read and write these: they take over from a transition of the same property.
-        internal Vector2 ShownScale => _scale;
-        internal Vector2 ShownTranslation => _translation;
-        internal double ShownOpacity => _opacity;
-        internal float ShownRotation => _rotation;
-        internal Vector2 ShownSkew => _skew;
+        // What is drawn now; differs from the property while a transition moves it (the getters return the
+        // target). Explicit animations read and write these: they take over from a transition of the same property.
+
+        /// <summary>The scale drawn now; <see cref="Scale"/> returns a running transition's target.</summary>
+        public Vector2 ShownScale => _scale;
+
+        /// <summary>The translation drawn now; <see cref="Translation"/> returns a running transition's target.</summary>
+        public Vector2 ShownTranslation => _translation;
+
+        /// <summary>The opacity drawn now; <see cref="Opacity"/> returns a running transition's target.</summary>
+        public double ShownOpacity => _opacity;
+
+        /// <summary>The rotation drawn now; <see cref="Rotation"/> returns a running transition's target.</summary>
+        public float ShownRotation => _rotation;
+
+        /// <summary>The skew drawn now; <see cref="Skew"/> returns a running transition's target.</summary>
+        public Vector2 ShownSkew => _skew;
 
         internal void SetScaleShown(Vector2 value)
         {

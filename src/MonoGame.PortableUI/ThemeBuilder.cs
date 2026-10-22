@@ -49,6 +49,7 @@ public static class ThemeBuilder
                 theme.Typography.FontName = fontName;
                 theme.Cursor = DefaultCursor(era, palette);
                 ApplyEraCaret(theme, era);
+                ApplyEraMotion(theme, era);
                 styleTheme?.Invoke(theme);
                 theme.Sounds ??= DefaultSounds(era, theme);
                 theme.Haptics ??= DefaultHaptics(era, theme);
@@ -158,6 +159,7 @@ public static class ThemeBuilder
                 theme.Typography.FontName = fontName;
                 theme.Cursor = DefaultCursor(era, palette);
                 ApplyEraCaret(theme, era);
+                ApplyEraMotion(theme, era);
                 styleTheme?.Invoke(theme);
                 if (reducedMotion)
                 {
@@ -234,6 +236,14 @@ public static class ThemeBuilder
     }
 
     /// <summary>Text-mode themes get the DOS caret: underline / overwrite block, blinking at ~3.75 Hz.</summary>
+    /// <summary>The era's part motions: retro, desktop and terminal themes slide a switch's knob linearly (the classic
+    /// switch); the others keep the theme default, a drop.</summary>
+    public static void ApplyEraMotion(PortableTheme theme, ThemeEra era)
+    {
+        if (era is ThemeEra.Retro or ThemeEra.Desktop or ThemeEra.Terminal)
+            theme.ToggleSwitchKnobMotion = Animation.PartMotion.Linear;
+    }
+
     public static void ApplyEraCaret(PortableTheme theme, ThemeEra era)
     {
         if (era != ThemeEra.Terminal)

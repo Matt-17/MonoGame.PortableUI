@@ -434,6 +434,11 @@ namespace MonoGame.PortableUI
         /// <summary>Shadow under the knob; null = none.</summary>
         public ShadowStyle? ToggleSwitchKnobShadow { get; set; }
 
+        /// <summary>How a switch's knob travels (<see cref="Animation.PartMotion"/>): a drop by default
+        /// (<see cref="Animation.PartMotion.KnobDrop"/>; <see cref="ThemeBuilder"/> gives retro, desktop and terminal themes
+        /// the classic linear slide); null = it jumps. A switch's own <c>KnobMotion</c> wins.</summary>
+        public Animation.PartMotion? ToggleSwitchKnobMotion { get; set; } = Animation.PartMotion.KnobDrop;
+
         /// <summary>Diameter of a radio button's ring; null uses <see cref="CheckBoxBoxSize"/> (Material: 20).</summary>
         public float? RadioButtonRingSize { get; set; }
 
