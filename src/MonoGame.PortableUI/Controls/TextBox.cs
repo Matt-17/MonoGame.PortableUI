@@ -1855,11 +1855,11 @@ namespace MonoGame.PortableUI.Controls
             _lineMetricsCache = null;
         }
 
-        /// <summary>Width soft lines wrap at: multiline + <see cref="TextWrapping.Wrap"/> only, from
+        /// <summary>Width soft lines wrap at: multiline and wrapping (every wrap mode wraps like <see cref="TextWrapping.Wrap"/> while editing), from
         /// the fixed width or else the arranged text area; NaN = no wrapping.</summary>
         private float GetWrapWidth()
         {
-            if (!IsMultiline || TextWrapping != TextWrapping.Wrap)
+            if (!IsMultiline || TextWrapping == TextWrapping.NoWrap)
                 return float.NaN;
             var width = Width.IsFixed() ? Width - Padding.Horizontal : GetTextRect().Width;
             if (RenderScale.X > 0)

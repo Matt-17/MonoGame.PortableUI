@@ -534,7 +534,7 @@ namespace MonoGame.PortableUI.Controls
             if (IsGoneShown)
                 return Size.Empty;
 
-            if (TextWrapping == TextWrapping.Wrap && TryGetWrapMeasureWidth(out var wrapWidth))
+            if (TextWrapping != TextWrapping.NoWrap && TryGetWrapMeasureWidth(out var wrapWidth))
             {
                 var lines = GetWrappedLines(wrapWidth);
                 _measuredWrapLines = lines.Count;
@@ -579,7 +579,7 @@ namespace MonoGame.PortableUI.Controls
         public override void UpdateLayout(Rect rect)
         {
             base.UpdateLayout(rect);
-            if (TextWrapping != TextWrapping.Wrap || Width.IsFixed() || IsGone || !WrapsToArrangedWidth)
+            if (TextWrapping == TextWrapping.NoWrap || Width.IsFixed() || IsGone || !WrapsToArrangedWidth)
                 return;
             // The slot the parent offers, not the aligned rect: a left-aligned label is arranged only as
             // wide as its longest line, which would shrink the wrap width pass after pass.
@@ -614,6 +614,9 @@ namespace MonoGame.PortableUI.Controls
                 ? Font.LineSpacing * FontScale
                 : MeasureText("Ag").Y;
 
+        /// <summary>The lines this block wraps into at <paramref name="availableWidth"/> (tests).</summary>
+        internal IReadOnlyList<string> WrappedLinesAt(float availableWidth) => GetWrappedLines(availableWidth);
+
         private IReadOnlyList<string> GetWrappedLines(float availableWidth)
         {
             var scale = FontScale;
@@ -637,8 +640,8 @@ namespace MonoGame.PortableUI.Controls
             return _wrappedLines;
         }
 
-        /// <summary>Greedy word wrap; explicit newlines are respected, and a single word wider
-        /// than the available width hard-breaks by characters.</summary>
+        /// <summary>Word wrap by <see cref="TextWrapping"/>; explicit newlines are respected, and a single word wider
+        /// than the available width hard-breaks by characters (that paragraph then wraps greedily).</summary>
         private List<string> WrapText(string text, float maxWidth)
         {
             var lines = new List<string>();
@@ -650,34 +653,104 @@ namespace MonoGame.PortableUI.Controls
                     continue;
                 }
 
-                var current = string.Empty;
-                foreach (var word in paragraph.Split(' '))
-                {
-                    var candidate = current.Length == 0 ? word : current + " " + word;
-                    if (MeasureText(candidate).X <= maxWidth)
-                    {
-                        current = candidate;
-                        continue;
-                    }
-
-                    if (current.Length > 0)
-                        lines.Add(current);
-
-                    current = word;
-                    while (current.Length > 1 && MeasureText(current).X > maxWidth)
-                    {
-                        var cut = current.Length - 1;
-                        while (cut > 1 && MeasureText(current[..cut]).X > maxWidth)
-                            cut--;
-                        lines.Add(current[..cut]);
-                        current = current[cut..];
-                    }
-                }
-
-                lines.Add(current);
+                if (TextWrapping is TextWrapping.WrapBottomHeavy or TextWrapping.WrapBalanced && WrapShaped(paragraph, maxWidth, lines))
+                    continue;
+                WrapGreedy(paragraph, maxWidth, lines);
             }
 
             return lines;
+        }
+
+        private void WrapGreedy(string paragraph, float maxWidth, List<string> lines)
+        {
+            var current = string.Empty;
+            foreach (var word in paragraph.Split(' '))
+            {
+                var candidate = current.Length == 0 ? word : current + " " + word;
+                if (MeasureText(candidate).X <= maxWidth)
+                {
+                    current = candidate;
+                    continue;
+                }
+
+                if (current.Length > 0)
+                    lines.Add(current);
+
+                current = word;
+                while (current.Length > 1 && MeasureText(current).X > maxWidth)
+                {
+                    var cut = current.Length - 1;
+                    while (cut > 1 && MeasureText(current[..cut]).X > maxWidth)
+                        cut--;
+                    lines.Add(current[..cut]);
+                    current = current[cut..];
+                }
+            }
+
+            lines.Add(current);
+        }
+
+        /// <summary>
+        ///     <see cref="TextWrapping.WrapBottomHeavy"/>: lines taken greedily from the end, so each lower line is as
+        ///     long as it fits. <see cref="TextWrapping.WrapBalanced"/>: greedy wrapping at the narrowest width that
+        ///     needs no more lines than <paramref name="maxWidth"/> does. Both keep the greedy line count. False (nothing
+        ///     added) when a word alone is wider than <paramref name="maxWidth"/>.
+        /// </summary>
+        private bool WrapShaped(string paragraph, float maxWidth, List<string> lines)
+        {
+            var words = paragraph.Split(' ');
+            var widest = 0f;
+            foreach (var word in words)
+                widest = Math.Max(widest, MeasureText(word).X);
+            if (widest > maxWidth)
+                return false;
+
+            if (TextWrapping == TextWrapping.WrapBalanced)
+            {
+                var count = CountGreedyLines(words, maxWidth);
+                float low = widest, high = maxWidth;
+                while (high - low > 0.5f)
+                {
+                    var mid = (low + high) / 2;
+                    if (CountGreedyLines(words, mid) <= count)
+                        high = mid;
+                    else
+                        low = mid;
+                }
+                WrapGreedy(paragraph, high, lines);
+                return true;
+            }
+
+            var insertAt = lines.Count;
+            var end = words.Length;
+            while (end > 0)
+            {
+                var start = end - 1;
+                while (start > 0 && MeasureText(string.Join(' ', words, start - 1, end - start + 1)).X <= maxWidth)
+                    start--;
+                lines.Insert(insertAt, string.Join(' ', words, start, end - start));
+                end = start;
+            }
+            return true;
+        }
+
+        // Lines greedy wrapping needs at maxWidth (every word fits alone).
+        private int CountGreedyLines(string[] words, float maxWidth)
+        {
+            var count = 1;
+            var current = string.Empty;
+            foreach (var word in words)
+            {
+                var candidate = current.Length == 0 ? word : current + " " + word;
+                if (current.Length == 0 || MeasureText(candidate).X <= maxWidth)
+                {
+                    current = candidate;
+                    continue;
+                }
+                count++;
+                current = word;
+            }
+            return count;
         }
 
         private void GetTrimmedText(float maxWidth, out string text, out Vector2 size)
@@ -814,7 +887,7 @@ namespace MonoGame.PortableUI.Controls
             if (!HasDrawableFont)
                 return;
 
-            if (TextWrapping == TextWrapping.Wrap)
+            if (TextWrapping != TextWrapping.NoWrap)
             {
                 DrawWrapped(spriteBatch, rect);
                 return;
