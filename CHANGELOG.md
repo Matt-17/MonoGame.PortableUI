@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **`QrCode` control:** shows `Text` (UTF-8) as a QR code, dark `ModuleColor` modules on the `BackgroundBrush` (white) with a `QuietZone` of 4 modules. The smallest version 1-40 that holds the text, `ErrorCorrection` (Low/Medium/Quartile/High, default Medium) raised as far as that version allows. Always square and centred in its box (4 per module without a fixed size); modules on whole device pixels so the code stays crisp. The encoder is built in (after Project Nayuki's MIT QR Code generator, byte mode), no package needed.
+
 - **Android: back after back closed the keyboard reaches the app:** when the system closes the on-screen keyboard (back, the IME's hide key), the focused field keeps its focus but the invisible editor view hands Android's focus back to the game view and the keyboard reports itself hidden. The next back reaches the app instead of the input method, which used to show itself again. Tapping the field brings the keyboard back.
 
 - **Content under the on-screen keyboard can be scrolled up (`ScrollViewer.ScrollsAboveKeyboard`, default on):** while the keyboard covers the bottom of a page's scroll viewer (the outermost one that scrolls vertically), its range grows by the covered part, as Android's adjustResize does but without re-laying out the page. Everything can be scrolled above the keyboard; the focused field is brought into view above it when the keyboard opens and when focus moves to another field while it is open. When the keyboard closes, content scrolled into that range glides back instead of jumping.
