@@ -26,6 +26,8 @@ namespace MonoGame.PortableUI.Controls
         // those follow theme switches, so an explicit value equal to the old default survives.
         private bool _textSizeFromTheme = true;
         private bool _textColorFromTheme = true;
+        // True once the app set TextColor; an owner (a button) then leaves this label's colour alone.
+        private bool _textColorSetByApp;
         private TextWrapping _textWrapping;
 
         // Wrapped-line cache: wrapping measures every word, so it only recomputes when the
@@ -198,8 +200,20 @@ namespace MonoGame.PortableUI.Controls
             set
             {
                 _textColorFromTheme = false;
+                _textColorSetByApp = true;
                 ApplyTextColor(value);
             }
+        }
+
+        /// <summary>True once the app set <see cref="TextColor"/> (not a theme or an owning control).</summary>
+        internal bool TextColorSetByApp => _textColorSetByApp;
+
+        /// <summary>Sets the colour on behalf of the control that owns this label (per-state button colours),
+        /// which does not count as set by the app.</summary>
+        internal void SetOwnerTextColor(Color value)
+        {
+            _textColorFromTheme = false;
+            ApplyTextColor(value);
         }
 
         private void ApplyTextColor(Color value)
@@ -250,6 +264,7 @@ namespace MonoGame.PortableUI.Controls
         protected void SeedThemeTextColor(Color value)
         {
             _textColorFromTheme = true;
+            _textColorSetByApp = false;
             ApplyTextColor(value);
         }
 

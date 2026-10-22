@@ -240,6 +240,11 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        /// <summary>
+        ///     Colour of a <see cref="TextBlock"/> content (with <see cref="HoverTextColor"/>/<see cref="PressedTextColor"/>/
+        ///     <see cref="DisabledTextColor"/> per state), applied from the moment the content is set. A label whose own
+        ///     TextColor the app set keeps it in every state, unless this property is set explicitly too.
+        /// </summary>
         public Color TextColor
         {
             get { return _textColor; }
@@ -303,13 +308,24 @@ namespace MonoGame.PortableUI.Controls
             }
         }
 
+        protected override void OnContentChanged(Control? newControl)
+        {
+            base.OnContentChanged(newControl);
+            // A TextBlock label shows the button's state colours from the start, not after the first state change.
+            ChangeVisualState();
+        }
+
+        /// <summary>Whether the button colours its <see cref="TextBlock"/> content: unless the app set the
+        /// label's own TextColor, which then stays (an explicit <see cref="TextColor"/> on the button wins).</summary>
+        private protected bool DrivesLabelColor(TextBlock textBlock) => !textBlock.TextColorSetByApp || !_textColorFromTheme;
+
         internal override void ChangeVisualState()
         {
             var isPressed = IsPressedVisualState();
             UpdatePressedAnimation(isPressed);
 
             var textBlock = Content as TextBlock;
-            if (textBlock == null)
+            if (textBlock == null || !DrivesLabelColor(textBlock))
                 return;
 
             // The label fades between state colours with the face (theme style's TransitionDuration).
@@ -322,7 +338,7 @@ namespace MonoGame.PortableUI.Controls
                 color = ResolveStateStyle()?.TextColor ?? color;
                 if (!IsEnabled && DisabledTextColor != null)
                     color = (Color)DisabledTextColor;
-                textBlock.TextColor = color;
+                textBlock.SetOwnerTextColor(color);
                 return;
             }
             if (!IsEnabled && DisabledTextColor != null)
@@ -331,7 +347,7 @@ namespace MonoGame.PortableUI.Controls
                 color = (Color)HoverTextColor;
             if (IsEnabled && isPressed && PressedTextColor != null)
                 color = (Color)PressedTextColor;
-            textBlock.TextColor = color;
+            textBlock.SetOwnerTextColor(color);
         }
 
         private void UpdatePressedAnimation(bool isPressed)

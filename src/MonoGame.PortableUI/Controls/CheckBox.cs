@@ -248,7 +248,7 @@ namespace MonoGame.PortableUI.Controls
         {
             var textBlock = Content as TextBlock;
             if (textBlock != null)
-                textBlock.TextColor = TextColor;
+                textBlock.SetOwnerTextColor(TextColor);
         }
 
         private void CheckBoxClick(object? sender, EventArgs e)

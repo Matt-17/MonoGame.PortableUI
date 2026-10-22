@@ -48,8 +48,8 @@ namespace MonoGame.PortableUI.Controls
             if (IsChecked && IsEnabled)
             {
                 var textBlock = Content as TextBlock;
-                if (textBlock != null && ToggleTextColor.HasValue)
-                    textBlock.TextColor = (Color)ToggleTextColor;
+                if (textBlock != null && ToggleTextColor.HasValue && DrivesLabelColor(textBlock))
+                    textBlock.SetOwnerTextColor((Color)ToggleTextColor);
             }
         }
 

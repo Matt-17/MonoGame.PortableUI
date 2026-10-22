@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Fix: a button replaced its label's own text colour on the first state change:** with a `TextBlock` as `Content` whose `TextColor` the app set, the button overwrote it with its `TextColor`/`HoverTextColor`/`PressedTextColor` at the first press or hover - a navy label on a white button turned white after a press slid off. The label's own colour now stays in every state (an explicitly set `Button.TextColor` still drives it), and a label without its own colour shows the button's state colours from the moment it is set, not only after the first state change.
+
 - **Wrap modes for headings (`TextWrapping.WrapBottomHeavy`, `TextWrapping.WrapBalanced`):** both keep the fewest lines plain wrapping needs and one line when the text fits. Bottom-heavy fills from the bottom, each lower line as long as it fits ("Deep" over "Purple Magic Sour"); balanced makes the longest line as short as possible ("Deep Purple" over "Magic Sour"). A word wider than the line still breaks by characters (that paragraph wraps plainly). A `TextBox` wraps like `Wrap` in every mode.
 
 - **Glass and blur are part of the core:** the glass brushes (`FrostedGlassBrush`, `AcrylicBrush`, `LiquidGlassBrush`, `ShimmerGlassBrush`), the backdrop blur they sample (`BackdropRenderer`, `BackdropManager`, `BackdropSource`) and their shaders (`Blur`, `LiquidGlass`) moved from `CodeIX.PortableUI.Effects` into `MonoGame.PortableUI`; namespaces are unchanged. The engine uses the core's backdrop renderer unless `EffectRenderers.Backdrop` supplies another. The effects package keeps only the decorative post effects (scanlines, CRT barrel, vignette, film grain, bloom, dot matrix); `EffectCache` still finds `Blur` and `LiquidGlass` by name. Output is unchanged (screenshots identical).
