@@ -1,10 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.Xna.Framework;
 using MonoGame.PortableUI.Animation;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Controls;
+using MonoGame.PortableUI.Media;
 using MonoGame.PortableUI.Controls.Events;
 
 namespace MonoGame.PortableUI.Tests
@@ -39,6 +41,32 @@ namespace MonoGame.PortableUI.Tests
             var segmented = new SegmentedControl { Width = 300, IndicatorInset = 0, IndicatorMotion = motion, Orientation = orientation, SelectedIndex = 0 };
             segmented.Add("Sun").Add("System").Add("Light", "from 18");
             return segmented;
+        }
+
+        [TestMethod]
+        public void Custom_content_is_built_for_the_option_and_for_its_copy_under_the_indicator()
+        {
+            using var game = new Game();
+            var built = new List<bool>();
+            var segmented = new SegmentedControl { Width = 200, IndicatorMotion = PartMotion.None, SelectedIndex = 0 };
+            segmented.Add(selected =>
+            {
+                built.Add(selected);
+                return new Border { Width = 18, Height = 18, BackgroundBrush = new SolidColorBrush(selected ? Color.White : Color.Black) };
+            }).Add("Text");
+            var engine = Show(game, segmented);
+
+            CollectionAssert.AreEquivalent(new[] { false, true }, built);
+            var content = (Border)segmented.GetOption(0)!.GetDescendants().First();
+            var option = segmented.GetOption(0)!.ClippingRect;
+            Assert.AreEqual(18, content.ClippingRect.Width, 0.01f);
+            Assert.AreEqual(option.Left + option.Width / 2, content.ClippingRect.Left + 9, 0.6f, "centred side by side");
+            Assert.IsFalse(content.IsHitTestVisible, "a tap selects the option");
+
+            segmented.ContentTemplate = (segment, selected) => new TextBlock { Text = segment.Text + (selected ? "*" : "") };
+            Step(engine, 0.016);
+            Assert.AreEqual("Text", ((TextBlock)segmented.GetOption(1)!.GetDescendants().First()).Text);
+            Assert.AreEqual(4, built.Count, "a segment's own content wins over the template");
         }
 
         [TestMethod]

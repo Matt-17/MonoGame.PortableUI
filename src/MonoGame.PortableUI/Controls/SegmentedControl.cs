@@ -9,7 +9,8 @@ using MonoGame.PortableUI.Text;
 
 namespace MonoGame.PortableUI.Controls
 {
-    /// <summary>One option of a <see cref="SegmentedControl"/>: its label and an optional muted note beside it.</summary>
+    /// <summary>One option of a <see cref="SegmentedControl"/>: its label and an optional muted note beside it, or any
+    /// content (<see cref="Content"/>).</summary>
     public sealed class Segment
     {
         public Segment(string text, string? note = null)
@@ -18,7 +19,20 @@ namespace MonoGame.PortableUI.Controls
             Note = note;
         }
 
+        public Segment(Func<bool, Control> content)
+        {
+            Text = "";
+            Content = content;
+        }
+
         public string Text { get; set; }
+
+        /// <summary>
+        ///     Builds the option's content (an icon, an icon and text, anything) instead of the label. Called twice: with
+        ///     false for the option's own look and with true for the copy shown where the indicator covers it, which should
+        ///     use the selected colours - so the colours cross over with the indicator as they do for text.
+        /// </summary>
+        public Func<bool, Control>? Content { get; set; }
 
         /// <summary>A second, muted text on the right of the label (e.g. "from 18"); null = none.</summary>
         public string? Note { get; set; }
@@ -158,6 +172,34 @@ namespace MonoGame.PortableUI.Controls
             InvalidateLayout(true);
             return this;
         }
+
+        /// <summary>Adds an option with any content (see <see cref="Segment.Content"/>); returns this control for chaining.</summary>
+        public SegmentedControl Add(Func<bool, Control> content)
+        {
+            Segments.Add(new Segment(content));
+            InvalidateLayout(true);
+            return this;
+        }
+
+        /// <summary>
+        ///     Builds every option's content from its <see cref="Segment"/> (its Text, Note, Tag) instead of the label;
+        ///     a segment's own <see cref="Segment.Content"/> wins. Called with false for the option's own look and with true
+        ///     for the copy under the indicator (selected colours). Null (default): the label.
+        /// </summary>
+        public Func<Segment, bool, Control>? ContentTemplate
+        {
+            get => _contentTemplate;
+            set
+            {
+                _contentTemplate = value;
+                Refresh();
+            }
+        }
+
+        private Func<Segment, bool, Control>? _contentTemplate;
+
+        private Control? BuildContent(Segment segment, bool selected)
+            => segment.Content?.Invoke(selected) ?? _contentTemplate?.Invoke(segment, selected);
 
         /// <summary>Rebuilds the options after <see cref="Segments"/> changed in place.</summary>
         public void Refresh()
@@ -487,10 +529,10 @@ namespace MonoGame.PortableUI.Controls
             for (var i = 0; i < Segments.Count; i++)
             {
                 var index = i;
-                var option = new Option(Segments[i], _orientation, _textSize, _textColor, _noteColor, _dynamicFont, _noteFont) { Parent = this };
+                var option = new Option(Segments[i], BuildContent(Segments[i], false), _orientation, _textSize, _textColor, _noteColor, _dynamicFont, _noteFont) { Parent = this };
                 option.Click += (_, _) => SelectedIndex = index;
                 _options.Add(option);
-                _covered.Add(new Option(Segments[i], _orientation, _textSize, _selectedTextColor, _selectedNoteColor, _dynamicFont, _noteFont) { IsHitTestVisible = false, Parent = _cover });
+                _covered.Add(new Option(Segments[i], BuildContent(Segments[i], true), _orientation, _textSize, _selectedTextColor, _selectedNoteColor, _dynamicFont, _noteFont) { IsHitTestVisible = false, Parent = _cover });
             }
         }
 
@@ -555,16 +597,27 @@ namespace MonoGame.PortableUI.Controls
             RequestRedraw();
         }
 
-        /// <summary>The label (and note) of one option; tapping it selects it.</summary>
+        /// <summary>The label (and note), or the custom content, of one option; tapping it selects it.</summary>
         private sealed class Option : Control
         {
             private readonly TextBlock _label;
             private readonly TextBlock? _note;
+            private readonly Control? _content;
+            private readonly bool _horizontal;
 
-            public Option(Segment segment, Orientation orientation, float textSize, Color textColor, Color noteColor, UIFont? font, UIFont? noteFont)
+            public Option(Segment segment, Control? content, Orientation orientation, float textSize, Color textColor, Color noteColor, UIFont? font, UIFont? noteFont)
             {
                 IsFocusable = false;
                 var horizontal = orientation == Orientation.Horizontal;
+                _horizontal = horizontal;
+                if (content != null)
+                {
+                    _content = content;
+                    _content.IsHitTestVisible = false;
+                    _content.Parent = this;
+                    _label = new TextBlock();
+                    return;
+                }
                 _label = new TextBlock
                 {
                     Text = segment.Text,
@@ -598,6 +651,8 @@ namespace MonoGame.PortableUI.Controls
 
             public void SetColors(Color text, Color note)
             {
+                if (_content != null)
+                    return;
                 _label.TextColor = text;
                 if (_note != null)
                     _note.TextColor = note;
@@ -605,17 +660,22 @@ namespace MonoGame.PortableUI.Controls
 
             public override IEnumerable<Control> GetDescendants()
             {
-                yield return _label;
+                yield return _content ?? _label;
                 if (_note != null)
                     yield return _note;
             }
 
             protected internal override int VisualChildCount => _note != null ? 2 : 1;
 
-            protected internal override Control GetVisualChild(int index) => index == 0 ? _label : _note!;
+            protected internal override Control GetVisualChild(int index) => index == 0 ? _content ?? _label : _note!;
 
             public override Size MeasureLayout()
             {
+                if (_content != null)
+                {
+                    var size = _content.Measure();
+                    return new Size(size.Width + SidePadding * 2, size.Height) + Margin;
+                }
                 var label = _label.Measure();
                 var note = _note?.Measure() ?? Size.Empty;
                 var width = label.Width + (_note != null ? Gap + note.Width : 0) + SidePadding * 2;
@@ -627,6 +687,17 @@ namespace MonoGame.PortableUI.Controls
                 base.UpdateLayout(rect);
                 var box = ClippingRect;
                 var inner = new Rect(box.Left + SidePadding, box.Top, Math.Max(0, box.Width - SidePadding * 2), box.Height);
+                if (_content != null)
+                {
+                    // Placed by its own alignment; stretched content is centred at its measured size side by side.
+                    if (_content.HorizontalAlignment == HorizontalAlignment.Stretch && _horizontal)
+                    {
+                        var width = Math.Min(inner.Width, _content.Measure().Width);
+                        inner = new Rect(inner.Left + (inner.Width - width) / 2, inner.Top, width, inner.Height);
+                    }
+                    _content.UpdateLayout(inner);
+                    return;
+                }
                 if (_note == null)
                 {
                     _label.UpdateLayout(inner);
