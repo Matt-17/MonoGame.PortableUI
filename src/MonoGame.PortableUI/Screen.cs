@@ -190,6 +190,9 @@ namespace MonoGame.PortableUI
         /// <summary>Scroll positions kept under <see cref="Controls.ScrollViewer.StateKey"/>, for the screen's lifetime.</summary>
         internal Dictionary<string, PointF> ScrollStates { get; } = new Dictionary<string, PointF>(StringComparer.Ordinal);
 
+        /// <summary>Scroll positions of viewers without a key, by their place in the tree (<see cref="Controls.ScrollViewer.RestoresScrollState"/>).</summary>
+        internal Dictionary<long, PointF> PlaceScrollStates { get; } = new Dictionary<long, PointF>();
+
         /// <summary>The engine whose focus this screen routes to: its own, or the default engine for
         /// a screen that is not hosted yet.</summary>
         private ScreenEngine? FocusEngine => ScreenEngine ?? MonoGame.PortableUI.ScreenEngine.Instance;

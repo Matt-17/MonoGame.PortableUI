@@ -219,10 +219,10 @@ namespace MonoGame.PortableUI
         private static bool PairsElements(ThemeTransitionStyle style, List<Screen> ghosts)
             => style == ThemeTransitionStyle.ElementFade && ghosts.Count > 0 && ghosts.TrueForAll(g => g is GhostScreen);
 
-        // Scroll viewers with a StateKey in an old tree follow the position kept on the screen the new tree lives in.
+        // Scroll viewers in an old tree follow the position kept on the screen the new tree lives in (by key or place).
         private static void CollectPairedScrolls(Control control, Screen source, List<(ScrollViewer Viewer, Screen Source)> pairs)
         {
-            if (control is ScrollViewer { StateKey: not null } viewer)
+            if (control is ScrollViewer { KeepsState: true } viewer)
                 pairs.Add((viewer, source));
             foreach (var child in control.GetDescendants())
                 CollectPairedScrolls(child, source, pairs);
@@ -293,7 +293,7 @@ namespace MonoGame.PortableUI
         {
             foreach (var (viewer, source) in layer.PairedScrolls)
             {
-                if (source.ScrollStates.TryGetValue(viewer.StateKey!, out var offset) && viewer.Offset != offset)
+                if (viewer.TryGetKeptOffset(source, out var offset) && viewer.Offset != offset)
                     viewer.ScrollTo(offset, revealScrollBar: false);
             }
         }

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Scroll positions survive rebuilds without a key (`ScrollViewer.RestoresScrollState`, on by default):** a page that replaced its content (a tapped filter chip, new data, a new theme) put every scroll viewer without a `StateKey` back to 0, so a row of chips jumped back to the left. A viewer now keeps its position by its place in the screen's tree: the path of element types and child positions (or `Tag`s, for value types and strings, so rebuilt list rows match by item) from the screen root or from the nearest viewer with a key. A new viewer at the same place on the same screen starts there from its first layout, quietly, like one with a key. A different structure starts at 0, a new screen starts empty, and `StateKey` still wins. `RestoresScrollState = false` makes a viewer start at the beginning. Live theme changes pair these viewers too.
+
 - **Fix: toasts ignored the safe area:** `ToastService.EdgeOffset` counted from the screen edge, so with an app drawn edge to edge a bottom toast sat over the navigation bar. It now counts from `ScreenEngine.SafeAreaInsets` (system bars, cutouts, the on-screen keyboard), and a shown toast follows inset changes.
 
 - **Element fade (`ThemeTransitionStyle.ElementFade`, `Control.ThemeFade`):** for long, unprompted theme changes such as a sunset schedule or the system's dark mode, there is no picture of the old look. The rebuilt tree is paired with the old one element by element (by place, or by `Tag` among siblings), and each element draws its old twin over itself at its own pace.

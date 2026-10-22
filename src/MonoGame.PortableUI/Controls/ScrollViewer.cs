@@ -42,6 +42,8 @@ namespace MonoGame.PortableUI.Controls
         private TimeSpan? _lastScrollActivity;
         private string? _stateKey;
         private bool _stateRestored;
+        // Where the viewer sits in its screen's tree (0: not laid out on a screen yet).
+        private long _placeKey;
         private PointF _activityOffset;
         private const double ScrollBarFadeMilliseconds = 300;
         private bool _hasVerticalScrollBar;
@@ -93,6 +95,8 @@ namespace MonoGame.PortableUI.Controls
                 _offset = value;
                 if (_stateKey != null && Screen is { } screen)
                     screen.ScrollStates[_stateKey] = value;
+                else if (_placeKey != 0 && RestoresScrollState && Screen is { } placeScreen)
+                    placeScreen.PlaceScrollStates[_placeKey] = value;
                 // Scrolling moves content without a layout pass: still a visual change for redraws
                 // and for cached ancestor layers.
                 RequestRedraw();
@@ -119,6 +123,15 @@ namespace MonoGame.PortableUI.Controls
                 InvalidateLayout(true);
             }
         }
+
+        /// <summary>
+        ///     A viewer without a <see cref="StateKey"/> keeps its position by its place: a new viewer at the same place in the
+        ///     same screen's tree (same path of types and child positions, or of <see cref="Control.Tag"/>s where set; from
+        ///     the nearest viewer with a key, if any) starts where the last one was, like with a key - so a page that rebuilds
+        ///     its content never jumps back. Where the structure differs it starts at 0. True by default; false for a viewer
+        ///     that must start at the beginning.
+        /// </summary>
+        public bool RestoresScrollState { get; set; } = true;
 
         /// <summary>Raised whenever <see cref="Offset"/> changes (dragging, flinging, snapping, ScrollTo).</summary>
         public event EventHandler? ScrollChanged;
@@ -314,19 +327,72 @@ namespace MonoGame.PortableUI.Controls
             UpdateContentLayout();
         }
 
-        // The first layout on a screen that kept a position under StateKey starts there, quietly.
+        // The first layout on a screen that kept a position under StateKey (or for this place) starts there, quietly.
         private void RestoreState()
         {
-            if (_stateRestored || _stateKey == null || Screen is not { } screen)
+            if (Screen is not { } screen)
+                return;
+            if (_stateKey == null)
+                _placeKey = PlaceKey();
+            if (_stateRestored)
                 return;
             _stateRestored = true;
-            if (!screen.ScrollStates.TryGetValue(_stateKey, out var kept))
+            if (!TryGetKeptOffset(screen, out var kept))
                 return;
             _offset = new PointF(
                 CanScrollX ? Clamp(kept.X, 0, MaxHorizontalOffset) : 0,
                 CanScrollY ? Clamp(kept.Y, 0, MaxVerticalOffset) : 0);
             _activityOffset = _offset;
             // Where it starts is no scroll: no ScrollChanged, and the kept value stays as it was (content may still grow).
+        }
+
+        /// <summary>The position kept on <paramref name="screen"/> for this viewer's key or place.</summary>
+        internal bool TryGetKeptOffset(Screen screen, out PointF offset)
+        {
+            if (_stateKey != null)
+                return screen.ScrollStates.TryGetValue(_stateKey, out offset);
+            offset = default;
+            return _placeKey != 0 && RestoresScrollState && screen.PlaceScrollStates.TryGetValue(_placeKey, out offset);
+        }
+
+        /// <summary>Whether a position can be kept for this viewer (a key, or a place it was laid out at).</summary>
+        internal bool KeepsState => _stateKey != null || (_placeKey != 0 && RestoresScrollState);
+
+        // FNV-style hash of the path to the screen root (or to the nearest keyed viewer): per level the element's type and its
+        // Tag (value types and strings, so rebuilt rows match by item) or else its position among its parent's children.
+        private long PlaceKey()
+        {
+            const long prime = 1099511628211;
+            var hash = unchecked((long)14695981039346656037UL);
+            hash = (hash ^ (int)ScrollOrientation) * prime;
+            Control current = this;
+            while (current.Parent is Control parent)
+            {
+                hash = (hash ^ current.GetType().GetHashCode()) * prime;
+                var tag = current.Tag;
+                if (tag != null && (tag is string || tag.GetType().IsValueType))
+                    hash = (hash ^ tag.GetHashCode() ^ 0x5bd1e995) * prime;
+                else
+                    hash = (hash ^ IndexIn(parent, current)) * prime;
+                if (parent is ScrollViewer { StateKey: { } key })
+                {
+                    hash = (hash ^ StringComparer.Ordinal.GetHashCode(key)) * prime;
+                    break;
+                }
+                current = parent;
+            }
+            return hash == 0 ? 1 : hash;
+        }
+
+        private static int IndexIn(Control parent, Control child)
+        {
+            var count = parent.VisualChildCount;
+            for (var i = 0; i < count; i++)
+            {
+                if (ReferenceEquals(parent.GetVisualChild(i), child))
+                    return i;
+            }
+            return -1;
         }
 
         protected internal override void OnDrawOverlay(SpriteBatch spriteBatch, Rect rect)
