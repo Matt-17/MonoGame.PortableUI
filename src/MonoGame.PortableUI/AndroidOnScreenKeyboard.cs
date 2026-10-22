@@ -31,6 +31,8 @@ namespace MonoGame.PortableUI
         private TextEditState _pushed;
         private bool _checkPosted;
         private OnScreenKeyboardRequest? _request;
+        // UI thread: whether the IME window was last seen on screen (window insets).
+        private bool _imeShown;
 
         /// <param name="gameView">MonoGame's game view.</param>
         /// <param name="engine">Receives the typed characters (MonoGame has no TextInput event on
@@ -94,7 +96,9 @@ namespace MonoGame.PortableUI
             });
         }
 
-        public bool IsVisible { get; private set; }
+        public bool IsVisible => _isVisible;
+
+        private volatile bool _isVisible;
 
         public event EventHandler<OnScreenKeyboardEventArgs>? VisibilityChanged;
 
@@ -119,9 +123,9 @@ namespace MonoGame.PortableUI
                 _view.RequestFocus();
                 InputMethodManager()?.ShowSoftInput(_view, ShowFlags.Implicit);
             });
-            if (IsVisible)
+            if (_isVisible)
                 return;
-            IsVisible = true;
+            _isVisible = true;
             VisibilityChanged?.Invoke(this, new OnScreenKeyboardEventArgs(true, 0));
         }
 
@@ -135,9 +139,33 @@ namespace MonoGame.PortableUI
                 if (_imeView is { IsFocused: true })
                     _view.RequestFocus();
             });
-            if (!IsVisible)
+            if (!_isVisible)
                 return;
-            IsVisible = false;
+            _isVisible = false;
+            VisibilityChanged?.Invoke(this, new OnScreenKeyboardEventArgs(false, 0));
+        }
+
+        // UI thread. The system closed the keyboard (back, the IME's own hide key): as for a native EditText the field
+        // keeps its focus, but the invisible editor gives the view focus back, so the next back reaches the app instead
+        // of the input method (which showed itself again). Tapping the field shows the keyboard again.
+        private void OnImeVisibility(bool shown)
+        {
+            var wasShown = _imeShown;
+            _imeShown = shown;
+            if (shown || !wasShown || _imeView is not { IsFocused: true })
+                return;
+            _view.RequestFocus();
+            if (_engine != null)
+                _engine.InvokeOnGameThread(SystemHidden);
+            else
+                SystemHidden();
+        }
+
+        private void SystemHidden()
+        {
+            if (!_isVisible)
+                return;
+            _isVisible = false;
             VisibilityChanged?.Invoke(this, new OnScreenKeyboardEventArgs(false, 0));
         }
 
@@ -169,6 +197,8 @@ namespace MonoGame.PortableUI
                 return null;
             _imeView = new ImeView(context, this) { Alpha = 0, Focusable = true, FocusableInTouchMode = true };
             parent.AddView(_imeView, new ViewGroup.LayoutParams(1, 1));
+            if (System.OperatingSystem.IsAndroidVersionAtLeast(30))
+                _imeView.SetOnApplyWindowInsetsListener(new ImeInsetsListener(this));
             // With a text editor focused, Android would pan or resize the window for the keyboard; PortableUI lifts
             // the field itself from the keyboard inset (AndroidWindowInsets), so the window stays as it is.
             (context as Android.App.Activity)?.Window?.SetSoftInputMode(SoftInput.AdjustNothing);
@@ -225,6 +255,21 @@ namespace MonoGame.PortableUI
             info.InitialSelEnd = Selection.GetSelectionEnd(_editable);
             if (request?.Hint is { } hint)
                 info.HintText = new Java.Lang.String(hint);
+        }
+
+        // Tells the keyboard when the IME window appears and disappears, whoever closed it.
+        private sealed class ImeInsetsListener : Java.Lang.Object, View.IOnApplyWindowInsetsListener
+        {
+            private readonly AndroidOnScreenKeyboard _keyboard;
+
+            public ImeInsetsListener(AndroidOnScreenKeyboard keyboard) => _keyboard = keyboard;
+
+            public WindowInsets OnApplyWindowInsets(View view, WindowInsets insets)
+            {
+                if (System.OperatingSystem.IsAndroidVersionAtLeast(30))
+                    _keyboard.OnImeVisibility(insets.IsVisible(WindowInsets.Type.Ime()));
+                return view.OnApplyWindowInsets(insets) ?? insets;
+            }
         }
 
         /// <summary>The view the IME types into: invisible, 1 px, next to the game view.</summary>
