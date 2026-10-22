@@ -1061,11 +1061,12 @@ namespace MonoGame.PortableUI
         private bool _drawingIntoPostFx;
 
         /// <summary>Whether a control marked to draw above the flights is set aside now: flights are drawn this frame
-        /// and the tree is drawn straight into the frame (not into a layer, clip, island or warm-up picture).</summary>
+        /// and the tree is drawn in frame coordinates (into the frame or a ProgressiveBlur's full-frame picture - it is
+        /// then drawn unblurred - not into a layer, clip, island or warm-up picture).</summary>
         private bool SetsAsideForFlights()
             => !_drawingAboveFlights && !_drawingSharedFlights && !_drawingIntoPostFx
                 && ScreenEngine is { HasSharedFlights: true, SharedFlightHost: not null, IsWarmingUp: false }
-                && _layerInProgress == null && _clipDepth == 0 && _clipInProgress == null && _blurInProgress == null
+                && _layerInProgress == null && _clipDepth == 0 && _clipInProgress == null
                 && !_inIslandPostFx && _deformInProgress == null;
 
         private void DrawAboveFlights(SpriteBatch spriteBatch)

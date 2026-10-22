@@ -33,9 +33,10 @@ namespace MonoGame.PortableUI.Controls
         /// <summary>
         ///     While shared elements fly, draw this control (and its subtree) above the flights instead of in its place
         ///     in the tree - a scrim or caption over the area a hero lands in, which a flying control would otherwise pass
-        ///     over and then suddenly sit under. It keeps its screen's transform, clip and opacity. Not inside a
-        ///     <see cref="CacheMode.Bitmap"/> layer, clip shape, effect island or <see cref="ProgressiveBlur"/> (drawn
-        ///     in place there). Without a flight nothing changes.
+        ///     over and then suddenly sit under. It keeps its screen's transform, clip and opacity. Inside a
+        ///     <see cref="ProgressiveBlur"/> it is set aside too, drawn unblurred during the flight. Not inside a
+        ///     <see cref="CacheMode.Bitmap"/> layer, clip shape or effect island (drawn in place there). Without a flight
+        ///     nothing changes.
         /// </summary>
         public bool DrawsAboveSharedFlights { get; set; }
 
