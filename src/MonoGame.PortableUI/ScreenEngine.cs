@@ -189,6 +189,24 @@ namespace MonoGame.PortableUI
         public PointF WindowToLayout(PointF point)
             => new PointF((point.X - RenderOffset.X) / RenderScale, (point.Y - RenderOffset.Y) / RenderScale);
 
+        /// <summary>
+        ///     Draws <paramref name="content"/> (a control not in any tree) into a PNG instead of onto the screen: laid out
+        ///     at <paramref name="width"/> layout units and as tall as it wants, in the active screen's theme and fonts, at
+        ///     <paramref name="scale"/> pixels per unit (0: as the screen is drawn). For a card to share or a code to
+        ///     save. Uncovered parts stay transparent, so give the content a background. Game thread only (an event
+        ///     handler, an update); the screen on display is not disturbed.
+        /// <code>
+        /// var png = engine.RenderToPng(new Border { BackgroundBrush = Color.White, Padding = new Thickness(24), Content = card }, 360);
+        /// </code>
+        /// </summary>
+        public byte[] RenderToPng(Controls.Control content, float width, float scale = 0)
+        {
+            if (content == null)
+                throw new ArgumentNullException(nameof(content));
+            var screen = ActiveScreen ?? throw new InvalidOperationException("No screen is shown yet.");
+            return screen.RenderToPng(Game.GraphicsDevice, content, width, scale);
+        }
+
         private readonly System.Collections.Concurrent.ConcurrentQueue<Action> _gameThreadQueue = new System.Collections.Concurrent.ConcurrentQueue<Action>();
 
         /// <summary>
