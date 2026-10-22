@@ -45,6 +45,25 @@ namespace MonoGame.PortableUI.Demo
                 Content = cardTitle
             });
 
+            // A scrim and caption over where the card lands: drawn above the flying card the whole time, so the card
+            // does not pass over them and then suddenly sit under them.
+            root.AddChild(new Border
+            {
+                Height = 72,
+                VerticalAlignment = VerticalAlignment.Bottom,
+                CornerRadius = new CornerRadius(0, 0, 16, 16),
+                BackgroundBrush = new LinearGradientBrush(Color.Transparent, new Color(0, 0, 0, 150)),
+                DrawsAboveSharedFlights = true,
+                Content = new TextBlock
+                {
+                    Text = "Caption above the flight",
+                    TextColor = Color.White,
+                    TextSize = 18,
+                    Margin = new Thickness(20, 0, 0, 12),
+                    VerticalAlignment = VerticalAlignment.Bottom
+                }
+            });
+
             root.AddChild(new TextBlock
             {
                 Text = $"Screen transition: {transition}. The card flew here from the Motion tab: same SharedElementKey on both screens.",

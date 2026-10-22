@@ -133,7 +133,9 @@ rows are recycled, so the list keys shown tops by item (`TakeShownRowTops` befor
 controls on the screen being left (`ScreenEngine.SharedElements.cs`, only once `SharedElementsInUse`); the target screen's
 first layout (`PerformLayoutIfDirty` / `Draw` → `ResolveSharedElements`) starts flights: shared scale + layout-glide offset
 from the twin's rect, `SharedFlightRole.Flying` controls are skipped in their tree and drawn by the last-drawn screen
-(`SharedFlightHost`) from the root, cross-faded with the hidden twin stretched onto the flying rect (by distortion).
+(`SharedFlightHost`) from the root, cross-faded with the hidden twin stretched onto the flying rect (by distortion). Controls with `DrawsAboveSharedFlights` are set aside
+during the tree draw while flights run (`Screen.SetsAsideForFlights`: straight into the frame only, not in layers/clips/islands/warm-up)
+with their parent context and drawn by the host after the flights (`ScreenEngine.AboveFlightScreens`).
 
 **Enter/exit:** `Control.VisibilityTransition` animates `IsVisible`/`IsGone`. The properties return the target; while an exit plays
 `UIElement.ExitHolds` keeps it in layout and drawing. Layout and draw code therefore read `IsGoneShown`/`IsVisibleShown`, while input, focus,

@@ -649,6 +649,7 @@ namespace MonoGame.PortableUI
                 AdvanceLayerCacheTick();
             try
             {
+                AboveFlightScreens.Clear();
                 if (_warmUpScreen != null)
                     WarmUpPushedScreen(spriteBatch);
                 var screens = VisibleScreens;
@@ -960,10 +961,12 @@ namespace MonoGame.PortableUI
             {
                 device.SetRenderTarget(target);
                 device.Clear(Color.Transparent);
+                IsWarmingUp = true;
                 screen.Draw(spriteBatch);
             }
             finally
             {
+                IsWarmingUp = false;
                 if (previousTargets.Length == 0)
                     device.SetRenderTarget(null);
                 else

@@ -31,6 +31,12 @@ namespace MonoGame.PortableUI
         /// <summary>The screen drawn last this frame; it draws the flights on top (before its post effects).</summary>
         internal Screen? SharedFlightHost { get; private set; }
 
+        /// <summary>Screens that set controls aside this frame to draw above the flights (<see cref="Control.DrawsAboveSharedFlights"/>).</summary>
+        internal readonly List<Screen> AboveFlightScreens = new List<Screen>();
+
+        /// <summary>A screen is drawn offscreen ahead of its transition: nothing is set aside for the flights.</summary>
+        internal bool IsWarmingUp { get; private set; }
+
         internal IReadOnlyList<(Control Target, Control Source)> SharedFlights => _sharedFlights;
 
         /// <summary>Before navigating from <paramref name="from"/> to <paramref name="to"/>: remember where keyed controls are drawn.</summary>

@@ -491,6 +491,9 @@ namespace MonoGame.PortableUI
                 device.Clear(Color.Transparent);
             }
 
+            _aboveFlights.Clear();
+            // Set aside controls would miss the screen's post effects.
+            _drawingIntoPostFx = usePostFx;
             OnBeforeDraw(spriteBatch);
 
             DrawBackground(spriteBatch);
@@ -1044,6 +1047,44 @@ namespace MonoGame.PortableUI
             {
                 _drawingSharedFlights = false;
             }
+
+            var aside = engine.AboveFlightScreens;
+            for (var i = 0; i < aside.Count; i++)
+                aside[i].DrawAboveFlights(spriteBatch);
+            aside.Clear();
+        }
+
+        // Controls set aside while drawing the tree (DrawsAboveSharedFlights), with the context they would have been
+        // drawn in and the fade of a screen drawn as one faded picture.
+        private readonly List<(Control Control, RenderContext Parent, float Fade)> _aboveFlights = new List<(Control, RenderContext, float)>();
+        private bool _drawingAboveFlights;
+        private bool _drawingIntoPostFx;
+
+        /// <summary>Whether a control marked to draw above the flights is set aside now: flights are drawn this frame
+        /// and the tree is drawn straight into the frame (not into a layer, clip, island or warm-up picture).</summary>
+        private bool SetsAsideForFlights()
+            => !_drawingAboveFlights && !_drawingSharedFlights && !_drawingIntoPostFx
+                && ScreenEngine is { HasSharedFlights: true, SharedFlightHost: not null, IsWarmingUp: false }
+                && _layerInProgress == null && _clipDepth == 0 && _clipInProgress == null && _blurInProgress == null
+                && !_inIslandPostFx && _deformInProgress == null;
+
+        private void DrawAboveFlights(SpriteBatch spriteBatch)
+        {
+            _drawingAboveFlights = true;
+            try
+            {
+                for (var i = 0; i < _aboveFlights.Count; i++)
+                {
+                    var (control, parent, fade) = _aboveFlights[i];
+                    DrawControlBatched(spriteBatch, control, fade < 0.999f ? parent.Faded(fade) : parent);
+                }
+                FlushLayerComposites(spriteBatch);
+            }
+            finally
+            {
+                _drawingAboveFlights = false;
+                _aboveFlights.Clear();
+            }
         }
 
         /// <summary>
@@ -1189,6 +1230,14 @@ namespace MonoGame.PortableUI
                 return;
             if (SkipsInSnapshot(control))
                 return;
+            if (control.DrawsAboveSharedFlights && SetsAsideForFlights())
+            {
+                _aboveFlights.Add((control, parentContext, _drawingAsGroup ? TransitionOpacity : 1f));
+                var aside = ScreenEngine!.AboveFlightScreens;
+                if (!aside.Contains(this))
+                    aside.Add(this);
+                return;
+            }
 
             var context = parentContext.ForControl(control);
             if (context.ScissorRect.Width <= 0 || context.ScissorRect.Height <= 0)
@@ -1667,6 +1716,10 @@ namespace MonoGame.PortableUI
             /// </summary>
             public RenderContext Placed(Matrix placement, Vector2 scale, float opacity)
                 => new RenderContext(placement * _transform, Scale * scale, Opacity * opacity, ScissorRect, ChildClipRect, RenderRect, true, RestScale);
+
+            /// <summary>This context at <paramref name="factor"/> of its opacity.</summary>
+            public RenderContext Faded(float factor)
+                => new RenderContext(_transform, Scale, Opacity * factor, ScissorRect, ChildClipRect, RenderRect, Moving, RestScale);
 
             public static bool HasOverflow(Thickness overflow)
                 => overflow.Left > 0 || overflow.Top > 0 || overflow.Right > 0 || overflow.Bottom > 0;
