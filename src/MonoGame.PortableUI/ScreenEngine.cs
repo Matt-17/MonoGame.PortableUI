@@ -1143,7 +1143,9 @@ namespace MonoGame.PortableUI
             _progressiveBlur?.Dispose();
             DisposeLayerCaches();
             _stackBackdropTarget?.Dispose();
-            _themeSnapshot?.Dispose();
+            foreach (var layer in _themeLayers)
+                layer.Target?.Dispose();
+            _themePending?.Target?.Dispose();
             _wake.Dispose();
         }
     }

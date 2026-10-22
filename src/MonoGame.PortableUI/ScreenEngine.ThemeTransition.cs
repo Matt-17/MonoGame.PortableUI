@@ -22,6 +22,9 @@ namespace MonoGame.PortableUI
     // apply replaced the visible screens or their content, the old trees go on - laid out, animated, drawn every frame
     // with the old theme, without input - as ghost screens, and the old look is drawn from them each frame; where it
     // changed controls in place there is no old tree, and the picture stays.
+    // Changes stack: one started while another runs takes what is on screen then as its old look, and the earlier change
+    // goes on inside it (live, it is composited into the new one's old look every frame), so nothing cuts. A change
+    // that ends takes the earlier ones along (they lie inside its old look, which is gone).
     public partial class ScreenEngine
     {
         // (Zero, InverseSourceAlpha): what is drawn punches a hole into the picture.
@@ -35,22 +38,17 @@ namespace MonoGame.PortableUI
 
         private Action? _themeCapture;
         private Action? _themeApply;
-        private RenderTarget2D? _themeSnapshot;
+        // The change waiting for its picture (_themeCapture) or its apply (_themeApply).
+        private ThemeLayer? _themePending;
+        // Running changes, oldest first.
+        private readonly List<ThemeLayer> _themeLayers = new List<ThemeLayer>();
         private RenderTargetBinding[]? _themePreviousTargets;
-        private TimeSpan? _themeStart;
-        private ThemeTransitionStyle _themeStyle;
-        private PointF? _themeOrigin;
-        private TimeSpan _themeDuration;
-        private Color _themeBackdrop;
-        private bool _themeLive;
-        // The old look while a live change runs, bottom first; reused screens are the ones apply replaced.
-        private readonly List<Screen> _themeGhosts = new List<Screen>();
-        private readonly List<(Screen Screen, Input.IInputSource Input, ScreenEngine? Engine)> _themeReusedScreens = new();
-        // Set from any thread when the frame was lost; the game thread drops the picture on its next update.
+        private RenderTargetBinding[]? _themeFrameTargets;
+        // Set from any thread when the frame was lost; the game thread drops the pictures on its next update.
         private volatile bool _themeFrameLost;
 
         /// <summary>Whether a theme change is fading in.</summary>
-        public bool IsThemeTransitioning => _themeCapture != null || _themeApply != null || _themeStart != null;
+        public bool IsThemeTransitioning => _themeCapture != null || _themeApply != null || _themeLayers.Count > 0;
 
         /// <summary>
         ///     Changes the look softly: the next frame is kept as a picture in the old look, then <paramref name="apply"/>
@@ -63,6 +61,8 @@ namespace MonoGame.PortableUI
         ///     <see cref="Screen.Content"/> (a rebuild in the new look), the old trees keep running in the old part - their
         ///     animations (a sliding indicator, a ripple, a switch) go on - instead of a still picture; where it changes the
         ///     same controls in place, the picture is used. False: always the picture.
+        ///     Called while a change still runs, the new one starts from what is on screen then; the running one goes on
+        ///     inside its old look.
         /// </summary>
         public void TransitionTheme(Action apply, ThemeTransitionStyle style = ThemeTransitionStyle.Crossfade, PointF? origin = null,
             TimeSpan? duration = null, Color? backdrop = null, bool live = true)
@@ -73,19 +73,28 @@ namespace MonoGame.PortableUI
                 apply();
                 return;
             }
-            // A change while one is still waiting: the waiting one is applied first, the new picture shows both.
+            // A change that still waits for its picture or its apply is applied first; the new picture shows it.
             if (_themeApply is { } waiting)
             {
                 _themeApply = null;
-                waiting();
+                StartPendingTheme(waiting);
+            }
+            if (_themeCapture is { } uncaptured)
+            {
+                _themeCapture = null;
+                _themePending?.Target?.Dispose();
+                _themePending = null;
+                uncaptured();
             }
             _themeCapture = apply;
-            _themeStart = null;
-            _themeStyle = style;
-            _themeOrigin = origin;
-            _themeDuration = length;
-            _themeBackdrop = backdrop ?? Color.Transparent;
-            _themeLive = live;
+            _themePending = new ThemeLayer
+            {
+                Style = style,
+                Origin = origin,
+                Duration = length,
+                Backdrop = backdrop ?? Color.Transparent,
+                Live = live
+            };
             RequestRedraw();
         }
 
@@ -100,8 +109,19 @@ namespace MonoGame.PortableUI
             if (_themeApply is not { } apply)
                 return;
             _themeApply = null;
-            EndLiveTheme();
-            if (!_themeLive)
+            StartPendingTheme(apply);
+        }
+
+        private void StartPendingTheme(Action apply)
+        {
+            var layer = _themePending;
+            _themePending = null;
+            if (layer == null)
+            {
+                apply();
+                return;
+            }
+            if (!layer.Live)
             {
                 apply();
             }
@@ -118,13 +138,14 @@ namespace MonoGame.PortableUI
                     backgrounds[i] = screens[i].BackgroundBrush;
                 }
                 apply();
-                StartLiveTheme(oldTheme, screens, contents, backgrounds);
+                StartLiveTheme(layer, oldTheme, screens, contents, backgrounds);
             }
-            _themeStart = ScreenSystem.TotalTime;
+            layer.Start = ScreenSystem.TotalTime;
+            _themeLayers.Add(layer);
             RequestRedraw();
         }
 
-        private void StartLiveTheme(PortableTheme oldTheme, List<Screen> screens, Control?[] contents, Media.Brush?[] backgrounds)
+        private void StartLiveTheme(ThemeLayer layer, PortableTheme oldTheme, List<Screen> screens, Control?[] contents, Media.Brush?[] backgrounds)
         {
             var current = VisibleScreens;
             var ghosts = new List<Screen>(screens.Count);
@@ -143,17 +164,20 @@ namespace MonoGame.PortableUI
             foreach (var ghost in ghosts)
             {
                 if (ghost is not GhostScreen)
-                    _themeReusedScreens.Add((ghost, ghost.InputSource, ghost.ScreenEngine));
+                    layer.Reused.Add((ghost, ghost.InputSource, ghost.ScreenEngine));
                 ghost.ThemeOverride = oldTheme;
                 ghost.ScreenEngine = this;
                 ghost.InputSource = Input.NullInputSource.Instance;
                 ghost.InvalidateLayout(true);
-                _themeGhosts.Add(ghost);
+                layer.Ghosts.Add(ghost);
             }
         }
 
-        /// <summary>The screens drawing the old look of a live change (empty: none, or the picture is used).</summary>
-        internal IReadOnlyList<Screen> ThemeGhosts => _themeGhosts;
+        /// <summary>The screens drawing the old look of the newest live change (empty: none, or the picture is used).</summary>
+        internal IReadOnlyList<Screen> ThemeGhosts => _themeLayers.Count > 0 ? _themeLayers[_themeLayers.Count - 1].Ghosts : Array.Empty<Screen>();
+
+        /// <summary>How many changes run at once (tests).</summary>
+        internal int ThemeLayerCount => _themeLayers.Count;
 
         /// <summary>Tests: as if the picture of the old look was taken (that happens while drawing).</summary>
         internal void TakeThemePictureForTests()
@@ -162,53 +186,35 @@ namespace MonoGame.PortableUI
             _themeCapture = null;
         }
 
-        /// <summary>The old trees of a live change take their step: layout, transitions, animations (no input).</summary>
+        /// <summary>The old trees of live changes take their step: layout, transitions, animations (no input).</summary>
         private void UpdateLiveTheme()
         {
-            foreach (var ghost in _themeGhosts)
-                ghost.Update();
+            foreach (var layer in _themeLayers)
+            {
+                foreach (var ghost in layer.Ghosts)
+                    ghost.Update();
+            }
         }
 
-        private void EndLiveTheme()
+        private static void EndLayer(ThemeLayer layer)
         {
-            foreach (var ghost in _themeGhosts)
+            foreach (var ghost in layer.Ghosts)
             {
                 ghost.ThemeOverride = null;
                 if (ghost is GhostScreen own)
                     own.Content = null;
             }
-            foreach (var (screen, input, engine) in _themeReusedScreens)
+            foreach (var (screen, input, engine) in layer.Reused)
             {
                 // Back to how it was handed over (it may be navigated to again).
                 screen.InputSource = input;
                 screen.ScreenEngine = engine;
                 screen.InvalidateLayout(true);
             }
-            _themeGhosts.Clear();
-            _themeReusedScreens.Clear();
-        }
-
-        // The old look of the live change into the picture's target, every frame.
-        private void DrawLiveTheme(SpriteBatch spriteBatch)
-        {
-            var device = spriteBatch.GraphicsDevice;
-            var previousTargets = Effects.RenderTargetHelper.SnapshotRenderTargets(device, ref _themePreviousTargets);
-            device.SetRenderTarget(_themeSnapshot);
-            device.Clear(_themeBackdrop);
-            var previous = EnterDraw();
-            try
-            {
-                foreach (var ghost in _themeGhosts)
-                    ghost.Draw(spriteBatch);
-            }
-            finally
-            {
-                ExitDraw(previous);
-            }
-            if (previousTargets.Length == 0)
-                device.SetRenderTarget(null);
-            else
-                device.SetRenderTargets(previousTargets);
+            layer.Ghosts.Clear();
+            layer.Reused.Clear();
+            layer.Target?.Dispose();
+            layer.Target = null;
         }
 
         /// <summary>Hosts the content a live theme change replaced, in the old look.</summary>
@@ -221,6 +227,20 @@ namespace MonoGame.PortableUI
             }
         }
 
+        /// <summary>One change: its old look (a picture, or redrawn from ghosts each frame) and how it gives way.</summary>
+        private sealed class ThemeLayer
+        {
+            public RenderTarget2D? Target;
+            public TimeSpan Start;
+            public ThemeTransitionStyle Style;
+            public PointF? Origin;
+            public TimeSpan Duration;
+            public Color Backdrop;
+            public bool Live;
+            public readonly List<Screen> Ghosts = new List<Screen>();
+            public readonly List<(Screen Screen, Input.IInputSource Input, ScreenEngine? Engine)> Reused = new();
+        }
+
         /// <summary>Draws the stack for this frame: into the picture first when a theme change waits for it.</summary>
         internal void DrawStackWithThemeTransition(SpriteBatch spriteBatch)
         {
@@ -230,7 +250,7 @@ namespace MonoGame.PortableUI
                 return;
             }
             DrawStack(spriteBatch);
-            DrawThemeSnapshot(spriteBatch);
+            DrawThemeLayers(spriteBatch);
         }
 
         private void CaptureThemeSnapshot(SpriteBatch spriteBatch)
@@ -238,16 +258,16 @@ namespace MonoGame.PortableUI
             var device = spriteBatch.GraphicsDevice;
             var width = Math.Max(1, device.Viewport.Width);
             var height = Math.Max(1, device.Viewport.Height);
-            if (_themeSnapshot == null || _themeSnapshot.IsDisposed || _themeSnapshot.Width != width || _themeSnapshot.Height != height)
-            {
-                _themeSnapshot?.Dispose();
-                _themeSnapshot = new RenderTarget2D(device, width, height, false, SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.PreserveContents);
-            }
+            var layer = _themePending!;
+            layer.Target?.Dispose();
+            layer.Target = new RenderTarget2D(device, width, height, false, SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.PreserveContents);
 
+            // What is on screen now - running changes included - is the old look.
             var previousTargets = Effects.RenderTargetHelper.SnapshotRenderTargets(device, ref _themePreviousTargets);
-            device.SetRenderTarget(_themeSnapshot);
-            device.Clear(_themeBackdrop);
+            device.SetRenderTarget(layer.Target);
+            device.Clear(layer.Backdrop);
             DrawStack(spriteBatch);
+            DrawThemeLayers(spriteBatch);
             if (previousTargets.Length == 0)
                 device.SetRenderTarget(null);
             else
@@ -255,7 +275,7 @@ namespace MonoGame.PortableUI
 
             // This frame shows the picture itself; the new look starts with the next update.
             spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend);
-            spriteBatch.Draw(_themeSnapshot, new Rectangle(0, 0, width, height), Color.White);
+            spriteBatch.Draw(layer.Target, new Rectangle(0, 0, width, height), Color.White);
             spriteBatch.End();
             RecordBatchFlush();
 
@@ -264,30 +284,73 @@ namespace MonoGame.PortableUI
             RequestRedraw();
         }
 
-        private void DrawThemeSnapshot(SpriteBatch spriteBatch)
+        // Composites the running changes over what is bound: each live change's old look is redrawn from its ghosts with
+        // the change before it composited in, then the newest one goes over the frame.
+        private void DrawThemeLayers(SpriteBatch spriteBatch)
         {
-            if (_themeFrameLost)
+            if (_themeFrameLost || _themeLayers.Count == 0)
                 return;
-            if (_themeStart is not { } start || _themeSnapshot == null || _themeSnapshot.IsDisposed)
-                return;
-            var t = (float)((ScreenSystem.TotalTime - start).TotalMilliseconds / Math.Max(1, _themeDuration.TotalMilliseconds));
-            if (t >= 1)
-            {
-                EndThemeTransition();
-                return;
-            }
-            t = Math.Max(0, t);
-            var device = spriteBatch.GraphicsDevice;
-            var width = device.Viewport.Width;
-            var height = device.Viewport.Height;
-            if (_themeGhosts.Count > 0)
-                DrawLiveTheme(spriteBatch);
 
-            if (_themeStyle == ThemeTransitionStyle.Reveal)
+            // A change that ended takes the ones before it along: they lay inside its old look.
+            for (var i = _themeLayers.Count - 1; i >= 0; i--)
+            {
+                if (Progress(_themeLayers[i]) < 1)
+                    continue;
+                for (var j = 0; j <= i; j++)
+                    EndLayer(_themeLayers[j]);
+                _themeLayers.RemoveRange(0, i + 1);
+                break;
+            }
+            if (_themeLayers.Count == 0)
+                return;
+
+            var device = spriteBatch.GraphicsDevice;
+            var frameTargets = Effects.RenderTargetHelper.SnapshotRenderTargets(device, ref _themeFrameTargets);
+            for (var i = 0; i < _themeLayers.Count; i++)
+            {
+                var layer = _themeLayers[i];
+                if (layer.Ghosts.Count == 0 || layer.Target == null || layer.Target.IsDisposed)
+                    continue;
+                device.SetRenderTarget(layer.Target);
+                device.Clear(layer.Backdrop);
+                var previous = EnterDraw();
+                try
+                {
+                    foreach (var ghost in layer.Ghosts)
+                        ghost.Draw(spriteBatch);
+                }
+                finally
+                {
+                    ExitDraw(previous);
+                }
+                if (i > 0)
+                    ComposeLayer(spriteBatch, _themeLayers[i - 1], layer.Target, frameTargets);
+            }
+
+            ComposeLayer(spriteBatch, _themeLayers[_themeLayers.Count - 1], null, frameTargets);
+            RecordBatchFlush();
+            RequestRedraw();
+        }
+
+        private static float Progress(ThemeLayer layer)
+            => Math.Max(0, (float)((ScreenSystem.TotalTime - layer.Start).TotalMilliseconds / Math.Max(1, layer.Duration.TotalMilliseconds)));
+
+        // Lays a change's old look over a target (null: the frame's targets), punched by the growing circle or faded.
+        private void ComposeLayer(SpriteBatch spriteBatch, ThemeLayer layer, RenderTarget2D? onto, RenderTargetBinding[] frameTargets)
+        {
+            if (layer.Target == null || layer.Target.IsDisposed)
+                return;
+            var device = spriteBatch.GraphicsDevice;
+            var width = layer.Target.Width;
+            var height = layer.Target.Height;
+            var t = Math.Min(1, Progress(layer));
+
+            var fade = 1f;
+            if (layer.Style == ThemeTransitionStyle.Reveal)
             {
                 // The hole only grows, so it is punched into the picture itself, frame by frame.
                 var pixels = width / Math.Max(1f, ScreenRect.Width);
-                var origin = _themeOrigin is { } o ? new Vector2(o.X * pixels, o.Y * pixels) : new Vector2(width / 2f, height / 2f);
+                var origin = layer.Origin is { } o ? new Vector2(o.X * pixels, o.Y * pixels) : new Vector2(width / 2f, height / 2f);
                 var farthest = 0f;
                 foreach (var corner in new[] { Vector2.Zero, new Vector2(width, 0), new Vector2(0, height), new Vector2(width, height) })
                     farthest = Math.Max(farthest, Vector2.Distance(origin, corner));
@@ -295,28 +358,25 @@ namespace MonoGame.PortableUI
                 var eased = t < 0.5f ? 4 * t * t * t : 1 - MathF.Pow(-2 * t + 2, 3) / 2;
                 var radius = eased * farthest * 1.08f;
                 var disc = RevealMask(device);
-                var previousTargets = Effects.RenderTargetHelper.SnapshotRenderTargets(device, ref _themePreviousTargets);
-                device.SetRenderTarget(_themeSnapshot);
+                device.SetRenderTarget(layer.Target);
                 spriteBatch.Begin(SpriteSortMode.Deferred, Punch);
                 spriteBatch.Draw(disc, origin, null, Color.White, 0, new Vector2(disc.Width / 2f), radius * 2 / disc.Width, SpriteEffects.None, 0);
-                spriteBatch.End();
-                if (previousTargets.Length == 0)
-                    device.SetRenderTarget(null);
-                else
-                    device.SetRenderTargets(previousTargets);
-                spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend);
-                spriteBatch.Draw(_themeSnapshot, new Rectangle(0, 0, width, height), Color.White);
                 spriteBatch.End();
             }
             else
             {
-                var fade = 1 - t * t * (3 - 2 * t);
-                spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend);
-                spriteBatch.Draw(_themeSnapshot, new Rectangle(0, 0, width, height), Color.White * fade);
-                spriteBatch.End();
+                fade = 1 - t * t * (3 - 2 * t);
             }
-            RecordBatchFlush();
-            RequestRedraw();
+
+            if (onto != null)
+                device.SetRenderTarget(onto);
+            else if (frameTargets.Length == 0)
+                device.SetRenderTarget(null);
+            else
+                device.SetRenderTargets(frameTargets);
+            spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend);
+            spriteBatch.Draw(layer.Target, new Rectangle(0, 0, width, height), Color.White * fade);
+            spriteBatch.End();
         }
 
         private static Texture2D? _revealMask;
@@ -347,21 +407,22 @@ namespace MonoGame.PortableUI
 
         /// <summary>
         ///     The frame was lost with the surface (any thread: Android raises <c>Game.Activated</c> on its UI thread,
-        ///     where disposing a render target would wait for the paused game thread): the picture goes on the next update.
+        ///     where disposing a render target would wait for the paused game thread): the pictures go on the next update.
         /// </summary>
         internal void ThemeFrameLost() => _themeFrameLost = true;
 
-        /// <summary>Drops the picture (done, or its frame was lost with the surface). On the game thread.</summary>
+        /// <summary>Drops the pictures (done, or their frame was lost with the surface). On the game thread.</summary>
         internal void EndThemeTransition()
         {
-            EndLiveTheme();
-            _themeStart = null;
-            _themeSnapshot?.Dispose();
-            _themeSnapshot = null;
+            foreach (var layer in _themeLayers)
+                EndLayer(layer);
+            _themeLayers.Clear();
             if (_themeCapture is { } capture)
             {
                 // Never taken: apply without the soft change.
                 _themeCapture = null;
+                _themePending?.Target?.Dispose();
+                _themePending = null;
                 capture();
             }
         }

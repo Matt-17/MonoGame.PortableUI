@@ -109,6 +109,32 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void A_change_during_a_change_stacks_on_it_and_both_old_looks_run_on()
+        {
+            var screen = new TestScreen { Content = new Controls.Border() };
+            _engine.NavigateToScreen(screen);
+            Step(0.016);
+            var first = screen.Content;
+
+            _engine.TransitionTheme(() => screen.Content = new Controls.Border(), ThemeTransitionStyle.Reveal);
+            _engine.TakeThemePictureForTests();
+            Step(0.016);
+            var second = screen.Content;
+            _engine.TransitionTheme(() => screen.Content = new Controls.Border(), ThemeTransitionStyle.Reveal);
+            _engine.TakeThemePictureForTests();
+            Step(0.016);
+
+            Assert.AreEqual(2, _engine.ThemeLayerCount, "the first change goes on inside the second");
+            Assert.AreSame(second, _engine.ThemeGhosts[0].Content);
+            Assert.IsNotNull(first!.Parent, "the first old tree is still alive");
+
+            _engine.EndThemeTransition();
+            Assert.AreEqual(0, _engine.ThemeLayerCount);
+            Assert.IsNull(first.Parent);
+            Assert.IsNull(second!.Parent);
+        }
+
+        [TestMethod]
         public void A_change_in_place_keeps_the_picture()
         {
             var block = new Controls.TextBlock { Text = "x" };
