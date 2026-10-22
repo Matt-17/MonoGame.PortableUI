@@ -458,6 +458,10 @@ namespace MonoGame.PortableUI
         public float SegmentedItemHeight { get; set; } = 36;
         /// <summary>Gap between a <c>SegmentedControl</c>'s track edge and its options.</summary>
         public float SegmentedIndicatorInset { get; set; } = 3;
+        /// <summary>Gap between a <c>SegmentedControl</c>'s options (0: they touch).</summary>
+        public float SegmentedSpacing { get; set; }
+        /// <summary>Face under each <c>SegmentedControl</c> option; null = none (the options lie on the track).</summary>
+        public Brush? SegmentedOptionBrush { get; set; }
 
         /// <summary>How a <c>SegmentedControl</c>'s indicator travels: a drop by default (<see cref="Animation.PartMotion.Drop"/>;
         /// <see cref="ThemeBuilder"/> gives retro, desktop and terminal themes a linear slide); null = it jumps.</summary>

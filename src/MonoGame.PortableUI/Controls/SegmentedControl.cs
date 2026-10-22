@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using MonoGame.PortableUI.Animation;
 using MonoGame.PortableUI.Common;
 using MonoGame.PortableUI.Media;
+using MonoGame.PortableUI.Text;
 
 namespace MonoGame.PortableUI.Controls
 {
@@ -31,8 +33,9 @@ namespace MonoGame.PortableUI.Controls
     ///     <see cref="Indicator"/> - a real control, so deformation, glow and the like work on it - slides between them
     ///     as <see cref="IndicatorMotion"/> says (the theme's <see cref="PortableTheme.SegmentedIndicatorMotion"/>, a drop
     ///     by default). Labels take <see cref="SelectedTextColor"/> exactly where the indicator covers them, so the colours
-    ///     cross over with it. Edit <see cref="Segments"/> and the options follow on the next layout pass (after changing
-    ///     an option in place call <see cref="Refresh"/>).
+    ///     cross over with it. With <see cref="SegmentSpacing"/> and an <see cref="OptionBrush"/> each option is a face of
+    ///     its own (a row of pills) and the indicator covers one face. Edit <see cref="Segments"/> and the options follow on
+    ///     the next layout pass (after changing an option in place call <see cref="Refresh"/>).
     /// </summary>
     public class SegmentedControl : Control
     {
@@ -56,6 +59,11 @@ namespace MonoGame.PortableUI.Controls
         private Deformation? _givenDeformation;
         private float _itemHeight;
         private float _indicatorInset;
+        private float _segmentSpacing;
+        private Brush? _optionBrush;
+        private CornerRadius? _optionCornerRadius;
+        private UIFont? _dynamicFont;
+        private UIFont? _noteFont;
         private float _textSize;
         private Color _textColor;
         private Color _selectedTextColor;
@@ -72,6 +80,8 @@ namespace MonoGame.PortableUI.Controls
             CornerRadius = theme.SegmentedCornerRadius;
             _itemHeight = theme.SegmentedItemHeight;
             _indicatorInset = theme.SegmentedIndicatorInset;
+            _segmentSpacing = theme.SegmentedSpacing;
+            _optionBrush = theme.SegmentedOptionBrush;
             _textSize = theme.TextSize;
             _textColor = theme.SegmentedTextColor;
             _selectedTextColor = theme.SegmentedSelectedTextColor;
@@ -119,6 +129,10 @@ namespace MonoGame.PortableUI.Controls
                 ItemHeight = newTheme.SegmentedItemHeight;
             if (_indicatorInset.Equals(oldTheme.SegmentedIndicatorInset))
                 IndicatorInset = newTheme.SegmentedIndicatorInset;
+            if (_segmentSpacing.Equals(oldTheme.SegmentedSpacing))
+                SegmentSpacing = newTheme.SegmentedSpacing;
+            if (ReferenceEquals(_optionBrush, oldTheme.SegmentedOptionBrush))
+                OptionBrush = newTheme.SegmentedOptionBrush;
             if (_textSize.Equals(oldTheme.TextSize))
                 TextSize = newTheme.TextSize;
             if (_textColor.Equals(oldTheme.SegmentedTextColor))
@@ -184,10 +198,81 @@ namespace MonoGame.PortableUI.Controls
         /// <summary>Raised when <see cref="SelectedIndex"/> changes (by a tap, a key or code).</summary>
         public event EventHandler? SelectionChanged;
 
-        /// <summary>The selection indicator as a control (its brush, corner radius, deformation, glow and the like are free
-        /// to set). It rests on the first option and slides by its <see cref="Control.Translation"/>, which this control
-        /// drives.</summary>
+        /// <summary>The selection indicator as a control (its brush, deformation, glow and the like are free to set; its
+        /// corner radius follows <see cref="OptionCornerRadius"/>). It rests on the first option and slides by its
+        /// <see cref="Control.Translation"/>, which this control drives.</summary>
         public Border Indicator => _indicator;
+
+        /// <summary>The control of option <paramref name="index"/> (its <see cref="Control.ClippingRect"/> is where it is,
+        /// e.g. the origin of a reveal), or null outside the range or before the first layout pass.</summary>
+        public Control? GetOption(int index) => index >= 0 && index < _options.Count ? _options[index] : null;
+
+        /// <summary>Gap between neighbouring options (default from <see cref="PortableTheme.SegmentedSpacing"/>, 0).</summary>
+        public float SegmentSpacing
+        {
+            get => _segmentSpacing;
+            set
+            {
+                if (_segmentSpacing.Equals(value))
+                    return;
+                _segmentSpacing = Math.Max(0, value);
+                InvalidateLayout(true);
+            }
+        }
+
+        /// <summary>Face drawn under each option (a pill per option with <see cref="SegmentSpacing"/>); null = none, the
+        /// options lie on the track (<see cref="Control.BackgroundBrush"/>, which may be null).</summary>
+        public Brush? OptionBrush
+        {
+            get => _optionBrush;
+            set
+            {
+                if (ReferenceEquals(_optionBrush, value))
+                    return;
+                _optionBrush = value;
+                InvalidateLayout(false);
+            }
+        }
+
+        /// <summary>Corners of the option faces and the indicator; null = the track's corners less
+        /// <see cref="IndicatorInset"/>. Large values make pills.</summary>
+        public CornerRadius? OptionCornerRadius
+        {
+            get => _optionCornerRadius;
+            set
+            {
+                if (Nullable.Equals(_optionCornerRadius, value))
+                    return;
+                _optionCornerRadius = value;
+                InvalidateLayout(true);
+            }
+        }
+
+        /// <summary>Runtime font of the labels (e.g. a semibold face); null = the theme's.</summary>
+        public UIFont? DynamicFont
+        {
+            get => _dynamicFont;
+            set
+            {
+                if (ReferenceEquals(_dynamicFont, value))
+                    return;
+                _dynamicFont = value;
+                Refresh();
+            }
+        }
+
+        /// <summary>Runtime font of the notes; null = the theme's.</summary>
+        public UIFont? NoteFont
+        {
+            get => _noteFont;
+            set
+            {
+                if (ReferenceEquals(_noteFont, value))
+                    return;
+                _noteFont = value;
+                Refresh();
+            }
+        }
 
         /// <summary>How the indicator travels (<see cref="PartMotion"/>); null = the theme's
         /// <see cref="PortableTheme.SegmentedIndicatorMotion"/>.</summary>
@@ -301,8 +386,9 @@ namespace MonoGame.PortableUI.Controls
             }
 
             var count = Math.Max(1, _options.Count);
-            var width = _orientation == Orientation.Horizontal ? widest * count : widest;
-            var height = _orientation == Orientation.Horizontal ? tallest : tallest * count;
+            var gaps = _segmentSpacing * (count - 1);
+            var width = _orientation == Orientation.Horizontal ? widest * count + gaps : widest;
+            var height = _orientation == Orientation.Horizontal ? tallest : tallest * count + gaps;
             return ApplyConstraints(new Size(
                 Width.IsFixed() ? Width : width + inset * 2,
                 Height.IsFixed() ? Height : height + inset * 2)) + Margin;
@@ -315,10 +401,11 @@ namespace MonoGame.PortableUI.Controls
             var inner = ClippingRect - new Thickness(_indicatorInset);
             var count = Math.Max(1, _options.Count);
             var horizontal = _orientation == Orientation.Horizontal;
+            var gaps = _segmentSpacing * (count - 1);
             var slot = horizontal
-                ? new Rect(inner.Left, inner.Top, inner.Width / count, inner.Height)
-                : new Rect(inner.Left, inner.Top, inner.Width, inner.Height / count);
-            _slotStep = horizontal ? new Vector2(slot.Width, 0) : new Vector2(0, slot.Height);
+                ? new Rect(inner.Left, inner.Top, Math.Max(0, inner.Width - gaps) / count, inner.Height)
+                : new Rect(inner.Left, inner.Top, inner.Width, Math.Max(0, inner.Height - gaps) / count);
+            _slotStep = horizontal ? new Vector2(slot.Width + _segmentSpacing, 0) : new Vector2(0, slot.Height + _segmentSpacing);
             for (var i = 0; i < _options.Count; i++)
             {
                 var place = slot + new PointF(_slotStep.X * i, _slotStep.Y * i);
@@ -326,10 +413,7 @@ namespace MonoGame.PortableUI.Controls
                 _covered[i].UpdateLayout(place);
             }
 
-            var radius = CornerRadius;
-            _indicator.CornerRadius = new CornerRadius(
-                Math.Max(0, radius.TopLeft - _indicatorInset), Math.Max(0, radius.TopRight - _indicatorInset),
-                Math.Max(0, radius.BottomRight - _indicatorInset), Math.Max(0, radius.BottomLeft - _indicatorInset));
+            _indicator.CornerRadius = OptionRadius;
             _indicator.UpdateLayout(slot);
             _cover.UpdateLayout(slot);
             // A new width moves the indicator's place along with the options.
@@ -342,6 +426,35 @@ namespace MonoGame.PortableUI.Controls
         {
             base.OnFrameUpdate();
             AdvanceAnimation();
+        }
+
+        private CornerRadius OptionRadius
+        {
+            get
+            {
+                if (_optionCornerRadius is { } own)
+                    return own;
+                var radius = CornerRadius;
+                return new CornerRadius(
+                    Math.Max(0, radius.TopLeft - _indicatorInset), Math.Max(0, radius.TopRight - _indicatorInset),
+                    Math.Max(0, radius.BottomRight - _indicatorInset), Math.Max(0, radius.BottomLeft - _indicatorInset));
+            }
+        }
+
+        protected internal override void OnDraw(SpriteBatch spriteBatch, Rect rect)
+        {
+            base.OnDraw(spriteBatch, rect);
+            if (_optionBrush == null)
+                return;
+            // The faces lie under the indicator and the labels.
+            var radius = ToRender(OptionRadius);
+            var box = ClippingRect;
+            foreach (var option in _options)
+            {
+                var place = option.ClippingRect;
+                var face = new Rect(rect.Left + ToRender(place.Left - box.Left), rect.Top + ToRender(place.Top - box.Top), ToRender(place.Width), ToRender(place.Height));
+                _optionBrush.Draw(spriteBatch, new BrushContext(face, radius, RenderOpacity, spriteBatch.GraphicsDevice));
+            }
         }
 
         private void SetColor(ref Color field, Color value)
@@ -371,10 +484,10 @@ namespace MonoGame.PortableUI.Controls
             for (var i = 0; i < Segments.Count; i++)
             {
                 var index = i;
-                var option = new Option(Segments[i], _orientation, _textSize, _textColor, _noteColor) { Parent = this };
+                var option = new Option(Segments[i], _orientation, _textSize, _textColor, _noteColor, _dynamicFont, _noteFont) { Parent = this };
                 option.Click += (_, _) => SelectedIndex = index;
                 _options.Add(option);
-                _covered.Add(new Option(Segments[i], _orientation, _textSize, _selectedTextColor, _selectedNoteColor) { IsHitTestVisible = false, Parent = _cover });
+                _covered.Add(new Option(Segments[i], _orientation, _textSize, _selectedTextColor, _selectedNoteColor, _dynamicFont, _noteFont) { IsHitTestVisible = false, Parent = _cover });
             }
         }
 
@@ -445,7 +558,7 @@ namespace MonoGame.PortableUI.Controls
             private readonly TextBlock _label;
             private readonly TextBlock? _note;
 
-            public Option(Segment segment, Orientation orientation, float textSize, Color textColor, Color noteColor)
+            public Option(Segment segment, Orientation orientation, float textSize, Color textColor, Color noteColor, UIFont? font, UIFont? noteFont)
             {
                 IsFocusable = false;
                 var horizontal = orientation == Orientation.Horizontal;
@@ -454,6 +567,7 @@ namespace MonoGame.PortableUI.Controls
                     Text = segment.Text,
                     TextSize = textSize,
                     TextColor = textColor,
+                    DynamicFont = font,
                     VerticalAlignment = VerticalAlignment.Center,
                     HorizontalAlignment = horizontal ? HorizontalAlignment.Center : HorizontalAlignment.Left,
                     IsHitTestVisible = false,
@@ -466,6 +580,7 @@ namespace MonoGame.PortableUI.Controls
                         Text = note,
                         TextSize = textSize * 0.85f,
                         TextColor = noteColor,
+                        DynamicFont = noteFont,
                         VerticalAlignment = VerticalAlignment.Center,
                         HorizontalAlignment = HorizontalAlignment.Right,
                         IsHitTestVisible = false,

@@ -93,6 +93,28 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void Spacing_separates_the_options_and_the_indicator_covers_one()
+        {
+            using var game = new Game();
+            var segmented = Make(PartMotion.None);
+            segmented.SegmentSpacing = 6;
+            segmented.OptionCornerRadius = 999;
+            var engine = Show(game, segmented);
+
+            var first = segmented.GetOption(0)!.ClippingRect;
+            var second = segmented.GetOption(1)!.ClippingRect;
+            Assert.AreEqual(96, first.Width, 0.01f, "(300 - 2 gaps of 6) / 3");
+            Assert.AreEqual(6, second.Left - first.Right, 0.01f);
+            Assert.AreEqual(first, segmented.Indicator.ClippingRect);
+            Assert.AreEqual(new CornerRadius(999), segmented.Indicator.CornerRadius);
+            Assert.IsNull(segmented.GetOption(3));
+
+            segmented.SelectedIndex = 2;
+            Step(engine, 0.016);
+            Assert.AreEqual(segmented.GetOption(2)!.ClippingRect.Left - first.Left, segmented.Indicator.ShownTranslation.X, 0.01f);
+        }
+
+        [TestMethod]
         public void Arrow_keys_move_the_selection_along_the_orientation()
         {
             using var game = new Game();
