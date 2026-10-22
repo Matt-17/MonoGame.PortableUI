@@ -87,7 +87,7 @@ namespace MonoGame.PortableUI.Tests
             _engine.NavigateToScreen(screen);
             Step();
             var old = (ScrollViewer)screen.Content!;
-            old.ScrollTo(new PointF(0, 500));
+            old.ScrollTo(new PointF(0, 500), revealScrollBar: false);
             ScrollViewer? fresh = null;
 
             _engine.TransitionTheme(() => screen.Content = fresh = Page("list"));
@@ -96,6 +96,33 @@ namespace MonoGame.PortableUI.Tests
 
             Assert.AreEqual(500, fresh!.Offset.Y, 0.01f);
             Assert.AreEqual(500, old.Offset.Y, 0.01f, "the ghost keeps its own");
+
+            // The user scrolls the new tree during a long fade: the old look follows, so nothing shows doubled.
+            fresh.ScrollTo(new PointF(0, 820));
+            Step();
+            Assert.AreEqual(820, old.Offset.Y, 0.01f);
+            Assert.AreEqual(0f, old.ScrollBarOpacity, "following is no scroll of its own");
+            _engine.EndThemeTransition();
+        }
+
+        [TestMethod]
+        public void A_navigation_during_a_long_fade_finishes_it_within_a_quarter_second()
+        {
+            var screen = new TestScreen { Content = Page("list") };
+            _engine.NavigateToScreen(screen);
+            Step();
+
+            _engine.TransitionTheme(() => screen.Content = Page("list"), duration: TimeSpan.FromSeconds(8));
+            _engine.TakeThemePictureForTests();
+            Step();
+            Assert.AreEqual(1, _engine.ThemeLayerCount);
+            Assert.IsTrue(_engine.ThemeLayerProgress(0) < 0.01f);
+
+            _engine.NavigateToScreen(new TestScreen { Content = new Border() }, ScreenTransition.None);
+            Step();
+            for (var i = 0; i < 16; i++)
+                Step();
+            Assert.AreEqual(1f, _engine.ThemeLayerProgress(0), 0.001f, "done 256 ms after the navigation, not after 8 s");
             _engine.EndThemeTransition();
         }
     }

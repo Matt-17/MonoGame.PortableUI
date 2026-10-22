@@ -25,6 +25,9 @@ namespace MonoGame.PortableUI
     // Changes stack: one started while another runs takes what is on screen then as its old look, and the earlier change
     // goes on inside it (live, it is composited into the new one's old look every frame), so nothing cuts. A change
     // that ends takes the earlier ones along (they lie inside its old look, which is gone).
+    // The UI stays usable during a change, however long: ghost scroll viewers with a StateKey follow the new tree's
+    // positions, a navigation (other screens shown) finishes the change within a quarter second, and a ghost is drawn
+    // again only when something in it changed.
     public partial class ScreenEngine
     {
         // (Zero, InverseSourceAlpha): what is drawn punches a hole into the picture.
@@ -124,6 +127,7 @@ namespace MonoGame.PortableUI
             if (!layer.Live)
             {
                 apply();
+                layer.Shown.AddRange(VisibleScreens);
             }
             else
             {
@@ -138,6 +142,7 @@ namespace MonoGame.PortableUI
                     backgrounds[i] = screens[i].BackgroundBrush;
                 }
                 apply();
+                layer.Shown.AddRange(VisibleScreens);
                 StartLiveTheme(layer, oldTheme, screens, contents, backgrounds);
             }
             layer.Start = ScreenSystem.TotalTime;
@@ -158,7 +163,7 @@ namespace MonoGame.PortableUI
                 // Changed in place: no old tree to draw, the picture stays.
                 if (!replaced && (contents[i] == null || ReferenceEquals(screen.Content, contents[i])))
                     return;
-                ghosts.Add(replaced ? screen : new GhostScreen(contents[i]!, backgrounds[i]));
+                ghosts.Add(replaced ? screen : new GhostScreen(contents[i]!, backgrounds[i], screen));
             }
 
             foreach (var ghost in ghosts)
@@ -170,7 +175,30 @@ namespace MonoGame.PortableUI
                 ghost.InputSource = Input.NullInputSource.Instance;
                 ghost.InvalidateLayout(true);
                 layer.Ghosts.Add(ghost);
+                if (ghost is GhostScreen { Content: { } content } paired)
+                    CollectPairedScrolls(content, paired.Source, layer.PairedScrolls);
             }
+        }
+
+        // Scroll viewers with a StateKey in an old tree follow the position kept on the screen the new tree lives in.
+        private static void CollectPairedScrolls(Control control, Screen source, List<(ScrollViewer Viewer, Screen Source)> pairs)
+        {
+            if (control is ScrollViewer { StateKey: not null } viewer)
+                pairs.Add((viewer, source));
+            foreach (var child in control.GetDescendants())
+                CollectPairedScrolls(child, source, pairs);
+        }
+
+        private static bool SameScreens(List<Screen> shown, IReadOnlyList<Screen> now)
+        {
+            if (shown.Count != now.Count)
+                return false;
+            for (var i = 0; i < shown.Count; i++)
+            {
+                if (!ReferenceEquals(shown[i], now[i]))
+                    return false;
+            }
+            return true;
         }
 
         /// <summary>The screens drawing the old look of the newest live change (empty: none, or the picture is used).</summary>
@@ -179,6 +207,9 @@ namespace MonoGame.PortableUI
         /// <summary>How many changes run at once (tests).</summary>
         internal int ThemeLayerCount => _themeLayers.Count;
 
+        /// <summary>How far change <paramref name="index"/> (oldest first) has come, 0..1 (tests).</summary>
+        internal float ThemeLayerProgress(int index) => Math.Min(1, Progress(_themeLayers[index]));
+
         /// <summary>Tests: as if the picture of the old look was taken (that happens while drawing).</summary>
         internal void TakeThemePictureForTests()
         {
@@ -186,11 +217,29 @@ namespace MonoGame.PortableUI
             _themeCapture = null;
         }
 
-        /// <summary>The old trees of live changes take their step: layout, transitions, animations (no input).</summary>
+        /// <summary>Hurry: what is left of a change after a navigation, in milliseconds.</summary>
+        private const double ThemeHurryMilliseconds = 250;
+
+        /// <summary>The old trees of live changes take their step: layout, transitions, animations (no input). Their
+        /// paired scroll viewers follow the new tree; a navigation finishes the changes quickly.</summary>
         private void UpdateLiveTheme()
         {
+            if (_themeLayers.Count == 0)
+                return;
+            var shown = VisibleScreens;
+            var now = ScreenSystem.TotalTime;
             foreach (var layer in _themeLayers)
             {
+                if (layer.HurryStart == null && !SameScreens(layer.Shown, shown))
+                {
+                    layer.HurryFrom = Progress(layer);
+                    layer.HurryStart = now;
+                }
+                foreach (var (viewer, source) in layer.PairedScrolls)
+                {
+                    if (source.ScrollStates.TryGetValue(viewer.StateKey!, out var offset) && viewer.Offset != offset)
+                        viewer.ScrollTo(offset, revealScrollBar: false);
+                }
                 foreach (var ghost in layer.Ghosts)
                     ghost.Update();
             }
@@ -213,6 +262,7 @@ namespace MonoGame.PortableUI
             }
             layer.Ghosts.Clear();
             layer.Reused.Clear();
+            layer.PairedScrolls.Clear();
             layer.Target?.Dispose();
             layer.Target = null;
         }
@@ -220,11 +270,15 @@ namespace MonoGame.PortableUI
         /// <summary>Hosts the content a live theme change replaced, in the old look.</summary>
         private sealed class GhostScreen : Screen
         {
-            public GhostScreen(Control content, Media.Brush? background)
+            public GhostScreen(Control content, Media.Brush? background, Screen source)
             {
                 BackgroundBrush = background;
                 Content = content;
+                Source = source;
             }
+
+            /// <summary>The screen the content came from (where the new tree lives now).</summary>
+            public Screen Source { get; }
         }
 
         /// <summary>One change: its old look (a picture, or redrawn from ghosts each frame) and how it gives way.</summary>
@@ -237,6 +291,13 @@ namespace MonoGame.PortableUI
             public TimeSpan Duration;
             public Color Backdrop;
             public bool Live;
+            // The ghosts must be drawn again (first frame, or they asked for an animation frame while drawing).
+            public bool NeedsRender = true;
+            public TimeSpan? HurryStart;
+            public float HurryFrom;
+            // The screens shown right after apply: when they change, the user navigated.
+            public readonly List<Screen> Shown = new List<Screen>();
+            public readonly List<(ScrollViewer Viewer, Screen Source)> PairedScrolls = new();
             public readonly List<Screen> Ghosts = new List<Screen>();
             public readonly List<(Screen Screen, Input.IInputSource Input, ScreenEngine? Engine)> Reused = new();
         }
@@ -311,18 +372,30 @@ namespace MonoGame.PortableUI
                 var layer = _themeLayers[i];
                 if (layer.Ghosts.Count == 0 || layer.Target == null || layer.Target.IsDisposed)
                     continue;
+                // An old look that did not change keeps its target (a reveal's hole only grows, a fade draws it fainter);
+                // one with an earlier change inside it changes every frame.
+                var dirty = layer.NeedsRender || i > 0;
+                foreach (var ghost in layer.Ghosts)
+                    dirty |= ghost.VisualDirty;
+                if (!dirty)
+                    continue;
                 device.SetRenderTarget(layer.Target);
                 device.Clear(layer.Backdrop);
+                var requests = AnimationFrameRequests;
                 var previous = EnterDraw();
                 try
                 {
                     foreach (var ghost in layer.Ghosts)
+                    {
+                        ghost.VisualDirty = false;
                         ghost.Draw(spriteBatch);
+                    }
                 }
                 finally
                 {
                     ExitDraw(previous);
                 }
+                layer.NeedsRender = AnimationFrameRequests != requests;
                 if (i > 0)
                     ComposeLayer(spriteBatch, _themeLayers[i - 1], layer.Target, frameTargets);
             }
@@ -333,7 +406,14 @@ namespace MonoGame.PortableUI
         }
 
         private static float Progress(ThemeLayer layer)
-            => Math.Max(0, (float)((ScreenSystem.TotalTime - layer.Start).TotalMilliseconds / Math.Max(1, layer.Duration.TotalMilliseconds)));
+        {
+            if (layer.HurryStart is { } hurry)
+            {
+                var rest = (float)Math.Min(1, (ScreenSystem.TotalTime - hurry).TotalMilliseconds / ThemeHurryMilliseconds);
+                return layer.HurryFrom + (1 - layer.HurryFrom) * Math.Max(0, rest);
+            }
+            return Math.Max(0, (float)((ScreenSystem.TotalTime - layer.Start).TotalMilliseconds / Math.Max(1, layer.Duration.TotalMilliseconds)));
+        }
 
         // Lays a change's old look over a target (null: the frame's targets), punched by the growing circle or faded.
         private void ComposeLayer(SpriteBatch spriteBatch, ThemeLayer layer, RenderTarget2D? onto, RenderTargetBinding[] frameTargets)

@@ -172,6 +172,10 @@ namespace MonoGame.PortableUI
         /// live theme change (<see cref="ScreenEngine.TransitionTheme"/>).</summary>
         internal PortableTheme? ThemeOverride { get; set; }
 
+        /// <summary>Something in the tree changed since the flag was last cleared (a live theme change redraws its old
+        /// look only then).</summary>
+        internal bool VisualDirty { get; set; } = true;
+
         /// <summary>Scroll positions kept under <see cref="Controls.ScrollViewer.StateKey"/>, for the screen's lifetime.</summary>
         internal Dictionary<string, PointF> ScrollStates { get; } = new Dictionary<string, PointF>(StringComparer.Ordinal);
 
@@ -424,6 +428,7 @@ namespace MonoGame.PortableUI
         {
             if (boundsChanged)
                 _layoutDirty = true;
+            VisualDirty = true;
             // Visual-only changes are read at draw time but still need a frame (RenderMode.OnDemand).
             ScreenEngine?.RequestRedraw();
         }
