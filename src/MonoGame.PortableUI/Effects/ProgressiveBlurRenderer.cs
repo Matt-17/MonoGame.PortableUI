@@ -115,6 +115,29 @@ namespace MonoGame.PortableUI.Effects
             spriteBatch.End();
         }
 
+        /// <summary>Lays <paramref name="tint"/> (premultiplied) over <paramref name="rows"/> of the bound target, full for
+        /// <paramref name="solidHeight"/> pixels from the edge (the top row with <paramref name="top"/>, else the bottom one),
+        /// then fading along an eased curve to 0 at the far end; only where <paramref name="content"/> (frame coordinates)
+        /// draws with <paramref name="byCoverage"/>.</summary>
+        public void DrawTint(SpriteBatch spriteBatch, Texture2D content, Rectangle rows, bool top, float solidHeight, Color tint, bool byCoverage, RasterizerState rasterizer)
+        {
+            if (rows.Width <= 0 || rows.Height <= 0 || tint.A == 0
+                || !CoreShaders.TryGet(GraphicsDevice, CoreShaders.ProgressiveBlur, out var effect) || effect == null)
+                return;
+
+            effect.CurrentTechnique = effect.Techniques["Tint"];
+            effect.Parameters["EdgeV"].SetValue(top ? 0f : 1f);
+            effect.Parameters["TintSolid"].SetValue(Math.Clamp(solidHeight / rows.Height, 0f, 1f));
+            effect.Parameters["Tint"].SetValue(tint.ToVector4());
+            effect.Parameters["TintCoverage"].SetValue(byCoverage ? 1f : 0f);
+            effect.Parameters["SharpRect"].SetValue(new Vector4(
+                rows.Left / (float)content.Width, rows.Top / (float)content.Height,
+                rows.Width / (float)content.Width, rows.Height / (float)content.Height));
+            spriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend, SamplerState.PointClamp, rasterizerState: rasterizer, effect: effect);
+            spriteBatch.Draw(content, rows, rows, Color.White);
+            spriteBatch.End();
+        }
+
         /// <summary>Returns the targets of this draw.</summary>
         public void Release()
         {

@@ -28,6 +28,27 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void The_tint_follows_the_bands_until_it_gets_its_own_height()
+        {
+            var blur = new ProgressiveBlur();
+            Assert.IsTrue(float.IsNaN(blur.TopTintHeight));
+            Assert.IsTrue(float.IsNaN(blur.BottomTintHeight));
+            Assert.IsFalse(blur.HasOwnTint);
+
+            blur.TopTintHeight = 120;
+            blur.BottomTintHeight = -4;
+            blur.TintSolidHeight = -1;
+            Assert.IsTrue(blur.HasOwnTint);
+            Assert.AreEqual(120f, blur.TopTintHeight);
+            Assert.AreEqual(0f, blur.BottomTintHeight);
+            Assert.AreEqual(0f, blur.TintSolidHeight);
+
+            blur.TopTintHeight = float.NaN;
+            blur.BottomTintHeight = float.NaN;
+            Assert.IsFalse(blur.HasOwnTint);
+        }
+
+        [TestMethod]
         public void It_lays_out_like_a_plain_content_control()
         {
             var content = new Border();

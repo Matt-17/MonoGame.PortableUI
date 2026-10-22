@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **`ProgressiveBlur` tint with its own extent (`TopTintHeight`, `BottomTintHeight`, `TintSolidHeight`):** the tint no longer has to follow the blur band. With a tint height set it covers that many rows from the edge, at full `TintOpacity` for `TintSolidHeight` and then fading out along an eased curve, while the blur stays as it is; flights landing in the blur get the same tint. NaN (the default) keeps the old tint along the band (screenshots identical).
+
 - **Fix: the theme's `MinimumControlSize` overrode an explicit size:** a button with `Height = 38` under a theme minimum of 44 was laid out 44 high, off-centre against what the app sized. A fixed `Width`/`Height` now wins on its axis, like an own `MinWidth`/`MinHeight`; the other axis still gets the minimum.
 
 - **Fix: a button replaced its label's own text colour on the first state change:** with a `TextBlock` as `Content` whose `TextColor` the app set, the button overwrote it with its `TextColor`/`HoverTextColor`/`PressedTextColor` at the first press or hover - a navy label on a white button turned white after a press slid off. The label's own colour now stays in every state (an explicitly set `Button.TextColor` still drives it), and a label without its own colour shows the button's state colours from the moment it is set, not only after the first state change.

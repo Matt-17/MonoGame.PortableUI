@@ -159,7 +159,7 @@ gradients and image brushes, `PathShape` rasters, and shadow layers (rest layer 
 **Progressive blur:** `ProgressiveBlur` (`Screen.ProgressiveBlur.cs`) draws its subtree into a full-frame `RenderTargetPool`
 target, composites the rows outside its bands sharp and hands each band to `ScreenEngine.ProgressiveBlurRenderer`
 (core `ProgressiveBlurRenderer`, shader `Shaders/ProgressiveBlur.fx`: one downscale to <= 24 texels of radius, separable Gaussian with taps spread by the
-row's radius, compose shader mixes sharp/blurred/tint by row). Both bands are prepared before the frame's target is rebound.
+row's radius, compose shader mixes sharp/blurred/tint by row; a tint with its own extent, `TopTintHeight`/`BottomTintHeight`, is a separate `Tint` pass over the composed rows). Both bands are prepared before the frame's target is rebound.
 A deep 2x pyramid was tried first and shimmered while scrolling. Nested blurs draw sharp inside the outer one.
 
 **Deformation:** `Control.Deformation` (soft-body grid, `Animation/Deformation.cs`) is updated in `UpdateMotion` from the

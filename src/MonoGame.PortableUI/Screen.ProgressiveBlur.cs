@@ -29,7 +29,13 @@ namespace MonoGame.PortableUI
             var radius = control.MaxRadius * context.Scale.Y;
             var topHeight = control.TopHeight * context.Scale.Y;
             var bottomHeight = control.BottomHeight * context.Scale.Y;
-            if (rect.Width <= 0 || rect.Height <= 0 || radius < 1 || (topHeight < 1 && bottomHeight < 1)
+            // An own tint extent: the blur bands carry no tint, it is laid over them along its own rows.
+            var ownTint = control.HasOwnTint;
+            var topTint = ownTint && control.TopTintHeight.IsFixed() && control.TintOpacity > 0 ? control.TopTintHeight * context.Scale.Y : 0;
+            var bottomTint = ownTint && control.BottomTintHeight.IsFixed() && control.TintOpacity > 0 ? control.BottomTintHeight * context.Scale.Y : 0;
+            if (radius < 1)
+                topHeight = bottomHeight = 0;
+            if (rect.Width <= 0 || rect.Height <= 0 || (topHeight < 1 && bottomHeight < 1 && topTint < 1 && bottomTint < 1)
                 || engine.ProgressiveBlurRenderer == null)
                 return false;
 
@@ -52,7 +58,8 @@ namespace MonoGame.PortableUI
 
             var tint = control.TintColor * (control.TintColor.A / 255f * control.TintOpacity * parentContext.Opacity);
             tint.A = (byte)Math.Round(control.TintColor.A * control.TintOpacity * parentContext.Opacity);
-            var bands = new BlurBands(rect, radius, topHeight, bottomHeight, tint, engine.DrawFrameNumber);
+            var tints = new BlurTints(ownTint, topTint, bottomTint, control.TintSolidHeight * context.Scale.Y);
+            var bands = new BlurBands(rect, radius, topHeight, bottomHeight, tint, tints, engine.DrawFrameNumber);
             control.DrawnBands = bands;
             ComposeBlurred(spriteBatch, engine, content, bands, previousTargets, parentContext.ChildClipRect, tintByCoverage: false);
             RenderTargetPool.Return(device, content);
@@ -102,10 +109,11 @@ namespace MonoGame.PortableUI
             // Both bands blurred before the frame's target is bound again (a tiled GPU reloads it each time).
             var hasTop = top1 > top0;
             var hasBottom = bottom1 > bottom0;
+            var bandTint = bands.Tints.Own ? Color.Transparent : bands.Tint;
             if (hasTop)
-                hasTop = renderer.Prepare(spriteBatch, content, new Rectangle(left, top0, right - left, top1 - top0), topEdge, topLength, bands.Radius, bands.Tint, tintByCoverage, 0);
+                hasTop = renderer.Prepare(spriteBatch, content, new Rectangle(left, top0, right - left, top1 - top0), topEdge, topLength, bands.Radius, bandTint, tintByCoverage, 0);
             if (hasBottom)
-                hasBottom = renderer.Prepare(spriteBatch, content, new Rectangle(left, bottom0, right - left, bottom1 - bottom0), bottomEdge, bottomLength, bands.Radius, bands.Tint, tintByCoverage, 1);
+                hasBottom = renderer.Prepare(spriteBatch, content, new Rectangle(left, bottom0, right - left, bottom1 - bottom0), bottomEdge, bottomLength, bands.Radius, bandTint, tintByCoverage, 1);
             // A band the renderer could not blur (no shader) is drawn sharp with the rows around it.
             if (!hasTop)
                 top1 = top0;
@@ -133,6 +141,19 @@ namespace MonoGame.PortableUI
             if (hasBottom)
                 renderer.Draw(spriteBatch, 1, ScissorRasterizer);
             renderer.Release();
+            if (bands.Tints.Own && right > left)
+            {
+                // The tint rows start at the control's edges, independent of the bands' rows.
+                var tints = bands.Tints;
+                var tintTop = Math.Clamp(topEdge, 0, height);
+                var tintBottom = Math.Clamp(bottomEdge, tintTop, height);
+                var topRows = Math.Min((int)Math.Round(tints.TopHeight), tintBottom - tintTop);
+                var bottomRows = Math.Min((int)Math.Round(tints.BottomHeight), tintBottom - tintTop);
+                if (topRows > 0)
+                    renderer.DrawTint(spriteBatch, content, new Rectangle(left, tintTop, right - left, topRows), top: true, tints.SolidHeight, bands.Tint, tintByCoverage, ScissorRasterizer);
+                if (bottomRows > 0)
+                    renderer.DrawTint(spriteBatch, content, new Rectangle(left, tintBottom - bottomRows, right - left, bottomRows), top: false, tints.SolidHeight, bands.Tint, tintByCoverage, ScissorRasterizer);
+            }
             device.ScissorRectangle = previousScissor;
             engine.RecordBatchFlush();
         }
@@ -167,8 +188,9 @@ namespace MonoGame.PortableUI
     /// <summary>Where a <see cref="ProgressiveBlur"/> was drawn in a frame and how its bands look, in pixels.</summary>
     internal readonly struct BlurBands
     {
-        public BlurBands(Rect rect, float radius, float topHeight, float bottomHeight, Color tint, long frame)
+        public BlurBands(Rect rect, float radius, float topHeight, float bottomHeight, Color tint, BlurTints tints, long frame)
         {
+            Tints = tints;
             Rect = rect;
             Radius = radius;
             TopHeight = topHeight;
@@ -183,6 +205,25 @@ namespace MonoGame.PortableUI
         public float BottomHeight { get; }
         /// <summary>Premultiplied, ancestor opacity included.</summary>
         public Color Tint { get; }
+        public BlurTints Tints { get; }
         public long Frame { get; }
+    }
+
+    /// <summary>A <see cref="ProgressiveBlur"/>'s tint with its own extent (<see cref="Own"/>), in pixels; otherwise the
+    /// tint follows the blur bands.</summary>
+    internal readonly struct BlurTints
+    {
+        public BlurTints(bool own, float topHeight, float bottomHeight, float solidHeight)
+        {
+            Own = own;
+            TopHeight = topHeight;
+            BottomHeight = bottomHeight;
+            SolidHeight = solidHeight;
+        }
+
+        public bool Own { get; }
+        public float TopHeight { get; }
+        public float BottomHeight { get; }
+        public float SolidHeight { get; }
     }
 }

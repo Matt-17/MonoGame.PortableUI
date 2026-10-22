@@ -8,6 +8,9 @@
 // pixels on), so the band runs out into the untouched content without a seam; then Tint (premultiplied) laid over
 // it, scaled by the row's strength (and by the content's coverage with TintCoverage = 1, for a layer drawn over
 // content that has its tint already), and half a step of noise so long soft gradients do not band.
+// Tint: a tint with its own extent, laid over the composed rows; uv covers the tint rows, full for TintSolid of them
+// from the edge row (EdgeV 0 or 1), then an eased fade to 0. The texture is the content (SharpRect: the rows in it),
+// for TintCoverage.
 
 sampler2D TextureSampler : register(s0);
 
@@ -29,6 +32,7 @@ float4 SharpRect;
 float FadeRadius;
 float4 Tint;
 float TintCoverage;
+float TintSolid;
 
 static const float Weights[13] = { 1.000000, 0.986207, 0.945959, 0.882497, 0.800737, 0.706648, 0.606531, 0.506336, 0.411112, 0.324652, 0.249352, 0.186270, 0.135335 };
 
@@ -65,6 +69,17 @@ float4 ComposePS(float4 position : SV_POSITION, float4 color : COLOR0, float2 uv
     return result * color;
 }
 
+float4 TintPS(float4 position : SV_POSITION, float4 color : COLOR0, float2 uv : TEXCOORD0) : COLOR0
+{
+    float t = abs((uv.y - SharpRect.y) / SharpRect.w - EdgeV);
+    float fade = t <= TintSolid ? 1.0 : 1.0 - smoothstep(0.0, 1.0, (t - TintSolid) / max(1.0 - TintSolid, 0.0001));
+    float tint = fade * lerp(1.0, tex2D(TextureSampler, uv).a, TintCoverage);
+    float4 result = Tint * tint;
+    float noise = frac(sin(dot(floor(uv * 4096.0), float2(12.9898, 78.233))) * 43758.5453) - 0.5;
+    result.rgb += noise / 255.0 * result.a;
+    return result * color;
+}
+
 technique Blur
 {
     pass P0
@@ -78,5 +93,13 @@ technique Compose
     pass P0
     {
         PixelShader = compile ps_3_0 ComposePS();
+    }
+}
+
+technique Tint
+{
+    pass P0
+    {
+        PixelShader = compile ps_3_0 TintPS();
     }
 }
