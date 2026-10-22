@@ -1610,12 +1610,21 @@ namespace MonoGame.PortableUI.Demo
                 stack.AddChild(row);
             }
 
-            return new ScrollViewer
+            // Rows blur as they scroll under the top and bottom edge.
+            return new ProgressiveBlur
             {
-                Content = stack,
                 Margin = 16,
-                BackgroundBrush = SurfaceBrush,
-                ScrollOrientation = Orientation.Vertical
+                TopHeight = 56,
+                BottomHeight = 56,
+                MaxRadius = 12,
+                TintColor = Palette.Surface,
+                TintOpacity = 0.85f,
+                Content = new ScrollViewer
+                {
+                    Content = stack,
+                    BackgroundBrush = SurfaceBrush,
+                    ScrollOrientation = Orientation.Vertical
+                }
             };
         }
 

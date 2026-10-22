@@ -1203,6 +1203,9 @@ namespace MonoGame.PortableUI
             if (control is ThemeIsland island && TryComposeIslandPostFx(spriteBatch, island, parentContext, context))
                 return;
 
+            if (control is ProgressiveBlur blur && TryDrawProgressiveBlur(spriteBatch, blur, parentContext, context))
+                return;
+
             if (control.OverscrollScale != Vector2.One && TryDrawStretched(spriteBatch, control, parentContext))
                 return;
 

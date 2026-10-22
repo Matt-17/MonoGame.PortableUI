@@ -11,7 +11,8 @@ namespace MonoGame.PortableUI.Demo.Android
     ///     A page opened with a slide: title, shadowed gradient cards and a chart. Every page uses text sizes, shadow
     ///     blurs and corner radii no page before it used, so its first draw builds glyphs, masks and gradients like an
     ///     app page opened for the first time - what <see cref="ScreenEngine.WarmUpScreens"/> moves ahead of the slide.
-    ///     A tapped card pulses (an implicit Scale transition; the third card is glass), its frames logged like a slide.
+    ///     A tapped card pulses (an implicit Scale transition; the third card is glass), its frames logged like a slide; the
+    ///     list scrolls under the system bars through a <see cref="ProgressiveBlur"/>, its frames logged as well.
     /// </summary>
     public sealed class DetailPage : Screen
     {
@@ -69,7 +70,21 @@ namespace MonoGame.PortableUI.Demo.Android
                 context.DrawRectangle(new Rect(0, 0, width, canvas.ClippingRect.Height), new Color(185, 190, 195), 1);
             };
             panel.AddChild(chart);
-            Content = new SafeAreaPanel(new ScrollViewer { Content = panel });
+            for (var i = 0; i < 12; i++)
+            {
+                panel.AddChild(new Border
+                {
+                    Height = 56,
+                    Margin = new Thickness(0, 8, 0, 0),
+                    CornerRadius = new CornerRadius(8),
+                    BackgroundBrush = i % 3 == 0 ? new Color(20, 126, 133) : Color.White,
+                    Content = new TextBlock { Text = "Row " + (i + 1), TextSize = 18, TextColor = i % 3 == 0 ? Color.White : new Color(40, 45, 50), Margin = new Thickness(16, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center }
+                });
+            }
+            // The list scrolls under the status and navigation bar, blurred towards the screen edges.
+            var scroller = new ScrollViewer { Content = new SafeAreaPanel(panel) };
+            scroller.ScrollChanged += (_, _) => _scrolledUntil = ScreenSystem.TotalTime + TimeSpan.FromMilliseconds(150);
+            Content = new ProgressiveBlur { TopHeight = 120, BottomHeight = 96, MaxRadius = 16, TintColor = new Color(245, 245, 245), TintOpacity = 0.85f, Content = scroller };
             _number = number;
             BackRequested += (_, args) =>
             {
@@ -82,6 +97,10 @@ namespace MonoGame.PortableUI.Demo.Android
         private readonly int _number;
         private int _pulses;
         private TimeSpan _pulseEnds;
+        private TimeSpan _scrolledUntil;
+
+        /// <summary>The list is scrolling (the demo logs its frame times).</summary>
+        public bool IsScrolling => ScreenSystem.TotalTime < _scrolledUntil;
 
         /// <summary>A card's pulse is running (the demo logs its frame times).</summary>
         public bool IsPulsing => ScreenSystem.TotalTime < _pulseEnds;

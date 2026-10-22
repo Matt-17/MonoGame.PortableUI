@@ -303,6 +303,29 @@ namespace MonoGame.PortableUI
 
         private IBackdropRenderer? _backdrop;
         private IPostEffectRenderer? _postEffects;
+        private IProgressiveBlurRenderer? _progressiveBlur;
+
+        /// <summary>
+        ///     Renderer of <see cref="ProgressiveBlur"/> bands, or null without the optional effects package (the
+        ///     content then draws sharp). Recreated when the GraphicsDevice is replaced.
+        /// </summary>
+        public IProgressiveBlurRenderer? ProgressiveBlurRenderer
+        {
+            get
+            {
+                var factory = EffectRenderers.ProgressiveBlur;
+                var device = Game.GraphicsDevice;
+                if (factory == null || device == null)
+                    return null;
+                if (_progressiveBlur == null || !ReferenceEquals(_progressiveBlur.GraphicsDevice, device))
+                {
+                    _progressiveBlur?.Dispose();
+                    _progressiveBlur = factory(device);
+                }
+
+                return _progressiveBlur;
+            }
+        }
 
         /// <summary>
         ///     Backdrop-blur renderer shared by all screens of this engine, or null without the optional
@@ -1118,6 +1141,7 @@ namespace MonoGame.PortableUI
                 Game.Components.Remove(_component);
             _backdrop?.Dispose();
             _postEffects?.Dispose();
+            _progressiveBlur?.Dispose();
             DisposeLayerCaches();
             _stackBackdropTarget?.Dispose();
             _themeSnapshot?.Dispose();

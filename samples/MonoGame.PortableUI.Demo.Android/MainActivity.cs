@@ -54,6 +54,10 @@ namespace MonoGame.PortableUI.Demo.Android
                 Window.SetStatusBarColor(global::Android.Graphics.Color.Transparent);
                 Window.SetNavigationBarColor(global::Android.Graphics.Color.Transparent);
 #pragma warning restore CA1422
+                // Three-button navigation otherwise lays a translucent scrim over the bar: a light strip with a hard
+                // edge above content that scrolls (and blurs) under it.
+                if (OperatingSystem.IsAndroidVersionAtLeast(29))
+                    Window.NavigationBarContrastEnforced = false;
                 if (OperatingSystem.IsAndroidVersionAtLeast(30))
                     Window.InsetsController?.SetSystemBarsAppearance(
                         (int)(WindowInsetsControllerAppearance.LightStatusBars | WindowInsetsControllerAppearance.LightNavigationBars),

@@ -150,6 +150,12 @@ passed as `BrushContext.MotionScale`; brushes read `RestPixelWidth`/`RestPixelHe
 gradients and image brushes, `PathShape` rasters, and shadow layers (rest layer count and corner masks,
 `RoundedRectRenderer.DrawSolidScaledCorners`), so a Scale animation builds nothing per frame.
 
+**Progressive blur:** `ProgressiveBlur` (`Screen.ProgressiveBlur.cs`) draws its subtree into a full-frame `RenderTargetPool`
+target, composites the rows outside its bands sharp and hands each band to `ScreenEngine.ProgressiveBlurRenderer`
+(`IProgressiveBlurRenderer`, effects package: one downscale to <= 12 texels of radius, separable Gaussian with taps spread by the
+row's radius, compose shader mixes sharp/blurred/tint by row). Both bands are prepared before the frame's target is rebound.
+A deep 2x pyramid was tried first and shimmered while scrolling. Nested blurs draw sharp inside the outer one.
+
 **Deformation:** `Control.Deformation` (soft-body grid, `Animation/Deformation.cs`) is updated in `UpdateMotion` from the
 translation velocity; while `IsActive`, `Screen.TryDrawDeformed` renders the control with `RenderTransformSuppressed`
 (rest pose, no own transform) into a `RenderTargetPool` texture and draws it as a BasicEffect mesh moved by

@@ -147,8 +147,8 @@ namespace MonoGame.PortableUI.Demo.Android
             TraceTransition(interval, System.Diagnostics.Stopwatch.GetElapsedTime(now).TotalMilliseconds);
         }
 
-        // A screen transition or a card pulse on a detail page.
-        private bool IsTraced => _engine is { IsTransitioning: true } || _engine?.ActiveScreen is DetailPage { IsPulsing: true };
+        // A screen transition, a card pulse or scrolling on a detail page.
+        private bool IsTraced => _engine is { IsTransitioning: true } || _engine?.ActiveScreen is DetailPage { IsPulsing: true } or DetailPage { IsScrolling: true };
 
         private void TraceTransition(double interval, double draw)
         {
@@ -159,7 +159,7 @@ namespace MonoGame.PortableUI.Demo.Android
             {
                 _tracing = true;
                 if (!_engine.IsTransitioning)
-                    _transitionTrace.Clear().Append("pulse: -/");
+                    _transitionTrace.Clear().Append(_engine.ActiveScreen is DetailPage { IsPulsing: true } ? "pulse: -/" : "scroll: -/");
                 else
                     _transitionTrace.Clear()
                         .Append(_engine.ActiveScreen is DetailPage ? "open" : "back")

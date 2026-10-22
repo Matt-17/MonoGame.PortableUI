@@ -21,5 +21,6 @@ namespace MonoGame.PortableUI.Effects
         public const string Blur = "Blur";
         public const string PostFx = "PostFx";
         public const string LiquidGlass = "LiquidGlass";
+        public const string ProgressiveBlur = "ProgressiveBlur";
     }
 }
