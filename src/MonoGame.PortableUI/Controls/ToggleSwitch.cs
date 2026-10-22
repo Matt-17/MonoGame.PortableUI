@@ -47,7 +47,7 @@ namespace MonoGame.PortableUI.Controls
             var theme = PortableTheme.ResolveCurrent();
 
             _track = new Part(this, isKnob: false);
-            _knob = new Part(this, isKnob: true);
+            _knob = new Part(this, isKnob: true) { ThemeFade = ThemeFadeMode.Flip };
             Width = theme.ToggleSwitchWidth;
             Height = theme.ToggleSwitchHeight;
             KnobInset = 5;

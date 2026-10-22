@@ -14,7 +14,17 @@ namespace MonoGame.PortableUI
         Crossfade,
 
         /// <summary>The new look spreads as a growing circle from a point (the switch that was tapped).</summary>
-        Reveal
+        Reveal,
+
+        /// <summary>
+        ///     Each element changes on its own (for long, unprompted changes - a sunset schedule, the system's dark mode),
+        ///     as its <see cref="Controls.Control.ThemeFade"/> says: evenly and gently by default, while elements marked
+        ///     <see cref="Controls.ThemeFadeMode.Flip"/> (a selection indicator, a knob, high-contrast text) stay near their
+        ///     old look, flip quickly when their parent passes the middle and settle, so the UI stays legible all along.
+        ///     Needs a live change that rebuilds the content (the old and new tree are paired element by element, by place
+        ///     or by <see cref="Controls.Control.Tag"/>); otherwise it is a cross-fade.
+        /// </summary>
+        ElementFade
     }
 
     // A theme change without a jump: the last frame in the old look is kept as a picture, the new theme is applied,
@@ -66,10 +76,8 @@ namespace MonoGame.PortableUI
         ///     same controls in place, the picture is used. False: always the picture.
         ///     Called while a change still runs, the new one starts from what is on screen then; the running one goes on
         ///     inside its old look.
-        ///     <paramref name="easing"/>: how the change runs over its duration (0..1 in, 0..1 out); null = the default:
-        ///     ease in and out, and for a cross-fade longer than a second a curve that drifts slowly at both ends and
-        ///     crosses the middle - where light-on-dark and dark-on-light text would average to grey on grey - in about
-        ///     0.6 s, so the UI stays legible all along.
+        ///     <paramref name="easing"/>: how the change runs over its duration (0..1 in, 0..1 out); null = ease in and
+        ///     out. For long, unprompted changes <see cref="ThemeTransitionStyle.ElementFade"/> keeps text legible.
         /// </summary>
         public void TransitionTheme(Action apply, ThemeTransitionStyle style = ThemeTransitionStyle.Crossfade, PointF? origin = null,
             TimeSpan? duration = null, Color? backdrop = null, bool live = true, Animation.Easing? easing = null)
@@ -150,6 +158,9 @@ namespace MonoGame.PortableUI
                 layer.Shown.AddRange(VisibleScreens);
                 StartLiveTheme(layer, oldTheme, screens, contents, backgrounds);
             }
+            // Element by element needs every old tree beside its new one; else the whole look cross-fades.
+            if (layer.Style == ThemeTransitionStyle.ElementFade && (layer.Ghosts.Count == 0 || !layer.Ghosts.TrueForAll(g => g is GhostScreen)))
+                layer.Style = ThemeTransitionStyle.Crossfade;
             layer.Start = ScreenSystem.TotalTime;
             _themeLayers.Add(layer);
             RequestRedraw();
@@ -243,6 +254,14 @@ namespace MonoGame.PortableUI
                 SyncPairedScrolls(layer);
                 foreach (var ghost in layer.Ghosts)
                     ghost.Update();
+                if (layer.Style == ThemeTransitionStyle.ElementFade)
+                {
+                    foreach (var ghost in layer.Ghosts)
+                    {
+                        if (ghost is GhostScreen paired)
+                            BuildThemeTwins(paired, paired.Source, layer);
+                    }
+                }
             }
         }
 
@@ -260,6 +279,12 @@ namespace MonoGame.PortableUI
         {
             foreach (var ghost in layer.Ghosts)
             {
+                if (ghost is GhostScreen { Source: { } source } && ReferenceEquals(source.ThemeTwinGhost, ghost))
+                {
+                    source.ThemeTwins = null;
+                    source.ThemeTwinGhost = null;
+                    source.InvalidateLayout(false);
+                }
                 ghost.ThemeOverride = null;
                 if (ghost is GhostScreen own)
                     own.Content = null;
@@ -382,7 +407,8 @@ namespace MonoGame.PortableUI
             for (var i = 0; i < _themeLayers.Count; i++)
             {
                 var layer = _themeLayers[i];
-                if (layer.Ghosts.Count == 0 || layer.Target == null || layer.Target.IsDisposed)
+                // An element fade draws inside the new tree itself.
+                if (layer.Style == ThemeTransitionStyle.ElementFade || layer.Ghosts.Count == 0 || layer.Target == null || layer.Target.IsDisposed)
                     continue;
                 // An old look that did not change keeps its target (a reveal's hole only grows, a fade draws it fainter);
                 // one with an earlier change inside it changes every frame.
@@ -410,24 +436,26 @@ namespace MonoGame.PortableUI
                     ExitDraw(previous);
                 }
                 layer.NeedsRender = AnimationFrameRequests != requests;
-                if (i > 0)
+                if (i > 0 && _themeLayers[i - 1].Style != ThemeTransitionStyle.ElementFade)
                     ComposeLayer(spriteBatch, _themeLayers[i - 1], layer.Target, frameTargets);
             }
 
-            ComposeLayer(spriteBatch, _themeLayers[_themeLayers.Count - 1], null, frameTargets);
+            var newest = _themeLayers[_themeLayers.Count - 1];
+            if (newest.Style != ThemeTransitionStyle.ElementFade)
+                ComposeLayer(spriteBatch, newest, null, frameTargets);
             RecordBatchFlush();
             RequestRedraw();
         }
 
-        /// <summary>Middle stretch of a long cross-fade, in seconds: the blend goes from 20 % to 80 % in this time.</summary>
-        private const double LegibleCrossingSeconds = 0.6;
+        /// <summary>Middle stretch of a flip, in seconds: the blend goes from 20 % to 80 % in this time.</summary>
+        private const double FlipCrossingSeconds = 0.6;
 
-        // The default cross-fade: ease in and out; a long one drifts to 20 % over the first half less the crossing, crosses
-        // to 80 % in LegibleCrossingSeconds (grey on grey only for a moment), and drifts on to the end.
-        internal static float LegibleFade(float t, TimeSpan duration)
+        // A ThemeFadeMode.Flip element: ease in and out when short; a long one drifts to 20 % over the first half less the
+        // crossing, crosses to 80 % in FlipCrossingSeconds (grey on grey only for a moment), and drifts on to the end.
+        internal static float FlipCurve(float t, TimeSpan duration)
         {
             static float Smooth(float x) => x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x);
-            var crossing = (float)(LegibleCrossingSeconds / Math.Max(0.001, duration.TotalSeconds));
+            var crossing = (float)(FlipCrossingSeconds / Math.Max(0.001, duration.TotalSeconds));
             if (crossing >= 0.6f)
                 return Smooth(t);
             var start = 0.5f - crossing / 2;
@@ -478,7 +506,7 @@ namespace MonoGame.PortableUI
             }
             else
             {
-                fade = 1 - (layer.Easing is { } easing ? (float)easing(t) : LegibleFade(t, layer.Duration));
+                fade = 1 - (layer.Easing is { } easing ? (float)easing(t) : t * t * (3 - 2 * t));
             }
 
             if (onto != null)

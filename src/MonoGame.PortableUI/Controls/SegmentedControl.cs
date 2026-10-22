@@ -95,6 +95,9 @@ namespace MonoGame.PortableUI.Controls
                 Parent = this
             };
             _cover = new CoverLayer(this) { Parent = this };
+            // In a long element fade the selection stands out until its background passes the middle.
+            _indicator.ThemeFade = ThemeFadeMode.Flip;
+            _cover.ThemeFade = ThemeFadeMode.Flip;
             KeyDown += (_, args) =>
             {
                 var step = args.Key switch

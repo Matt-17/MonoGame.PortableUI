@@ -176,6 +176,17 @@ namespace MonoGame.PortableUI
         /// look only then).</summary>
         internal bool VisualDirty { get; set; } = true;
 
+        /// <summary>While an element fade runs on this screen: each element's old twin and curve
+        /// (<see cref="ThemeTransitionStyle.ElementFade"/>); null otherwise.</summary>
+        internal Dictionary<Control, ThemeTwin>? ThemeTwins { get; set; }
+
+        /// <summary>The screen holding the old look of an element fade (its background fades out over this one's).</summary>
+        internal Screen? ThemeTwinGhost { get; set; }
+
+        internal float ThemeTwinProgress { get; set; }
+
+        internal TimeSpan ThemeTwinDuration { get; set; }
+
         /// <summary>Scroll positions kept under <see cref="Controls.ScrollViewer.StateKey"/>, for the screen's lifetime.</summary>
         internal Dictionary<string, PointF> ScrollStates { get; } = new Dictionary<string, PointF>(StringComparer.Ordinal);
 
@@ -509,6 +520,13 @@ namespace MonoGame.PortableUI
             OnBeforeDraw(spriteBatch);
 
             DrawBackground(spriteBatch);
+            if (ThemeTwins != null && ThemeTwinGhost?.BackgroundBrush is { } oldBackground && !ReferenceEquals(oldBackground, BackgroundBrush))
+            {
+                // An element fade: the old screen background fades out evenly over the new one.
+                spriteBatch.Begin();
+                oldBackground.Draw(spriteBatch, new BrushContext(PixelScreenRect, default, 1 - ThemeTwinProgress, device));
+                spriteBatch.End();
+            }
 
             DrawControlTree(spriteBatch, _mainGrid, _mainGrid.BoundingRect);
             // Shared-element flights belong to the content; adorners (handles, guides, a morph between pages) above them.
@@ -1349,7 +1367,7 @@ namespace MonoGame.PortableUI
                 return;
 
             var cached = control.CacheMode == CacheMode.Bitmap && !ReferenceEquals(control, _layerInProgress)
-                && control.OverscrollScale == Vector2.One && control is not ThemeIsland;
+                && control.OverscrollScale == Vector2.One && control is not ThemeIsland && ThemeTwins == null;
             // Anything but a layer composite draws with its own state: close a pending composite batch.
             if (!cached)
                 FlushLayerComposites(spriteBatch);
@@ -1396,14 +1414,33 @@ namespace MonoGame.PortableUI
                 return;
 
             var oldRect = new Rect(spriteBatch.GraphicsDevice.ScissorRectangle);
-            control.SetRenderState(context.Opacity, context.Scale, context.Moving, context.RestScale);
+            // An element fade: the element and its old twin, each at its share of the change.
+            Control? twin = null;
+            var newShare = 1f;
+            var oldShare = 0f;
+            if (ThemeTwins != null && ThemeTwins.TryGetValue(control, out var pair))
+            {
+                var mix = pair.Mix(ThemeTwinProgress, ThemeTwinDuration);
+                newShare = pair.Surface ? 1 : mix;
+                twin = pair.Old;
+                oldShare = twin != null ? 1 - mix : 0;
+                if (oldShare < 0.004f)
+                    twin = null;
+            }
+            control.SetRenderState(context.Opacity * newShare, context.Scale, context.Moving, context.RestScale);
             spriteBatch.GraphicsDevice.ScissorRectangle = ToScissorRectangle(context.ScissorRect);
-            if (control.NeedsDrawPass)
+            if (control.NeedsDrawPass || twin is { NeedsDrawPass: true })
             {
                 RoundedRectRenderer.Subpixel = control.DrawsSubpixel;
                 _controlBatchEffect = ScreenEngine?.Options.Effect;
                 spriteBatch.Begin(SpriteSortMode.Deferred, samplerState: SamplerStateFor(control), rasterizerState: ScissorRasterizer, effect: ScreenEngine?.Options.Effect);
-                control.OnDraw(spriteBatch, context.RenderRect);
+                if (control.NeedsDrawPass && newShare > 0.004f)
+                    control.OnDraw(spriteBatch, context.RenderRect);
+                if (twin is { NeedsDrawPass: true })
+                {
+                    twin.SetRenderState(context.Opacity * oldShare, context.Scale, context.Moving, context.RestScale);
+                    twin.OnDraw(spriteBatch, context.RenderRect);
+                }
                 RoundedRectRenderer.Subpixel = false;
                 spriteBatch.End();
                 ScreenEngine?.RecordBatchFlush();

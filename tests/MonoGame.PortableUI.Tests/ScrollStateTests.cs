@@ -106,6 +106,31 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void Every_ghost_of_stacked_changes_follows_the_keyed_scroll()
+        {
+            var screen = new TestScreen { Content = Page("list") };
+            _engine.NavigateToScreen(screen);
+            Step();
+            var first = (ScrollViewer)screen.Content!;
+
+            _engine.TransitionTheme(() => screen.Content = Page("list"), ThemeTransitionStyle.Reveal);
+            _engine.TakeThemePictureForTests();
+            Step();
+            var second = (ScrollViewer)screen.Content!;
+            _engine.TransitionTheme(() => screen.Content = Page("list"), duration: TimeSpan.FromSeconds(8));
+            _engine.TakeThemePictureForTests();
+            Step();
+            var third = (ScrollViewer)screen.Content!;
+            Assert.AreEqual(2, _engine.ThemeLayerCount);
+
+            third.ScrollTo(new PointF(0, 700));
+            Step();
+            Assert.AreEqual(700, second.Offset.Y, 0.01f, "the newer ghost follows");
+            Assert.AreEqual(700, first.Offset.Y, 0.01f, "the earlier ghost follows too");
+            _engine.EndThemeTransition();
+        }
+
+        [TestMethod]
         public void A_navigation_during_a_long_fade_finishes_it_within_a_quarter_second()
         {
             var screen = new TestScreen { Content = Page("list") };
