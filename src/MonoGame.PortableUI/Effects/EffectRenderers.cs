@@ -26,8 +26,8 @@ namespace MonoGame.PortableUI.Effects
     }
 
     /// <summary>
-    ///     Prepares the blurred picture of what lies behind the UI, which glass brushes sample. Provided
-    ///     per device by the optional effects package through <see cref="EffectRenderers.Backdrop"/>.
+    ///     Prepares the blurred picture of what lies behind the UI, which glass brushes sample. The core's
+    ///     <see cref="BackdropRenderer"/> by default; <see cref="EffectRenderers.Backdrop"/> may supply another.
     /// </summary>
     public interface IBackdropRenderer : IDisposable
     {

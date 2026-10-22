@@ -25,7 +25,9 @@ namespace MonoGame.PortableUI.Effects
             if (deviceEffects.TryGetValue(name, out effect))
                 return effect != null;
 
-            effect = LoadEffect(graphicsDevice, name);
+            // Blur and LiquidGlass moved into the core with the glass brushes.
+            effect = LoadEffect(graphicsDevice, name)
+                ?? (CoreShaders.TryGet(graphicsDevice, name, out var core) ? core : null);
             deviceEffects[name] = effect;
             return effect != null;
         }

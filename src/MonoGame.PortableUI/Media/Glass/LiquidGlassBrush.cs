@@ -55,7 +55,7 @@ namespace MonoGame.PortableUI.Media
             var device = spriteBatch.GraphicsDevice;
             if (rect.Width <= 1 || rect.Height <= 1
                 || !BackdropSource.TryGetSharp(device, out var scene, out var blurred, out var screenRect) || scene == null || blurred == null
-                || !EffectCache.TryGetEffect(device, EffectNames.LiquidGlass, out var effect) || effect == null)
+                || !CoreShaders.TryGet(device, CoreShaders.LiquidGlass, out var effect) || effect == null)
                 return false;
 
             var scaleX = scene.Width / Math.Max(1f, screenRect.Width);

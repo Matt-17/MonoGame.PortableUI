@@ -7,13 +7,15 @@ using Microsoft.Xna.Framework.Graphics;
 namespace MonoGame.PortableUI.Effects
 {
     /// <summary>
-    ///     Shaders of core visuals (<see cref="Controls.ProgressiveBlur"/>), embedded in this assembly so they work with
+    ///     Shaders of core visuals (<see cref="Controls.ProgressiveBlur"/>, the backdrop blur and liquid glass), embedded in this assembly so they work with
     ///     no install and no optional package. Loaded once per device; a shader that cannot load (no resource, a
     ///     graphics backend the OpenGL bytecode does not fit) is reported once and its visual draws without it.
     /// </summary>
     internal static class CoreShaders
     {
         public const string ProgressiveBlur = "ProgressiveBlur";
+        public const string Blur = "Blur";
+        public const string LiquidGlass = "LiquidGlass";
 
         private static readonly ConditionalWeakTable<GraphicsDevice, Dictionary<string, Effect?>> Loaded = new();
         private static readonly HashSet<string> Reported = new();

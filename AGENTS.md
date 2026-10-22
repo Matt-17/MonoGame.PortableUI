@@ -5,14 +5,14 @@ No XAML — trees are built in C#. Known open issues and deferred work live in `
 
 ## Repository layout
 
-- `src/MonoGame.PortableUI` — the library (controls, layout, input, media/brushes, theming core, `FontStashUIFont` runtime fonts via FontStashSharp — in the core until MonoGame's own font system lands). Shaders of core visuals live here too (`Shaders/*.fx` + `*.ogl.mgfxo`, embedded, `CoreShaders`; a shader that cannot load is reported once via `Trace`).
-  **Decision:** the effects package is for decorative post effects; core visuals (blur building blocks like `ProgressiveBlur`) belong in the core and must never silently degrade because an optional assembly did not load (a referenced package whose types are unused never runs its module initializer).
-- `src/MonoGame.PortableUI.Effects` — optional shader visuals, NuGet ID `CodeIX.PortableUI.Effects`: post effects
-  (concrete `PostEffect`s + `PostProcessManager`), backdrop blur (`BackdropRenderer`/`BackdropManager`/`BackdropSource`),
-  glass brushes, all shaders (`compiled/*.mgfxo`, `src/*.fx`, `EffectCache`). It installs itself on first use
-  (`[ModuleInitializer]` → `EffectRenderers` factories in the core). The core keeps only the `PostEffect` base
+- `src/MonoGame.PortableUI` — the library (controls, layout, input, media/brushes, theming core, `FontStashUIFont` runtime fonts via FontStashSharp — in the core until MonoGame's own font system lands). Core visuals with shaders live here too: glass brushes (`Media/Glass`: frosted, acrylic, liquid, shimmer), the backdrop blur they sample (`BackdropRenderer`/`BackdropManager`/`BackdropSource`, default renderer of `ScreenEngine.BackdropRenderer`), `ProgressiveBlur`; shaders `Shaders/*.fx` + `*.ogl.mgfxo`, embedded, loaded by `CoreShaders` (a shader that cannot load is reported once via `Trace`).
+  **Decision:** the effects package is for decorative post effects only; core visuals (glass, blur) belong in the core and must never silently degrade because an optional assembly did not load (a referenced package whose types are unused never runs its module initializer).
+- `src/MonoGame.PortableUI.Effects` — optional decorative post effects, NuGet ID `CodeIX.PortableUI.Effects`: concrete
+  `PostEffect`s (scanlines, CRT barrel, vignette, film grain, bloom, dot matrix) + `PostProcessManager`, shaders `PostFx`
+  and `Primitives` (`compiled/*.mgfxo`, `src/*.fx`, `EffectCache`, which also finds the core's shaders by name). It installs
+  itself on first use (`[ModuleInitializer]` → `EffectRenderers.PostEffects`). The core keeps the `PostEffect` base
   (with `IsDisplayOnly`/`DisplayToUi`/`UiToDisplay` for pointer mapping), the effect lists and the
-  `IPostEffectRenderer`/`IBackdropRenderer` hooks; without the package it draws flat. Namespaces are unchanged.
+  `IPostEffectRenderer` hook; without the package post effects are skipped. Namespaces are unchanged.
   It sees core internals (`InternalsVisibleTo`) and ships in lockstep with the core version.
 - `src/MonoGame.PortableUI.Themes` — theme catalog add-on (depends on the effects package), NuGet ID `CodeIX.PortableUI.Themes` because the `MonoGame.` prefix is reserved on NuGet (`PortableThemes.All`, 42 themes incl. 5 game UIs, one self-contained file each under `Themes/`; `ThemeBuilder` lives in the core so a theme file can be copied alone — see `Themes/README.md`).
 - `samples/MonoGame.PortableUI.Demo` — DesktopGL demo; `samples/MonoGame.PortableUI.Demo.Android` — Android host.

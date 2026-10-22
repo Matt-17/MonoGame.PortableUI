@@ -7,13 +7,23 @@ namespace MonoGame.PortableUI.Tests
     public class CoreShadersTests
     {
         [TestMethod]
-        public void The_progressive_blur_shader_ships_inside_the_core()
+        [DataRow(CoreShaders.ProgressiveBlur)]
+        [DataRow(CoreShaders.Blur)]
+        [DataRow(CoreShaders.LiquidGlass)]
+        public void Shaders_of_core_visuals_ship_inside_the_core(string name)
         {
             // Core visuals must not depend on an optional package being loaded.
-            using var stream = typeof(CoreShaders).Assembly.GetManifestResourceStream($"MonoGame.PortableUI.Shaders.{CoreShaders.ProgressiveBlur}.ogl.mgfxo");
+            using var stream = typeof(CoreShaders).Assembly.GetManifestResourceStream($"MonoGame.PortableUI.Shaders.{name}.ogl.mgfxo");
 
             Assert.IsNotNull(stream);
             Assert.IsTrue(stream.Length > 0);
+        }
+
+        [TestMethod]
+        public void Glass_brushes_live_in_the_core_assembly()
+        {
+            Assert.AreSame(typeof(CoreShaders).Assembly, typeof(Media.FrostedGlassBrush).Assembly);
+            Assert.AreSame(typeof(CoreShaders).Assembly, typeof(BackdropRenderer).Assembly);
         }
     }
 }

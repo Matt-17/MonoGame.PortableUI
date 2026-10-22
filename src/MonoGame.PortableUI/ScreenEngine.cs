@@ -324,22 +324,21 @@ namespace MonoGame.PortableUI
         }
 
         /// <summary>
-        ///     Backdrop-blur renderer shared by all screens of this engine, or null without the optional
-        ///     effects package (glass then has nothing to sample). Created on first use and recreated
+        ///     Backdrop-blur renderer shared by all screens of this engine: the core's <see cref="Effects.BackdropRenderer"/>
+        ///     unless <see cref="EffectRenderers.Backdrop"/> supplies another. Created on first use and recreated
         ///     when the game's GraphicsDevice is replaced (Android activity restart, device reset).
         /// </summary>
         public IBackdropRenderer? BackdropRenderer
         {
             get
             {
-                var factory = EffectRenderers.Backdrop;
                 var device = Game.GraphicsDevice;
-                if (factory == null || device == null)
+                if (device == null)
                     return null;
                 if (_backdrop == null || !ReferenceEquals(_backdrop.GraphicsDevice, device))
                 {
                     _backdrop?.Dispose();
-                    _backdrop = factory(device);
+                    _backdrop = EffectRenderers.Backdrop?.Invoke(device) ?? new BackdropRenderer(device);
                 }
 
                 return _backdrop;

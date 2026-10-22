@@ -4,18 +4,19 @@ using MonoGame.PortableUI.Effects;
 
 namespace MonoGame.PortableUI.Tests
 {
-    /// <summary>#96: post effects and glass live in the optional effects package; the core only keeps
-    /// the PostEffect base, the effect lists and the renderer hooks.</summary>
+    /// <summary>#96: decorative post effects live in the optional effects package; the core keeps the PostEffect
+    /// base, the effect lists and the renderer hook (glass and blur are core).</summary>
     [TestClass]
     public class EffectsPackageTests
     {
         [TestMethod]
-        public void Using_anything_from_the_package_installs_its_renderers()
+        public void Using_anything_from_the_package_installs_its_renderer()
         {
             _ = new ScanlinePostEffect();
 
             Assert.IsNotNull(EffectRenderers.PostEffects);
-            Assert.IsNotNull(EffectRenderers.Backdrop);
+            // The backdrop blur is the core's own: the package installs nothing for it.
+            Assert.IsNull(EffectRenderers.Backdrop);
         }
 
         [TestMethod]

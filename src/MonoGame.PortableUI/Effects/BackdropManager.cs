@@ -58,7 +58,7 @@ namespace MonoGame.PortableUI.Effects
             var half = EnsureTarget(ref _half, Math.Max(1, width / 2), Math.Max(1, height / 2));
             var quarter = EnsureTarget(ref _quarter, Math.Max(1, width / 4), Math.Max(1, height / 4));
 
-            if (EffectCache.TryGetEffect(_graphicsDevice, EffectNames.Blur, out var blurEffect) && blurEffect != null)
+            if (CoreShaders.TryGet(_graphicsDevice, CoreShaders.Blur, out var blurEffect) && blurEffect != null)
             {
                 // Shader path: downsample to quarter res, then separable Gaussian H + V.
                 var pingPong = EnsureTarget(ref _pingPong, quarter.Width, quarter.Height);
