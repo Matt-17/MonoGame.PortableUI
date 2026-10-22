@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **`QrCode` reproduces a given code module for module (`Mode`, `BoostErrorCorrection`, `Version`, `Mask`):** `Mode` Auto (default) stores digits in numeric and digits, upper-case letters and ` $%*+-./:` in alphanumeric mode, so such codes come out smaller than in byte mode; Numeric, Alphanumeric and Byte fix it. `BoostErrorCorrection` false keeps `ErrorCorrection` as given, `Version` 1-40 fixes the size (0: the smallest), `Mask` 0-7 fixes the mask (null: the lowest penalty). Together they match a printed ticket exactly.
 - **A control drawn into a PNG (`ScreenEngine.RenderToPng(content, width, scale = 0)`):** lays out a control that is not on screen at a width (as tall as it wants, wrapping text included) and draws it with the active screen's theme and fonts into PNG bytes, at the screen's scale or a given one. For a card to share or a code to save; the screen on display is not disturbed. Game thread only; give the content a background, uncovered parts stay transparent.
 
 - **`QrCode` control:** shows `Text` (UTF-8) as a QR code, dark `ModuleColor` modules on the `BackgroundBrush` (white) with a `QuietZone` of 4 modules. The smallest version 1-40 that holds the text, `ErrorCorrection` (Low/Medium/Quartile/High, default Medium) raised as far as that version allows. Always square and centred in its box (4 per module without a fixed size); modules on whole device pixels so the code stays crisp. The encoder is built in (after Project Nayuki's MIT QR Code generator, byte mode), no package needed.

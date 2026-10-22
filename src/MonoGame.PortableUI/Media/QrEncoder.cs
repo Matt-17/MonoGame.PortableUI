@@ -1,5 +1,5 @@
 // QR Code generator, after Project Nayuki's "QR Code generator library" (https://www.nayuki.io/page/qr-code-generator-library),
-// reduced to byte mode. Original licence:
+// reduced to one segment (numeric, alphanumeric or byte mode). Original licence:
 //
 // Copyright (c) Project Nayuki. (MIT License)
 //
@@ -34,9 +34,26 @@ namespace MonoGame.PortableUI.Media
         High,
     }
 
+    /// <summary>How a QR code stores its text: the smallest that holds it, or a given one (to match a printed code module for module).</summary>
+    public enum QrMode
+    {
+        /// <summary>Numeric for digits only, alphanumeric for digits, upper-case letters and <c> $%*+-./:</c>, else byte.</summary>
+        Auto,
+
+        /// <summary>Digits only, three in 10 bits.</summary>
+        Numeric,
+
+        /// <summary>Digits, upper-case letters and <c> $%*+-./:</c>, two in 11 bits.</summary>
+        Alphanumeric,
+
+        /// <summary>Any text as UTF-8, 8 bits per byte.</summary>
+        Byte,
+    }
+
     /// <summary>
-    ///     Encodes text (UTF-8, byte mode) into the modules of a QR code: the smallest version 1-40 that holds it, the
-    ///     error correction raised as far as that version allows, the mask with the lowest penalty.
+    ///     Encodes text into the modules of a QR code: by default in the smallest mode, the smallest version 1-40 that holds
+    ///     it, the error correction raised as far as that version allows and the mask with the lowest penalty. Mode,
+    ///     version, mask and the raise can be fixed to reproduce a given code module for module.
     /// </summary>
     internal static class QrEncoder
     {
@@ -65,35 +82,89 @@ namespace MonoGame.PortableUI.Media
         private const int PenaltyN3 = 40;
         private const int PenaltyN4 = 10;
 
-        /// <summary>The modules, [y, x], true = dark. Throws when the text does not fit version 40.</summary>
-        public static bool[,] Encode(string text, QrErrorCorrection errorCorrection)
-        {
-            var data = Encoding.UTF8.GetBytes(text ?? string.Empty);
+        private const string AlphanumericCharacters = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:";
 
-            // The smallest version that holds the data.
-            int version, usedBits = 0;
-            for (version = 1; ; version++)
+        /// <summary>
+        ///     The modules, [y, x], true = dark. <paramref name="version"/> 0 picks the smallest that holds the text, 1-40
+        ///     uses that one; <paramref name="boostErrorCorrection"/> raises the correction as far as the version allows;
+        ///     <paramref name="mask"/> null picks the lowest penalty, 0-7 uses that one. Throws <see cref="ArgumentException"/>
+        ///     when the text does not fit (version 40, or the given version) or a given mode cannot hold it.
+        /// </summary>
+        public static bool[,] Encode(string text, QrErrorCorrection errorCorrection, QrMode mode = QrMode.Auto,
+            bool boostErrorCorrection = true, int version = 0, int? mask = null)
+        {
+            text ??= string.Empty;
+            if (version < 0 || version > 40)
+                throw new ArgumentOutOfRangeException(nameof(version), "A QR code version is 1-40, or 0 for the smallest.");
+            if (mask is < 0 or > 7)
+                throw new ArgumentOutOfRangeException(nameof(mask), "A QR code mask is 0-7, or null for the lowest penalty.");
+            if (mode == QrMode.Auto)
+                mode = IsNumeric(text) ? QrMode.Numeric : IsAlphanumeric(text) ? QrMode.Alphanumeric : QrMode.Byte;
+            else if (mode == QrMode.Numeric && !IsNumeric(text))
+                throw new ArgumentException("Numeric mode holds digits only.", nameof(text));
+            else if (mode == QrMode.Alphanumeric && !IsAlphanumeric(text))
+                throw new ArgumentException("Alphanumeric mode holds digits, upper-case letters and space $%*+-./: only.", nameof(text));
+
+            var data = mode == QrMode.Byte ? Encoding.UTF8.GetBytes(text) : null;
+            var count = data?.Length ?? text.Length;
+            var dataBits = mode switch
             {
-                var countBits = version <= 9 ? 8 : 16;
-                usedBits = 4 + countBits + data.Length * 8;
-                if (data.Length < 1 << countBits && usedBits <= DataCodewords(version, errorCorrection) * 8)
+                QrMode.Numeric => count / 3 * 10 + (count % 3 == 0 ? 0 : count % 3 * 3 + 1),
+                QrMode.Alphanumeric => count / 2 * 11 + count % 2 * 6,
+                _ => count * 8,
+            };
+
+            // The smallest version that holds the data (or the given one).
+            var usedBits = 0;
+            for (var candidate = version == 0 ? 1 : version; ; candidate++)
+            {
+                var countBits = CountBits(mode, candidate);
+                usedBits = 4 + countBits + dataBits;
+                if (count < 1 << countBits && usedBits <= DataCodewords(candidate, errorCorrection) * 8)
+                {
+                    version = candidate;
                     break;
-                if (version >= 40)
-                    throw new ArgumentException("The text is too long for a QR code.", nameof(text));
+                }
+                if (candidate >= 40 || version != 0)
+                    throw new ArgumentException(version != 0 ? $"The text is too long for a version {version} QR code." : "The text is too long for a QR code.", nameof(text));
             }
             // A stronger correction where it still fits.
-            for (var level = QrErrorCorrection.Medium; level <= QrErrorCorrection.High; level++)
+            for (var level = QrErrorCorrection.Medium; boostErrorCorrection && level <= QrErrorCorrection.High; level++)
             {
                 if (level > errorCorrection && usedBits <= DataCodewords(version, level) * 8)
                     errorCorrection = level;
             }
 
-            // Mode (byte), count, data, terminator, padding.
+            // Mode, count, data, terminator, padding.
             var bits = new List<bool>();
-            AppendBits(bits, 0x4, 4);
-            AppendBits(bits, data.Length, version <= 9 ? 8 : 16);
-            foreach (var b in data)
-                AppendBits(bits, b, 8);
+            AppendBits(bits, mode switch { QrMode.Numeric => 0x1, QrMode.Alphanumeric => 0x2, _ => 0x4 }, 4);
+            AppendBits(bits, count, CountBits(mode, version));
+            if (mode == QrMode.Numeric)
+            {
+                for (var i = 0; i < count; i += 3)
+                {
+                    var digits = Math.Min(3, count - i);
+                    var value = 0;
+                    for (var j = 0; j < digits; j++)
+                        value = value * 10 + (text[i + j] - '0');
+                    AppendBits(bits, value, digits * 3 + 1);
+                }
+            }
+            else if (mode == QrMode.Alphanumeric)
+            {
+                for (var i = 0; i < count; i += 2)
+                {
+                    if (i + 1 < count)
+                        AppendBits(bits, AlphanumericCharacters.IndexOf(text[i]) * 45 + AlphanumericCharacters.IndexOf(text[i + 1]), 11);
+                    else
+                        AppendBits(bits, AlphanumericCharacters.IndexOf(text[i]), 6);
+                }
+            }
+            else
+            {
+                foreach (var b in data!)
+                    AppendBits(bits, b, 8);
+            }
             var capacity = DataCodewords(version, errorCorrection) * 8;
             AppendBits(bits, 0, Math.Min(4, capacity - bits.Count));
             AppendBits(bits, 0, (8 - bits.Count % 8) % 8);
@@ -109,8 +180,40 @@ namespace MonoGame.PortableUI.Media
             var symbol = new Symbol(version, errorCorrection);
             symbol.DrawFunctionPatterns();
             symbol.DrawCodewords(AddEccAndInterleave(codewords, version, errorCorrection));
-            symbol.ChooseMask();
+            symbol.ChooseMask(mask);
             return symbol.Modules;
+        }
+
+        // Length of the character count field: numeric 10/12/14, alphanumeric 9/11/13, byte 8/16/16 bits by version range.
+        private static int CountBits(QrMode mode, int version)
+        {
+            var range = version <= 9 ? 0 : version <= 26 ? 1 : 2;
+            return mode switch
+            {
+                QrMode.Numeric => 10 + range * 2,
+                QrMode.Alphanumeric => 9 + range * 2,
+                _ => range == 0 ? 8 : 16,
+            };
+        }
+
+        private static bool IsNumeric(string text)
+        {
+            foreach (var c in text)
+            {
+                if (c is < '0' or > '9')
+                    return false;
+            }
+            return true;
+        }
+
+        private static bool IsAlphanumeric(string text)
+        {
+            foreach (var c in text)
+            {
+                if (AlphanumericCharacters.IndexOf(c) < 0)
+                    return false;
+            }
+            return true;
         }
 
         private static void AppendBits(List<bool> bits, int value, int length)
@@ -283,8 +386,14 @@ namespace MonoGame.PortableUI.Media
                 }
             }
 
-            public void ChooseMask()
+            public void ChooseMask(int? fixedMask)
             {
+                if (fixedMask is { } given)
+                {
+                    ApplyMask(given);
+                    DrawFormatBits(given);
+                    return;
+                }
                 var best = 0;
                 var lowest = int.MaxValue;
                 for (var mask = 0; mask < 8; mask++)
