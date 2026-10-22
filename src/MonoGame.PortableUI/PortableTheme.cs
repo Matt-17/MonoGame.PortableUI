@@ -99,6 +99,12 @@ namespace MonoGame.PortableUI
                 ToggleSwitchOffTrackBrush = FieldFrameBrush(palette),
                 ToggleSwitchOnTrackBrush = SelectionBrush(palette),
                 ToggleSwitchKnobBrush = Solid(ContrastColor(palette.Selection)),
+                SegmentedTrackBrush = palette.SurfaceAltBrush ?? Solid(palette.SurfaceAlt),
+                SegmentedIndicatorBrush = SelectionBrush(palette),
+                SegmentedTextColor = palette.Text,
+                SegmentedSelectedTextColor = palette.SelectionText,
+                SegmentedNoteColor = palette.MutedText,
+                SegmentedSelectedNoteColor = palette.SelectionText.WithAlpha((byte)170),
                 BadgeBackgroundBrush = Solid(palette.Danger),
                 BadgeTextColor = ContrastColor(palette.Danger),
                 DataGridHeaderBackgroundBrush = SurfaceBrush(palette),
@@ -438,6 +444,24 @@ namespace MonoGame.PortableUI
         /// (<see cref="Animation.PartMotion.KnobDrop"/>; <see cref="ThemeBuilder"/> gives retro, desktop and terminal themes
         /// the classic linear slide); null = it jumps. A switch's own <c>KnobMotion</c> wins.</summary>
         public Animation.PartMotion? ToggleSwitchKnobMotion { get; set; } = Animation.PartMotion.KnobDrop;
+
+        /// <summary>Track behind a <c>SegmentedControl</c>'s options.</summary>
+        public Brush SegmentedTrackBrush { get; set; } = new SolidColorBrush(new Color(255, 255, 255, 40));
+        /// <summary>A <c>SegmentedControl</c>'s selection indicator.</summary>
+        public Brush SegmentedIndicatorBrush { get; set; } = new SolidColorBrush(new Color(96, 226, 219));
+        public Color SegmentedTextColor { get; set; } = Color.White;
+        public Color SegmentedSelectedTextColor { get; set; } = Color.Black;
+        public Color SegmentedNoteColor { get; set; } = new Color(200, 200, 200);
+        public Color SegmentedSelectedNoteColor { get; set; } = new Color(60, 60, 60);
+        public CornerRadius SegmentedCornerRadius { get; set; } = new CornerRadius(10);
+        /// <summary>Height of a side-by-side <c>SegmentedControl</c>, or of each stacked option.</summary>
+        public float SegmentedItemHeight { get; set; } = 36;
+        /// <summary>Gap between a <c>SegmentedControl</c>'s track edge and its options.</summary>
+        public float SegmentedIndicatorInset { get; set; } = 3;
+
+        /// <summary>How a <c>SegmentedControl</c>'s indicator travels: a drop by default (<see cref="Animation.PartMotion.Drop"/>;
+        /// <see cref="ThemeBuilder"/> gives retro, desktop and terminal themes a linear slide); null = it jumps.</summary>
+        public Animation.PartMotion? SegmentedIndicatorMotion { get; set; } = Animation.PartMotion.Drop;
 
         /// <summary>Diameter of a radio button's ring; null uses <see cref="CheckBoxBoxSize"/> (Material: 20).</summary>
         public float? RadioButtonRingSize { get; set; }

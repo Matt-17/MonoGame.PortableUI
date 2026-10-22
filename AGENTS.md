@@ -43,7 +43,7 @@ dotnet run --project benchmarks/MonoGame.PortableUI.Benchmarks -c Release -- --f
 animations, tooltips, context menu). Specializations: `Panel` → `Grid`/`StackPanel`/`SwipePresenter`/`Canvas` (absolute positions; moves shift via `OffsetArrangement`, no layout pass);
 `ContentControl` → `Button` (→ `ToggleButton` → `RadioButton`), `Border`, `CheckBox`, `ScrollViewer`,
 `FlyOut`, `Badge`; `TextBlock` → `TextBox`; direct: `ListBox`, `DataGrid`, `Slider`, `ProgressBar`, `DrawingCanvas` (immediate `DrawingContext`: triangles via `BasicEffect` between `End`/`ResumeControlBatch`),
-`ToggleSwitch` (its `Track`/`Knob` are private child controls exposed as `Control`; the knob moves by its shown `Translation` under a `PartMotion`, `Animation/PartMotion.cs`, which themes default per part), `TabControl`, `ThemeIsland`. `ContextMenu`/`MenuItem`/`TabItem` are plain objects, not controls.
+`ToggleSwitch` (its `Track`/`Knob` are private child controls exposed as `Control`; the knob moves by its shown `Translation` under a `PartMotion`, `Animation/PartMotion.cs`, which themes default per part), `TabControl`, `SegmentedControl` (equal option slots; its `Indicator` Border moves by shown `Translation` under a `PartMotion`, and a clipping cover layer moving with it holds the labels in the selected colours, counter-translated), `ThemeIsland`. `ContextMenu`/`MenuItem`/`TabItem` are plain objects, not controls.
 
 **Top level:** `ScreenEngine` owns navigation, focus, viewport scaling (`ReferenceSize` letter-boxing),
 the optional post-effect and backdrop renderers (`PostEffectRenderer`/`BackdropRenderer`, null without the effects package). `ScreenComponent` is the MonoGame `DrawableGameComponent` pumping

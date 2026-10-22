@@ -236,12 +236,15 @@ public static class ThemeBuilder
     }
 
     /// <summary>Text-mode themes get the DOS caret: underline / overwrite block, blinking at ~3.75 Hz.</summary>
-    /// <summary>The era's part motions: retro, desktop and terminal themes slide a switch's knob linearly (the classic
-    /// switch); the others keep the theme default, a drop.</summary>
+    /// <summary>The era's part motions: retro, desktop and terminal themes slide a switch's knob and a segmented
+    /// control's indicator linearly (the classic look); the others keep the theme default, a drop.</summary>
     public static void ApplyEraMotion(PortableTheme theme, ThemeEra era)
     {
         if (era is ThemeEra.Retro or ThemeEra.Desktop or ThemeEra.Terminal)
+        {
             theme.ToggleSwitchKnobMotion = Animation.PartMotion.Linear;
+            theme.SegmentedIndicatorMotion = Animation.PartMotion.Linear;
+        }
     }
 
     public static void ApplyEraCaret(PortableTheme theme, ThemeEra era)

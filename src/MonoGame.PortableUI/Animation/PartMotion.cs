@@ -54,7 +54,7 @@ namespace MonoGame.PortableUI.Animation
         /// <summary>Spring of the travel (it may overshoot and settle); wins over <see cref="Duration"/>.</summary>
         public SpringSpec? TravelSpring { get; init; }
 
-        /// <summary>A template the part gets a copy of (<see cref="Animation.Deformation.Clone"/>); it follows the part's
+        /// <summary>A template the part gets a copy of (<see cref="MonoGame.PortableUI.Animation.Deformation.Clone"/>); it follows the part's
         /// motion. Null = the part keeps its shape.</summary>
         public Deformation? Deformation { get; init; }
 
