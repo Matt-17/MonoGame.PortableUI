@@ -37,6 +37,29 @@ namespace MonoGame.PortableUI.Tests
         }
 
         [TestMethod]
+        public void A_toast_can_show_any_content_and_reports_its_message()
+        {
+            using var game = new Game();
+            var engine = CreateEngine(game);
+            var shown = new List<string>();
+            engine.Toasts.Shown += (_, message) => shown.Add(message);
+            var content = new StackPanel { Orientation = Orientation.Horizontal };
+            content.AddChild(new Border { Width = 16, Height = 16 });
+            content.AddChild(new TextBlock { Text = "Saved" });
+
+            engine.Toasts.Show(content, ToastDuration.Short, "Saved");
+            engine.Toasts.Show("after");
+            Advance(engine, 1);
+
+            Assert.AreSame(content, ((Border)engine.Toasts.Layer.Content!).Content);
+            Assert.AreEqual("Saved", engine.Toasts.CurrentMessage);
+            Advance(engine, 2100);
+            Advance(engine, 1);
+            Assert.AreEqual("after", engine.Toasts.CurrentMessage);
+            CollectionAssert.AreEqual(new[] { "Saved", "after" }, shown);
+        }
+
+        [TestMethod]
         public void The_offset_counts_from_the_safe_area()
         {
             using var game = new Game();

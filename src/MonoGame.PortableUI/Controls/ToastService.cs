@@ -36,7 +36,8 @@ namespace MonoGame.PortableUI.Controls
     public sealed class ToastService
     {
         private readonly ScreenEngine _engine;
-        private readonly Queue<(string Message, ToastDuration Duration)> _queue = new Queue<(string, ToastDuration)>();
+        private readonly Queue<(string Message, Control? Content, ToastDuration Duration)> _queue = new Queue<(string, Control?, ToastDuration)>();
+        private string? _currentMessage;
         private readonly ToastLayer _layer = new ToastLayer();
         private Border? _current;
         private TimeSpan _shownAt;
@@ -68,8 +69,8 @@ namespace MonoGame.PortableUI.Controls
         /// <summary>Fade/slide time for entering and leaving.</summary>
         public TimeSpan AnimationDuration { get; set; } = TimeSpan.FromMilliseconds(180);
 
-        /// <summary>Text of the message on screen (also while it animates out), or null.</summary>
-        public string? CurrentMessage => _current?.Content is TextBlock text ? text.Text : null;
+        /// <summary>Text of the message on screen (also while it animates out; for content, the text given with it), or null.</summary>
+        public string? CurrentMessage => _current != null ? _currentMessage : null;
 
         public int QueuedCount => _queue.Count;
 
@@ -81,7 +82,23 @@ namespace MonoGame.PortableUI.Controls
         {
             if (string.IsNullOrEmpty(message))
                 return;
+            Enqueue(message, null, duration);
+        }
 
+        /// <summary>
+        ///     Shows any content (an icon and text, a progress ring, anything) in the toast's bubble instead of a text;
+        ///     <paramref name="message"/> is what <see cref="CurrentMessage"/>, <see cref="Shown"/> and <see cref="Dismissed"/>
+        ///     report for it. The content is shown once and not reused.
+        /// </summary>
+        public void Show(Control content, ToastDuration duration = ToastDuration.Short, string message = "")
+        {
+            if (content == null)
+                return;
+            Enqueue(message ?? "", content, duration);
+        }
+
+        private void Enqueue(string message, Control? content, ToastDuration duration)
+        {
             if (_queue.Count >= Math.Max(0, MaxQueued))
             {
                 if (Overflow == ToastOverflowPolicy.DropNewest || MaxQueued <= 0)
@@ -89,7 +106,7 @@ namespace MonoGame.PortableUI.Controls
                 _queue.Dequeue();
             }
 
-            _queue.Enqueue((message, duration));
+            _queue.Enqueue((message, content, duration));
         }
 
         /// <summary>Removes the visible message and everything queued, without animation.</summary>
@@ -124,11 +141,12 @@ namespace MonoGame.PortableUI.Controls
 
         private void ShowNext(TimeSpan now)
         {
-            var (message, duration) = _queue.Dequeue();
+            var (message, content, duration) = _queue.Dequeue();
             var theme = PortableTheme.ResolveCurrent();
+            _currentMessage = message;
             _current = new Border
             {
-                Content = new TextBlock { Text = message, TextColor = theme.ToolTipTextColor, TextWrapping = TextWrapping.Wrap },
+                Content = content ?? new TextBlock { Text = message, TextColor = theme.ToolTipTextColor, TextWrapping = TextWrapping.Wrap },
                 BackgroundBrush = theme.ToolTipBackgroundBrush,
                 BorderBrush = theme.ToolTipBorderBrush,
                 BorderThickness = theme.ToolTipBorderWidth,
