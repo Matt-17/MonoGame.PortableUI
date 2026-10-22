@@ -773,6 +773,7 @@ namespace MonoGame.PortableUI
         }
 
         private bool _resyncPointerState;
+        private bool _touchFromOtherScreen;
 
         // Controls the last touch-down's preview reached (reused).
         private readonly System.Collections.Generic.List<Control> _previewed = new System.Collections.Generic.List<Control>();
@@ -1951,6 +1952,7 @@ namespace MonoGame.PortableUI
             // All downstream consumers work in UI space: undo the CRT barrel displacement here.
             var mousePosition = TransformPointerPosition(inputSource.MousePosition);
             var pressedMouseButtons = SnapshotPressedMouseButtons(inputSource.PressedMouseButtons);
+            var resyncing = _resyncPointerState;
             if (_resyncPointerState)
             {
                 // Just became the active screen: a button still held from the press that changed
@@ -1971,6 +1973,24 @@ namespace MonoGame.PortableUI
             if (hasTouch)
             {
                 touchState = touchCollection[0];
+            }
+            // A finger that went down on another screen (the scrim tap that closed a modal) is not this screen's
+            // gesture: none of it - moves, release - reaches it until the finger lifts.
+            if (resyncing && hasTouch && touchState.State != TouchLocationState.Pressed)
+                _touchFromOtherScreen = true;
+            if (_touchFromOtherScreen)
+            {
+                if (hasTouch && touchState.State == TouchLocationState.Pressed)
+                {
+                    _touchFromOtherScreen = false;
+                }
+                else
+                {
+                    if (!hasTouch || touchState.State is TouchLocationState.Released or TouchLocationState.Invalid)
+                        _touchFromOtherScreen = false;
+                    hasTouch = false;
+                    touchState = default;
+                }
             }
             var touchPosition = hasTouch ? TransformPointerPosition((PointF)touchState.Position.ToPoint()) : LastTouchPosition;
             TrackInputActivity(inputSource, mousePosition, pressedMouseButtons.Count, hasTouch, touchState.State);
